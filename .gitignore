@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+
+# Local-only Claude Code session artifacts — only agents/, skills/ and
+# settings.json are meant to be tracked.
+.claude/docs/
+.claude/transcripts/
+.claude/handoffs/
+.claude/session-report/
