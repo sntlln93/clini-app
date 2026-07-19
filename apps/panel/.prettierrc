@@ -1,0 +1,8 @@
+{
+    "singleQuote": true,
+    "tabWidth": 4,
+    "useTabs": false,
+    "endOfLine": "lf",
+    "tailwindStylesheet": "./src/index.css",
+    "plugins": ["prettier-plugin-organize-imports", "prettier-plugin-tailwindcss"]
+}

@@ -31,10 +31,14 @@ Decisiones ya tomadas (confirmadas con vos):
    strict_types en todo el código existente), phpstan, pest (2/2) y rector --dry-run
    (0 cambios) corren limpios contra el stack de Sail.
 
-3. **Tooling frontend** (`apps/panel`) — reemplazar oxlint (default del scaffold shadcn/vite)
-   por ESLint + Prettier (lo que CLAUDE.md/CI viejos asumen), agregar Vitest + Testing
-   Library para tests de componentes. Scripts `format`, `format:check`, `lint`, `lint:check`,
-   `test` en `package.json` para que matcheen lo que el CI espera.
+3. ~~**Tooling frontend**~~ — DONE. oxlint afuera, ESLint 9 (pin porque
+   `eslint-plugin-react` todavía no soporta ESLint 10) + Prettier + Vitest + Testing
+   Library, calcado de `../fototobares` con paths a `src/` y la convención de `routes/`
+   en vez de `pages/` (import-boundary rules, tailwind-canonical cssPath). `src/tests/setup.ts`
+   con los mismos polyfills de jsdom (ResizeObserver, scrollIntoView, matchMedia) para
+   shadcn/Radix. `vitest.config.ts` con `passWithNoTests: true` — no hay componentes
+   todavía, sacarlo cuando exista el primer test. Verificado: format, lint, lint:check,
+   typecheck, test y build corren limpios.
 
 4. **Playwright e2e** — crear `e2e/` con `playwright.config.ts` apuntando a los dos
    servidores (api :8080 + panel :5174, no un solo server Inertia :8000 como en
