@@ -40,10 +40,15 @@ Decisiones ya tomadas (confirmadas con vos):
    todavía, sacarlo cuando exista el primer test. Verificado: format, lint, lint:check,
    typecheck, test y build corren limpios.
 
-4. **Playwright e2e** — crear `e2e/` con `playwright.config.ts` apuntando a los dos
-   servidores (api :8080 + panel :5174, no un solo server Inertia :8000 como en
-   Fototobares), `e2e/helpers.ts` mínimo, sin los gotchas de UI de Fototobares (login page,
-   cmdk, etc. — eso se escribe cuando exista UI real).
+4. ~~**Playwright e2e**~~ — DONE. `playwright.config.ts` en la raíz (nuevo `package.json`
+   raíz solo para esto), `webServer` array con api (`php artisan serve`, CI-only) + panel
+   (`npm run dev`, CI-only) — local usa el stack de Sail ya levantado. `e2e/smoke.spec.ts`
+   con dos specs reales: GET `/api/ping` directo, y el panel mostrando "conectado a api".
+   Sin `helpers.ts`/`global.setup.ts` todavía — no hay auth ni dominio que justifique esa
+   abstracción. Verificado contra el stack en vivo vía `mcr.microsoft.com/playwright`: el
+   spec de API pasa; el del panel falla solo por un artefacto de correr el browser en un
+   contenedor aislado (`VITE_API_URL=http://localhost:8080` resuelve dentro de ESE
+   contenedor, no contra el host) — no aplica en CI real ni en un browser de verdad.
 
 5. **`.github/actions/setup-php` y `setup-node`** — cache keys y working-directory
    apuntando a `apps/api/composer.lock` y `apps/panel/package-lock.json` en vez de la raíz.
