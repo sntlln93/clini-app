@@ -23,12 +23,13 @@ Decisiones ya tomadas (confirmadas con vos):
    `.claude/docs|transcripts|handoffs|session-report` al `.gitignore` para que la sección
    "Session docs" del CLAUDE.md sea cierta.
 
-2. **Tooling backend** (`apps/api`) — instalar vía `sail composer require --dev`:
-   - `larastan/larastan` (phpstan) + `phpstan.neon`
-   - `rector/rector` + `rector/rector-laravel` + `rector.php`
-   - `pestphp/pest` + `pestphp/pest-plugin-laravel` (el issue #43 y CLAUDE.md viejo piden
-     Pest; ahora mismo el scaffold quedó en PHPUnit puro) — convertir los dos tests de
-     ejemplo a sintaxis Pest.
+2. ~~**Tooling backend**~~ — DONE. `larastan/larastan`, `driftingly/rector-laravel` (no
+   `rector/rector-laravel`, que está abandonado — confirmado contra `../fototobares`),
+   `pestphp/pest` + `pest-plugin-laravel`. `phpstan.neon` (level 9), `rector.php`,
+   `pint.json` (`declare_strict_types`), `tests/Pest.php`, tests de ejemplo convertidos a
+   sintaxis Pest. `composer.json` con scripts `analyse`/`pint`. Verificado: pint (fixeó
+   strict_types en todo el código existente), phpstan, pest (2/2) y rector --dry-run
+   (0 cambios) corren limpios contra el stack de Sail.
 
 3. **Tooling frontend** (`apps/panel`) — reemplazar oxlint (default del scaffold shadcn/vite)
    por ESLint + Prettier (lo que CLAUDE.md/CI viejos asumen), agregar Vitest + Testing

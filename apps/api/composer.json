@@ -14,14 +14,19 @@
         "laravel/tinker": "^3.0"
     },
     "require-dev": {
+        "driftingly/rector-laravel": "^2.5",
         "fakerphp/faker": "^1.23",
+        "larastan/larastan": "^3.10",
         "laravel/pail": "^1.2.5",
         "laravel/pao": "^1.0.6",
         "laravel/pint": "^1.27",
         "laravel/sail": "^1.63",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.6",
-        "phpunit/phpunit": "^12.5.12"
+        "pestphp/pest": "^4.7",
+        "pestphp/pest-plugin-laravel": "^4.1",
+        "phpunit/phpunit": "^12.5.12",
+        "rector/rector": "^2.5"
     },
     "autoload": {
         "psr-4": {
@@ -36,6 +41,8 @@
         }
     },
     "scripts": {
+        "analyse": "./vendor/bin/phpstan analyse",
+        "pint": "./vendor/bin/pint",
         "setup": [
             "composer install",
             "@php -r \"file_exists('.env') || copy('.env.example', '.env');\"",
