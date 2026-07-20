@@ -20,7 +20,7 @@ El panel y la (futura) landing comparten workspace de Node cuando exista una seg
 - PostgreSQL, base única compartida.
 - Multi-tenancy vía `organization_id`: `Organization → Membership → User`.
 - Colas: `QUEUE_CONNECTION=database` inicialmente, Redis solo cuando haya necesidad real.
-- Organización del código por dominios de negocio (`Domain/`, `Application/`, `Infrastructure/`, `Http/`), no solo por tipo de archivo.
+- Estructura estándar de Laravel (`app/Http/Controllers`, `app/Http/Requests`, `app/Http/Resources`, `app/Models`), con `app/Actions/` y `app/Services/` para lógica de negocio y adapters de terceros — ver [ADR 0002](../adr/0002-estructura-laravel-estandar.md).
 
 ## Frontend (panel)
 
@@ -28,6 +28,7 @@ El panel y la (futura) landing comparten workspace de Node cuando exista una seg
 - TanStack Router (file-based) + TanStack Query.
 - Tailwind CSS v4 + shadcn/ui.
 - Consume la API vía `VITE_API_URL`.
+- Estructura de carpetas (`routes/`, `components/`, `features/`) — ver [ADR 0003](../adr/0003-estructura-features-react.md).
 
 ## Infraestructura
 

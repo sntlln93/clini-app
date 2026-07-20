@@ -8,6 +8,7 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 - Stack: Laravel 13 (PHP 8.5) + PostgreSQL as a pure REST API (`apps/api`, no Inertia — see `docs/adr/0001-api-rest-en-lugar-de-inertia.md`). React 19 + TypeScript SPA (`apps/panel`) with TanStack Router (file-based) + TanStack Query, Tailwind CSS 4 + shadcn/ui, Vite 8.
 - Monorepo layout: `apps/api` and `apps/panel` as sibling deployable apps, each with its own Dockerfile for Dokploy. See `docs/architecture/overview.md`.
+- Auth: Laravel Sanctum, SPA (cookie) mode — the panel is a `statefulApi()` frontend, not a token client. See Architecture → Auth below.
 - Multi-tenancy: `Organization → Membership → User`, single shared Postgres database, tenant scoping via `organization_id`. A professional can belong to several organizations; patients are global entities (not per-organization) — clinical history stays modeled per-organization until the legal/permissions model is defined.
 - Language split: code, branches, commits and code comments in **English**; UI copy and GitHub PRs/issues/comments always in **Spanish**.
 - There is no real production traffic yet: migrations may be edited in place and re-run with `migrate:fresh --seed` in dev instead of adding new migration files; bug fixes may be folded into redesigns.
@@ -32,12 +33,17 @@ cp .env.example .env                              # once per clone
 
 No demo users/seeders yet — the seeded-data convention (`migrate:fresh --seed`) applies once `database/seeders/DatabaseSeeder.php` has real data.
 
+**TypeScript is pinned to `~6.0.2`** in both `package.json` (root) and `apps/panel/package.json` — deliberately, not an oversight. `typescript-eslint@8.64.0`'s peer dependency caps at `<6.1.0`; bumping to TS 7 breaks ESLint with a hard-to-read `ts-api-utils` crash, not a version-mismatch error. Bump both together only once `typescript-eslint` supports it.
+
+**`apps/panel/src/routeTree.gen.ts` is generated, not committed.** The `build` and `typecheck` npm scripts run `vite build` *before* `tsc` specifically so the TanStack Router Vite plugin writes that file first — a fresh checkout (CI, or the first `docker build` with no locally-cached copy) fails with `Cannot find module './routeTree.gen'` if this order is reversed. Don't "simplify" these scripts back to `tsc && vite build`.
+
 ### Tests
 
 ```bash
-# Backend — Pest, through Sail
+# Backend — Pest, through Sail (Arch, Unit, Feature testsuites)
 ./vendor/bin/sail php ./vendor/bin/pest
 ./vendor/bin/sail php ./vendor/bin/pest --filter "..."
+./vendor/bin/sail artisan test --testsuite=Arch    # fast, no DB — architecture rules from this file
 
 # Frontend — Vitest, apps/panel
 cd apps/panel && npm run test
@@ -50,7 +56,7 @@ npx playwright test
 
 Use the `run-forensics` skill — it detects the touched side(s) and runs the right tools.
 
-Underlying tools if you need one directly: `sail composer analyse` (phpstan level via Larastan), `sail composer pint`, and in `apps/panel`: `npm run format` / `npm run lint`, `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
+Underlying tools if you need one directly: `sail composer analyse` (phpstan level via Larastan), `sail composer pint`, `sail php ./vendor/bin/rector process --dry-run`, and in `apps/panel`: `npm run format` / `npm run lint`, `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
 
 ## Agent rules
 
@@ -88,20 +94,34 @@ Underlying tools if you need one directly: `sail composer analyse` (phpstan leve
 
 ### Backend layering
 
-Organize by business domain, not by file type (see `docs/architecture/overview.md`):
+Standard Laravel structure (see [ADR 0002](docs/adr/0002-estructura-laravel-estandar.md)):
 
 ```text
-Domain/          # core business logic, framework-agnostic
-Application/     # use cases / orchestration
-Infrastructure/  # framework, DB, external services
-Http/            # controllers, FormRequests, API Resources — thin
+app/
+├── Http/
+│   ├── Controllers/
+│   ├── Requests/
+│   └── Resources/
+├── Models/
+├── Actions/     # single-responsibility business logic
+├── Services/    # third-party API/SDK adapters
+├── Enums/
+└── Providers/
 ```
 
 - **Thin controllers**: HTTP routing, authorization, responses only. No SQL, validation, or business logic. Never `$request->validate()` — always inject a FormRequest.
 - **Actions/Services**: single-responsibility classes exposing one `execute()`/`handle()` method. Action encapsulates core business logic; Service wraps third-party APIs/SDKs (adapter pattern) to keep external systems out of the domain.
 - **Thin models**: relations, casts, basic scopes only. API Resources/DTOs do data shaping. Complex queries go in scopes/query classes, not controllers.
 
+`tests/Arch/ArchTest.php` enforces the controller/FormRequest/Resource conventions and the strict-types rule automatically — a failing Arch test names exactly what regressed. Fix by refactoring, never by adding an `->ignoring()` exception (the existing ones are correctness exceptions, not debt).
+
+### Auth
+
+Sanctum SPA (cookie) auth, not tokens: `bootstrap/app.php` calls `$middleware->statefulApi()`, which only attaches session/CSRF handling to requests whose `Origin`/`Referer` matches `SANCTUM_STATEFUL_DOMAINS` (`.env`) — a request without that header falls through to stateless/token auth instead and `$request->session()` throws if a controller assumes it's always there. `config/cors.php` requires an explicit `FRONTEND_URL` origin with `supports_credentials: true`; CORS can't use a wildcard origin with credentialed requests. The panel's axios client sends `withCredentials` + `withXSRFToken`. Routes: `POST /api/login`, `POST /api/logout` and `GET /api/me` behind `auth:sanctum` (`app/Http/Controllers/AuthController.php`). Tests simulate the SPA's `Referer` header explicitly (`tests/Feature/SanctumSpaAuthTest.php`) since Pest's HTTP client doesn't send one by default.
+
 ### Frontend structure (`apps/panel`)
+
+See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 
 - `src/routes/<module>/`: only TanStack Router entrypoints — `index.tsx` (list), `nuevo.tsx` (create), `$id.tsx` (show), `$id.editar.tsx` (edit) at the module root; non-CRUD feature modules use a single `index.tsx`. Everything else (local components, hooks, tests) goes in a co-located `-components/`, `-hooks/`, `-tests/` folder inside the module — the `-` prefix is TanStack Router's own mechanism for excluding a folder from route generation, replacing Inertia's implicit "everything else" convention.
 - `src/components/ui/`: shadcn/ui primitives, domain-agnostic. `src/components/` root: shared atomic components without domain/layout awareness. `src/features/`: shared composed components with domain/layout awareness. Global infra: `src/layouts/`, `src/hooks/`, `src/lib/` (pure TS helpers/enums, the `api` axios client), `src/types/`.
@@ -111,7 +131,7 @@ Http/            # controllers, FormRequests, API Resources — thin
 
 ### E2E suite
 
-Playwright hits both servers (`api` on :8080, `panel` on :5174). Conventions (DB reset strategy, auth storageState, spec isolation) are not defined yet — write them into this section once the suite exists.
+`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174) — no auth or seeded demo data involved yet. In CI, `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself; locally it expects the Sail stack already running. Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
 
 ## ADRs
 

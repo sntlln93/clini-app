@@ -11,3 +11,5 @@ e2e/.auth/
 .claude/transcripts/
 .claude/handoffs/
 .claude/session-report/
+
+mocks/

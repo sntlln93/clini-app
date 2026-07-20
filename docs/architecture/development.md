@@ -8,6 +8,9 @@
 ## Levantar el entorno
 
 ```bash
+git config core.hooksPath .githooks   # una vez por clon
+npm install                            # workspace: panel + e2e
+
 cd apps/api
 cp .env.example .env   # si no existe
 ./vendor/bin/sail up -d
@@ -24,7 +27,7 @@ Esto levanta tres servicios en la red `sail`:
 
 El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`.
 
-El servicio `panel` monta `apps/panel` completo y corre `npm install && npm run dev` al arrancar el contenedor.
+El servicio `panel` monta la raíz del repo (necesita ver el workspace de npm) y corre `npm install && npm run dev --workspace=apps/panel` al arrancar el contenedor.
 
 ## Comandos habituales
 
@@ -34,19 +37,21 @@ El servicio `panel` monta `apps/panel` completo y corre `npm install && npm run 
 ./vendor/bin/sail down            # apagar el stack
 ```
 
-Para trabajar en el panel sin Sail (más rápido para iterar en UI pura), también se puede correr localmente con Node 24 LTS:
+Para trabajar en el panel sin Sail (más rápido para iterar en UI pura), también se puede correr localmente con Node 24 LTS, después de instalar el workspace desde la raíz:
 
 ```bash
-cd apps/panel
-npm install
-npm run dev -- --port 5174
+npm install                         # desde la raíz, una vez
+npm run dev --workspace=apps/panel  # o: cd apps/panel && npm run dev
 ```
 
 ## Build de producción (verificación local)
 
 ```bash
-docker build -t clini-api apps/api
-docker build -t clini-panel --build-arg VITE_API_URL=https://api.tu-dominio.com apps/panel
+docker build -f apps/api/Dockerfile -t clini-api apps/api
+
+# build context es la raíz del repo (npm workspace) — ver ADR y apps/panel/Dockerfile
+docker build -f apps/panel/Dockerfile -t clini-panel \
+  --build-arg VITE_API_URL=https://api.tu-dominio.com .
 ```
 
-Estas son las mismas imágenes que Dokploy construye en despliegue.
+Estas son las mismas imágenes que Dokploy construye en despliegue (mismo Dockerfile, mismo build context).
