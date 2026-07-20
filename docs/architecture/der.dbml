@@ -1,0 +1,214 @@
+// Clini — core scheduling domain DER
+// Paste into https://dbdiagram.io to visualize.
+// Scope: MVP only (agenda, online booking, availability, cancellations,
+// reschedules, manual entry, reminders) — see docs/product/roadmap.md.
+// Excludes clinical history, billing, integrations (future modules).
+
+Project clini {
+  database_type: 'PostgreSQL'
+  Note: 'Core scheduling domain for Clini MVP.'
+}
+
+Enum membership_role {
+  owner
+  admin
+  professional
+  staff
+}
+
+Enum appointment_status {
+  scheduled
+  confirmed
+  cancelled
+  rescheduled
+  completed
+  no_show
+}
+
+Enum availability_exception_type {
+  blocked
+  extra
+}
+
+Enum reminder_channel {
+  email
+  sms
+  whatsapp
+}
+
+Enum reminder_status {
+  pending
+  sent
+  failed
+}
+
+Table organizations {
+  id bigint [pk, increment]
+  name varchar [not null]
+  slug varchar [not null, unique]
+  timezone varchar [not null, note: 'IANA tz, e.g. America/Argentina/Buenos_Aires']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table users {
+  id bigint [pk, increment]
+  name varchar [not null]
+  email varchar [not null, unique]
+  password varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Anyone who logs in to the panel: owners, admins, professionals, staff. Not patients.'
+}
+
+Table memberships {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  user_id bigint [not null]
+  role membership_role [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (organization_id, user_id) [unique]
+  }
+
+  Note: '''
+    Tenant boundary: access and role are always scoped to one membership.
+    A professional working at 2 organizations has 2 rows here, with
+    separate availabilities and services per membership — schedules
+    don't cross organizations.
+  '''
+}
+
+Table patients {
+  id bigint [pk, increment]
+  name varchar [not null]
+  email varchar [null]
+  phone varchar [null]
+  document_number varchar [null]
+  birth_date date [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: '''
+    Global, NOT organization-scoped (see CLAUDE.md). The same patient row
+    is reused across organizations; the org association is implicit via
+    appointments.organization_id. Created by staff (manual entry) or by
+    find-or-create during online booking.
+  '''
+}
+
+Table services {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  name varchar [not null]
+  duration_minutes integer [not null]
+  price_cents integer [null, note: 'nullable until Mercado Pago integration lands']
+  currency varchar [not null, default: 'ARS', note: 'ISO 4217, e.g. ARS, USD']
+  active boolean [not null, default: true]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Table professional_services {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  membership_id bigint [not null]
+  service_id bigint [not null]
+
+  indexes {
+    (membership_id, service_id) [unique]
+  }
+
+  Note: 'Which services a given professional (membership) offers.'
+}
+
+Table availabilities {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  membership_id bigint [not null]
+  day_of_week smallint [not null, note: '0 = Sunday .. 6 = Saturday']
+  start_time time [not null]
+  end_time time [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Recurring weekly schedule per professional (membership), one row per block.'
+}
+
+Table availability_exceptions {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  membership_id bigint [not null]
+  type availability_exception_type [not null]
+  start_at timestamp [not null]
+  end_at timestamp [not null]
+  reason varchar [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: '''
+    One-off overrides to the recurring schedule: a blocked range (day off,
+    holiday) or extra availability outside the usual hours.
+  '''
+}
+
+Table appointments {
+  id bigint [pk, increment]
+  organization_id bigint [not null, note: 'tenant-scoping column, present on every table below except patients — see CLAUDE.md']
+  membership_id bigint [not null, note: 'the professional']
+  patient_id bigint [not null]
+  service_id bigint [null]
+  created_by_user_id bigint [null, note: 'null when created via public online booking']
+  status appointment_status [not null, default: 'scheduled']
+  start_at timestamp [not null]
+  end_at timestamp [not null]
+  rescheduled_from_id bigint [null, note: 'previous appointment this one replaces, if rescheduled']
+  cancellation_reason varchar [null]
+  notes text [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (membership_id, start_at)
+  }
+}
+
+Table reminders {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  appointment_id bigint [not null]
+  channel reminder_channel [not null]
+  status reminder_status [not null, default: 'pending']
+  scheduled_at timestamp [not null]
+  sent_at timestamp [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+}
+
+Ref: memberships.organization_id > organizations.id
+Ref: memberships.user_id > users.id
+
+Ref: services.organization_id > organizations.id
+
+Ref: professional_services.organization_id > organizations.id
+Ref: professional_services.membership_id > memberships.id
+Ref: professional_services.service_id > services.id
+
+Ref: availabilities.organization_id > organizations.id
+Ref: availabilities.membership_id > memberships.id
+
+Ref: availability_exceptions.organization_id > organizations.id
+Ref: availability_exceptions.membership_id > memberships.id
+
+Ref: appointments.organization_id > organizations.id
+Ref: appointments.membership_id > memberships.id
+Ref: appointments.patient_id > patients.id
+Ref: appointments.service_id > services.id
+Ref: appointments.created_by_user_id > users.id
+Ref: appointments.rescheduled_from_id > appointments.id
+
+Ref: reminders.organization_id > organizations.id
+Ref: reminders.appointment_id > appointments.id
