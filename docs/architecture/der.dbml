@@ -3,6 +3,16 @@
 // Scope: MVP only (agenda, online booking, availability, cancellations,
 // reschedules, manual entry, reminders) — see docs/product/roadmap.md.
 // Excludes clinical history, billing, integrations (future modules).
+//
+// Validated against docs/product/checklist-schema.md (derived from
+// docs/product/casos-de-uso.md). Conventions decided during that validation:
+//   - Timestamps (*_at) are stored in UTC and rendered in organizations.timezone;
+//     the slot grid is computed in the org timezone. availabilities use local
+//     wall-clock `time` for recurring rules.
+//   - Overlap exclusion (CU-20/36) is enforced in the booking Action inside a
+//     locked transaction, NOT by a DB exclusion constraint (accepted trade-off).
+//   - Soft deletes (deleted_at) on the domain tables; FKs default to restrict,
+//     with set null on optional references — nothing is hard-deleted in normal use.
 
 Project clini {
   database_type: 'PostgreSQL'
@@ -16,13 +26,37 @@ Enum membership_role {
   staff
 }
 
+Enum membership_status {
+  active
+  inactive
+  suspended
+}
+
+Enum document_type {
+  dni
+  passport
+  insurance_id
+}
+
+Enum sex {
+  f
+  m
+  u
+}
+
 Enum appointment_status {
   scheduled
   confirmed
-  cancelled
-  rescheduled
+  arrived
   completed
   no_show
+  cancelled
+  rescheduled
+}
+
+Enum appointment_origin {
+  online
+  manual
 }
 
 Enum availability_exception_type {
@@ -49,6 +83,9 @@ Table organizations {
   timezone varchar [not null, note: 'IANA tz, e.g. America/Argentina/Buenos_Aires']
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp [null]
+
+  Note: 'Address lives in the polymorphic addresses table (addressable = organization).'
 }
 
 Table users {
@@ -67,8 +104,10 @@ Table memberships {
   organization_id bigint [not null]
   user_id bigint [not null]
   role membership_role [not null]
+  status membership_status [not null, default: 'active']
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp [null]
 
   indexes {
     (organization_id, user_id) [unique]
@@ -78,8 +117,38 @@ Table memberships {
     Tenant boundary: access and role are always scoped to one membership.
     A professional working at 2 organizations has 2 rows here, with
     separate availabilities and services per membership — schedules
-    don't cross organizations.
+    don't cross organizations. status gates feature access without
+    deleting history (CU-05); an inactive/suspended member keeps its
+    past appointments. Specialties are attached via professional_specialties.
   '''
+}
+
+Table specialties {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  name varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp [null]
+
+  indexes {
+    (organization_id, name) [unique]
+  }
+
+  Note: 'Per-organization catalog (CU-43). Can be unified into a global directory later by dedup.'
+}
+
+Table professional_specialties {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  membership_id bigint [not null]
+  specialty_id bigint [not null]
+
+  indexes {
+    (membership_id, specialty_id) [unique]
+  }
+
+  Note: 'Ternary org+professional+specialty (CU-34/43): a professional may hold several specialties within one organization.'
 }
 
 Table patients {
@@ -87,16 +156,27 @@ Table patients {
   name varchar [not null]
   email varchar [null]
   phone varchar [null]
-  document_number varchar [null]
+  document_type document_type [not null, default: 'dni', note: 'DNI by default; passport / insurance_id as alternatives (CU-37)']
+  document_number varchar [not null]
+  sex sex [null]
   birth_date date [null]
+  insurance_provider_id bigint [null]
+  created_by bigint [null, note: 'user who created the record; null when self-created via online booking']
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp [null]
+
+  indexes {
+    (document_type, document_number) [unique]
+  }
 
   Note: '''
     Global, NOT organization-scoped (see CLAUDE.md). The same patient row
-    is reused across organizations; the org association is implicit via
-    appointments.organization_id. Created by staff (manual entry) or by
-    find-or-create during online booking.
+    is reused across organizations; identity is the (document_type,
+    document_number) pair (CU-37), which drives find-or-create dedup during
+    manual entry and online booking. The org association is NOT stored: a
+    patient's activity is reconstructed from appointments.organization_id
+    (CU-10). created_by is an audit trace only, not tenant scoping.
   '''
 }
 
@@ -110,6 +190,7 @@ Table services {
   active boolean [not null, default: true]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp [null]
 }
 
 Table professional_services {
@@ -135,13 +216,13 @@ Table availabilities {
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
-  Note: 'Recurring weekly schedule per professional (membership), one row per block.'
+  Note: 'Recurring weekly schedule per professional (membership), one row per block. Local wall-clock time in the org timezone.'
 }
 
 Table availability_exceptions {
   id bigint [pk, increment]
   organization_id bigint [not null]
-  membership_id bigint [not null]
+  membership_id bigint [null, note: 'null = organization-wide exception (e.g. holiday), affects every professional (CU-13)']
   type availability_exception_type [not null]
   start_at timestamp [not null]
   end_at timestamp [not null]
@@ -151,7 +232,8 @@ Table availability_exceptions {
 
   Note: '''
     One-off overrides to the recurring schedule: a blocked range (day off,
-    holiday) or extra availability outside the usual hours.
+    holiday) or extra availability outside the usual hours. A slot is removed
+    when EITHER the professional OR the organization is blocked for it.
   '''
 }
 
@@ -160,20 +242,59 @@ Table appointments {
   organization_id bigint [not null, note: 'tenant-scoping column, present on every table below except patients — see CLAUDE.md']
   membership_id bigint [not null, note: 'the professional']
   patient_id bigint [not null]
-  service_id bigint [null]
-  created_by_user_id bigint [null, note: 'null when created via public online booking']
+  service_id bigint [not null]
+  created_by bigint [null, note: 'user who created it; null when created via public online booking']
+  origin appointment_origin [not null, default: 'manual', note: 'online booking sets online; panel entry sets manual (CU-18/19)']
   status appointment_status [not null, default: 'scheduled']
   start_at timestamp [not null]
   end_at timestamp [not null]
-  rescheduled_from_id bigint [null, note: 'previous appointment this one replaces, if rescheduled']
+  reason varchar [null, note: 'free-text visit reason (CU-49), distinct from the future clinical note']
+  confirmed_at timestamp [null]
+  arrived_at timestamp [null]
+  completed_at timestamp [null]
+  cancelled_at timestamp [null]
+  cancelled_by bigint [null]
   cancellation_reason varchar [null]
+  rescheduled_from_id bigint [null, note: 'previous appointment this one replaces, if rescheduled']
   notes text [null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+  deleted_at timestamp [null]
 
   indexes {
     (membership_id, start_at)
   }
+
+  Note: 'Overlap exclusion (CU-20/36) is enforced in the booking Action under a locked transaction, not by a DB constraint — see docs/adr/0004-exclusion-de-solapamiento-en-la-action.md.'
+}
+
+Table insurance_providers {
+  id bigint [pk, increment]
+  name varchar [not null, unique]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Global catalog of health-insurance providers (obra social, CU-48). Stored now, fully used with billing later.'
+}
+
+Table addresses {
+  id bigint [pk, increment]
+  addressable_type varchar [not null]
+  addressable_id bigint [not null]
+  street varchar [null]
+  city varchar [null]
+  state varchar [null]
+  postal_code varchar [null]
+  country varchar [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+  deleted_at timestamp [null]
+
+  indexes {
+    (addressable_type, addressable_id)
+  }
+
+  Note: 'Polymorphic address (CU-50). Only organization addresses are used in the MVP; patient addresses are deferred but not blocked.'
 }
 
 Table reminders {
@@ -186,29 +307,41 @@ Table reminders {
   sent_at timestamp [null]
   created_at timestamp [not null]
   updated_at timestamp [not null]
+
+  Note: 'Patient reminder for an appointment. A polymorphic recipient (User or Patient, CU-29) is deferred to a future decoupled notifications module (CU-27/28).'
 }
 
-Ref: memberships.organization_id > organizations.id
-Ref: memberships.user_id > users.id
+Ref: memberships.organization_id > organizations.id [delete: restrict]
+Ref: memberships.user_id > users.id [delete: restrict]
 
-Ref: services.organization_id > organizations.id
+Ref: specialties.organization_id > organizations.id [delete: restrict]
 
-Ref: professional_services.organization_id > organizations.id
-Ref: professional_services.membership_id > memberships.id
-Ref: professional_services.service_id > services.id
+Ref: professional_specialties.organization_id > organizations.id [delete: restrict]
+Ref: professional_specialties.membership_id > memberships.id [delete: cascade]
+Ref: professional_specialties.specialty_id > specialties.id [delete: cascade]
 
-Ref: availabilities.organization_id > organizations.id
-Ref: availabilities.membership_id > memberships.id
+Ref: patients.insurance_provider_id > insurance_providers.id [delete: set null]
+Ref: patients.created_by > users.id [delete: set null]
 
-Ref: availability_exceptions.organization_id > organizations.id
-Ref: availability_exceptions.membership_id > memberships.id
+Ref: services.organization_id > organizations.id [delete: restrict]
 
-Ref: appointments.organization_id > organizations.id
-Ref: appointments.membership_id > memberships.id
-Ref: appointments.patient_id > patients.id
-Ref: appointments.service_id > services.id
-Ref: appointments.created_by_user_id > users.id
-Ref: appointments.rescheduled_from_id > appointments.id
+Ref: professional_services.organization_id > organizations.id [delete: restrict]
+Ref: professional_services.membership_id > memberships.id [delete: cascade]
+Ref: professional_services.service_id > services.id [delete: cascade]
 
-Ref: reminders.organization_id > organizations.id
-Ref: reminders.appointment_id > appointments.id
+Ref: availabilities.organization_id > organizations.id [delete: restrict]
+Ref: availabilities.membership_id > memberships.id [delete: cascade]
+
+Ref: availability_exceptions.organization_id > organizations.id [delete: restrict]
+Ref: availability_exceptions.membership_id > memberships.id [delete: cascade]
+
+Ref: appointments.organization_id > organizations.id [delete: restrict]
+Ref: appointments.membership_id > memberships.id [delete: restrict]
+Ref: appointments.patient_id > patients.id [delete: restrict]
+Ref: appointments.service_id > services.id [delete: restrict]
+Ref: appointments.created_by > users.id [delete: set null]
+Ref: appointments.cancelled_by > users.id [delete: set null]
+Ref: appointments.rescheduled_from_id > appointments.id [delete: set null]
+
+Ref: reminders.organization_id > organizations.id [delete: restrict]
+Ref: reminders.appointment_id > appointments.id [delete: cascade]
