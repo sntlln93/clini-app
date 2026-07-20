@@ -1,0 +1,12 @@
+apps/api
+.git
+.github
+.claude
+docs
+node_modules
+apps/panel/node_modules
+apps/panel/dist
+e2e
+test-results
+playwright-report
+*.md

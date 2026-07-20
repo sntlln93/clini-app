@@ -1,11 +1,13 @@
 {
-  "name": "clini-e2e",
+  "name": "clini-app",
   "private": true,
   "type": "module",
+  "workspaces": ["apps/panel"],
   "scripts": {
     "test:e2e": "playwright test"
   },
   "devDependencies": {
-    "@playwright/test": "^1.61.1"
+    "@playwright/test": "^1.61.1",
+    "typescript": "~6.0.2"
   }
 }
