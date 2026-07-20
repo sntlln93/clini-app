@@ -17,7 +17,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
  | arch test points at exactly what regressed. Fix it by refactoring, never
  | by adding an exception.
  |
- | Some sections (App\Domain, App\Application, App\Infrastructure, FormRequests,
+ | Some sections (App\Actions, App\Services, App\Enums, FormRequests,
  | Resources) currently match zero classes — nothing lives there yet — so they
  | pass vacuously. They exist so the very first class added under those
  | namespaces is already held to the convention, instead of drifting first and
@@ -109,9 +109,7 @@ arch('enums are enums')
 
 // --- Layering: dependencies point inward ------------------------------------
 
-// Domain/Application must not reach into the HTTP layer — see
-// docs/architecture/overview.md for the intended Domain/Application/
-// Infrastructure/Http split.
-arch('the domain layer does not depend on the http layer')
-    ->expect(['App\Domain', 'App\Application'])
+// Business logic must not reach back into the HTTP layer — see ADR 0002.
+arch('actions and services do not depend on the http layer')
+    ->expect(['App\Actions', 'App\Services'])
     ->not->toUse('App\Http');
