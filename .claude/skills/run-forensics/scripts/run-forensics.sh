@@ -1,0 +1,161 @@
+#!/usr/bin/env bash
+# Conditional quality gate: detects which side of the codebase changed and
+# runs only the matching tools. Backend runs through Sail (apps/api) — there
+# is no local PHP. Frontend runs inside the already-running `panel` container
+# (apps/api/compose.yaml) — it isn't part of the Sail PHP container, and a
+# local node breaks vitest/rollup.
+#
+# Usage: bash .claude/skills/run-forensics/scripts/run-forensics.sh [--full]
+#   --full | --pr   also run the test suites of the touched side(s)
+#                   (vitest / pest; playwright runs in CI only, never here —
+#                   a local run would need its own webServer boot)
+
+set -uo pipefail
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+
+# Sail resolves compose.yaml relative to the caller's cwd, not its own
+# location — it must be invoked from apps/api even though this script runs
+# from the repo root.
+sail() {
+    (cd apps/api && ./vendor/bin/sail "$@")
+}
+
+# The panel service isn't reachable through Sail's wrapper (that only targets
+# laravel.test), so it's addressed directly via docker compose. WWWUSER/
+# WWWGROUP mirror what vendor/bin/sail itself exports, so files eslint/
+# prettier write stay owned by the host user instead of root.
+export WWWUSER=${WWWUSER:-$UID}
+export WWWGROUP=${WWWGROUP:-$(id -g)}
+panel() {
+    docker compose -f apps/api/compose.yaml --project-directory apps/api exec -T --workdir /workspace/apps/panel panel "$@"
+}
+
+# e2e/ (root-level: shared by no single app) has no running container of its
+# own — a one-off container keeps this off the host node, which is neither a
+# pinned version nor guaranteed to be present.
+e2e_node() {
+    docker run --rm -v "$PWD:/app" -w /app --user "$WWWUSER:$WWWGROUP" -e HOME=/tmp \
+        node:24-bookworm-slim "$@"
+}
+
+FULL=false
+if [ "${1:-}" = "--full" ] || [ "${1:-}" = "--pr" ]; then
+    FULL=true
+fi
+
+if ! sail ps 2>/dev/null | grep -q "laravel.test.*Up"; then
+    echo "ERROR: Sail is not running. Start it with: (cd apps/api && ./vendor/bin/sail up -d)" >&2
+    exit 1
+fi
+
+# Changed files: committed on this branch (vs the merge-base with develop)
+# + staged + working tree + untracked.
+base=$(git merge-base HEAD origin/develop 2>/dev/null \
+    || git merge-base HEAD develop 2>/dev/null \
+    || echo HEAD)
+files=$(
+    {
+        git diff --name-only "$base" 2>/dev/null
+        git diff --name-only --cached 2>/dev/null
+        git ls-files --others --exclude-standard
+    } | sort -u
+)
+
+backend=false
+frontend=false
+e2e=false
+grep -qE '^apps/api/.*\.php$|^apps/api/composer\.(json|lock)$|^apps/api/database/|^apps/api/routes/|^apps/api/(phpstan|phpunit|pint)\.' <<<"$files" && backend=true
+grep -qE '^apps/panel/src/.*\.(ts|tsx|js|jsx|css)$|^apps/panel/package(-lock)?\.json$|^apps/panel/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && frontend=true
+grep -qE '^e2e/|^playwright\.config\.ts$|^package(-lock)?\.json$' <<<"$files" && e2e=true
+
+if ! $backend && ! $frontend && ! $e2e; then
+    echo "No backend, frontend or e2e changes detected — nothing to validate."
+    exit 0
+fi
+
+echo "Changed sides: backend=$backend frontend=$frontend e2e=$e2e (full=$FULL)"
+echo
+
+failures=()
+# Output is captured, not streamed: a passing tool prints its whole file/test
+# list, which is pure noise that an agent then re-reads on every later turn.
+# On success only the label is emitted; on failure, a per-tool filtered log
+# (falling back to the raw tail when the filter matches nothing).
+filter_log() {
+    local filter=$1 log=$2
+    case "$filter" in
+        phpstan)
+            # Drop PHPStan's fixed preamble/table borders — keep only
+            # "path:line:message" lines — and strip the container path prefix.
+            grep -E '^[^:]+:[0-9]+:' "$log" | sed -E 's#^/var/www/html/##'
+            ;;
+        tsc)
+            grep -E 'error TS' "$log"
+            ;;
+        eslint)
+            sed -E 's/^[[:space:]]+//; s/[[:space:]]{2,}/ /g' "$log"
+            ;;
+        vitest)
+            grep -E '^::error' "$log"
+            ;;
+        pest)
+            sed -E $'s/\x1b\\[[0-9;]*[a-zA-Z]//g' "$log"
+            ;;
+        raw | *)
+            cat "$log"
+            ;;
+    esac
+}
+
+run() {
+    local label=$1 filter=$2
+    shift 2
+    local log
+    log=$(mktemp)
+    if "$@" >"$log" 2>&1; then
+        echo "==> $label: OK"
+    else
+        echo "==> $label: FAILED"
+        local filtered
+        filtered=$(filter_log "$filter" "$log")
+        if [ -z "$filtered" ]; then
+            tail -n "${VALIDATE_LOG_LINES:-40}" "$log"
+        else
+            echo "$filtered" | head -n "${VALIDATE_LOG_LINES:-40}"
+        fi
+        echo
+        failures+=("$label")
+    fi
+    rm -f "$log"
+}
+
+if $backend; then
+    run "pint" "raw" sail php ./vendor/bin/pint
+    run "phpstan" "phpstan" sail php ./vendor/bin/phpstan analyse --error-format=raw --no-progress
+fi
+
+if $frontend; then
+    run "prettier (write)" "raw" panel npm run format
+    run "eslint (fix)" "eslint" panel npm run lint -- --max-warnings=0
+    run "tsc" "tsc" panel npm run typecheck
+fi
+
+if $e2e; then
+    run "tsc (e2e)" "tsc" npx tsc -p e2e --noEmit
+fi
+
+if $FULL; then
+    $backend && run "pest" "pest" sail php ./vendor/bin/pest --compact --colors=never
+    $frontend && run "vitest" "vitest" panel npm run test -- --reporter=github-actions --no-isolate
+    # Playwright is CI-only: a local run would need its own webServer boot.
+    # The e2e required check covers it on every PR.
+    $e2e && echo "==> playwright: skipped locally (runs in CI)" && echo
+fi
+
+if [ ${#failures[@]} -gt 0 ]; then
+    echo "FAILED: ${failures[*]}"
+    exit 1
+fi
+
+echo "All checks passed."

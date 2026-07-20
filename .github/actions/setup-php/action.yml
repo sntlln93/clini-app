@@ -1,0 +1,30 @@
+name: Setup PHP
+description: PHP with the composer cache and dependencies installed for apps/api. Single source of truth for the PHP version.
+
+runs:
+  using: composite
+  steps:
+    - name: ⚙️ PHP
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.5'
+        tools: composer:v2
+        coverage: none
+
+    - name: 📂 Composer cache directory
+      id: composer-cache
+      shell: bash
+      working-directory: apps/api
+      run: echo "dir=$(composer config cache-files-dir)" >> "$GITHUB_OUTPUT"
+
+    - name: ♻️ Composer cache
+      uses: actions/cache@v6
+      with:
+        path: ${{ steps.composer-cache.outputs.dir }}
+        key: ${{ runner.os }}-composer-${{ hashFiles('apps/api/composer.lock') }}
+        restore-keys: ${{ runner.os }}-composer-
+
+    - name: 📦 Composer install
+      shell: bash
+      working-directory: apps/api
+      run: composer install --no-interaction --prefer-dist --optimize-autoloader

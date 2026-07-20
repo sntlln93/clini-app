@@ -50,31 +50,67 @@ Decisiones ya tomadas (confirmadas con vos):
    contenedor aislado (`VITE_API_URL=http://localhost:8080` resuelve dentro de ESE
    contenedor, no contra el host) — no aplica en CI real ni en un browser de verdad.
 
-5. **`.github/actions/setup-php` y `setup-node`** — cache keys y working-directory
-   apuntando a `apps/api/composer.lock` y `apps/panel/package-lock.json` en vez de la raíz.
+5. ~~**`.github/actions/setup-php` y `setup-node`**~~ — DONE. `setup-php` hardcodeado a
+   `apps/api` (único consumidor). `setup-node` con input `working-directory` (default
+   `apps/panel`) porque `e2e` necesita instalarlo dos veces (panel + raíz para Playwright).
 
-6. **`.github/workflows/tests.yml` y `code-quality.yml`** — `working-directory: apps/api`
-   / `apps/panel` por job, Postgres en vez de MySQL (matchear `apps/api/.env.example`),
-   `e2e` levanta ambos servers (Laravel `serve` + `vite preview`/`dev`) en vez de uno solo.
-   Mantener el check de "sin atribución de agente en los commits" tal cual.
+6. ~~**`.github/workflows/tests.yml` y `code-quality.yml`**~~ — DONE. `working-directory`
+   por step apuntando a `apps/api`/`apps/panel`, servicio Postgres 18 (DB `testing`) en vez
+   de MySQL. `e2e` no arma servers a mano — el `webServer` array de `playwright.config.ts`
+   ya levanta `php artisan serve` + `vite dev` solo. El step "Arch tests" está de vuelta:
+   se agregó `tests/Arch/ArchTest.php` (adaptado de `../fototobares` — se sacaron las
+   reglas atadas a su patrón específico de `App\Actions`/`App\Data`/`ActionContract` que
+   Clini no adoptó, y las de `App\Domain`/`App\Application` quedan pasando en vacío hasta
+   que exista código ahí). `phpunit.xml` con testsuite `Arch`. 14/14 tests verificados
+   (Arch+Unit+Feature) vía Sail. Check de atribución de agente intacto. Verificado solo
+   con YAML lint
+   (`python -c yaml.safe_load`, vía contenedor) — no hay manera de correr Actions
+   localmente sin `act` (no instalado) o un push real a GitHub.
 
 7. **`.claude/settings.json`** — permissions con `apps/api/vendor/bin/sail ...` en vez de
    `./vendor/bin/sail ...`, y comandos de panel corriendo directo (no a través de Sail,
    porque el panel no vive dentro del contenedor PHP).
 
-8. **`run-forensics.sh`** — reescribir la detección de "backend/frontend tocado" para los
-   paths nuevos (`apps/api/**`, `apps/panel/**`), correr backend por Sail y frontend con
-   node directo (docker run, como venimos haciendo en esta sesión) en vez de `sail npm`.
+8. ~~**`run-forensics.sh`**~~ — DONE. Detección de paths nueva (`apps/api/**`,
+   `apps/panel/src/**`, `e2e/`+`playwright.config.ts`+`package.json` para e2e). Backend por
+   `sail()` (subshell `cd apps/api` — Sail resuelve `compose.yaml` relativo al cwd del
+   caller, no a su propia ubicación). Frontend por `panel()` (`docker compose exec` directo
+   al servicio `panel`, con `--workdir /workspace/apps/panel` — Sail no puede targetear
+   servicios que no sean `laravel.test`). e2e por `e2e_node()` (contenedor descartable, no
+   host node). Verificado `--full` end-to-end: pint/phpstan/pest + prettier/eslint/tsc/vitest
+   + tsc(e2e), todo OK.
 
-9. **Hook + limpieza de docs de agentes/skills**:
-   - `git config core.hooksPath .githooks`
-   - Barrer `.claude/agents/*.md` y `.claude/skills/*/SKILL.md` por referencias a
-     Fototobares: layer chain de Inertia (`coroner.md`), stock/producción (`coroner.md`),
-     `resources/js` paths y `setup.ts` (`stenographer.md`), `PageSmokeTest`/`ArchTest.php`
-     (`pass-sentence.md`), ruta literal `-Volumes-eSSD-src-fototobares` (`collect-evidence`),
-     gotchas de UI específicos de Fototobares (`verify` skill). `serve-warrant` y
-     `canvass-the-scene` ya se revisaron y no tienen referencias de dominio — quedan como
-     están.
+9. ~~**npm workspaces**~~ — DONE (surgió a mitad del paso 8, no estaba en el plan original).
+   Root `package.json` con `workspaces: ["apps/panel"]`, un solo `package-lock.json`. TS
+   alineado a `~6.0.2` en ambos — se probó `^7.0.2` (última estable) primero pero
+   `typescript-eslint@8.64.0` tiene un peer dep duro `<6.1.0`, rompe con TS7 real (no era
+   un artefacto de hoisting). `apps/panel/Dockerfile` reescrito para build-context raíz
+   (`npm ci --workspace=apps/panel --include-workspace-root=false`), con
+   `apps/panel/Dockerfile.dockerignore` (convención BuildKit) reemplazando el
+   `.dockerignore` viejo. Servicio `panel` de Sail monta la raíz del repo (`../..`) en vez
+   de solo `apps/panel`. CI: `setup-node` simplificado a un solo install, el job `e2e` ya
+   no necesita dos calls. Verificado: build de imagen real + smoke test, stack de Sail
+   recreado y respondiendo, `run-forensics.sh --full` limpio.
+
+9. ~~**Hook + limpieza de docs de agentes/skills**~~ — DONE.
+   - `git config core.hooksPath .githooks` instalado.
+   - `coroner.md`: layer chain adaptado (sin Inertia), sacada la referencia a
+     `shouldBeStrict`/stock (no decidido para Clini).
+   - `stenographer.md`: paths a `apps/api/tests`, `apps/panel/src`, `apps/panel/src/tests/setup.ts`.
+   - `verify/SKILL.md`: reescrito — cómo se sirve el panel ahora (Sail :5174 + api :8080),
+     se sacó toda la sección de gotchas de UI de Fototobares (login/cmdk/accordion, no
+     aplican, no hay UI real todavía), se mantuvo la regla de scroll horizontal (confirmada
+     para Clini).
+   - `pass-sentence.md`: paths a `apps/api/tests/Arch/ArchTest.php` (existe de verdad ahora),
+     sacada la referencia a `PageSmokeTest` (no existe), `Dockerfile`/`docker/**` → glob
+     `apps/*/Dockerfile*` / `apps/*/docker/**` (dos apps, no una). Mismo ajuste de glob en
+     `contractor.md` y `detective.md`.
+   - `collect-evidence/SKILL.md`: path del config-dir a `-Volumes-eSSD-src-clini-app`.
+   - `.claude/settings.json`: mismo glob `apps/*/Dockerfile*` en la sección `ask`.
+   - `serve-warrant.md`: un ejemplo de comando con path viejo, corregido.
+   - `judge.md`, `canvass-the-scene.md` no tenían referencias de dominio — sin cambios.
+   - Barrido final (`grep` por fototobares/taller/oficina/ComboProduct/cmdk/etc.) sin
+     resultados.
 
 ## Estado
 

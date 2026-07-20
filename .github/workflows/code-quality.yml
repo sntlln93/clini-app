@@ -1,0 +1,74 @@
+name: Code Quality Checks
+
+on:
+  pull_request:
+    branches: [develop, main]
+  # Pushes to the long-lived branches keep the README badges reporting
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality_backend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clone repo
+        uses: actions/checkout@v7
+
+      # Reads the messages over the API so the job keeps its shallow clone
+      - name: 🚫 Sin atribución de agente en los commits
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          messages=$(gh api \
+            "repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number }}/commits" \
+            --paginate --jq '.[].commit.message')
+
+          if printf '%s' "$messages" | grep -iE 'co-authored-by:.*(claude|anthropic)|generated with \[?claude code'; then
+            echo "::error::Un commit lleva atribución de agente. CLAUDE.md lo prohíbe: reescribí el historial de la rama."
+            exit 1
+          fi
+
+      - name: ⚙️ PHP + composer
+        uses: ./.github/actions/setup-php
+
+      - name: ⚡ Setup Laravel
+        working-directory: apps/api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: 🧹 Laravel Pint
+        working-directory: apps/api
+        run: vendor/bin/pint --test
+
+      - name: 🧹 PhpStan
+        working-directory: apps/api
+        run: vendor/bin/phpstan analyse
+
+  quality_frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clone repo
+        uses: actions/checkout@v7
+
+      - name: ⚙️ Node.js + npm
+        uses: ./.github/actions/setup-node
+
+      - name: ✨ Prettier
+        working-directory: apps/panel
+        run: npm run format:check
+
+      - name: 🔍 ESLint
+        working-directory: apps/panel
+        run: npm run lint:check
+
+      - name: 🛠️ TypeScript checks
+        working-directory: apps/panel
+        run: npm run typecheck

@@ -14,10 +14,13 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 ## Environment & commands
 
-Backend runs through Laravel Sail (Docker) — there is no local PHP. The panel runs as its own service in the same Sail compose file, so a single `sail up` starts everything; there is no local Node requirement either, though the panel can also be run with plain `npm` for faster UI-only iteration (Node 24 LTS, see `apps/panel/.nvmrc`).
+Backend runs through Laravel Sail (Docker) — there is no local PHP. The panel runs as its own service in the same Sail compose file, so a single `sail up` starts everything.
+
+The repo root is an npm workspace (`apps/panel` is its only member today) — one `npm install` at the root installs both the e2e (Playwright) deps and the panel's, with a single `package-lock.json`. This applies to **local dev and CI only**: production Docker builds (`apps/panel/Dockerfile`) still treat each app as standalone — Dokploy builds it with the repo root as context but installs only `apps/panel`'s dependencies (`npm ci --workspace=apps/panel --include-workspace-root=false`), and the image never includes the e2e suite.
 
 ```bash
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
+npm install                                       # once per clone — installs the whole workspace (needs Node 24 LTS; see package.json "workspaces")
 cd apps/api
 cp .env.example .env                              # once per clone
 ./vendor/bin/sail up -d                          # starts api + panel + pgsql

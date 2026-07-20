@@ -1,0 +1,149 @@
+name: Tests
+
+on:
+  pull_request:
+    branches: [develop, main]
+  # Pushes to the long-lived branches keep the README badges reporting
+  push:
+    branches: [develop, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests_backend:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sail -d testing"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=15
+
+    steps:
+      - name: 📥 Clone repo
+        uses: actions/checkout@v7
+
+      - name: ⚙️ PHP + composer
+        uses: ./.github/actions/setup-php
+
+      - name: ⚡ Setup Laravel
+        working-directory: apps/api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      # Architecture violations are static (no DB) and cheap, so they run
+      # first as a fast-fail gate before the slower feature suite.
+      - name: 🏛️ Arch tests
+        working-directory: apps/api
+        run: php artisan test --testsuite=Arch
+
+      - name: 🧪 Pest
+        working-directory: apps/api
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+        run: php artisan test
+
+  tests_frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clone repo
+        uses: actions/checkout@v7
+
+      - name: ⚙️ Node.js + npm
+        uses: ./.github/actions/setup-node
+
+      - name: 🧪 Vitest
+        working-directory: apps/panel
+        run: npm run test
+
+  e2e:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: testing
+          POSTGRES_USER: sail
+          POSTGRES_PASSWORD: password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U sail -d testing"
+          --health-interval=2s
+          --health-timeout=5s
+          --health-retries=15
+
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: testing
+      DB_USERNAME: sail
+      DB_PASSWORD: password
+      # Assertions may end up matching the Spanish UI
+      APP_LOCALE: es
+
+    steps:
+      - name: 📥 Clone repo
+        uses: actions/checkout@v7
+
+      - name: ⚙️ PHP + composer
+        uses: ./.github/actions/setup-php
+
+      - name: ⚡ Setup Laravel
+        working-directory: apps/api
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          php artisan migrate --force
+
+      - name: ⚙️ Node.js + npm
+        uses: ./.github/actions/setup-node
+
+      - name: ⚡ Setup panel env
+        run: cp apps/panel/.env.example apps/panel/.env
+
+      - name: ♻️ Playwright browser cache
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
+
+      # No --with-deps: ubuntu-latest already ships the Chromium system deps
+      - name: 🌐 Playwright browsers
+        run: npx playwright install chromium
+
+      - name: 🛠️ Type-check specs
+        run: npx tsc -p e2e --noEmit
+
+      # playwright.config.ts boots both servers itself (webServer array) when
+      # CI is set — php artisan serve for the api, vite dev for the panel
+      - name: 🧪 E2E tests
+        run: npx playwright test
+
+      - name: 📤 Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: test-results/
+          retention-days: 7

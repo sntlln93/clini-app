@@ -1,0 +1,22 @@
+#!/bin/sh
+# CLAUDE.md forbids agent attribution in commits, with no exceptions. Tooling
+# defaults append it anyway, so strip it at write time instead of relying on
+# every author (human or agent) remembering the rule.
+#
+# Only agent attribution is removed: Co-Authored-By for real people is valid.
+
+set -e
+
+msg="$1"
+tmp="$msg.strip"
+
+grep -viE \
+    -e '^[[:space:]]*co-authored-by:.*(claude|anthropic)' \
+    -e '^[[:space:]]*(🤖|.*generated with \[?claude code)' \
+    "$msg" >"$tmp" || true
+
+# Removing trailers leaves dangling blank lines at the end
+awk 'NF { last = NR } { line[NR] = $0 } END { for (i = 1; i <= last; i++) print line[i] }' \
+    "$tmp" >"$msg"
+
+rm -f "$tmp"
