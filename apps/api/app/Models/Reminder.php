@@ -7,14 +7,17 @@ namespace App\Models;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Support\Concerns\BelongsToOrganization;
+use Database\Factories\ReminderFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['organization_id', 'appointment_id', 'channel', 'status', 'scheduled_at', 'sent_at'])]
 class Reminder extends Model
 {
-    use BelongsToOrganization;
+    /** @use HasFactory<ReminderFactory> */
+    use BelongsToOrganization, HasFactory;
 
     /**
      * @return array<string, string>

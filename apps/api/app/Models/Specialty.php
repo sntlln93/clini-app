@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Support\Concerns\BelongsToOrganization;
+use Database\Factories\SpecialtyFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['organization_id', 'name'])]
 class Specialty extends Model
 {
-    use BelongsToOrganization, SoftDeletes;
+    /** @use HasFactory<SpecialtyFactory> */
+    use BelongsToOrganization, HasFactory, SoftDeletes;
 }

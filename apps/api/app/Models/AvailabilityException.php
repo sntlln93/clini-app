@@ -6,14 +6,17 @@ namespace App\Models;
 
 use App\Enums\AvailabilityExceptionType;
 use App\Support\Concerns\BelongsToOrganization;
+use Database\Factories\AvailabilityExceptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable(['organization_id', 'membership_id', 'type', 'start_at', 'end_at', 'reason'])]
 class AvailabilityException extends Model
 {
-    use BelongsToOrganization;
+    /** @use HasFactory<AvailabilityExceptionFactory> */
+    use BelongsToOrganization, HasFactory;
 
     /**
      * @return array<string, string>

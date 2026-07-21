@@ -7,7 +7,9 @@ namespace App\Models;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Support\Concerns\BelongsToOrganization;
+use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -17,7 +19,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 #[Fillable(['organization_id', 'user_id', 'role', 'status'])]
 class Membership extends Model
 {
-    use BelongsToOrganization, SoftDeletes;
+    /** @use HasFactory<MembershipFactory> */
+    use BelongsToOrganization, HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>

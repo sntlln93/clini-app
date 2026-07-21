@@ -7,7 +7,9 @@ namespace App\Models;
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
 use App\Support\Concerns\BelongsToOrganization;
+use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -35,7 +37,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 ])]
 class Appointment extends Model
 {
-    use BelongsToOrganization, SoftDeletes;
+    /** @use HasFactory<AppointmentFactory> */
+    use BelongsToOrganization, HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>

@@ -6,7 +6,9 @@ namespace App\Models;
 
 use App\Enums\DocumentType;
 use App\Enums\Sex;
+use Database\Factories\PatientFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,7 +27,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 ])]
 class Patient extends Model
 {
-    use SoftDeletes;
+    /** @use HasFactory<PatientFactory> */
+    use HasFactory, SoftDeletes;
 
     /**
      * @return array<string, string>
