@@ -16,6 +16,9 @@ class InsuranceProvider extends Model
     /** @use HasFactory<InsuranceProviderFactory> */
     use HasFactory;
 
+    /**
+     * @return HasMany<Patient, $this>
+     */
     public function patients(): HasMany
     {
         return $this->hasMany(Patient::class);

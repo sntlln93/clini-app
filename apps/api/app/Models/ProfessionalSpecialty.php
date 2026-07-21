@@ -19,11 +19,17 @@ class ProfessionalSpecialty extends Model
 
     public $timestamps = false;
 
+    /**
+     * @return BelongsTo<Membership, $this>
+     */
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
     }
 
+    /**
+     * @return BelongsTo<Specialty, $this>
+     */
     public function specialty(): BelongsTo
     {
         return $this->belongsTo(Specialty::class);

@@ -57,36 +57,57 @@ class Appointment extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Membership, $this>
+     */
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
     }
 
+    /**
+     * @return BelongsTo<Patient, $this>
+     */
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
     }
 
+    /**
+     * @return BelongsTo<Service, $this>
+     */
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function canceller(): BelongsTo
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
 
+    /**
+     * @return BelongsTo<self, $this>
+     */
     public function rescheduledFrom(): BelongsTo
     {
         return $this->belongsTo(self::class, 'rescheduled_from_id');
     }
 
+    /**
+     * @return HasMany<Reminder, $this>
+     */
     public function reminders(): HasMany
     {
         return $this->hasMany(Reminder::class);

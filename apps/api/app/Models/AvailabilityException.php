@@ -30,6 +30,9 @@ class AvailabilityException extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<Membership, $this>
+     */
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);

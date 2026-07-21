@@ -33,26 +33,41 @@ class Membership extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
+    /**
+     * @return BelongsToMany<Specialty, $this>
+     */
     public function specialties(): BelongsToMany
     {
         return $this->belongsToMany(Specialty::class, 'professional_specialties');
     }
 
+    /**
+     * @return BelongsToMany<Service, $this>
+     */
     public function services(): BelongsToMany
     {
         return $this->belongsToMany(Service::class, 'professional_services');
     }
 
+    /**
+     * @return HasMany<Availability, $this>
+     */
     public function availabilities(): HasMany
     {
         return $this->hasMany(Availability::class);
     }
 
+    /**
+     * @return HasMany<Appointment, $this>
+     */
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);

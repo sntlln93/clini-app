@@ -17,6 +17,9 @@ class Address extends Model
     /** @use HasFactory<AddressFactory> */
     use HasFactory, SoftDeletes;
 
+    /**
+     * @return MorphTo<Model, $this>
+     */
     public function addressable(): MorphTo
     {
         return $this->morphTo();

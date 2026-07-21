@@ -18,26 +18,41 @@ class Organization extends Model
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory, SoftDeletes;
 
+    /**
+     * @return HasMany<Membership, $this>
+     */
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
     }
 
+    /**
+     * @return HasMany<Specialty, $this>
+     */
     public function specialties(): HasMany
     {
         return $this->hasMany(Specialty::class);
     }
 
+    /**
+     * @return HasMany<Service, $this>
+     */
     public function services(): HasMany
     {
         return $this->hasMany(Service::class);
     }
 
+    /**
+     * @return HasMany<Appointment, $this>
+     */
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
     }
 
+    /**
+     * @return MorphMany<Address, $this>
+     */
     public function addresses(): MorphMany
     {
         return $this->morphMany(Address::class, 'addressable');

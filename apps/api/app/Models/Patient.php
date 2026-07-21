@@ -42,16 +42,25 @@ class Patient extends Model
         ];
     }
 
+    /**
+     * @return BelongsTo<InsuranceProvider, $this>
+     */
     public function insuranceProvider(): BelongsTo
     {
         return $this->belongsTo(InsuranceProvider::class);
     }
 
+    /**
+     * @return BelongsTo<User, $this>
+     */
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    /**
+     * @return HasMany<Appointment, $this>
+     */
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
