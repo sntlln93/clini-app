@@ -22,11 +22,12 @@ class AvailabilityExceptionFactory extends Factory
      */
     public function definition(): array
     {
+        $organization = Organization::factory()->create();
         $startAt = fake()->dateTimeBetween('now', '+1 month');
 
         return [
-            'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
+            'organization_id' => $organization,
+            'membership_id' => Membership::factory()->for($organization),
             'type' => fake()->randomElement(AvailabilityExceptionType::cases()),
             'start_at' => $startAt,
             'end_at' => (clone $startAt)->modify('+2 hours'),

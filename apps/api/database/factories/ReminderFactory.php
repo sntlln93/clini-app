@@ -7,7 +7,6 @@ namespace Database\Factories;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Models\Appointment;
-use App\Models\Organization;
 use App\Models\Reminder;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,9 +22,11 @@ class ReminderFactory extends Factory
      */
     public function definition(): array
     {
+        $appointment = Appointment::factory()->create();
+
         return [
-            'organization_id' => Organization::factory(),
-            'appointment_id' => Appointment::factory(),
+            'organization_id' => $appointment->organization_id,
+            'appointment_id' => $appointment,
             'channel' => fake()->randomElement(ReminderChannel::cases()),
             'status' => ReminderStatus::Pending,
             'scheduled_at' => fake()->dateTimeBetween('now', '+1 month'),

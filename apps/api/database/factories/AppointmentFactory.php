@@ -25,13 +25,14 @@ class AppointmentFactory extends Factory
      */
     public function definition(): array
     {
+        $organization = Organization::factory()->create();
         $startAt = fake()->dateTimeBetween('now', '+1 month');
 
         return [
-            'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
+            'organization_id' => $organization,
+            'membership_id' => Membership::factory()->for($organization),
             'patient_id' => Patient::factory(),
-            'service_id' => Service::factory(),
+            'service_id' => Service::factory()->for($organization),
             'created_by' => null,
             'origin' => AppointmentOrigin::Manual,
             'status' => AppointmentStatus::Scheduled,

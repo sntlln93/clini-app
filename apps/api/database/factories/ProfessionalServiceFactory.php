@@ -22,10 +22,12 @@ class ProfessionalServiceFactory extends Factory
      */
     public function definition(): array
     {
+        $organization = Organization::factory()->create();
+
         return [
-            'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
-            'service_id' => Service::factory(),
+            'organization_id' => $organization,
+            'membership_id' => Membership::factory()->for($organization),
+            'service_id' => Service::factory()->for($organization),
         ];
     }
 }

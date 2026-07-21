@@ -22,10 +22,12 @@ class ProfessionalSpecialtyFactory extends Factory
      */
     public function definition(): array
     {
+        $organization = Organization::factory()->create();
+
         return [
-            'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
-            'specialty_id' => Specialty::factory(),
+            'organization_id' => $organization,
+            'membership_id' => Membership::factory()->for($organization),
+            'specialty_id' => Specialty::factory()->for($organization),
         ];
     }
 }
