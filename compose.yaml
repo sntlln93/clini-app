@@ -1,0 +1,24 @@
+# Root entrypoint for local dev: brings up every service (api + panel + db)
+# in one project. Each app owns its own compose file — this one only wires
+# them together via `include`, which merges services/networks as if they
+# were declared here directly (relative paths inside each included file
+# still resolve against that file's own directory, not this one).
+#
+# `env_file` on the api entry is required because docker compose otherwise
+# looks for a `.env` next to *this* file (the repo root), not next to the
+# included one — apps/api/.env holds the real DB_DATABASE/DB_USERNAME it
+# has no fallback for. apps/panel/compose.yaml needs no env_file: every var
+# it interpolates (WWWUSER, WWWGROUP, PANEL_PORT) has a `:-default` inline,
+# and pointing it at apps/api/.env would be borrowing a file that isn't
+# semantically its own (that path is apps/panel/.env's job, for Vite).
+#
+#   docker compose up            # api + panel + pgsql
+#   docker compose up panel      # just the frontend dev server
+#
+# `./vendor/bin/sail` (run from apps/api) still works for artisan/pest and
+# only targets apps/api/compose.yaml (laravel.test + pgsql) — it has no
+# notion of this file or of the panel service.
+include:
+    - path: apps/api/compose.yaml
+      env_file: apps/api/.env
+    - path: apps/panel/compose.yaml

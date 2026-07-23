@@ -32,7 +32,7 @@ El panel y la (futura) landing comparten workspace de Node cuando exista una seg
 
 ## Infraestructura
 
-- Desarrollo: Laravel Sail, con el panel integrado como servicio adicional en el mismo `compose.yaml`.
+- Desarrollo: Laravel Sail para la API; el panel tiene su propio servicio Docker. Cada app tiene su `compose.yaml`, unidos por uno en la raíz vía `include` — `docker compose up` desde la raíz levanta todo. Ver [Development Guide](development.md#docker-compose-un-archivo-por-app--uno-en-la-raíz).
 - Producción: un Dockerfile propio por app (`apps/api/Dockerfile`, `apps/panel/Dockerfile`), desplegados en Dokploy. Sin Nixpacks.
 
 ## Pacientes

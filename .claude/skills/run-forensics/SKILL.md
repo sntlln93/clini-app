@@ -15,9 +15,10 @@ bash .claude/skills/run-forensics/scripts/run-forensics.sh --full   # before pro
 The script detects the touched side(s) — comparing the merge-base with
 `develop` plus staged, unstaged and untracked files — and runs only the
 matching tools. Backend runs through Sail (`apps/api`); frontend runs inside
-the already-running `panel` container (`apps/api/compose.yaml`), which isn't
-part of the Sail PHP container; e2e type-checking runs in a throwaway Node
-container (no host Node dependency):
+the already-running `panel` container (`apps/panel/compose.yaml`, brought up
+together with `apps/api`'s via the root `compose.yaml`'s `include`), which
+isn't part of the Sail PHP container; e2e type-checking runs in a throwaway
+Node container (no host Node dependency):
 
 | Side detected | Default | With `--full` |
 | --- | --- | --- |
@@ -29,9 +30,9 @@ container (no host Node dependency):
 
 - Fix every failure it reports and re-run until it prints `All checks passed.`
 - Exit code 1 means at least one tool failed; the summary line lists which.
-- Requires Sail up (`cd apps/api && ./vendor/bin/sail up -d`); the script
-  aborts early if not — this also brings up the `panel` service needed for
-  frontend checks.
+- Requires the full stack up (`docker compose up -d`, from the repo root);
+  the script checks `laravel.test` and `panel` independently and aborts
+  early if either is down. `sail up` alone only starts the API side.
 - pint/prettier/eslint write fixes in place — review what they changed before
   staging.
 - On a failure, the script prints a log filtered per tool (phpstan, tsc,

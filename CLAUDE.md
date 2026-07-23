@@ -15,17 +15,16 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 ## Environment & commands
 
-Backend runs through Laravel Sail (Docker) — there is no local PHP. The panel runs as its own service in the same Sail compose file, so a single `sail up` starts everything.
+Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`), plus a root `compose.yaml` that `include`s both — `docker compose up` from the repo root starts everything (api + panel + pgsql) as one project. `./vendor/bin/sail` (run from `apps/api`, for `sail artisan`/`sail php`/etc.) only ever targets `apps/api/compose.yaml` — it has no notion of the panel service or the root file. See `docs/architecture/development.md` for the full layout.
 
 The repo root is an npm workspace (`apps/panel` is its only member today) — one `npm install` at the root installs both the e2e (Playwright) deps and the panel's, with a single `package-lock.json`. This applies to **local dev and CI only**: production Docker builds (`apps/panel/Dockerfile`) still treat each app as standalone — Dokploy builds it with the repo root as context but installs only `apps/panel`'s dependencies (`npm ci --workspace=apps/panel --include-workspace-root=false`), and the image never includes the e2e suite.
 
 ```bash
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
 npm install                                       # once per clone — installs the whole workspace (needs Node 24 LTS; see package.json "workspaces")
-cd apps/api
-cp .env.example .env                              # once per clone
-./vendor/bin/sail up -d                          # starts api + panel + pgsql
-./vendor/bin/sail artisan migrate                 # first run
+cp apps/api/.env.example apps/api/.env            # once per clone
+docker compose up -d                              # starts api + panel + pgsql, from the repo root
+apps/api/vendor/bin/sail artisan migrate          # first run
 ```
 
 - API: <http://localhost:8080>

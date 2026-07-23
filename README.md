@@ -29,10 +29,9 @@ clini-app/
 git config core.hooksPath .githooks   # una vez por clon
 npm install                            # workspace: panel + e2e
 
-cd apps/api
-cp .env.example .env
-./vendor/bin/sail up -d               # api + panel + postgres
-./vendor/bin/sail artisan migrate
+cp apps/api/.env.example apps/api/.env
+docker compose up -d                   # api + panel + postgres, desde la raíz
+apps/api/vendor/bin/sail artisan migrate
 ```
 
 - API: <http://localhost:8080>

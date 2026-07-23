@@ -2,7 +2,8 @@
 # Conditional quality gate: detects which side of the codebase changed and
 # runs only the matching tools. Backend runs through Sail (apps/api) — there
 # is no local PHP. Frontend runs inside the already-running `panel` container
-# (apps/api/compose.yaml) — it isn't part of the Sail PHP container, and a
+# (apps/panel/compose.yaml, brought up together with apps/api's via the root
+# compose.yaml's `include`) — it isn't part of the Sail PHP container, and a
 # local node breaks vitest/rollup.
 #
 # Usage: bash .claude/skills/run-forensics/scripts/run-forensics.sh [--full]
@@ -22,13 +23,15 @@ sail() {
 }
 
 # The panel service isn't reachable through Sail's wrapper (that only targets
-# laravel.test), so it's addressed directly via docker compose. WWWUSER/
-# WWWGROUP mirror what vendor/bin/sail itself exports, so files eslint/
-# prettier write stay owned by the host user instead of root.
+# laravel.test), so it's addressed directly via docker compose, through the
+# root compose.yaml (the `include` that merges apps/api's and apps/panel's
+# files into one project — same one `docker compose up` from the repo root
+# uses). WWWUSER/WWWGROUP mirror what vendor/bin/sail itself exports, so
+# files eslint/prettier write stay owned by the host user instead of root.
 export WWWUSER=${WWWUSER:-$UID}
 export WWWGROUP=${WWWGROUP:-$(id -g)}
 panel() {
-    docker compose -f apps/api/compose.yaml --project-directory apps/api exec -T --workdir /workspace/apps/panel panel "$@"
+    docker compose exec -T --workdir /workspace/apps/panel panel "$@"
 }
 
 # e2e/ (root-level: shared by no single app) has no running container of its
@@ -44,8 +47,15 @@ if [ "${1:-}" = "--full" ] || [ "${1:-}" = "--pr" ]; then
     FULL=true
 fi
 
-if ! sail ps 2>/dev/null | grep -q "laravel.test.*Up"; then
-    echo "ERROR: Sail is not running. Start it with: (cd apps/api && ./vendor/bin/sail up -d)" >&2
+# `sail ps` only reports on laravel.test/pgsql — it has no notion of panel,
+# so a stack started with `sail up` alone (api only, no frontend) would
+# otherwise pass this check and then fail confusingly on the first `panel`
+# docker compose exec below. Check both directly against the root project.
+down=()
+docker compose ps laravel.test 2>/dev/null | grep -q "Up" || down+=("laravel.test")
+docker compose ps panel 2>/dev/null | grep -q "Up" || down+=("panel")
+if [ ${#down[@]} -gt 0 ]; then
+    echo "ERROR: not running: ${down[*]}. Start everything with: docker compose up -d (from the repo root)" >&2
     exit 1
 fi
 

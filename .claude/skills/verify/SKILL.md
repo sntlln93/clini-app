@@ -7,10 +7,12 @@ description: Browser verification of UI changes using Playwright and the shared 
 
 ## How the app is served locally
 
-The panel is the `panel` service in `apps/api/compose.yaml` (Sail), always
-running `vite dev` — <http://localhost:5174> serves changes via HMR, no build
-needed. The API is `laravel.test` on <http://localhost:8080>. Both need
-`(cd apps/api && ./vendor/bin/sail up -d)`.
+The panel is the `panel` service in `apps/panel/compose.yaml`, always running
+`vite dev` — <http://localhost:5174> serves changes via HMR, no build needed.
+The API is `laravel.test` on <http://localhost:8080>, from `apps/api/compose.yaml`.
+Both come up together with `docker compose up -d` from the repo root (the
+root `compose.yaml` `include`s both files) — `sail up` alone only starts
+the API side, not the panel.
 
 ## Throwaway specs in `e2e/verify/`
 
