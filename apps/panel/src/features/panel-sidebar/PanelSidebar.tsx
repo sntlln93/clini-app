@@ -1,0 +1,76 @@
+import {
+    Sidebar,
+    SidebarContent,
+    SidebarFooter,
+    SidebarGroup,
+    SidebarGroupContent,
+    SidebarHeader,
+    SidebarMenu,
+    SidebarMenuButton,
+    SidebarMenuItem,
+} from '@/components/ui/sidebar';
+import { ProfileMenu } from '@/features/profile-menu/ProfileMenu';
+import { Link, useLocation } from '@tanstack/react-router';
+import { Stethoscope } from 'lucide-react';
+import { isNavItemActive, navItems } from './nav-items';
+
+export function PanelSidebar() {
+    const { pathname } = useLocation();
+
+    return (
+        <Sidebar collapsible="icon">
+            <SidebarHeader>
+                <div className="flex items-center gap-2 px-2 py-1.5">
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                        <Stethoscope className="size-4" />
+                    </span>
+                    <span className="truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
+                        Clini
+                    </span>
+                </div>
+            </SidebarHeader>
+            <SidebarContent>
+                <nav aria-label="Navegación principal">
+                    <SidebarGroup>
+                        <SidebarGroupContent>
+                            <SidebarMenu>
+                                {navItems.map((item) => {
+                                    const active = isNavItemActive(
+                                        pathname,
+                                        item.to,
+                                    );
+                                    return (
+                                        <SidebarMenuItem key={item.to}>
+                                            <SidebarMenuButton
+                                                isActive={active}
+                                                tooltip={item.label}
+                                                render={
+                                                    <Link
+                                                        to={item.to}
+                                                        aria-current={
+                                                            active
+                                                                ? 'page'
+                                                                : undefined
+                                                        }
+                                                    >
+                                                        <item.icon className="size-4" />
+                                                        <span>
+                                                            {item.label}
+                                                        </span>
+                                                    </Link>
+                                                }
+                                            />
+                                        </SidebarMenuItem>
+                                    );
+                                })}
+                            </SidebarMenu>
+                        </SidebarGroupContent>
+                    </SidebarGroup>
+                </nav>
+            </SidebarContent>
+            <SidebarFooter>
+                <ProfileMenu />
+            </SidebarFooter>
+        </Sidebar>
+    );
+}
