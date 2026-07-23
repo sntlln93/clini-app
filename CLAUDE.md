@@ -139,3 +139,5 @@ See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 ## Session docs (local only)
 
 `.claude/docs/` is gitignored (only `.claude/skills/` is tracked). If `.claude/docs/status.md` exists, **read it at session start** — it is the living record of project status, recent decisions and pending work.
+
+Skills installed via the [`skills`](https://skills.sh) CLI (`npx skills add <source>`) live under `.agents/skills/<name>/` — that's the real content; `.claude/skills/<name>` is a symlink into it (cross-agent sharing: other tools like Cursor/Copilot symlink the same directory). Both `.agents/` and `skills-lock.json` (repo root) are tracked, same as `.claude/skills/`. Run everything through the `panel` container per that skill's own override note — never bare on the host.
