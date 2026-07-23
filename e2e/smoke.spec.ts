@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-test('panel loads and reaches the api', async ({ page }) => {
+test('panel loads the layout shell', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByText('conectado a api')).toBeVisible()
+  await expect(page).toHaveURL(/\/agenda$/)
+  await expect(page.getByRole('heading', { name: 'Agenda' })).toBeVisible()
 })
 
 test('api responds to /api/ping', async ({ request }) => {
