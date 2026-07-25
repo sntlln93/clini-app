@@ -12,18 +12,28 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { useSession } from '@/lib/session';
 import { Link } from '@tanstack/react-router';
 import { ChevronsUpDown, LogOut, Settings } from 'lucide-react';
+import { useLogout } from './use-logout';
 
-// Placeholder identity until the auth issue lands. `Cerrar sesión` is inert.
-const PROFILE = {
-    name: 'Dra. Ana Ejemplo',
-    email: 'ana@clini.app',
-    initials: 'AE',
-};
+function getInitials(name: string) {
+    return name
+        .split(' ')
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase())
+        .join('');
+}
 
 export function ProfileMenu() {
     const { isMobile } = useSidebar();
+    const { data: user } = useSession();
+    const logout = useLogout();
+
+    const name = user?.name ?? '';
+    const email = user?.email ?? '';
+    const initials = getInitials(name);
 
     return (
         <SidebarMenu>
@@ -33,20 +43,20 @@ export function ProfileMenu() {
                         render={
                             <SidebarMenuButton
                                 size="lg"
-                                tooltip={PROFILE.name}
+                                tooltip={name}
                                 className="data-popup-open:bg-sidebar-accent"
                             >
                                 <Avatar className="size-8 rounded-lg">
                                     <AvatarFallback className="rounded-lg">
-                                        {PROFILE.initials}
+                                        {initials}
                                     </AvatarFallback>
                                 </Avatar>
                                 <div className="grid min-w-0 flex-1 text-left leading-tight">
                                     <span className="truncate text-sm font-medium">
-                                        {PROFILE.name}
+                                        {name}
                                     </span>
                                     <span className="truncate text-xs text-muted-foreground">
-                                        {PROFILE.email}
+                                        {email}
                                     </span>
                                 </div>
                                 <ChevronsUpDown className="ml-auto size-4 shrink-0" />
@@ -62,15 +72,15 @@ export function ProfileMenu() {
                         <div className="flex items-center gap-2 px-2 py-1.5">
                             <Avatar className="size-8 rounded-lg">
                                 <AvatarFallback className="rounded-lg">
-                                    {PROFILE.initials}
+                                    {initials}
                                 </AvatarFallback>
                             </Avatar>
                             <div className="grid min-w-0 flex-1 leading-tight">
                                 <span className="truncate text-sm font-medium">
-                                    {PROFILE.name}
+                                    {name}
                                 </span>
                                 <span className="truncate text-xs text-muted-foreground">
-                                    {PROFILE.email}
+                                    {email}
                                 </span>
                             </div>
                         </div>
@@ -79,7 +89,7 @@ export function ProfileMenu() {
                             <Settings className="size-4" />
                             Ajustes
                         </DropdownMenuItem>
-                        <DropdownMenuItem disabled>
+                        <DropdownMenuItem onClick={() => logout.mutate()}>
                             <LogOut className="size-4" />
                             Cerrar sesión
                         </DropdownMenuItem>
