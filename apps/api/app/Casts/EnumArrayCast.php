@@ -32,11 +32,11 @@ class EnumArrayCast implements CastsAttributes
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): array
     {
-        if ($value === null) {
+        if (! is_string($value)) {
             return [];
         }
 
-        $decoded = json_decode((string) $value, true);
+        $decoded = json_decode($value, true);
 
         if (! is_array($decoded)) {
             return [];
