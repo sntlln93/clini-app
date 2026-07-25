@@ -17,7 +17,7 @@ function registerFromSpa()
 }
 
 test('a visitor can register a new organization as its owner', function () {
-    $response = registerFromSpa()->postJson('/api/register', [
+    $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
         'password' => 'password123',
@@ -50,7 +50,7 @@ test('a visitor can register a new organization as its owner', function () {
 });
 
 test('registering logs the user in', function () {
-    $response = registerFromSpa()->postJson('/api/register', [
+    $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
         'password' => 'password123',
@@ -63,14 +63,14 @@ test('registering logs the user in', function () {
 
     // Within a single Pest test, the app container (and therefore the auth
     // guard) persists across chained HTTP calls, unlike two real requests
-    // hitting a fresh process each. Forget the guard so /api/me re-resolves
+    // hitting a fresh process each. Forget the guard so /api/v1/me re-resolves
     // the user from the session by id instead of reusing the in-memory
     // model `register` just created (which still carries
     // `wasRecentlyCreated = true`, and Laravel's router special-cases that
     // to a 201 response for a bare Eloquent model return value).
     Auth::forgetGuards();
 
-    $me = registerFromSpa()->getJson('/api/me');
+    $me = registerFromSpa()->getJson('/api/v1/me');
 
     $me->assertOk();
     $me->assertJsonPath('email', 'ana@example.com');
@@ -79,7 +79,7 @@ test('registering logs the user in', function () {
 test('registering with a duplicate email fails validation and persists nothing', function () {
     User::factory()->create(['email' => 'ana@example.com']);
 
-    $response = registerFromSpa()->postJson('/api/register', [
+    $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
         'password' => 'password123',
@@ -99,7 +99,7 @@ test('registering with a duplicate email fails validation and persists nothing',
 test('registering with a colliding organization slug appends a numeric suffix', function () {
     Organization::factory()->create(['slug' => 'clinica-norte']);
 
-    $response = registerFromSpa()->postJson('/api/register', [
+    $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
         'password' => 'password123',
@@ -116,7 +116,7 @@ test('registering with a colliding organization slug appends a numeric suffix', 
 });
 
 test('registering with an invalid timezone fails validation and persists nothing', function () {
-    $response = registerFromSpa()->postJson('/api/register', [
+    $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
         'password' => 'password123',

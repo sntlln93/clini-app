@@ -24,7 +24,7 @@ test('a user can log in with valid credentials', function () {
         'password' => bcrypt('password'),
     ]);
 
-    $response = fromSpa()->postJson('/api/login', [
+    $response = fromSpa()->postJson('/api/v1/login', [
         'email' => $user->email,
         'password' => 'password',
     ]);
@@ -38,7 +38,7 @@ test('login fails with invalid credentials', function () {
         'password' => bcrypt('password'),
     ]);
 
-    $response = fromSpa()->postJson('/api/login', [
+    $response = fromSpa()->postJson('/api/v1/login', [
         'email' => $user->email,
         'password' => 'wrong-password',
     ]);
@@ -50,7 +50,7 @@ test('login fails with invalid credentials', function () {
 test('an authenticated user can fetch their own profile', function () {
     $user = User::factory()->create();
 
-    $response = $this->actingAs($user)->getJson('/api/me');
+    $response = $this->actingAs($user)->getJson('/api/v1/me');
 
     $response->assertOk()->assertJsonPath('email', $user->email);
 });
@@ -58,7 +58,7 @@ test('an authenticated user can fetch their own profile', function () {
 test('an authenticated user can log out', function () {
     $user = User::factory()->create();
 
-    $response = fromSpa()->actingAs($user)->postJson('/api/logout');
+    $response = fromSpa()->actingAs($user)->postJson('/api/v1/logout');
 
     $response->assertNoContent();
 });
