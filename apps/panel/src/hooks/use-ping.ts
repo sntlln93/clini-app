@@ -5,7 +5,7 @@ export function usePing() {
     return useQuery({
         queryKey: ['ping'],
         queryFn: async () => {
-            const { data } = await api.get<{ status: string }>('/api/ping');
+            const { data } = await api.get<{ status: string }>('/ping');
             return data;
         },
     });
