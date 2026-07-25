@@ -6,9 +6,9 @@ test('panel loads the layout shell', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Agenda' })).toBeVisible()
 })
 
-test('api responds to /api/ping', async ({ request }) => {
+test('api responds to /api/v1/ping', async ({ request }) => {
   const apiUrl = process.env.E2E_API_URL ?? 'http://localhost:8080'
-  const response = await request.get(`${apiUrl}/api/ping`)
+  const response = await request.get(`${apiUrl}/api/v1/ping`)
 
   expect(response.ok()).toBeTruthy()
   expect(await response.json()).toEqual({ status: 'ok' })
