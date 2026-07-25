@@ -159,6 +159,7 @@ test('Appointment resolves its organization, membership, patient and service rel
 test('Appointment resolves the appointment it was rescheduled from', function () {
     $original = Appointment::factory()->create();
     $rescheduled = Appointment::factory()->create([
+        'organization_id' => $original->organization_id,
         'rescheduled_from_id' => $original->id,
     ]);
 
@@ -218,6 +219,7 @@ test('creating a patient with a duplicate document identity throws a query excep
 test('deleting a Specialty cascades to its professional_specialties rows', function () {
     $specialty = Specialty::factory()->create();
     $professionalSpecialty = ProfessionalSpecialty::factory()->create([
+        'organization_id' => $specialty->organization_id,
         'specialty_id' => $specialty->id,
     ]);
 
