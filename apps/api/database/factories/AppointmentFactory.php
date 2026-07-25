@@ -29,9 +29,13 @@ class AppointmentFactory extends Factory
 
         return [
             'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
+            'membership_id' => fn (array $attributes) => Membership::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
             'patient_id' => Patient::factory(),
-            'service_id' => Service::factory(),
+            'service_id' => fn (array $attributes) => Service::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
             'created_by' => null,
             'origin' => AppointmentOrigin::Manual,
             'status' => AppointmentStatus::Scheduled,

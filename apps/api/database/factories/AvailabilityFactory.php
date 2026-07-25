@@ -23,7 +23,9 @@ class AvailabilityFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
+            'membership_id' => fn (array $attributes) => Membership::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
             'day_of_week' => fake()->numberBetween(0, 6),
             'start_time' => '09:00:00',
             'end_time' => '17:00:00',

@@ -25,7 +25,9 @@ class ReminderFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'appointment_id' => Appointment::factory(),
+            'appointment_id' => fn (array $attributes) => Appointment::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
             'channel' => fake()->randomElement(ReminderChannel::cases()),
             'status' => ReminderStatus::Pending,
             'scheduled_at' => fake()->dateTimeBetween('now', '+1 month'),

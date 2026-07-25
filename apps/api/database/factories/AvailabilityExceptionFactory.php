@@ -26,7 +26,9 @@ class AvailabilityExceptionFactory extends Factory
 
         return [
             'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
+            'membership_id' => fn (array $attributes) => Membership::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
             'type' => fake()->randomElement(AvailabilityExceptionType::cases()),
             'start_at' => $startAt,
             'end_at' => (clone $startAt)->modify('+2 hours'),
