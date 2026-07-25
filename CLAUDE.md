@@ -71,7 +71,7 @@ Underlying tools if you need one directly: `sail composer analyse` (phpstan leve
 - On GitHub issues: ignore label `deferred`, prioritize label `bug`.
 - Prefer shadcn/ui for frontend components.
 - Work should be done sequentially with per-module commits.
-- DTOs must always be named as nouns to reflect that they are passive data containers. Bad: DeleteSchoolData, UpdateUser. Good: DeletedSchoolData, SchoolDeletionData.
+- DTOs are `final readonly`, implement `App\Contracts\Data`, live in `App\Data\<Module>`, and must always be named as nouns to reflect that they are passive data containers. Bad: DeleteSchoolData, UpdateUser. Good: DeletedSchoolData, SchoolDeletionData.
 
 ## Commit format
 
@@ -97,26 +97,30 @@ Standard Laravel structure (see [ADR 0002](docs/adr/0002-estructura-laravel-esta
 
 ```text
 app/
+├── Contracts/          # Action and Data interfaces
 ├── Http/
-│   ├── Controllers/
-│   ├── Requests/
-│   └── Resources/
-├── Models/
-├── Actions/     # single-responsibility business logic
-├── Services/    # third-party API/SDK adapters
-├── Enums/
+│   ├── Controllers/<Module>/   # Controller.php is the only file allowed directly under Controllers/
+│   ├── Requests/<Module>/
+│   └── Resources/<Module>/
+├── Models/              # stays flat, no per-module subdirectories
+├── Actions/<Module>/     # single-responsibility business logic
+├── Services/<Module>/    # third-party API/SDK adapters
+├── Data/<Module>/        # DTOs
+├── Enums/                # stays flat, no per-module subdirectories
 └── Providers/
 ```
 
 - **Thin controllers**: HTTP routing, authorization, responses only. No SQL, validation, or business logic. Never `$request->validate()` — always inject a FormRequest.
-- **Actions/Services**: single-responsibility classes exposing one `execute()`/`handle()` method. Action encapsulates core business logic; Service wraps third-party APIs/SDKs (adapter pattern) to keep external systems out of the domain.
+- **Actions/Services**: single-responsibility classes exposing one `handle()` method. Action encapsulates core business logic and implements `App\Contracts\Action`; since PHP can't narrow the native param type, the narrowing is declared via `@implements Action<XData>` on the class and `@param XData $dto` on the method (verified by PHPStan/Larastan), while the return type is narrowed natively. Service wraps third-party APIs/SDKs (adapter pattern) and implements its own domain interface in `App\Contracts` (e.g. `TwilioService implements SmsGateway`), never a common marker interface.
+- **DTOs**: live in `App\Data\<Module>`, `final readonly`, implement `App\Contracts\Data` (`toArray(): array` only, no constructor/factory in the contract).
+- **Per-module subdirectories**: `Actions/`, `Services/`, `Data/`, `Http/Requests/`, `Http/Resources/` and `Http/Controllers/` are grouped by module (e.g. `Actions/Auth/`, `Http/Controllers/Auth/`) — no `.php` file sits directly under those six roots, except `Http/Controllers/Controller.php`. `Models/` and `Enums/` stay flat.
 - **Thin models**: relations, casts, basic scopes only. API Resources/DTOs do data shaping. Complex queries go in scopes/query classes, not controllers.
 
 `tests/Arch/ArchTest.php` enforces the controller/FormRequest/Resource conventions and the strict-types rule automatically — a failing Arch test names exactly what regressed. Fix by refactoring, never by adding an `->ignoring()` exception (the existing ones are correctness exceptions, not debt).
 
 ### Auth
 
-Sanctum SPA (cookie) auth, not tokens: `bootstrap/app.php` calls `$middleware->statefulApi()`, which only attaches session/CSRF handling to requests whose `Origin`/`Referer` matches `SANCTUM_STATEFUL_DOMAINS` (`.env`) — a request without that header falls through to stateless/token auth instead and `$request->session()` throws if a controller assumes it's always there. `config/cors.php` requires an explicit `FRONTEND_URL` origin with `supports_credentials: true`; CORS can't use a wildcard origin with credentialed requests. The panel's axios client sends `withCredentials` + `withXSRFToken`. Routes: `POST /api/login`, `POST /api/logout` and `GET /api/me` behind `auth:sanctum` (`app/Http/Controllers/AuthController.php`). Tests simulate the SPA's `Referer` header explicitly (`tests/Feature/SanctumSpaAuthTest.php`) since Pest's HTTP client doesn't send one by default.
+Sanctum SPA (cookie) auth, not tokens: `bootstrap/app.php` calls `$middleware->statefulApi()`, which only attaches session/CSRF handling to requests whose `Origin`/`Referer` matches `SANCTUM_STATEFUL_DOMAINS` (`.env`) — a request without that header falls through to stateless/token auth instead and `$request->session()` throws if a controller assumes it's always there. `config/cors.php` requires an explicit `FRONTEND_URL` origin with `supports_credentials: true`; CORS can't use a wildcard origin with credentialed requests. The panel's axios client sends `withCredentials` + `withXSRFToken`. Routes: `POST /api/login`, `POST /api/logout` and `GET /api/me` behind `auth:sanctum` (`app/Http/Controllers/Auth/AuthController.php`). Tests simulate the SPA's `Referer` header explicitly (`tests/Feature/SanctumSpaAuthTest.php`) since Pest's HTTP client doesn't send one by default.
 
 ### Frontend structure (`apps/panel`)
 
@@ -127,6 +131,7 @@ See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 - Components stay presentational; business logic, state mutations and API calls live in custom hooks (`useSomething.ts`). Max 250 lines per file, 150 per component — refactor before adding logic. Don't over-parametrize for reuse; prefer dedicated components.
 - Styling: Tailwind utilities inside components; `src/index.css` is the only stylesheet.
 - **No page-level horizontal scroll, on any viewport**: wide content scrolls inside its own `overflow-auto` wrapper or wraps (`flex-wrap`); mind `min-w-0` on flex items. Known smell: `grid gap-6 xl:grid-cols-*` without an explicit `grid-cols-1` base.
+- The panel is a client-rendered SPA with no SSR/RSC: `'use client'`/`'use server'` directives are meaningless and banned everywhere under `src/**`, including vendored `src/components/ui/` primitives — enforced by ESLint (`no-restricted-syntax`, no exempt folders).
 
 ### E2E suite
 
