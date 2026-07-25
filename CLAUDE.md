@@ -115,12 +115,13 @@ app/
 - **DTOs**: live in `App\Data\<Module>`, `final readonly`, implement `App\Contracts\Data` (`toArray(): array` only, no constructor/factory in the contract).
 - **Per-module subdirectories**: `Actions/`, `Services/`, `Data/`, `Http/Requests/`, `Http/Resources/` and `Http/Controllers/` are grouped by module (e.g. `Actions/Auth/`, `Http/Controllers/Auth/`) — no `.php` file sits directly under those six roots, except `Http/Controllers/Controller.php`. `Models/` and `Enums/` stay flat.
 - **Thin models**: relations, casts, basic scopes only. API Resources/DTOs do data shaping. Complex queries go in scopes/query classes, not controllers.
+- **API routes**: live in `routes/api/v1/<module>.php` (one file per module); `routes/api.php` only loads them inside a single `Route::prefix('v1')` group, so the `v1` prefix is applied once, in that loader.
 
 `tests/Arch/ArchTest.php` enforces the controller/FormRequest/Resource conventions and the strict-types rule automatically — a failing Arch test names exactly what regressed. Fix by refactoring, never by adding an `->ignoring()` exception (the existing ones are correctness exceptions, not debt).
 
 ### Auth
 
-Sanctum SPA (cookie) auth, not tokens: `bootstrap/app.php` calls `$middleware->statefulApi()`, which only attaches session/CSRF handling to requests whose `Origin`/`Referer` matches `SANCTUM_STATEFUL_DOMAINS` (`.env`) — a request without that header falls through to stateless/token auth instead and `$request->session()` throws if a controller assumes it's always there. `config/cors.php` requires an explicit `FRONTEND_URL` origin with `supports_credentials: true`; CORS can't use a wildcard origin with credentialed requests. The panel's axios client sends `withCredentials` + `withXSRFToken`. Routes: `POST /api/login`, `POST /api/logout` and `GET /api/me` behind `auth:sanctum` (`app/Http/Controllers/Auth/AuthController.php`). Tests simulate the SPA's `Referer` header explicitly (`tests/Feature/SanctumSpaAuthTest.php`) since Pest's HTTP client doesn't send one by default.
+Sanctum SPA (cookie) auth, not tokens: `bootstrap/app.php` calls `$middleware->statefulApi()`, which only attaches session/CSRF handling to requests whose `Origin`/`Referer` matches `SANCTUM_STATEFUL_DOMAINS` (`.env`) — a request without that header falls through to stateless/token auth instead and `$request->session()` throws if a controller assumes it's always there. `config/cors.php` requires an explicit `FRONTEND_URL` origin with `supports_credentials: true`; CORS can't use a wildcard origin with credentialed requests. The panel's axios client sends `withCredentials` + `withXSRFToken`. Routes: `POST /api/v1/login`, `POST /api/v1/logout` and `GET /api/v1/me` behind `auth:sanctum` (`app/Http/Controllers/Auth/AuthController.php`). Tests simulate the SPA's `Referer` header explicitly (`tests/Feature/SanctumSpaAuthTest.php`) since Pest's HTTP client doesn't send one by default.
 
 ### Frontend structure (`apps/panel`)
 
@@ -135,7 +136,7 @@ See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 
 ### E2E suite
 
-`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174) — no auth or seeded demo data involved yet. In CI, `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself; locally it expects the Sail stack already running. Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
+`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. In CI, `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself; locally it expects the Sail stack already running. Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
 
 ## ADRs
 
