@@ -24,8 +24,12 @@ class ProfessionalSpecialtyFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'membership_id' => Membership::factory(),
-            'specialty_id' => Specialty::factory(),
+            'membership_id' => fn (array $attributes) => Membership::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
+            'specialty_id' => fn (array $attributes) => Specialty::factory()->state([
+                'organization_id' => $attributes['organization_id'],
+            ]),
         ];
     }
 }
