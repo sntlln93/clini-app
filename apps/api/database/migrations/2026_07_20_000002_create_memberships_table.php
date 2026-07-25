@@ -17,7 +17,8 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('user_id')->constrained()->restrictOnDelete();
-            $table->string('role');
+            $table->json('roles');
+            $table->json('extra_permissions')->default('[]');
             $table->string('status')->default('active');
             $table->timestamps();
             $table->softDeletes();
