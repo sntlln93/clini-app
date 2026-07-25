@@ -16,10 +16,15 @@ return new class extends Migration
         Schema::create('professional_services', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->foreignId('membership_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('service_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('membership_id');
+            $table->foreignId('service_id');
 
             $table->unique(['membership_id', 'service_id']);
+
+            $table->foreign(['membership_id', 'organization_id'])
+                ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
+            $table->foreign(['service_id', 'organization_id'])
+                ->references(['id', 'organization_id'])->on('services')->cascadeOnDelete();
         });
     }
 

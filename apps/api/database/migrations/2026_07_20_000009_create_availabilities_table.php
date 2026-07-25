@@ -16,11 +16,14 @@ return new class extends Migration
         Schema::create('availabilities', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->foreignId('membership_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('membership_id');
             $table->smallInteger('day_of_week');
             $table->time('start_time');
             $table->time('end_time');
             $table->timestamps();
+
+            $table->foreign(['membership_id', 'organization_id'])
+                ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
         });
     }
 

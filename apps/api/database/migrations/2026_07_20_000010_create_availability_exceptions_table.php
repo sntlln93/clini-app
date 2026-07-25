@@ -16,12 +16,15 @@ return new class extends Migration
         Schema::create('availability_exceptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->foreignId('membership_id')->nullable()->constrained()->cascadeOnDelete();
+            $table->foreignId('membership_id')->nullable();
             $table->string('type');
             $table->timestamp('start_at');
             $table->timestamp('end_at');
             $table->string('reason')->nullable();
             $table->timestamps();
+
+            $table->foreign(['membership_id', 'organization_id'])
+                ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
         });
     }
 
