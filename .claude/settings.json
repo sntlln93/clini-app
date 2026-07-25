@@ -22,6 +22,8 @@
       "Bash(git log*)",
       "Bash(git diff*)",
       "Bash(git checkout*)",
+      "Bash(git switch -c *)",
+      "Bash(git branch --show-current)",
       "Bash(git add *)",
       "Bash(git commit*)",
       "Bash(git push*)",
@@ -50,8 +52,16 @@
       "Bash(docker info)",
       "Bash(docker info *)",
       "Bash(docker ps*)",
+      "Bash(node -v)",
+      "Bash(node --version)",
+      "Bash(grep *)",
+      "Bash(ls*)",
       "Bash(bash .claude/skills/run-forensics/scripts/run-forensics.sh)",
-      "Bash(bash .claude/skills/run-forensics/scripts/run-forensics.sh *)"
+      "Bash(bash .claude/skills/run-forensics/scripts/run-forensics.sh *)",
+      "Write(.claude/docs/**)",
+      "Write(.claude/handoffs/**)",
+      "Edit(.claude/docs/**)",
+      "Edit(.claude/handoffs/**)"
     ],
     "deny": [
       "Bash(git push --force*)",
