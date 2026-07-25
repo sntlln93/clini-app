@@ -34,6 +34,25 @@ export default tseslint.config(
             'no-console': 'error',
         },
     },
+    // The panel is a client-rendered SPA with no SSR/RSC (see ADR 0001), so
+    // Next.js-style `'use client'`/`'use server'` directives are meaningless
+    // here — ban both, with no exempt folders.
+    {
+        files: ['src/**/*.{ts,tsx}'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                {
+                    selector: "ExpressionStatement[directive='use client']",
+                    message: "'use client' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
+                },
+                {
+                    selector: "ExpressionStatement[directive='use server']",
+                    message: "'use server' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
+                },
+            ],
+        },
+    },
     // Structural limits from CLAUDE.md's "Frontend structure": every file
     // stays under 250 lines so heavy logic moves into hooks and
     // sub-components. Vendored shadcn primitives and tests are exempt.
