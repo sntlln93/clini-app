@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -44,9 +45,11 @@ test('a visitor can register a new organization as its owner', function () {
     $this->assertDatabaseHas('memberships', [
         'user_id' => $user->id,
         'organization_id' => $organization->id,
-        'role' => MembershipRole::Owner->value,
         'status' => MembershipStatus::Active->value,
     ]);
+
+    $membership = Membership::where('user_id', $user->id)->firstOrFail();
+    expect($membership->roles)->toBe([MembershipRole::Owner]);
 });
 
 test('registering logs the user in', function () {

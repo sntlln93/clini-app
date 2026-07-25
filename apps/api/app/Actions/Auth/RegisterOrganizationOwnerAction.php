@@ -42,7 +42,7 @@ class RegisterOrganizationOwnerAction implements Action
             Membership::create([
                 'organization_id' => $organization->id,
                 'user_id' => $user->id,
-                'role' => MembershipRole::Owner,
+                'roles' => [MembershipRole::Owner],
                 'status' => MembershipStatus::Active,
             ]);
 

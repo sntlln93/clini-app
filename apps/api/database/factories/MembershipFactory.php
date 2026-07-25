@@ -26,8 +26,51 @@ class MembershipFactory extends Factory
         return [
             'organization_id' => Organization::factory(),
             'user_id' => User::factory(),
-            'role' => fake()->randomElement(MembershipRole::cases()),
+            'roles' => [MembershipRole::Owner],
+            'extra_permissions' => [],
             'status' => MembershipStatus::Active,
         ];
+    }
+
+    /**
+     * @return $this
+     */
+    public function owner(): static
+    {
+        return $this->withRoles(MembershipRole::Owner);
+    }
+
+    /**
+     * @return $this
+     */
+    public function admin(): static
+    {
+        return $this->withRoles(MembershipRole::Admin);
+    }
+
+    /**
+     * @return $this
+     */
+    public function staff(): static
+    {
+        return $this->withRoles(MembershipRole::Staff);
+    }
+
+    /**
+     * @return $this
+     */
+    public function professional(): static
+    {
+        return $this->withRoles(MembershipRole::Professional);
+    }
+
+    /**
+     * @return $this
+     */
+    public function withRoles(MembershipRole ...$roles): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'roles' => $roles,
+        ]);
     }
 }

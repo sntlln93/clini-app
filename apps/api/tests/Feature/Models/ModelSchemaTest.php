@@ -60,13 +60,13 @@ test('Appointment casts status and origin to their enums', function () {
     expect($appointment->origin)->toBeInstanceOf(AppointmentOrigin::class);
 });
 
-test('Membership casts role and status to their enums', function () {
+test('Membership casts roles and status to their enums', function () {
     $membership = Membership::factory()->create([
-        'role' => MembershipRole::Owner,
+        'roles' => [MembershipRole::Owner],
         'status' => MembershipStatus::Active,
     ]);
 
-    expect($membership->role)->toBeInstanceOf(MembershipRole::class);
+    expect($membership->roles)->toBe([MembershipRole::Owner]);
     expect($membership->status)->toBeInstanceOf(MembershipStatus::class);
 });
 
