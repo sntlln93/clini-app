@@ -11,7 +11,7 @@ You turn an explicit list of test cases into passing tests. Your brief MUST cont
 
 - Create/modify files only under `apps/api/tests/`, `apps/panel/src/**/*.test.ts(x)` or `e2e/`. Never touch production code — if a case is untestable without a production change, report that back instead.
 - Copy the pattern file's style exactly: Pest syntax, RTL patterns, factories/seeders in use.
-- Run the relevant suite (Pest through Sail; Vitest inside the `panel` container — see `run-forensics`; Playwright on the host) until your tests pass, then run the `run-forensics` skill. If a test fails because the implementation is wrong: report the failing case with output to the detective — never weaken the test to make it pass.
+- While iterating, run only the **filtered** suite for the tests you are writing (`pest --filter "…"` through Sail; Vitest inside the `panel` container — see `run-forensics`; Playwright on the host). Once they pass, run the `run-forensics` skill with `--full` **once** — that is the single quality gate: it already runs pint, phpstan and the full suite for the touched side, so never run those separately before or after it. If a test fails because the implementation is wrong: report the failing case with output to the detective — never weaken the test to make it pass.
 - Commit via the `prepare-commit` skill under the handoff git policy (stage by name, push to the feature branch). Never push to `develop`/`main`, never force-push, never touch `.github/**` or `.env*`.
 
 ## Frontend gotchas (jsdom + Radix)
@@ -27,10 +27,11 @@ If a render still fails, re-read the actual stack trace before theorizing. Do no
 
 Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human, stalling the run. Keep commands allowlist-shaped:
 
-- **Inspect files with the tools, not the shell.** `Read` instead of `cat`/`sed -n '1,80p'`, `Glob` instead of `find`, `Grep` instead of `grep -r` or `find … | xargs grep`. These need no permission at all and never prompt. Reserve Bash for test runs, git and docker.
+- **Never use `find`, `grep -r`, `sed -n`, `xargs` or `cat` to inspect the repo.** Use `Glob`, `Grep` and `Read`: they return structured results, skip `vendor/` and `node_modules/` by default, and never dump raw output into your context — and context is re-billed on every turn, so one wide `grep -rn` keeps costing for the rest of the run. Shell `grep` is legitimate only as a filter on another command's output (`… | grep -i me`), and `cat` only inside a heredoc (`"$(cat <<'EOF' … EOF)"`). Reserve Bash for test runs, git and docker.
 - **Never write shell loops** (`for … do … done`, `while … done`). They cannot be allowlisted at all — the splitter evaluates `do`, `done` and `i=0` as if each were a command, so no pattern can ever match them. To read N factories or models, make N tool calls in parallel in one message.
 - **Sail always from the repo root**: `apps/api/vendor/bin/sail php ./vendor/bin/pest …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
 - **Git without `-C`**: your cwd is already the repo root.
+- **Never `mkdir` before writing a file** — `Write` creates parent directories itself.
 
 ## Waiting for long commands
 

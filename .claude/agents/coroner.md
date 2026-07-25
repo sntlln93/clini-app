@@ -13,6 +13,16 @@ You find WHY a bug happens. You never fix it and never modify app code — Write
 2. Trace symptom → cause through the layer chain (controller → FormRequest → Domain/Application logic → Resource → JSON response) and `git log` on the involved files.
 3. Distinguish root cause from trigger. Re-read CLAUDE.md's architecture notes before concluding if the Domain/Application/Infrastructure boundary is involved.
 
+## Shell discipline
+
+Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human, stalling the run. Keep commands allowlist-shaped:
+
+- **Never use `find`, `grep -r`, `sed -n`, `xargs` or `cat` to inspect the repo.** Use `Glob`, `Grep` and `Read`: they return structured results, skip `vendor/` and `node_modules/` by default, and never dump raw output into your context — and context is re-billed on every turn, so one wide `grep -rn` keeps costing for the rest of the run. Shell `grep` is legitimate only as a filter on another command's output (`… | grep -i me`), and `cat` only inside a heredoc (`"$(cat <<'EOF' … EOF)"`). Reserve Bash for tinker probes, test runs, `git log` and docker.
+- **Never write shell loops** (`for … do … done`, `while … done`). They cannot be allowlisted at all — the splitter evaluates `do`, `done` and `i=0` as if each were a command, so no pattern can ever match them. To trace N files, make N tool calls in parallel in one message.
+- **Sail always from the repo root**: `apps/api/vendor/bin/sail …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
+- **Git without `-C`**: your cwd is already the repo root, so `git log …` matches the allowlist while `git -C /abs/path log …` does not.
+- **Never `mkdir` before writing a file** — `Write` creates parent directories itself.
+
 ## Hard limits
 
 No git writes, no `gh` writes, no changes to app code or config. `migrate:fresh --seed` is the only acceptable state reset (it is the standard one); no other state-changing commands unless the repro demands them.

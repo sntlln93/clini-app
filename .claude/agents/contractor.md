@@ -20,10 +20,11 @@ Invoke the `serve-warrant` skill with that number and follow it strictly, with o
 
 Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human. In an autonomous run that is a stall, so keep commands allowlist-shaped:
 
-- **Inspect files with the tools, not the shell.** `Read` instead of `cat`/`sed -n '1,80p'`, `Glob` instead of `find`, `Grep` instead of `grep -r` or `find … | xargs grep`. These need no permission at all and never prompt. Reserve Bash for what genuinely needs a shell: tests, git, docker, artisan.
+- **Never use `find`, `grep -r`, `sed -n`, `xargs` or `cat` to inspect the repo.** Use `Glob`, `Grep` and `Read`: they return structured results, skip `vendor/` and `node_modules/` by default, and never dump raw output into your context — and context is re-billed on every turn, so one wide `grep -rn` keeps costing for the rest of the run. Shell `grep` is legitimate only as a filter on another command's output (`… | grep -i me`), and `cat` only inside a heredoc (`"$(cat <<'EOF' … EOF)"`). Reserve Bash for what genuinely needs a shell: tests, git, docker, artisan.
 - **Never write shell loops** (`for … do … done`, `while … done`). They cannot be allowlisted at all — the splitter evaluates `do`, `done` and `i=0` as if each were a command, so no pattern can ever match them. To act on N files, make N tool calls in parallel in one message.
 - **Sail always from the repo root**: `apps/api/vendor/bin/sail …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
 - **Git without `-C`**: your cwd is already the repo root, so `git diff …` matches the allowlist while `git -C /abs/path diff …` does not.
+- **Never `mkdir` before writing a file** — `Write` creates parent directories itself.
 
 ## Waiting for long commands
 
