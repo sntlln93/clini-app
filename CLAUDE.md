@@ -15,7 +15,9 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 ## Environment & commands
 
-Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`), plus a root `compose.yaml` that `include`s both — `docker compose up` from the repo root starts everything (api + panel + pgsql) as one project. `./vendor/bin/sail` (run from `apps/api`, for `sail artisan`/`sail php`/etc.) only ever targets `apps/api/compose.yaml` — it has no notion of the panel service or the root file. See `docs/architecture/development.md` for the full layout.
+Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`), plus a root `compose.yaml` that `include`s both — `docker compose up` from the repo root starts everything (api + panel + pgsql) as one project. See `docs/architecture/development.md` for the full layout.
+
+**Always invoke Sail from the repo root, as `apps/api/vendor/bin/sail …` — never `cd apps/api && ./vendor/bin/sail …`.** Both work (Sail runs the command *inside* the container, where the working dir is always `/var/www/html`, so `./vendor/bin/pest` resolves there regardless of your host cwd; `name: clini-app` is pinned in `apps/api/compose.yaml` so either entrypoint lands on the same Compose project). The root-relative form is the required one because it is what `.claude/settings.json` allowlists — the `cd` form matches no rule and makes every command prompt for permission, which breaks the autonomous issue flow. Humans working interactively may `cd` wherever they like; this rule is about the form written into commands.
 
 The repo root is an npm workspace (`apps/panel` is its only member today) — one `npm install` at the root installs both the e2e (Playwright) deps and the panel's, with a single `package-lock.json`. This applies to **local dev and CI only**: production Docker builds (`apps/panel/Dockerfile`) still treat each app as standalone — Dokploy builds it with the repo root as context but installs only `apps/panel`'s dependencies (`npm ci --workspace=apps/panel --include-workspace-root=false`), and the image never includes the e2e suite.
 
@@ -39,10 +41,10 @@ No demo users/seeders yet — the seeded-data convention (`migrate:fresh --seed`
 ### Tests
 
 ```bash
-# Backend — Pest, through Sail (Arch, Unit, Feature testsuites)
-./vendor/bin/sail php ./vendor/bin/pest
-./vendor/bin/sail php ./vendor/bin/pest --filter "..."
-./vendor/bin/sail artisan test --testsuite=Arch    # fast, no DB — architecture rules from this file
+# Backend — Pest, through Sail (Arch, Unit, Feature testsuites). Always from the repo root.
+apps/api/vendor/bin/sail php ./vendor/bin/pest
+apps/api/vendor/bin/sail php ./vendor/bin/pest --filter "..."
+apps/api/vendor/bin/sail artisan test --testsuite=Arch    # fast, no DB — architecture rules from this file
 
 # Frontend — Vitest, apps/panel
 cd apps/panel && npm run test
@@ -55,7 +57,7 @@ npx playwright test
 
 Use the `run-forensics` skill — it detects the touched side(s) and runs the right tools.
 
-Underlying tools if you need one directly: `sail composer analyse` (phpstan level via Larastan), `sail composer pint`, `sail php ./vendor/bin/rector process --dry-run`, and in `apps/panel`: `npm run format` / `npm run lint`, `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
+Underlying tools if you need one directly, all from the repo root: `apps/api/vendor/bin/sail composer analyse` (phpstan level via Larastan), `apps/api/vendor/bin/sail composer pint`, `apps/api/vendor/bin/sail php ./vendor/bin/rector process --dry-run`, and in `apps/panel`: `npm run format` / `npm run lint`, `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
 
 ## Agent rules
 

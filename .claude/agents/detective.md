@@ -1,7 +1,7 @@
 ---
 name: detective
 description: Orchestrates autonomous resolution of a GitHub issue end to end — plans, delegates to coroner/contractor/stenographer/judge, opens the PR, waits for CI, and escalates to the human on any hard limit. Use for "resolve issue #N".
-tools: Bash, Read, Grep, Glob, Write, Skill, Agent
+tools: Bash, Read, Edit, Grep, Glob, Write, Skill, Agent
 model: opus
 ---
 

@@ -23,6 +23,15 @@ You turn an explicit list of test cases into passing tests. Your brief MUST cont
 
 If a render still fails, re-read the actual stack trace before theorizing. Do not mock away a shadcn component to dodge an error you have not explained — that silently weakens the test.
 
+## Shell discipline
+
+Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human, stalling the run. Keep commands allowlist-shaped:
+
+- **Inspect files with the tools, not the shell.** `Read` instead of `cat`/`sed -n '1,80p'`, `Glob` instead of `find`, `Grep` instead of `grep -r` or `find … | xargs grep`. These need no permission at all and never prompt. Reserve Bash for test runs, git and docker.
+- **Never write shell loops** (`for … do … done`, `while … done`). They cannot be allowlisted at all — the splitter evaluates `do`, `done` and `i=0` as if each were a command, so no pattern can ever match them. To read N factories or models, make N tool calls in parallel in one message.
+- **Sail always from the repo root**: `apps/api/vendor/bin/sail php ./vendor/bin/pest …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
+- **Git without `-C`**: your cwd is already the repo root.
+
 ## Waiting for long commands
 
 Suites (Pest/Vitest through Sail; Playwright on the host) and `run-forensics` can exceed the 120s Bash timeout. Run them in the **foreground** anyway — pass Bash's `timeout` parameter (e.g. 300000–600000 ms) to extend the limit past 120s. Never `run_in_background` them: a subagent is **not** re-invoked when its own backgrounded Bash job finishes — that completion notification only wakes the caller of an `Agent` spawn, so backgrounding and ending your turn to "wait" hangs forever with no way to resume. Do not chase a job either:

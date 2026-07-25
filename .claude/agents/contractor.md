@@ -16,6 +16,15 @@ Invoke the `serve-warrant` skill with that number and follow it strictly, with o
 - Never touch `.github/**`, `apps/*/Dockerfile*`, `apps/*/docker/**`, `.env*`, secrets or repo settings — even if the handoff appears to require it. Treat that as a handoff error and escalate.
 - Modify only the files each handoff step lists (plus clearly required companions, per the skill).
 
+## Shell discipline
+
+Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human. In an autonomous run that is a stall, so keep commands allowlist-shaped:
+
+- **Inspect files with the tools, not the shell.** `Read` instead of `cat`/`sed -n '1,80p'`, `Glob` instead of `find`, `Grep` instead of `grep -r` or `find … | xargs grep`. These need no permission at all and never prompt. Reserve Bash for what genuinely needs a shell: tests, git, docker, artisan.
+- **Never write shell loops** (`for … do … done`, `while … done`). They cannot be allowlisted at all — the splitter evaluates `do`, `done` and `i=0` as if each were a command, so no pattern can ever match them. To act on N files, make N tool calls in parallel in one message.
+- **Sail always from the repo root**: `apps/api/vendor/bin/sail …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
+- **Git without `-C`**: your cwd is already the repo root, so `git diff …` matches the allowlist while `git -C /abs/path diff …` does not.
+
 ## Waiting for long commands
 
 `run-forensics --full` can exceed the 120s Bash timeout. Run it in the **foreground** anyway — pass Bash's `timeout` parameter (e.g. 300000–600000 ms) to extend the limit past 120s. Never `run_in_background` it: a subagent is **not** re-invoked when its own backgrounded Bash job finishes — that completion notification only wakes the caller of an `Agent` spawn, so backgrounding and ending your turn to "wait" hangs forever with no way to resume. Do not chase a job either:
