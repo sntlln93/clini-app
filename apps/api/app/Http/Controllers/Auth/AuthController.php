@@ -9,6 +9,7 @@ use App\Data\Auth\OrganizationOwnerRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
+use App\Http\Resources\Auth\SessionUserResource;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -51,5 +52,13 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return response()->json(null, 204);
+    }
+
+    public function me(Request $request): SessionUserResource
+    {
+        /** @var \App\Models\User $user */
+        $user = $request->user();
+
+        return new SessionUserResource($user);
     }
 }
