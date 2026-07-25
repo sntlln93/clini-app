@@ -1,6 +1,8 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePersistedState } from '@/hooks/use-persisted-state';
+import { sessionQueryOptions } from '@/lib/session';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
     createRootRoute,
@@ -15,14 +17,22 @@ import { PanelSidebar } from './PanelSidebar';
 import { isNavItemActive } from './nav-items';
 
 function renderSidebarAt(path: string) {
+    const queryClient = new QueryClient();
+    queryClient.setQueryData(sessionQueryOptions.queryKey, {
+        id: 1,
+        name: 'Ana Ejemplo',
+        email: 'ana@clini.app',
+    });
     const rootRoute = createRootRoute({
         component: () => (
-            <TooltipProvider>
-                <SidebarProvider>
-                    <PanelSidebar />
-                    <Outlet />
-                </SidebarProvider>
-            </TooltipProvider>
+            <QueryClientProvider client={queryClient}>
+                <TooltipProvider>
+                    <SidebarProvider>
+                        <PanelSidebar />
+                        <Outlet />
+                    </SidebarProvider>
+                </TooltipProvider>
+            </QueryClientProvider>
         ),
     });
     const paths = [

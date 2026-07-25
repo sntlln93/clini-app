@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
 
-test('panel loads the layout shell', async ({ page }) => {
+test('panel redirects an unauthenticated visitor to login', async ({ page }) => {
   await page.goto('/')
-  await expect(page).toHaveURL(/\/agenda$/)
-  await expect(page.getByRole('heading', { name: 'Agenda' })).toBeVisible()
+  await expect(page).toHaveURL(/\/login$/)
+  await expect(page.getByRole('heading', { name: 'Iniciar sesión' })).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Ingresar' })).toBeVisible()
 })
 
 test('api responds to /api/v1/ping', async ({ request }) => {
