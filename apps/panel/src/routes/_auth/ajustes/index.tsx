@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { ThemeToggle } from './-components/ThemeToggle';
 
-export const Route = createFileRoute('/ajustes/')({
+export const Route = createFileRoute('/_auth/ajustes/')({
     component: AjustesPage,
 });
 
