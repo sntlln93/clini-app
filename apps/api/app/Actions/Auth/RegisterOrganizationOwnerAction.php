@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
-namespace App\Actions;
+namespace App\Actions\Auth;
 
+use App\Contracts\Action;
+use App\Contracts\Data;
+use App\Data\Auth\OrganizationOwnerRegistrationData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Models\Membership;
@@ -13,26 +16,27 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-class RegisterOrganizationOwner
+/**
+ * @implements Action<OrganizationOwnerRegistrationData>
+ */
+class RegisterOrganizationOwnerAction implements Action
 {
-    public function execute(
-        string $name,
-        string $email,
-        string $password,
-        string $organizationName,
-        string $timezone,
-    ): User {
-        return DB::transaction(function () use ($name, $email, $password, $organizationName, $timezone): User {
+    /**
+     * @param  OrganizationOwnerRegistrationData  $dto
+     */
+    public function handle(Data $dto): User
+    {
+        return DB::transaction(function () use ($dto): User {
             $user = User::create([
-                'name' => $name,
-                'email' => $email,
-                'password' => Hash::make($password),
+                'name' => $dto->name,
+                'email' => $dto->email,
+                'password' => Hash::make($dto->password),
             ]);
 
             $organization = Organization::create([
-                'name' => $organizationName,
-                'slug' => $this->uniqueSlug($organizationName),
-                'timezone' => $timezone,
+                'name' => $dto->organizationName,
+                'slug' => $this->uniqueSlug($dto->organizationName),
+                'timezone' => $dto->timezone,
             ]);
 
             Membership::create([

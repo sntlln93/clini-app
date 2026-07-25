@@ -2,11 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Auth;
 
-use App\Actions\RegisterOrganizationOwner;
-use App\Http\Requests\LoginRequest;
-use App\Http\Requests\RegisterRequest;
+use App\Actions\Auth\RegisterOrganizationOwnerAction;
+use App\Data\Auth\OrganizationOwnerRegistrationData;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\RegisterRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,15 +26,17 @@ class AuthController extends Controller
         return response()->json(Auth::user());
     }
 
-    public function register(RegisterRequest $request, RegisterOrganizationOwner $action): JsonResponse
+    public function register(RegisterRequest $request, RegisterOrganizationOwnerAction $action): JsonResponse
     {
-        $user = $action->execute(
+        $dto = new OrganizationOwnerRegistrationData(
             name: $request->string('name')->toString(),
             email: $request->string('email')->toString(),
             password: $request->string('password')->toString(),
             organizationName: $request->string('organization_name')->toString(),
             timezone: $request->string('timezone')->toString(),
         );
+
+        $user = $action->handle($dto);
 
         Auth::login($user);
         $request->session()->regenerate();
