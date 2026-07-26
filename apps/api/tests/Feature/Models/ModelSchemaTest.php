@@ -24,10 +24,12 @@ use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
 use App\Models\Service;
 use App\Models\Specialty;
+use App\Models\User;
+use App\Models\UserSpecialty;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-test('each of the 13 models can be created singly and in a batch via its factory', function (string $modelClass) {
+test('each of the 14 models can be created singly and in a batch via its factory', function (string $modelClass) {
     $single = $modelClass::factory()->create();
     expect($single)->toBeInstanceOf($modelClass);
 
@@ -38,6 +40,7 @@ test('each of the 13 models can be created singly and in a batch via its factory
     Organization::class,
     Membership::class,
     Specialty::class,
+    UserSpecialty::class,
     ProfessionalSpecialty::class,
     Patient::class,
     Service::class,
@@ -216,14 +219,52 @@ test('creating a patient with a duplicate document identity throws a query excep
     ]))->toThrow(QueryException::class);
 });
 
-test('deleting a Specialty cascades to its professional_specialties rows', function () {
-    $specialty = Specialty::factory()->create();
-    $professionalSpecialty = ProfessionalSpecialty::factory()->create([
-        'organization_id' => $specialty->organization_id,
-        'specialty_id' => $specialty->id,
-    ]);
+// Since issue #21, specialties/services are a global catalog: a Specialty
+// held as a user_specialties credential can no longer be deleted outright
+// (user_specialties.specialty_id is restrictOnDelete) — it must first be
+// unassigned from every user, which is what actually cascades to
+// professional_specialties (below).
+test('deleting a Specialty held as a user credential is blocked at the database level', function () {
+    $userSpecialty = UserSpecialty::factory()->create();
 
-    $specialty->forceDelete();
+    expect(fn () => $userSpecialty->specialty->forceDelete())->toThrow(QueryException::class);
+});
+
+test('deleting a user_specialties row cascades to its professional_specialties rows', function () {
+    $professionalSpecialty = ProfessionalSpecialty::factory()->create();
+
+    UserSpecialty::query()
+        ->where('user_id', $professionalSpecialty->user_id)
+        ->where('specialty_id', $professionalSpecialty->specialty_id)
+        ->delete();
 
     expect(DB::table('professional_specialties')->where('id', $professionalSpecialty->id)->exists())->toBeFalse();
+});
+
+test('ProfessionalSpecialty resolves its user relation', function () {
+    $professionalSpecialty = ProfessionalSpecialty::factory()->create();
+
+    expect($professionalSpecialty->user)->toBeInstanceOf(User::class);
+    expect($professionalSpecialty->user->id)->toBe($professionalSpecialty->user_id);
+});
+
+test('ProfessionalService carries duration_minutes, price_cents and currency', function () {
+    $professionalService = ProfessionalService::factory()->create([
+        'duration_minutes' => 45,
+        'price_cents' => 500000,
+    ]);
+
+    expect($professionalService->duration_minutes)->toBe(45);
+    expect($professionalService->price_cents)->toBe(500000);
+    expect($professionalService->currency)->toBe('ARS');
+});
+
+test('UserSpecialty resolves its user and specialty relations', function () {
+    $userSpecialty = UserSpecialty::factory()->create();
+
+    expect($userSpecialty->user)->toBeInstanceOf(User::class);
+    expect($userSpecialty->user->id)->toBe($userSpecialty->user_id);
+
+    expect($userSpecialty->specialty)->toBeInstanceOf(Specialty::class);
+    expect($userSpecialty->specialty->id)->toBe($userSpecialty->specialty_id);
 });

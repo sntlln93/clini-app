@@ -13,11 +13,16 @@ use App\Models\Reminder;
 /**
  * Map of factory class => organization-owned relations to check, per the
  * factory graphs fixed in 8e2bd2b (fix/9-factory-tenant-coherence).
+ *
+ * `service` and `specialty` are deliberately absent from the Appointment/
+ * ProfessionalService/ProfessionalSpecialty entries: since issue #21,
+ * Service and Specialty are a global catalog with no organization_id, so
+ * they no longer belong in an organization-owned coherence check.
  */
 dataset('tenantOwnedFactories', [
-    'Appointment' => [Appointment::class, ['membership', 'service']],
-    'ProfessionalService' => [ProfessionalService::class, ['membership', 'service']],
-    'ProfessionalSpecialty' => [ProfessionalSpecialty::class, ['membership', 'specialty']],
+    'Appointment' => [Appointment::class, ['membership']],
+    'ProfessionalService' => [ProfessionalService::class, ['membership']],
+    'ProfessionalSpecialty' => [ProfessionalSpecialty::class, ['membership']],
     'Availability' => [Availability::class, ['membership']],
     'AvailabilityException' => [AvailabilityException::class, ['membership']],
     'Reminder' => [Reminder::class, ['appointment']],
