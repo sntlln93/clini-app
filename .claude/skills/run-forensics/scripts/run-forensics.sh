@@ -8,8 +8,9 @@
 #
 # Usage: bash .claude/skills/run-forensics/scripts/run-forensics.sh [--full]
 #   --full | --pr   also run the test suites of the touched side(s)
-#                   (vitest / pest; playwright runs in CI only, never here —
-#                   a local run would need its own webServer boot)
+#                   (vitest / pest; playwright is skipped here even though it
+#                   can run locally — see the e2e compose profile in
+#                   CLAUDE.md — because it's too heavy for this fast gate)
 
 set -uo pipefail
 
@@ -152,15 +153,17 @@ if $frontend; then
 fi
 
 if $e2e; then
-    run "tsc (e2e)" "tsc" npx tsc -p e2e --noEmit
+    run "tsc (e2e)" "tsc" e2e_node npx tsc -p e2e --noEmit
 fi
 
 if $FULL; then
     $backend && run "pest" "pest" sail php ./vendor/bin/pest --compact --colors=never
     $frontend && run "vitest" "vitest" panel npm run test -- --reporter=github-actions --no-isolate
-    # Playwright is CI-only: a local run would need its own webServer boot.
-    # The e2e required check covers it on every PR.
-    $e2e && echo "==> playwright: skipped locally (runs in CI)" && echo
+    # Playwright itself is skipped here, not because it can't run locally
+    # (see `docker compose --profile e2e up e2e` in CLAUDE.md) — it's just too
+    # heavy for this fast quality gate (composer install, migrate, browser
+    # download on first run). The e2e required check covers it on every PR.
+    $e2e && echo "==> playwright: skipped locally (heavy — run via the e2e compose profile if needed)" && echo
 fi
 
 if [ ${#failures[@]} -gt 0 ]; then

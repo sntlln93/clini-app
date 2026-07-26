@@ -22,3 +22,77 @@ include:
     - path: apps/api/compose.yaml
       env_file: apps/api/.env
     - path: apps/panel/compose.yaml
+
+# e2e isn't a deployable app like api/panel (no Dockerfile of its own), so it
+# lives directly here rather than in its own compose file. Behind the `e2e`
+# profile so `docker compose up` never starts it by itself — run explicitly
+# with `docker compose --profile e2e up --abort-on-container-exit e2e`.
+#
+# Mirrors CI exactly rather than pointing at the persistent laravel.test/panel
+# containers: apps/panel's dev bundle bakes VITE_API_URL=http://localhost:8080
+# at build time (see apps/panel/.env), which is only ever correct from inside
+# whatever single process/network namespace is also running the api server —
+# true on a bare CI runner, never true for a browser driven from a *different*
+# container than the one serving it. So `CI=true` here makes
+# playwright.config.ts spawn its own `php artisan serve` + `vite dev` inside
+# this same container (its existing `webServer` array, otherwise CI-only),
+# and everything resolves over plain `localhost` exactly like CI does. Reuses
+# the already-built `sail-8.5/app` image (apps/api/vendor/laravel/sail/…):
+# it already bundles PHP 8.5, Node 24 and Playwright's system deps, so this
+# needs no Dockerfile of its own — and its `start-container` entrypoint
+# already drops from root to $WWWUSER via gosu, so files written into the
+# bind-mounted repo (composer/npm installs, playwright traces) stay
+# host-owned without any extra chown step.
+services:
+    pgsql-e2e:
+        image: 'postgres:18-alpine'
+        profiles:
+            - e2e
+        environment:
+            POSTGRES_DB: testing
+            POSTGRES_USER: sail
+            POSTGRES_PASSWORD: password
+        networks:
+            - sail
+        healthcheck:
+            test:
+                - CMD
+                - pg_isready
+                - '-q'
+                - '-d'
+                - testing
+                - '-U'
+                - sail
+            retries: 3
+            timeout: 5s
+    e2e:
+        image: 'sail-8.5/app'
+        profiles:
+            - e2e
+        working_dir: /workspace
+        depends_on:
+            pgsql-e2e:
+                condition: service_healthy
+        environment:
+            WWWUSER: '${WWWUSER:-1000}'
+            LARAVEL_SAIL: 1
+            HOME: /tmp
+            CI: 'true'
+            DB_CONNECTION: pgsql
+            DB_HOST: pgsql-e2e
+            DB_PORT: 5432
+            DB_DATABASE: testing
+            DB_USERNAME: sail
+            DB_PASSWORD: password
+            # Assertions may end up matching the Spanish UI, same as CI.
+            APP_LOCALE: es
+        volumes:
+            - '.:/workspace'
+        networks:
+            - sail
+        command: >
+            sh -c "cd apps/api && composer install --no-interaction --prefer-dist &&
+            php artisan migrate --force && cd /workspace &&
+            npm install &&
+            npx playwright install chromium &&
+            npx playwright test"
