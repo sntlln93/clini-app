@@ -64,11 +64,11 @@ Cómo usarlo:
 
 ## D. Prestaciones y especialidades
 
-- [x] `Service`/prestación pertenece a la organización (o al profesional dentro de ella), no es global. · CU-15
-- [x] La prestación tiene al menos nombre y duración; el **precio es nullable**. · CU-15, CU-17
-- [x] La relación profesional ↔ prestación es muchos-a-muchos dentro de la organización. · CU-16
+- [x] `Service`/prestación es un catálogo **global**, gestionado por una app externa; no pertenece a la organización ni al profesional. · CU-15
+- [x] El catálogo (`Service`) solo tiene nombre; la **duración** y el **precio** (nullable) viven en la **asignación** profesional↔prestación (`professional_services`), no en el catálogo. · CU-15, CU-17
+- [x] La relación profesional ↔ prestación es muchos-a-muchos dentro de la organización, vía la asignación. · CU-16
 - [x] La **especialidad** existe como concepto propio, distinto de la prestación. · CU-34, CU-43
-- [x] La especialidad es un atributo del profesional **por membresía/organización**. · CU-43
+- [x] La especialidad es de **dos niveles**: una credencial **global** del profesional (`user_specialties`, viaja con la persona) y un subconjunto **practicado por membresía/organización** (`professional_specialties`). · CU-43
 - [x] Es expresable "profesionales de la especialidad X en la organización Y". · CU-34
 
 ## E. Turnos

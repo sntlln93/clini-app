@@ -162,13 +162,15 @@ Convenciones:
 
 ## 4. Prestaciones (servicios)
 
-### CU-15 · Catálogo de prestaciones por organización
+### CU-15 · Catálogo global de prestaciones
 
-- **Actor**: dueño que define las prestaciones que se ofrecen.
+- **Actor**: app externa que gestiona el catálogo de prestaciones (fuera del alcance de Clini).
 - **Invariantes**:
-  - Las prestaciones pertenecen a la organización (o al profesional dentro de ella), no son
-    globales.
-  - Una prestación tiene al menos: nombre, duración y, opcionalmente, precio.
+  - Las prestaciones son un catálogo **global**, no pertenecen a la organización ni al
+    profesional. Clini no ofrece ABM sobre este catálogo: lo gestiona una app externa (el
+    seeder de Clini solo lo puebla para dev/test).
+  - Una prestación tiene únicamente **nombre**. La duración y el precio (opcional) son
+    atributos de la **asignación** profesional↔prestación (ver CU-16), no del catálogo.
 
 ### CU-16 · Un profesional ofrece un subconjunto de prestaciones
 
@@ -478,15 +480,18 @@ Convenciones:
 
 ## 12. Especialidades e historia clínica (surgidos de los mocks)
 
-### CU-43 · Especialidad del profesional
+### CU-43 · Especialidad del profesional en dos niveles
 
 - **Actor**: dueño que da de alta un profesional con su especialidad.
 - **Invariantes**:
-  - La especialidad es un atributo del profesional **dentro de la organización** (vía
-    membresía): el mismo `User` podría ejercer especialidades/roles distintos en cada
-    consultorio.
-  - Un catálogo de especialidades (compartido o por organización) debe poder crecer sin
-    tocar la estructura de profesionales.
+  - La especialidad es de **dos niveles**: una **credencial global** del `User`
+    (`user_specialties`, viaja con la persona entre organizaciones) y un **subconjunto
+    practicado por membresía/organización** (`professional_specialties`), restringido a esa
+    credencial — el mismo `User` puede tener la credencial pero practicarla solo en algunos
+    consultorios.
+  - Asignar como practicada una especialidad que el profesional no tiene como credencial es
+    un error (422), no un estado válido.
+  - El catálogo de especialidades es **global** (ver CU-15): no crece por organización.
 
 ### CU-44 · Marca y URL pública de la organización
 

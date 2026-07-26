@@ -125,30 +125,55 @@ Table memberships {
 
 Table specialties {
   id bigint [pk, increment]
-  organization_id bigint [not null]
-  name varchar [not null]
+  name varchar [not null, unique]
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
 
+  Note: '''
+    Global, read-only catalog (CU-15/43), owned by an external management
+    app — not editable from Clini. No organization_id: unlike most tables
+    in this file, this one is NOT tenant-scoped. Seeded for dev/test only.
+  '''
+}
+
+Table user_specialties {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  specialty_id bigint [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
   indexes {
-    (organization_id, name) [unique]
+    (user_id, specialty_id) [unique]
   }
 
-  Note: 'Per-organization catalog (CU-43). Can be unified into a global directory later by dedup.'
+  Note: '''
+    The professional's global credential (CU-43): specialties a User is
+    qualified to practise, independent of any organization. Edited only by
+    the professional themself. Also the composite-FK target that keeps
+    professional_specialties a subset of this table.
+  '''
 }
 
 Table professional_specialties {
   id bigint [pk, increment]
   organization_id bigint [not null]
   membership_id bigint [not null]
+  user_id bigint [not null, note: 'denormalized from membership_id, for the composite FK into user_specialties']
   specialty_id bigint [not null]
 
   indexes {
     (membership_id, specialty_id) [unique]
   }
 
-  Note: 'Ternary org+professional+specialty (CU-34/43): a professional may hold several specialties within one organization.'
+  Note: '''
+    What a professional actually practises in ONE organization (CU-34/43),
+    always a subset of their user_specialties credential — enforced at the
+    DB level by a composite FK on (user_id, specialty_id) into
+    user_specialties, in addition to (membership_id, organization_id) into
+    memberships.
+  '''
 }
 
 Table patients {
@@ -182,15 +207,17 @@ Table patients {
 
 Table services {
   id bigint [pk, increment]
-  organization_id bigint [not null]
-  name varchar [not null]
-  duration_minutes integer [not null]
-  price_cents integer [null, note: 'nullable until Mercado Pago integration lands']
-  currency varchar [not null, default: 'ARS', note: 'ISO 4217, e.g. ARS, USD']
-  active boolean [not null, default: true]
+  name varchar [not null, unique]
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
+
+  Note: '''
+    Global, read-only catalog (CU-15), owned by an external management
+    app — not editable from Clini. No organization_id: unlike most tables
+    in this file, this one is NOT tenant-scoped. Seeded for dev/test only.
+    duration_minutes/price_cents live on professional_services, not here.
+  '''
 }
 
 Table professional_services {
@@ -198,12 +225,17 @@ Table professional_services {
   organization_id bigint [not null]
   membership_id bigint [not null]
   service_id bigint [not null]
+  duration_minutes integer [not null]
+  price_cents integer [null, note: 'nullable until Mercado Pago integration lands']
+  currency varchar [not null, default: 'ARS', note: 'ISO 4217; fixed to ARS, never exposed through the API']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
 
   indexes {
     (membership_id, service_id) [unique]
   }
 
-  Note: 'Which services a given professional (membership) offers.'
+  Note: 'Which services a given professional (membership) offers, with the duration/price of that specific assignment (CU-15/16/17).'
 }
 
 Table availabilities {
@@ -314,20 +346,20 @@ Table reminders {
 Ref: memberships.organization_id > organizations.id [delete: restrict]
 Ref: memberships.user_id > users.id [delete: restrict]
 
-Ref: specialties.organization_id > organizations.id [delete: restrict]
+Ref: user_specialties.user_id > users.id [delete: cascade]
+Ref: user_specialties.specialty_id > specialties.id [delete: restrict]
 
 Ref: professional_specialties.organization_id > organizations.id [delete: restrict]
 Ref: professional_specialties.membership_id > memberships.id [delete: cascade]
+Ref: professional_specialties.user_id > users.id [delete: cascade]
 Ref: professional_specialties.specialty_id > specialties.id [delete: cascade]
 
 Ref: patients.insurance_provider_id > insurance_providers.id [delete: set null]
 Ref: patients.created_by > users.id [delete: set null]
 
-Ref: services.organization_id > organizations.id [delete: restrict]
-
 Ref: professional_services.organization_id > organizations.id [delete: restrict]
 Ref: professional_services.membership_id > memberships.id [delete: cascade]
-Ref: professional_services.service_id > services.id [delete: cascade]
+Ref: professional_services.service_id > services.id [delete: restrict]
 
 Ref: availabilities.organization_id > organizations.id [delete: restrict]
 Ref: availabilities.membership_id > memberships.id [delete: cascade]
