@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { useState, type FormEvent } from 'react';
 import { useInsuranceProviders } from '../-hooks/use-insurance-providers';
+import { usePatientLookup } from '../-hooks/use-patient-lookup';
 import { useSavePatient } from '../-hooks/use-save-patient';
 import { PatientFormFields } from './PatientFormFields';
 
@@ -22,12 +23,42 @@ function initialValues(patient?: Patient): PatientPayload {
     };
 }
 
+// Fills only fields the user hasn't already typed — mirrors the backend's
+// find-or-create rule of never overwriting existing/entered data.
+function withPrefill(values: PatientPayload, found: Patient): PatientPayload {
+    return {
+        ...values,
+        name: values.name || found.name,
+        email: values.email || found.email || '',
+        phone: values.phone || found.phone || '',
+        sex: values.sex || found.sex || '',
+        birth_date: values.birth_date || found.birth_date || '',
+        insurance_provider_id:
+            values.insurance_provider_id ?? found.insurance_provider_id,
+    };
+}
+
 export function PatientForm({ patient }: PatientFormProps) {
     const [values, setValues] = useState<PatientPayload>(() =>
         initialValues(patient),
     );
     const { data: insuranceProviders } = useInsuranceProviders();
     const { mutate, isPending, message, errors } = useSavePatient(patient?.id);
+    // Create mode only: an edit form must never fight the user editing
+    // their own patient's document, so lookup stays disabled there.
+    const { data: foundPatient } = usePatientLookup(
+        patient ? '' : values.document_type,
+        patient ? '' : values.document_number,
+    );
+
+    // Adjust state during render (React's documented alternative to an
+    // Effect for this exact case) instead of calling setState from inside
+    // useEffect, which would trigger an extra cascading render.
+    const [appliedLookupId, setAppliedLookupId] = useState<number | null>(null);
+    if (foundPatient && foundPatient.id !== appliedLookupId) {
+        setAppliedLookupId(foundPatient.id);
+        setValues((previous) => withPrefill(previous, foundPatient));
+    }
 
     function setField<K extends keyof PatientPayload>(
         field: K,
@@ -46,6 +77,13 @@ export function PatientForm({ patient }: PatientFormProps) {
             {message && (
                 <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                     {message}
+                </div>
+            )}
+
+            {foundPatient && (
+                <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
+                    Ya existe un paciente con este documento: se va a reutilizar
+                    el registro y solo se completarán los datos faltantes.
                 </div>
             )}
 
