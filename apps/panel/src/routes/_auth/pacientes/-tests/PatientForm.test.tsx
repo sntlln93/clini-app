@@ -24,8 +24,18 @@ function notFoundError() {
     return { isAxiosError: true, response: { status: 404, data: {} } };
 }
 
-function mockInsuranceProviders() {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
+function organizationForbiddenError() {
+    return { isAxiosError: true, response: { status: 403, data: {} } };
+}
+
+function mockInsuranceProviders(
+    providers: { id: number; name: string }[] = [],
+) {
+    vi.mocked(api.get).mockResolvedValueOnce({ data: { data: providers } });
+}
+
+function mockInsuranceProvidersError() {
+    vi.mocked(api.get).mockRejectedValueOnce(organizationForbiddenError());
 }
 
 function mockLookupMiss() {
@@ -37,7 +47,12 @@ function mockLookupHit(patient: Record<string, unknown>) {
 }
 
 function renderPatientForm() {
-    const queryClient = new QueryClient();
+    // Disable retries here (independent of the app's shared queryClient
+    // policy) so a rejected query surfaces its error immediately instead of
+    // exhausting React Query's default retry/backoff before assertions run.
+    const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+    });
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
@@ -172,5 +187,34 @@ describe('PatientForm', () => {
         ).toBe('');
         expect(screen.queryByText(/ya existe un paciente/i)).toBeNull();
         expect(screen.queryByText(/ocurrió un error inesperado/i)).toBeNull();
+    });
+
+    it('shows the error state instead of an empty/silent select when the insurance-providers query fails', async () => {
+        mockInsuranceProvidersError();
+        renderPatientForm();
+
+        await screen.findByText(
+            'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador para ver los pacientes.',
+        );
+        expect(screen.getByLabelText('Obra social')).not.toBeNull();
+    });
+
+    it('keeps the Obra social select working when the insurance-providers query succeeds', async () => {
+        mockInsuranceProviders([{ id: 1, name: 'OSDE' }]);
+        renderPatientForm();
+
+        fireEvent.click(await screen.findByLabelText('Obra social'));
+        await screen.findByRole('option', { name: 'OSDE' });
+
+        expect(
+            screen.queryByText(
+                'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador para ver los pacientes.',
+            ),
+        ).toBeNull();
+        expect(
+            screen.queryByText(
+                'No pudimos cargar la información. Intentá nuevamente.',
+            ),
+        ).toBeNull();
     });
 });
