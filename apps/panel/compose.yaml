@@ -3,21 +3,42 @@
 # started from there or standalone (`cd apps/panel && docker compose up`).
 name: clini-app
 services:
+    # One-shot: a fresh named volume is created root-owned, which the panel
+    # service below (running as WWWUSER, not root) couldn't write into. This
+    # runs once as root before panel starts and exits; `chown -R` on an
+    # already-correct tree on later restarts is a cheap no-op.
+    panel-node-modules-init:
+        image: 'node:24-bookworm-slim'
+        volumes:
+            - 'panel_node_modules:/node_modules'
+        command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     panel:
         image: 'node:24-bookworm-slim'
         # The npm workspace root (repo root) is mounted, not just apps/panel,
         # so `npm install` sees the workspace lockfile.
         working_dir: /workspace
         user: '${WWWUSER:-1000}:${WWWGROUP:-1000}'
+        depends_on:
+            panel-node-modules-init:
+                condition: service_completed_successfully
         ports:
             - '${PANEL_PORT:-5174}:5174'
         environment:
             HOME: /tmp
         volumes:
             - '../..:/workspace'
+            # Overlaid on top of the bind mount above: node_modules holds
+            # platform-specific native bindings (e.g. rolldown's), so it
+            # can't be shared as-is between the host (macOS) and this
+            # container (Linux) without one install clobbering the other's
+            # binary every time either side runs `npm install`.
+            - 'panel_node_modules:/workspace/node_modules'
         networks:
             - sail
         command: sh -c "npm install && npm run dev --workspace=apps/panel"
 networks:
     sail:
         driver: bridge
+volumes:
+    panel_node_modules:
+        driver: local
