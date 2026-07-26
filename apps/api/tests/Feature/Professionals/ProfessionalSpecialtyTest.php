@@ -147,6 +147,21 @@ test('index lists the specialties practised by that membership', function () {
     expect(collect($response->json('data'))->pluck('specialty_id'))->toContain($specialty->id);
 });
 
+test('index on a membership of another organization is rejected', function () {
+    $owner = Membership::factory()->owner()->create();
+    $otherOrgMembership = Membership::factory()->create();
+    $specialty = Specialty::factory()->create();
+    ProfessionalSpecialty::factory()->create([
+        'organization_id' => $otherOrgMembership->organization_id,
+        'membership_id' => $otherOrgMembership->id,
+        'specialty_id' => $specialty->id,
+    ]);
+
+    $response = $this->actingAs($owner->user)->getJson("/api/v1/memberships/{$otherOrgMembership->id}/specialties");
+
+    $response->assertStatus(403);
+});
+
 test('destroy unassigns the specialty without touching the user credential row', function () {
     $membership = Membership::factory()->create();
     $specialty = Specialty::factory()->create();

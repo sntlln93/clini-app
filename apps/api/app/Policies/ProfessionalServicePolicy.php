@@ -11,9 +11,18 @@ use App\Models\User;
 
 class ProfessionalServicePolicy extends OrganizationScopedPolicy
 {
-    public function viewAny(User $user): bool
+    /**
+     * There is no persisted resource to check here either, so the same
+     * unsaved-resource trick as create() is used: without it, layer 1 (the
+     * tenant check) never runs and any membership id from any organization
+     * would authorize.
+     */
+    public function viewAny(User $user, Membership $membership): bool
     {
-        return $this->allows($user, Permission::CatalogView);
+        return $this->allows($user, Permission::CatalogView, new ProfessionalService([
+            'organization_id' => $membership->organization_id,
+            'membership_id' => $membership->id,
+        ]));
     }
 
     /**

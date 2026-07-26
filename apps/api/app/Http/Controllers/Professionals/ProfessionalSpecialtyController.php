@@ -21,7 +21,7 @@ class ProfessionalSpecialtyController extends Controller
 {
     public function index(Membership $membership): AnonymousResourceCollection
     {
-        Gate::authorize('viewAny', ProfessionalSpecialty::class);
+        Gate::authorize('viewAny', [ProfessionalSpecialty::class, $membership]);
 
         $professionalSpecialties = ProfessionalSpecialty::query()
             ->where('membership_id', $membership->id)

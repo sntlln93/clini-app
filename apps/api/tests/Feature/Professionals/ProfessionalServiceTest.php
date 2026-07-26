@@ -156,6 +156,19 @@ test('store on a membership belonging to another organization returns 422', func
     $response->assertJsonValidationErrors('membership_id');
 });
 
+test('index on a membership of another organization is rejected', function () {
+    $owner = Membership::factory()->owner()->create();
+    $otherOrgMembership = Membership::factory()->create();
+    ProfessionalService::factory()->create([
+        'organization_id' => $otherOrgMembership->organization_id,
+        'membership_id' => $otherOrgMembership->id,
+    ]);
+
+    $response = $this->actingAs($owner->user)->getJson("/api/v1/memberships/{$otherOrgMembership->id}/services");
+
+    $response->assertStatus(403);
+});
+
 test('update changes duration_minutes and price_cents on an existing assignment', function () {
     $membership = Membership::factory()->create();
     $professionalService = ProfessionalService::factory()->create([
