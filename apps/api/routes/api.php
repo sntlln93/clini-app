@@ -12,6 +12,6 @@ Route::prefix('v1')->group(function (): void {
     // and health stay outside this group: they run before an organization
     // can be resolved, or don't need one at all.
     Route::middleware(['auth:sanctum', 'organization'])->group(function (): void {
-        //
+        require __DIR__.'/api/v1/patients.php';
     });
 });
