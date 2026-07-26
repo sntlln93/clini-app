@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, refreshCsrfCookie } from '@/lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -14,10 +14,11 @@ import { LoginForm } from '../-components/LoginForm';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
+    refreshCsrfCookie: vi.fn(() => Promise.resolve({ data: '' })),
 }));
 
-function unauthorizedError(data: unknown) {
-    return { isAxiosError: true, response: { status: 422, data } };
+function unauthorizedError(data: unknown, status = 422) {
+    return { isAxiosError: true, response: { status, data } };
 }
 
 function renderLoginForm() {
@@ -148,5 +149,68 @@ describe('LoginForm', () => {
 
         const link = await screen.findByRole('link', { name: 'Registrate' });
         expect(link.getAttribute('href')).toBe('/registro');
+    });
+
+    it('warms up the CSRF cookie before posting the login request', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 1, name: 'Ana', email: 'ana@clini.app' },
+        });
+        renderLoginForm();
+
+        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+            target: { value: 'ana@clini.app' },
+        });
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'secreta123' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+        await waitFor(() => expect(api.post).toHaveBeenCalled());
+
+        expect(
+            vi.mocked(refreshCsrfCookie).mock.invocationCallOrder[0],
+        ).toBeLessThan(vi.mocked(api.post).mock.invocationCallOrder[0]);
+    });
+
+    it('does not call POST /login when the CSRF warm-up fails, and surfaces an error', async () => {
+        vi.mocked(refreshCsrfCookie).mockRejectedValueOnce(
+            new Error('network error'),
+        );
+        renderLoginForm();
+
+        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+            target: { value: 'ana@clini.app' },
+        });
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'secreta123' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+        await screen.findByText(
+            'Ocurrió un error inesperado. Intentá nuevamente.',
+        );
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('renders the session-expired message when POST /login rejects with a 419', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce(unauthorizedError({}, 419));
+        renderLoginForm();
+
+        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+            target: { value: 'ana@clini.app' },
+        });
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'secreta123' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+        await screen.findByText(
+            'Tu sesión expiró. Recargá la página e intentá de nuevo.',
+        );
+        expect(
+            screen.queryByText(
+                'Ocurrió un error inesperado. Intentá nuevamente.',
+            ),
+        ).toBeNull();
     });
 });

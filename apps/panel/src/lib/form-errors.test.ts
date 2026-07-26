@@ -43,4 +43,26 @@ describe('extractFormErrors', () => {
         );
         expect(errors).toEqual({});
     });
+
+    it('returns the session-expired message for a 419', () => {
+        const error = axiosError(419, {});
+
+        const { message, errors } = extractFormErrors(error);
+
+        expect(message).toBe(
+            'Tu sesión expiró. Recargá la página e intentá de nuevo.',
+        );
+        expect(errors).toEqual({});
+    });
+
+    it('falls back to the generic message for a 500', () => {
+        const error = axiosError(500, {});
+
+        const { message, errors } = extractFormErrors(error);
+
+        expect(message).toBe(
+            'Ocurrió un error inesperado. Intentá nuevamente.',
+        );
+        expect(errors).toEqual({});
+    });
 });

@@ -8,8 +8,19 @@ type FormErrors = {
 const GENERIC_ERROR_MESSAGE =
     'Ocurrió un error inesperado. Intentá nuevamente.';
 
+const SESSION_EXPIRED_MESSAGE =
+    'Tu sesión expiró. Recargá la página e intentá de nuevo.';
+
 export function extractFormErrors(error: unknown): FormErrors {
-    if (!axios.isAxiosError(error) || error.response?.status !== 422) {
+    if (!axios.isAxiosError(error)) {
+        return { message: GENERIC_ERROR_MESSAGE, errors: {} };
+    }
+
+    if (error.response?.status === 419) {
+        return { message: SESSION_EXPIRED_MESSAGE, errors: {} };
+    }
+
+    if (error.response?.status !== 422) {
         return { message: GENERIC_ERROR_MESSAGE, errors: {} };
     }
 

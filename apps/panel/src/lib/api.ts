@@ -5,3 +5,9 @@ export const api = axios.create({
     withCredentials: true,
     withXSRFToken: true,
 });
+
+export function refreshCsrfCookie() {
+    return api.get('/sanctum/csrf-cookie', {
+        baseURL: import.meta.env.VITE_API_URL,
+    });
+}
