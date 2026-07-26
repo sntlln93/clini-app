@@ -27,9 +27,10 @@ class ProfessionalServiceFactory extends Factory
             'membership_id' => fn (array $attributes) => Membership::factory()->state([
                 'organization_id' => $attributes['organization_id'],
             ]),
-            'service_id' => fn (array $attributes) => Service::factory()->state([
-                'organization_id' => $attributes['organization_id'],
-            ]),
+            'service_id' => Service::factory(),
+            'duration_minutes' => fake()->randomElement([15, 20, 30, 45, 60]),
+            'price_cents' => fake()->numberBetween(1000, 50000),
+            'currency' => 'ARS',
         ];
     }
 }

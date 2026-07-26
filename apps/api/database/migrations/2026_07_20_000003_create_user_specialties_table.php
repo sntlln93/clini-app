@@ -13,11 +13,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
+        Schema::create('user_specialties', function (Blueprint $table) {
             $table->id();
-            $table->string('name')->unique();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('specialty_id')->constrained()->restrictOnDelete();
             $table->timestamps();
-            $table->softDeletes();
+
+            $table->unique(['user_id', 'specialty_id']);
         });
     }
 
@@ -26,6 +28,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::dropIfExists('user_specialties');
     }
 };

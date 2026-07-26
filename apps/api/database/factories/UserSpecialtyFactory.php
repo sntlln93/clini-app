@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Models\Service;
+use App\Models\Specialty;
+use App\Models\User;
+use App\Models\UserSpecialty;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<Service>
+ * @extends Factory<UserSpecialty>
  */
-class ServiceFactory extends Factory
+class UserSpecialtyFactory extends Factory
 {
     /**
      * Define the model's default state.
@@ -20,7 +22,8 @@ class ServiceFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => fake()->unique()->words(3, true),
+            'user_id' => User::factory(),
+            'specialty_id' => Specialty::factory(),
         ];
     }
 }

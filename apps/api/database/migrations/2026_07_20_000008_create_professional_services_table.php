@@ -17,14 +17,16 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
-            $table->foreignId('service_id');
+            $table->foreignId('service_id')->constrained()->restrictOnDelete();
+            $table->integer('duration_minutes');
+            $table->integer('price_cents')->nullable();
+            $table->string('currency')->default('ARS');
+            $table->timestamps();
 
             $table->unique(['membership_id', 'service_id']);
 
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
-            $table->foreign(['service_id', 'organization_id'])
-                ->references(['id', 'organization_id'])->on('services')->cascadeOnDelete();
         });
     }
 

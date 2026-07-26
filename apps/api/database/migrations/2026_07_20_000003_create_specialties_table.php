@@ -15,13 +15,9 @@ return new class extends Migration
     {
         Schema::create('specialties', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->string('name');
+            $table->string('name')->unique();
             $table->timestamps();
             $table->softDeletes();
-
-            $table->unique(['organization_id', 'name']);
-            $table->unique(['id', 'organization_id']);
         });
     }
 
