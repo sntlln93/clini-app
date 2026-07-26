@@ -15,6 +15,15 @@ class MembershipPolicy extends OrganizationScopedPolicy
         return $this->allows($user, Permission::MembershipsView);
     }
 
+    /**
+     * Authorizes inviting a new member: there is no persisted Membership
+     * yet at invite time, so this only checks the org-wide permission.
+     */
+    public function create(User $user): bool
+    {
+        return $this->allows($user, Permission::MembershipsManage);
+    }
+
     public function view(User $user, Membership $membership): bool
     {
         return $this->allows($user, Permission::MembershipsView, $membership);
