@@ -15,16 +15,9 @@ return new class extends Migration
     {
         Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->string('name');
-            $table->integer('duration_minutes');
-            $table->integer('price_cents')->nullable();
-            $table->string('currency')->default('ARS');
-            $table->boolean('active')->default(true);
+            $table->string('name')->unique();
             $table->timestamps();
             $table->softDeletes();
-
-            $table->unique(['id', 'organization_id']);
         });
     }
 

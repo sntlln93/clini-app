@@ -17,14 +17,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
+            $table->foreignId('user_id');
             $table->foreignId('specialty_id');
 
             $table->unique(['membership_id', 'specialty_id']);
 
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
-            $table->foreign(['specialty_id', 'organization_id'])
-                ->references(['id', 'organization_id'])->on('specialties')->cascadeOnDelete();
+            $table->foreign(['membership_id', 'user_id'])
+                ->references(['id', 'user_id'])->on('memberships')->cascadeOnDelete();
+            $table->foreign(['user_id', 'specialty_id'])
+                ->references(['user_id', 'specialty_id'])->on('user_specialties')->cascadeOnDelete();
         });
     }
 

@@ -3,9 +3,9 @@
 declare(strict_types=1);
 
 use App\Enums\MembershipStatus;
+use App\Models\Availability;
 use App\Models\Membership;
 use App\Models\Organization;
-use App\Models\Service;
 use App\Rules\BelongsToCurrentOrganization;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Validator;
@@ -60,21 +60,21 @@ test('fails for a membership in the active organization that does not match the 
     expect($validator->fails())->toBeTrue();
 });
 
-test('passes for a service belonging to the active organization and fails for one from another', function () {
+test('passes for an availability belonging to the active organization and fails for one from another', function () {
     $organizationA = Organization::factory()->create();
     $organizationB = Organization::factory()->create();
-    $serviceA = Service::factory()->create(['organization_id' => $organizationA->id]);
-    $serviceB = Service::factory()->create(['organization_id' => $organizationB->id]);
+    $availabilityA = Availability::factory()->create(['organization_id' => $organizationA->id]);
+    $availabilityB = Availability::factory()->create(['organization_id' => $organizationB->id]);
 
     app(CurrentOrganization::class)->set($organizationA->id);
 
     $passing = Validator::make(
-        ['service_id' => $serviceA->id],
-        ['service_id' => [new BelongsToCurrentOrganization(Service::class)]],
+        ['availability_id' => $availabilityA->id],
+        ['availability_id' => [new BelongsToCurrentOrganization(Availability::class)]],
     );
     $failing = Validator::make(
-        ['service_id' => $serviceB->id],
-        ['service_id' => [new BelongsToCurrentOrganization(Service::class)]],
+        ['availability_id' => $availabilityB->id],
+        ['availability_id' => [new BelongsToCurrentOrganization(Availability::class)]],
     );
 
     expect($passing->passes())->toBeTrue();

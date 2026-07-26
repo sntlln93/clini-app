@@ -6,8 +6,10 @@ use App\Models\Appointment;
 use App\Models\AvailabilityException;
 use App\Models\Membership;
 use App\Models\ProfessionalService;
+use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
-use App\Models\Service;
+use App\Models\Specialty;
+use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -22,12 +24,14 @@ test('a direct insert into appointments with a membership from a different organ
         ->toThrow(QueryException::class);
 });
 
-test('a direct insert into appointments with a service from a different organization fails at the database level', function () {
+// service_id is a simple FK since issue #21 (services is now a global,
+// non-tenant catalog): a nonexistent id still fails, but "belongs to
+// another organization" is no longer a concept the schema enforces here.
+test('a direct insert into appointments with a non-existent service_id fails at the database level', function () {
     $base = Appointment::factory()->create();
-    $otherService = Service::factory()->create();
 
     $attributes = collect($base->getAttributes())->except('id')->all();
-    $attributes['service_id'] = $otherService->id;
+    $attributes['service_id'] = 999999;
 
     expect(fn () => DB::table('appointments')->insert($attributes))
         ->toThrow(QueryException::class);
@@ -44,14 +48,50 @@ test('a direct insert into appointments with a rescheduled_from_id pointing at a
         ->toThrow(QueryException::class);
 });
 
-test('a direct insert into professional_services with a service from a different organization fails at the database level', function () {
+// service_id is a simple FK since issue #21: a nonexistent id still fails,
+// but a service used by another organization is no longer rejected — see
+// the "succeeds" test below, which documents that inversion deliberately.
+test('a direct insert into professional_services with a non-existent service_id fails at the database level', function () {
     $base = ProfessionalService::factory()->create();
-    $otherService = Service::factory()->create();
 
     $attributes = collect($base->getAttributes())->except('id')->all();
-    $attributes['service_id'] = $otherService->id;
+    $attributes['service_id'] = 999999;
 
     expect(fn () => DB::table('professional_services')->insert($attributes))
+        ->toThrow(QueryException::class);
+});
+
+test('a direct insert into professional_services with a service already assigned in another organization succeeds, since the catalog is global', function () {
+    $base = ProfessionalService::factory()->create();
+    $otherMembership = Membership::factory()->create();
+
+    $attributes = collect($base->getAttributes())->except('id')->all();
+    $attributes['membership_id'] = $otherMembership->id;
+    $attributes['organization_id'] = $otherMembership->organization_id;
+
+    expect(fn () => DB::table('professional_services')->insert($attributes))
+        ->not->toThrow(QueryException::class);
+});
+
+test('a direct insert into professional_specialties with a user_id not matching the membership user fails at the database level', function () {
+    $base = ProfessionalSpecialty::factory()->create();
+    $otherUser = User::factory()->create();
+
+    $attributes = collect($base->getAttributes())->except('id')->all();
+    $attributes['user_id'] = $otherUser->id;
+
+    expect(fn () => DB::table('professional_specialties')->insert($attributes))
+        ->toThrow(QueryException::class);
+});
+
+test('a direct insert into professional_specialties with a specialty outside the user credential fails at the database level', function () {
+    $base = ProfessionalSpecialty::factory()->create();
+    $otherSpecialty = Specialty::factory()->create();
+
+    $attributes = collect($base->getAttributes())->except('id')->all();
+    $attributes['specialty_id'] = $otherSpecialty->id;
+
+    expect(fn () => DB::table('professional_specialties')->insert($attributes))
         ->toThrow(QueryException::class);
 });
 

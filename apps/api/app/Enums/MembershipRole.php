@@ -48,6 +48,7 @@ enum MembershipRole: string
                 Permission::AvailabilityView,
                 Permission::AvailabilityManageOwn,
                 Permission::CatalogView,
+                Permission::CatalogManageOwn,
             ],
         };
     }

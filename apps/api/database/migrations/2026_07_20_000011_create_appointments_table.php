@@ -19,7 +19,7 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
-            $table->foreignId('service_id');
+            $table->foreignId('service_id')->constrained()->restrictOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('origin')->default('manual');
             $table->string('status')->default('scheduled');
@@ -42,8 +42,6 @@ return new class extends Migration
             $table->unique(['id', 'organization_id']);
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
-            $table->foreign(['service_id', 'organization_id'])
-                ->references(['id', 'organization_id'])->on('services')->restrictOnDelete();
         });
 
         DB::statement('ALTER TABLE appointments ADD CONSTRAINT appointments_rescheduled_from_organization_foreign

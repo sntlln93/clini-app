@@ -39,7 +39,7 @@ dataset('permissionMatrix', function (): Generator {
             'patients.view', 'patients.create', 'patients.update',
             'appointments.view.own', 'appointments.create.own', 'appointments.update.own', 'appointments.cancel.own',
             'availability.view', 'availability.manage.own',
-            'catalog.view',
+            'catalog.view', 'catalog.manage.own',
         ],
     ];
 
@@ -96,6 +96,7 @@ test('orgWide() maps each .own permission to its org-wide counterpart and isOwnS
         Permission::AppointmentsUpdateOwn->value => Permission::AppointmentsUpdate,
         Permission::AppointmentsCancelOwn->value => Permission::AppointmentsCancel,
         Permission::AvailabilityManageOwn->value => Permission::AvailabilityManage,
+        Permission::CatalogManageOwn->value => Permission::CatalogManage,
     ];
 
     foreach ($ownToOrgWide as $ownValue => $expectedOrgWide) {
@@ -113,6 +114,7 @@ test('orgWide() is null and isOwnScoped() is false for every org-wide permission
         Permission::AppointmentsUpdateOwn,
         Permission::AppointmentsCancelOwn,
         Permission::AvailabilityManageOwn,
+        Permission::CatalogManageOwn,
     ];
 
     $orgWidePermissions = array_filter(

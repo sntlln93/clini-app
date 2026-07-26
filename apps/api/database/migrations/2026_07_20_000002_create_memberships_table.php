@@ -25,6 +25,7 @@ return new class extends Migration
 
             $table->unique(['organization_id', 'user_id']);
             $table->unique(['id', 'organization_id']);
+            $table->unique(['id', 'user_id']);
         });
     }
 

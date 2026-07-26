@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['organization_id', 'membership_id', 'specialty_id'])]
+#[Fillable(['organization_id', 'membership_id', 'user_id', 'specialty_id'])]
 class ProfessionalSpecialty extends Model
 {
     /** @use HasFactory<ProfessionalSpecialtyFactory> */
@@ -25,6 +25,14 @@ class ProfessionalSpecialty extends Model
     public function membership(): BelongsTo
     {
         return $this->belongsTo(Membership::class);
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
     }
 
     /**
