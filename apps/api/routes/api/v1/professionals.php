@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Professionals\ProfessionalServiceController;
 use App\Http\Controllers\Professionals\ProfessionalSpecialtyController;
 use App\Http\Controllers\Professionals\UserSpecialtyController;
 use Illuminate\Support\Facades\Route;
@@ -13,3 +14,8 @@ Route::delete('users/{user}/specialties/{specialty}', [UserSpecialtyController::
 Route::get('memberships/{membership}/specialties', [ProfessionalSpecialtyController::class, 'index']);
 Route::post('memberships/{membership}/specialties', [ProfessionalSpecialtyController::class, 'store']);
 Route::delete('memberships/{membership}/specialties/{specialty}', [ProfessionalSpecialtyController::class, 'destroy']);
+
+Route::get('memberships/{membership}/services', [ProfessionalServiceController::class, 'index']);
+Route::post('memberships/{membership}/services', [ProfessionalServiceController::class, 'store']);
+Route::patch('memberships/{membership}/services/{service}', [ProfessionalServiceController::class, 'update']);
+Route::delete('memberships/{membership}/services/{service}', [ProfessionalServiceController::class, 'destroy']);
