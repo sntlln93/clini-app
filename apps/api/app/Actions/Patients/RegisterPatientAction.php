@@ -8,6 +8,7 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Patients\PatientRegistrationData;
 use App\Models\Patient;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -23,6 +24,20 @@ class RegisterPatientAction implements Action
      * @param  PatientRegistrationData  $dto
      */
     public function handle(Data $dto): Patient
+    {
+        try {
+            return $this->registerOrReuse($dto);
+        } catch (UniqueConstraintViolationException) {
+            // Lost a race against a concurrent insert of the same document
+            // pair: the transaction above is already rolled back by
+            // Postgres, so a fresh transaction re-reads and reuses the row
+            // the winner just created instead of surfacing a 500. Bounded
+            // to a single retry — a second collision is not swallowed.
+            return $this->reuseExisting($dto);
+        }
+    }
+
+    private function registerOrReuse(PatientRegistrationData $dto): Patient
     {
         return DB::transaction(function () use ($dto): Patient {
             $patient = Patient::withTrashed()
@@ -50,6 +65,29 @@ class RegisterPatientAction implements Action
                 ]);
             }
 
+            $patient->organizations()->syncWithoutDetaching([$dto->organizationId]);
+
+            return $patient;
+        });
+    }
+
+    /**
+     * Re-reads the pair after losing the race and continues with the same
+     * fill-only-empty and pivot-link behavior as the normal "found" path.
+     */
+    private function reuseExisting(PatientRegistrationData $dto): Patient
+    {
+        return DB::transaction(function () use ($dto): Patient {
+            $patient = Patient::withTrashed()
+                ->where('document_type', $dto->documentType)
+                ->where('document_number', $dto->documentNumber)
+                ->firstOrFail();
+
+            if ($patient->trashed()) {
+                $patient->restore();
+            }
+
+            $this->fillMissingContactFields($patient, $dto);
             $patient->organizations()->syncWithoutDetaching([$dto->organizationId]);
 
             return $patient;

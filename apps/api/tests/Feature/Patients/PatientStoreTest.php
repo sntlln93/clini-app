@@ -12,6 +12,34 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
+// A row inserted through a genuinely separate Postgres session (see the
+// concurrency race test near the bottom of this file) is committed
+// independently of RefreshDatabase's per-test transaction, so that
+// transaction's rollback can never remove it — and deleting it
+// immediately, from inside the still-open test transaction, would
+// deadlock: the app's own FK insert into organization_patient holds a
+// lock on that row until the test's transaction ends. Pest's afterAll()
+// (tearDownAfterClass) runs once this whole file's tests are done, i.e.
+// strictly after every one of their transactions has already been rolled
+// back, so the cleanup below never contends a lock — and since the race
+// test is the last one declared in this file, no other test here ever
+// observes the extra row. The registry keeps the *already-open* PDO
+// connection alongside the id: by the time afterAll() runs, the Laravel
+// container is torn down, so config()/app() are no longer available —
+// but a plain PDO object has no such dependency.
+function &raceCleanupTasks(): array
+{
+    static $tasks = [];
+
+    return $tasks;
+}
+
+afterAll(function () {
+    foreach (raceCleanupTasks() as [$pdo, $patientId]) {
+        $pdo->exec('DELETE FROM patients WHERE id = '.$patientId);
+    }
+});
+
 test('store creates a new patient, links it to the active organization and sets created_by', function () {
     $membership = Membership::factory()->create();
 
@@ -185,4 +213,61 @@ test('storing the pair of a soft-deleted patient restores and reuses it', functi
     expect($response->json('data.id'))->toBe($existing->id);
     expect(Patient::withTrashed()->count())->toBe(1);
     expect($existing->fresh()->trashed())->toBeFalse();
+});
+
+// Declared last in this file on purpose: the racing patient row it plants
+// through a second, genuinely separate database session survives this
+// test's own transaction rollback (see the afterAll() cleanup above), so
+// every test declared before this one must run — and finish rolling back
+// its own transaction — before this row ever exists.
+test('store reuses the patient a concurrent request just created for the same document pair instead of returning a 500', function () {
+    $membership = Membership::factory()->create();
+
+    // A genuinely separate database session (its own PDO connection, own
+    // Postgres backend), not this test's RefreshDatabase transaction. Only
+    // a second real session commits independently of the SAVEPOINT rollback
+    // that the unique-constraint violation below forces on this test's
+    // connection — exactly like a real concurrent request's already
+    // -committed row would behave.
+    $config = config('database.connections.pgsql');
+    $race = new PDO(
+        sprintf('pgsql:host=%s;port=%s;dbname=%s', $config['host'], $config['port'], $config['database']),
+        $config['username'],
+        $config['password']
+    );
+
+    $racingPatientId = null;
+
+    Patient::creating(function (Patient $patient) use (&$racingPatientId, $race) {
+        if ($patient->document_number !== '10101010') {
+            return;
+        }
+
+        // Fires after this action already read the table and found
+        // nothing, but before its own insert lands — the racing session
+        // inserts and commits the same document pair right here, so the
+        // insert below then collides on unique(document_type, document_number).
+        $racingPatientId = (int) $race->query(
+            'INSERT INTO patients (name, document_type, document_number, created_at, updated_at) '.
+            "VALUES ('Ganador de la carrera', 'dni', '10101010', now(), now()) RETURNING id"
+        )->fetchColumn();
+    });
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/patients', [
+        'name' => 'Perdedor de la carrera',
+        'document_type' => 'dni',
+        'document_number' => '10101010',
+    ]);
+
+    $response->assertCreated();
+    expect(Patient::count())->toBe(1);
+    expect($response->json('data.id'))->toBe($racingPatientId);
+    expect(
+        DB::table('organization_patient')
+            ->where('patient_id', $racingPatientId)
+            ->where('organization_id', $membership->organization_id)
+            ->exists()
+    )->toBeTrue();
+
+    raceCleanupTasks()[] = [$race, $racingPatientId];
 });
