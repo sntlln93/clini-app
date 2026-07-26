@@ -13,5 +13,6 @@ Route::prefix('v1')->group(function (): void {
     // can be resolved, or don't need one at all.
     Route::middleware(['auth:sanctum', 'organization'])->group(function (): void {
         require __DIR__.'/api/v1/patients.php';
+        require __DIR__.'/api/v1/catalog.php';
     });
 });
