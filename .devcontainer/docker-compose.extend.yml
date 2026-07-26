@@ -1,0 +1,10 @@
+# Extends (not replaces) the project's real compose.yaml for devcontainer
+# use only. `laravel.test` already has PHP 8.5 + Composer + Node 24 + npm
+# (apps/api/vendor/laravel/sail/runtimes/8.5/Dockerfile) but its own compose
+# service mounts only apps/api at /var/www/html — this adds the whole repo
+# root at /workspace too, so the editor sees apps/panel and e2e/ as well,
+# without touching how Sail/CI use the service otherwise.
+services:
+    laravel.test:
+        volumes:
+            - '..:/workspace'

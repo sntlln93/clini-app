@@ -3,7 +3,8 @@
 ## Requisitos
 
 - Docker
-- Node (solo para tooling puntual fuera de Sail; el flujo normal corre todo en contenedores)
+
+`npm`/`npx` nunca se invocan como proceso bare del host, por ningún motivo — ver la regla en `CLAUDE.md` § Environment & commands. No hace falta Node instalado en el host para nada del flujo normal.
 
 ## Docker Compose: un archivo por app + uno en la raíz
 
@@ -15,12 +16,16 @@ Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `larave
 
 ```bash
 git config core.hooksPath .githooks   # una vez por clon
-npm install                            # workspace: panel + e2e
+
+# workspace: panel + e2e — vía container descartable, npm nunca corre bare en el host
+docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install
 
 cp apps/api/.env.example apps/api/.env   # si no existe
 docker compose up -d                     # desde la raíz del repo
 apps/api/vendor/bin/sail artisan migrate
 ```
+
+El `npm install` de arriba no hace falta para que nada *corra* — `panel` gestiona su propio `node_modules` aislado (ver más abajo) y `e2e` hace lo mismo dentro de su propio container (ver Testing). Existe solo para que el editor/IDE resuelva tipos en el host.
 
 Esto levanta cuatro servicios en la red `sail`:
 
@@ -30,6 +35,8 @@ Esto levanta cuatro servicios en la red `sail`:
 | `panel`       | http://localhost:5174   | SPA React (Vite dev server)         |
 | `pgsql`       | localhost:5432          | PostgreSQL                          |
 | `mailpit`     | http://localhost:8025   | UI de Mailpit (transporte de correo de dev) |
+
+Detrás del profile `e2e` (no arranca con `docker compose up` normal) hay dos servicios más: `pgsql-e2e` (Postgres efímero, aislado del `pgsql` de dev) y `e2e` (Playwright, imagen `sail-8.5/app` reutilizada — ya trae PHP 8.5 + Node 24 + deps de sistema de Playwright). Se levantan con `docker compose --profile e2e up --abort-on-container-exit e2e`; ver CLAUDE.md § Tests para el detalle de por qué `e2e` levanta sus propios `php artisan serve` + `vite dev` en vez de apuntar a `laravel.test`/`panel`.
 
 El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`.
 
@@ -65,13 +72,6 @@ script de Sail exporta sus defaults (`APP_PORT`, `WWWUSER`, `DB_PORT`, ...)
 pisan los reales — se comprobó en la práctica: la API pasó de `8080→80` a
 `80→80`. Siempre `cd apps/api && ./vendor/bin/sail up -d`; para bajar todo,
 mejor `docker compose down` desde la raíz en lugar de `sail down`.
-
-Para trabajar en el panel sin Sail (más rápido para iterar en UI pura), también se puede correr localmente con Node 24 LTS, después de instalar el workspace desde la raíz:
-
-```bash
-npm install                         # desde la raíz, una vez
-npm run dev --workspace=apps/panel  # o: cd apps/panel && npm run dev
-```
 
 ## Build de producción (verificación local)
 

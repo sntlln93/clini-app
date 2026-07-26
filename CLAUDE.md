@@ -19,11 +19,15 @@ Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Com
 
 **Always invoke Sail from the repo root, as `apps/api/vendor/bin/sail …` — never `cd apps/api && ./vendor/bin/sail …`.** Both work (Sail runs the command *inside* the container, where the working dir is always `/var/www/html`, so `./vendor/bin/pest` resolves there regardless of your host cwd; `name: clini-app` is pinned in `apps/api/compose.yaml` so either entrypoint lands on the same Compose project). The root-relative form is the required one because it is what `.claude/settings.json` allowlists — the `cd` form matches no rule and makes every command prompt for permission, which breaks the autonomous issue flow. Humans working interactively may `cd` wherever they like; this rule is about the form written into commands.
 
-The repo root is an npm workspace (`apps/panel` is its only member today) — one `npm install` at the root installs both the e2e (Playwright) deps and the panel's, with a single `package-lock.json`. This applies to **local dev and CI only**: production Docker builds (`apps/panel/Dockerfile`) still treat each app as standalone — Dokploy builds it with the repo root as context but installs only `apps/panel`'s dependencies (`npm ci --workspace=apps/panel --include-workspace-root=false`), and the image never includes the e2e suite.
+**`npm`/`npx` must never be invoked as a bare host process, for any reason — no exceptions.** This is stricter than (but mirrors) the Sail-only rule above, and replaces an earlier carve-out that used to allow bare-host `npm install`/`npm run dev` for interactive development; that carve-out is exactly what caused a missing-native-binary bug (`apps/panel`'s `node_modules` is bind-mounted into the `panel` container, so a host `npm install` — running with whatever Node happens to be active locally — could silently install the wrong platform's optional native bindings, or skip them, and clobber what the container needs). `apps/panel/compose.yaml` now overlays `node_modules` with a dedicated named Docker volume specifically so the container's copy can never be touched from host, but the "never run npm on host" rule stands regardless, so this class of bug can't resurface some other way.
+  - Day-to-day work (test, typecheck, lint, format, dev): through the `panel` container. One-off commands: `docker compose exec --workdir /workspace/apps/panel panel npm run <script>` (the form allowlisted in `.claude/settings.json`); `/workspace` is the container's mount point for the repo root. Continuous dev serving is already handled by the container's own `command`.
+  - Any one-time host-side install that only needs to exist for editor/IDE type resolution (not to run anything) — see the `npm install` setup step below — goes through a disposable container instead, so the `npm` binary itself still never executes on host: `docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install`. Same pattern as `e2e_node()` in `.claude/skills/run-forensics/scripts/run-forensics.sh`.
+
+The repo root is an npm workspace (`apps/panel` is its only member today) — a single `package-lock.json` covers both the e2e (Playwright) deps and the panel's. Neither actually depends on a host-side install to *run* anymore: `apps/panel`'s container manages its own isolated copy (named volume, see above) and e2e runs its own containerized `npm install` too (see Tests below) — the host-side install exists solely so editors resolve types locally. This applies to **local dev and CI only**: production Docker builds (`apps/panel/Dockerfile`) still treat each app as standalone — Dokploy builds it with the repo root as context but installs only `apps/panel`'s dependencies (`npm ci --workspace=apps/panel --include-workspace-root=false`), and the image never includes the e2e suite.
 
 ```bash
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
-npm install                                       # once per clone — installs the whole workspace (needs Node 24 LTS; see package.json "workspaces")
+docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install   # once per clone — for editor/type-checking use only; see rule above
 cp apps/api/.env.example apps/api/.env            # once per clone
 docker compose up -d                              # starts api + panel + pgsql + mailpit, from the repo root
 apps/api/vendor/bin/sail artisan migrate          # first run
@@ -47,11 +51,12 @@ apps/api/vendor/bin/sail php ./vendor/bin/pest
 apps/api/vendor/bin/sail php ./vendor/bin/pest --filter "..."
 apps/api/vendor/bin/sail artisan test --testsuite=Arch    # fast, no DB — architecture rules from this file
 
-# Frontend — Vitest, apps/panel
-cd apps/panel && npm run test
+# Frontend — Vitest, through the panel container. Always from the repo root.
+docker compose exec --workdir /workspace/apps/panel panel npm run test
 
-# E2E — Playwright, host (not Sail); needs Sail up
-npx playwright test
+# E2E — Playwright, fully containerized (own `sail-8.5/app`-based service + an
+# isolated ephemeral Postgres, `pgsql-e2e`); doesn't need anything else up first.
+docker compose --profile e2e up --abort-on-container-exit e2e
 ```
 
 **Testing a Postgres race condition** (two requests racing a unique constraint): a raw insert made from inside a model event (e.g. `creating`) still runs inside the test's own `RefreshDatabase` transaction/savepoint, so the savepoint rollback that follows the unique-constraint error undoes it too — the race never reproduces. It takes a genuinely separate `PDO` connection (its own Postgres session) to commit independently of that rollback; see `apps/api/tests/Feature/Patients/PatientStoreTest.php` (`raceCleanupTasks()` + the `afterAll()` cleanup) for the working pattern, including why cleanup has to happen in `afterAll()` rather than inline.
@@ -60,7 +65,7 @@ npx playwright test
 
 Use the `run-forensics` skill — it detects the touched side(s) and runs the right tools.
 
-Underlying tools if you need one directly, all from the repo root: `apps/api/vendor/bin/sail composer analyse` (phpstan level via Larastan), `apps/api/vendor/bin/sail composer pint`, `apps/api/vendor/bin/sail php ./vendor/bin/rector process --dry-run`, and in `apps/panel`: `npm run format` / `npm run lint`, `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
+Underlying tools if you need one directly, all from the repo root: `apps/api/vendor/bin/sail composer analyse` (phpstan level via Larastan), `apps/api/vendor/bin/sail composer pint`, `apps/api/vendor/bin/sail php ./vendor/bin/rector process --dry-run`, and through the panel container: `docker compose exec --workdir /workspace/apps/panel panel npm run format` / `npm run lint` / `npm run typecheck`. Pint enforces `declare(strict_types=1)`.
 
 ## Agent rules
 
@@ -143,7 +148,7 @@ See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 
 ### E2E suite
 
-`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. In CI, `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself; locally it expects the Sail stack already running. Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
+`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself whenever `CI` is set — true in real CI, and also true for the local `e2e` compose service (see Tests above), which sets it deliberately so the whole run stays in one process/network namespace instead of depending on the persistent dev-loop `laravel.test`/`panel` containers (whose baked `VITE_API_URL` only resolves correctly from a browser on the same host/network as that specific container). Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
 
 ## ADRs
 
