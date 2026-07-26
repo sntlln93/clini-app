@@ -11,11 +11,21 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['organization_id', 'membership_id', 'service_id', 'duration_minutes', 'price_cents', 'currency'])]
+#[Fillable(['organization_id', 'membership_id', 'service_id', 'duration_minutes', 'price_cents', 'currency', 'active'])]
 class ProfessionalService extends Model
 {
     /** @use HasFactory<ProfessionalServiceFactory> */
     use BelongsToOrganization, HasFactory;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'active' => 'bool',
+        ];
+    }
 
     /**
      * @return BelongsTo<Membership, $this>

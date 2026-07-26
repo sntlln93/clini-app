@@ -96,6 +96,7 @@ class ProfessionalServiceController extends Controller
             serviceId: $serviceId,
             durationMinutes: $request->integer('duration_minutes'),
             priceCents: $request->integer('price_cents') ?: null,
+            active: $request->boolean('active', true),
         );
     }
 }

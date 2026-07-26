@@ -31,6 +31,7 @@ class ProfessionalServiceFactory extends Factory
             'duration_minutes' => fake()->randomElement([15, 20, 30, 45, 60]),
             'price_cents' => fake()->numberBetween(1000, 50000),
             'currency' => 'ARS',
+            'active' => true,
         ];
     }
 }

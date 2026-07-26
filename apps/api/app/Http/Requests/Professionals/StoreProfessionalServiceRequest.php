@@ -34,6 +34,7 @@ class StoreProfessionalServiceRequest extends FormRequest
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'duration_minutes' => ['required', 'integer', 'min:1'],
             'price_cents' => ['nullable', 'integer', 'min:0'],
+            'active' => ['sometimes', 'boolean'],
         ];
     }
 }

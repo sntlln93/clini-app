@@ -21,6 +21,7 @@ return new class extends Migration
             $table->integer('duration_minutes');
             $table->integer('price_cents')->nullable();
             $table->string('currency')->default('ARS');
+            $table->boolean('active')->default(true);
             $table->timestamps();
 
             $table->unique(['membership_id', 'service_id']);
