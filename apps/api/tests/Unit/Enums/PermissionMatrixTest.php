@@ -14,7 +14,7 @@ use App\Enums\Permission;
 dataset('permissionMatrix', function (): Generator {
     $grantedByRole = [
         'owner' => [
-            'patients.view', 'patients.create', 'patients.update', 'patients.delete',
+            'patients.view', 'patients.create', 'patients.update',
             'appointments.view', 'appointments.create', 'appointments.update', 'appointments.cancel',
             'availability.view', 'availability.manage',
             'catalog.view', 'catalog.manage',
@@ -22,7 +22,7 @@ dataset('permissionMatrix', function (): Generator {
             'organization.view', 'organization.manage',
         ],
         'admin' => [
-            'patients.view', 'patients.create', 'patients.update', 'patients.delete',
+            'patients.view', 'patients.create', 'patients.update',
             'appointments.view', 'appointments.create', 'appointments.update', 'appointments.cancel',
             'availability.view', 'availability.manage',
             'catalog.view', 'catalog.manage',

@@ -17,7 +17,6 @@ enum Permission: string
     case PatientsView = 'patients.view';
     case PatientsCreate = 'patients.create';
     case PatientsUpdate = 'patients.update';
-    case PatientsDelete = 'patients.delete';
 
     case AppointmentsView = 'appointments.view';
     case AppointmentsViewOwn = 'appointments.view.own';

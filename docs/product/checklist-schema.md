@@ -39,10 +39,10 @@ Cómo usarlo:
 
 - [x] `Patient` es global: **no** tiene FK a `Organization`. · CU-06
 - [x] Un mismo `Patient` puede tener turnos en organizaciones distintas, distinguibles por organización. · CU-06
-- [ ] La relación "paciente ↔ organización" es representable explícitamente (no se infiere solo de la existencia de turnos). · CU-07
-  > Decidido: el paciente **no** pertenece a una organización. La actividad del paciente
-  > por organización se reconstruye de `appointments.organization_id`; `patients.created_by`
-  > es solo traza de auditoría de quién creó la ficha, no scoping.
+- [x] La relación "paciente ↔ organización" es representable explícitamente (no se infiere solo de la existencia de turnos). · CU-07
+  > Decidido: el paciente **no** pertenece a una organización. La visibilidad por
+  > organización se representa explícitamente vía el pivot `organization_patient`;
+  > `patients.created_by` es solo traza de auditoría de quién creó la ficha, no scoping.
 - [x] `Patient` puede existir sin `User` (relación opcional, no 1:1 obligatoria). · CU-08
 - [x] La identidad del paciente es el **documento = (tipo + número)**, con **DNI por defecto** y tipos alternativos (pasaporte, n° de afiliado). · CU-09, CU-37
 - [x] El documento es obligatorio y **único por el par (tipo, número)** a nivel global. · CU-37
