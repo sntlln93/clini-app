@@ -1,3 +1,4 @@
+import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { useState, type FormEvent } from 'react';
@@ -42,7 +43,11 @@ export function PatientForm({ patient }: PatientFormProps) {
     const [values, setValues] = useState<PatientPayload>(() =>
         initialValues(patient),
     );
-    const { data: insuranceProviders } = useInsuranceProviders();
+    const {
+        data: insuranceProviders,
+        isError: isInsuranceProvidersError,
+        error: insuranceProvidersError,
+    } = useInsuranceProviders();
     const { mutate, isPending, message, errors } = useSavePatient(patient?.id);
     // Create mode only: an edit form must never fight the user editing
     // their own patient's document, so lookup stays disabled there.
@@ -85,6 +90,10 @@ export function PatientForm({ patient }: PatientFormProps) {
                     Ya existe un paciente con este documento: se va a reutilizar
                     el registro y solo se completarán los datos faltantes.
                 </div>
+            )}
+
+            {isInsuranceProvidersError && (
+                <QueryErrorState error={insuranceProvidersError} />
             )}
 
             <PatientFormFields

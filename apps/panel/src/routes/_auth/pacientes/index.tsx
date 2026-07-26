@@ -1,3 +1,4 @@
+import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
@@ -12,7 +13,7 @@ export const Route = createFileRoute('/_auth/pacientes/')({
 function PacientesPage() {
     const [q, setQ] = useState('');
     const [page, setPage] = useState(1);
-    const { data, isPending } = usePatients({ q, page });
+    const { data, isPending, isError, error } = usePatients({ q, page });
 
     function handleSearchChange(value: string) {
         setQ(value);
@@ -23,7 +24,10 @@ function PacientesPage() {
         <div className="space-y-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-2xl font-semibold">Pacientes</h1>
-                <Button render={<Link to="/pacientes/nuevo" />}>
+                <Button
+                    render={<Link to="/pacientes/nuevo" />}
+                    nativeButton={false}
+                >
                     Nuevo paciente
                 </Button>
             </header>
@@ -35,17 +39,19 @@ function PacientesPage() {
                 className="max-w-sm"
             />
 
-            {isPending && (
+            {isError && <QueryErrorState error={error} />}
+
+            {!isError && isPending && (
                 <p className="text-sm text-muted-foreground">Cargando…</p>
             )}
 
-            {!isPending && data && data.data.length === 0 && (
+            {!isError && !isPending && data && data.data.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                     No se encontraron pacientes.
                 </p>
             )}
 
-            {!isPending && data && data.data.length > 0 && (
+            {!isError && !isPending && data && data.data.length > 0 && (
                 <>
                     <div className="overflow-auto rounded-md border">
                         <PatientsTable patients={data.data} />
