@@ -15,7 +15,7 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 ## Environment & commands
 
-Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`), plus a root `compose.yaml` that `include`s both — `docker compose up` from the repo root starts everything (api + panel + pgsql) as one project. See `docs/architecture/development.md` for the full layout.
+Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`), plus a root `compose.yaml` that `include`s both — `docker compose up` from the repo root starts everything (api + panel + pgsql + mailpit) as one project. See `docs/architecture/development.md` for the full layout.
 
 **Always invoke Sail from the repo root, as `apps/api/vendor/bin/sail …` — never `cd apps/api && ./vendor/bin/sail …`.** Both work (Sail runs the command *inside* the container, where the working dir is always `/var/www/html`, so `./vendor/bin/pest` resolves there regardless of your host cwd; `name: clini-app` is pinned in `apps/api/compose.yaml` so either entrypoint lands on the same Compose project). The root-relative form is the required one because it is what `.claude/settings.json` allowlists — the `cd` form matches no rule and makes every command prompt for permission, which breaks the autonomous issue flow. Humans working interactively may `cd` wherever they like; this rule is about the form written into commands.
 
@@ -25,12 +25,13 @@ The repo root is an npm workspace (`apps/panel` is its only member today) — on
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
 npm install                                       # once per clone — installs the whole workspace (needs Node 24 LTS; see package.json "workspaces")
 cp apps/api/.env.example apps/api/.env            # once per clone
-docker compose up -d                              # starts api + panel + pgsql, from the repo root
+docker compose up -d                              # starts api + panel + pgsql + mailpit, from the repo root
 apps/api/vendor/bin/sail artisan migrate          # first run
 ```
 
 - API: <http://localhost:8080>
 - Panel: <http://localhost:5174>
+- Mailpit (dev mail UI): <http://localhost:8025> — dev mail transport; SMTP on port `1025`. Production uses `MAIL_MAILER=resend` with a `RESEND_API_KEY` environment variable (no real value in the repo).
 
 No demo users/seeders yet — the seeded-data convention (`migrate:fresh --seed`) applies once `database/seeders/DatabaseSeeder.php` has real data.
 
