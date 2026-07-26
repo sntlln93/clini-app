@@ -22,17 +22,24 @@ docker compose up -d                     # desde la raíz del repo
 apps/api/vendor/bin/sail artisan migrate
 ```
 
-Esto levanta tres servicios en la red `sail`:
+Esto levanta cuatro servicios en la red `sail`:
 
 | Servicio      | URL                     | Descripción                        |
 |---------------|-------------------------|-------------------------------------|
 | `laravel.test`| http://localhost:8080   | API Laravel                         |
 | `panel`       | http://localhost:5174   | SPA React (Vite dev server)         |
 | `pgsql`       | localhost:5432          | PostgreSQL                          |
+| `mailpit`     | http://localhost:8025   | UI de Mailpit (transporte de correo de dev) |
 
 El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`.
 
 El servicio `panel` monta la raíz del repo (necesita ver el workspace de npm) y corre `npm install && npm run dev --workspace=apps/panel` al arrancar el contenedor.
+
+## Correo
+
+En dev, todo el correo saliente se envía a **Mailpit** (`axllent/mailpit`, servicio estándar de Laravel Sail): SMTP en el puerto `1025` (host interno `mailpit`, ya configurado en `apps/api/.env.example` vía `MAIL_HOST`/`MAIL_PORT`), y una UI web en <http://localhost:8025> donde se ven los correos capturados sin que salgan nunca a Internet.
+
+En producción, el mailer es **Resend** (`MAIL_MAILER=resend`), el único proveedor soportado. Requiere la variable de entorno `RESEND_API_KEY` (sin valor real en el repo — se provisiona en el ambiente productivo cuando exista).
 
 ## Comandos habituales
 
