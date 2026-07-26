@@ -15,5 +15,6 @@ Route::prefix('v1')->group(function (): void {
         require __DIR__.'/api/v1/patients.php';
         require __DIR__.'/api/v1/catalog.php';
         require __DIR__.'/api/v1/professionals.php';
+        require __DIR__.'/api/v1/memberships.php';
     });
 });
