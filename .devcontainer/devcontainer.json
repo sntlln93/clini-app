@@ -1,0 +1,45 @@
+{
+    "name": "clini-app",
+    "dockerComposeFile": ["../compose.yaml", "docker-compose.extend.yml"],
+    "service": "laravel.test",
+    "workspaceFolder": "/workspace",
+    "remoteUser": "sail",
+    "shutdownAction": "none",
+    "forwardPorts": [8080, 5174, 8025],
+    "postCreateCommand": "npm install",
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "bmewburn.vscode-intelephense-client",
+                "dbaeumer.vscode-eslint",
+                "esbenp.prettier-vscode",
+                "bradlc.vscode-tailwindcss",
+                "open-southeners.laravel-pint",
+                "SanderRonde.phpstan-vscode",
+                "vitest.explorer",
+                "ms-playwright.playwright"
+            ],
+            "settings": {
+                "editor.formatOnSave": true,
+                "[php]": {
+                    "editor.defaultFormatter": "open-southeners.laravel-pint"
+                },
+                "[javascript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[javascriptreact]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[typescriptreact]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                },
+                "[css]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode"
+                }
+            }
+        }
+    }
+}
