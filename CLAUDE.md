@@ -53,6 +53,8 @@ cd apps/panel && npm run test
 npx playwright test
 ```
 
+**Testing a Postgres race condition** (two requests racing a unique constraint): a raw insert made from inside a model event (e.g. `creating`) still runs inside the test's own `RefreshDatabase` transaction/savepoint, so the savepoint rollback that follows the unique-constraint error undoes it too — the race never reproduces. It takes a genuinely separate `PDO` connection (its own Postgres session) to commit independently of that rollback; see `apps/api/tests/Feature/Patients/PatientStoreTest.php` (`raceCleanupTasks()` + the `afterAll()` cleanup) for the working pattern, including why cleanup has to happen in `afterAll()` rather than inline.
+
 ### Quality
 
 Use the `run-forensics` skill — it detects the touched side(s) and runs the right tools.
@@ -136,6 +138,7 @@ See [ADR 0003](docs/adr/0003-estructura-features-react.md).
 - Styling: Tailwind utilities inside components; `src/index.css` is the only stylesheet.
 - **No page-level horizontal scroll, on any viewport**: wide content scrolls inside its own `overflow-auto` wrapper or wraps (`flex-wrap`); mind `min-w-0` on flex items. Known smell: `grid gap-6 xl:grid-cols-*` without an explicit `grid-cols-1` base.
 - The panel is a client-rendered SPA with no SSR/RSC: `'use client'`/`'use server'` directives are meaningless and banned everywhere under `src/**`, including vendored `src/components/ui/` primitives — enforced by ESLint (`no-restricted-syntax`, no exempt folders).
+- **Prefilling form state from props/queries**: the ESLint rule `react-hooks/set-state-in-effect` rejects the obvious `useEffect(() => setValues(...), [data])` pattern. Use React's documented "adjust state during render" pattern instead — a guarded `setValues` call in the component body — not a `useEffect`.
 
 ### E2E suite
 
