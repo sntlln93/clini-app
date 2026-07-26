@@ -1,4 +1,4 @@
-import { api } from '@/lib/api';
+import { api, refreshCsrfCookie } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,9 +15,11 @@ export function useLogin() {
 
     const mutation = useMutation({
         mutationFn: (payload: LoginPayload) =>
-            api
-                .post<SessionUser>('/login', payload)
-                .then((response) => response.data),
+            refreshCsrfCookie().then(() =>
+                api
+                    .post<SessionUser>('/login', payload)
+                    .then((response) => response.data),
+            ),
         onSuccess: (user) => {
             queryClient.setQueryData(sessionQueryOptions.queryKey, user);
             navigate({ to: '/agenda' });
