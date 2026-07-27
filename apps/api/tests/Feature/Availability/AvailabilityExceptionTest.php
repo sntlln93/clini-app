@@ -236,6 +236,127 @@ test('update changes type, start_at, end_at and reason without self-colliding', 
     expect($row->reason)->toBe('Actualizado');
 });
 
+test('update with membership_id null in the body does not reassign a professional own exception to org-wide', function () {
+    $organization = Organization::factory()->create();
+    $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $professional->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response = $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'membership_id' => null,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:30:00',
+        'end_at' => '2026-08-10 11:30:00',
+    ]);
+
+    $response->assertOk();
+    $row = DB::table('availability_exceptions')->where('id', $exception->id)->first();
+    expect($row->membership_id)->toBe($professional->id);
+});
+
+test('update with another membership_id in the body does not reassign the exception to that membership', function () {
+    $organization = Organization::factory()->create();
+    $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $another = Membership::factory()->create(['organization_id' => $organization->id]);
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $professional->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response = $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'membership_id' => $another->id,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:30:00',
+        'end_at' => '2026-08-10 11:30:00',
+    ]);
+
+    $response->assertOk();
+    $row = DB::table('availability_exceptions')->where('id', $exception->id)->first();
+    expect($row->membership_id)->toBe($professional->id);
+});
+
+test('an owner updating an org-wide exception fields succeeds and it stays org-wide', function () {
+    $membership = Membership::factory()->owner()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => null,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+        'reason' => 'Feriado',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:30:00',
+        'end_at' => '2026-08-10 11:30:00',
+        'reason' => 'Actualizado',
+    ]);
+
+    $response->assertOk();
+    $row = DB::table('availability_exceptions')->where('id', $exception->id)->first();
+    expect($row->membership_id)->toBeNull();
+    expect($row->type)->toBe('extra');
+    expect($row->reason)->toBe('Actualizado');
+});
+
+test('a professional holding only availability.manage.own gets 403 on update and destroy of another professional exception and an org-wide exception, 2xx on its own', function () {
+    $organization = Organization::factory()->create();
+    $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $another = Membership::factory()->create(['organization_id' => $organization->id]);
+
+    $ownException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $professional->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+    $anotherException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $another->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-11 09:00:00',
+        'end_at' => '2026-08-11 11:00:00',
+    ]);
+    $orgWideException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => null,
+        'type' => 'blocked',
+        'start_at' => '2026-08-12 09:00:00',
+        'end_at' => '2026-08-12 11:00:00',
+    ]);
+
+    $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$anotherException->id}", [
+        'type' => 'blocked',
+        'start_at' => '2026-08-11 10:00:00',
+        'end_at' => '2026-08-11 12:00:00',
+    ])->assertStatus(403);
+    $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$anotherException->id}")->assertStatus(403);
+
+    $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$orgWideException->id}", [
+        'type' => 'blocked',
+        'start_at' => '2026-08-12 10:00:00',
+        'end_at' => '2026-08-12 12:00:00',
+    ])->assertStatus(403);
+    $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$orgWideException->id}")->assertStatus(403);
+
+    $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$ownException->id}", [
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:30:00',
+        'end_at' => '2026-08-10 11:30:00',
+    ])->assertSuccessful();
+    $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$ownException->id}")->assertNoContent();
+});
+
 test('destroy deletes the exception and returns 204, including an org-wide one', function () {
     $membership = Membership::factory()->owner()->create();
     $exception = AvailabilityException::factory()->create([

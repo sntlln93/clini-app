@@ -280,6 +280,41 @@ test('authorization matrix on store: owner on any professional succeeds, profess
     ])->assertSuccessful();
 });
 
+test('a professional holding only availability.manage.own gets 403 on update and destroy of another professional slot in the same organization, 2xx on its own', function () {
+    $organization = Organization::factory()->create();
+    $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $another = Membership::factory()->create(['organization_id' => $organization->id]);
+
+    $ownSlot = Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $professional->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+    $anotherSlot = Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $another->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+
+    $this->actingAs($professional->user)->patchJson("/api/v1/availabilities/{$anotherSlot->id}", [
+        'day_of_week' => 1,
+        'start_time' => '10:00',
+        'end_time' => '13:00',
+    ])->assertStatus(403);
+    $this->actingAs($professional->user)->deleteJson("/api/v1/availabilities/{$anotherSlot->id}")->assertStatus(403);
+
+    $this->actingAs($professional->user)->patchJson("/api/v1/availabilities/{$ownSlot->id}", [
+        'day_of_week' => 1,
+        'start_time' => '10:00',
+        'end_time' => '13:00',
+    ])->assertSuccessful();
+    $this->actingAs($professional->user)->deleteJson("/api/v1/availabilities/{$ownSlot->id}")->assertNoContent();
+});
+
 test('a guest gets 401 on index, store, update and destroy', function () {
     $membership = Membership::factory()->create();
     $availability = Availability::factory()->create([

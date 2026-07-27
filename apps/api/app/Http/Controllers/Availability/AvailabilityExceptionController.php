@@ -71,12 +71,10 @@ class AvailabilityExceptionController extends Controller
     ): AvailabilityExceptionResource {
         Gate::authorize('update', $availabilityException);
 
-        $membershipId = $request->filled('membership_id') ? $request->integer('membership_id') : null;
-
         $updated = $action->handle(new AvailabilityExceptionData(
             availabilityExceptionId: $availabilityException->id,
             organizationId: $availabilityException->organization_id,
-            membershipId: $membershipId,
+            membershipId: $availabilityException->membership_id,
             type: AvailabilityExceptionType::from((string) $request->string('type')),
             startAt: (string) $request->string('start_at'),
             endAt: (string) $request->string('end_at'),
