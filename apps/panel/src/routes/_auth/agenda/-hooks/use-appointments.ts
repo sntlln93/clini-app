@@ -85,3 +85,61 @@ export function useUpdateAppointmentStatus() {
 
     return { ...mutation, message, errors };
 }
+
+export function useCancelAppointment() {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: ({
+            appointmentId,
+            cancellationReason,
+        }: {
+            appointmentId: number;
+            cancellationReason?: string | null;
+        }) =>
+            api.patch(`/appointments/${appointmentId}/cancel`, {
+                cancellation_reason: cancellationReason ?? null,
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        },
+    });
+
+    const { message, errors } = mutation.error
+        ? extractFormErrors(mutation.error)
+        : { message: null, errors: {} };
+
+    return { ...mutation, message, errors };
+}
+
+export function useRescheduleAppointment() {
+    const queryClient = useQueryClient();
+
+    const mutation = useMutation({
+        mutationFn: ({
+            appointmentId,
+            startAt,
+            reason,
+            notes,
+        }: {
+            appointmentId: number;
+            startAt: string;
+            reason?: string | null;
+            notes?: string | null;
+        }) =>
+            api.post(`/appointments/${appointmentId}/reschedule`, {
+                start_at: startAt,
+                reason: reason ?? null,
+                notes: notes ?? null,
+            }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['appointments'] });
+        },
+    });
+
+    const { message, errors } = mutation.error
+        ? extractFormErrors(mutation.error)
+        : { message: null, errors: {} };
+
+    return { ...mutation, message, errors };
+}
