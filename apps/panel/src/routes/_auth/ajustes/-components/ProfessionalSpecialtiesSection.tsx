@@ -1,6 +1,6 @@
 import { QueryErrorState } from '@/components/QueryErrorState';
+import { useProfessionals } from '@/hooks/use-professionals';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
-import { useProfessionals } from '../-hooks/use-professionals';
 import { ProfessionalSpecialtyRow } from './ProfessionalSpecialtyRow';
 
 export function ProfessionalSpecialtiesSection() {
