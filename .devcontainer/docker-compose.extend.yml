@@ -4,7 +4,11 @@
 # service mounts only apps/api at /var/www/html — this adds the whole repo
 # root at /workspace too, so the editor sees apps/panel and e2e/ as well,
 # without touching how Sail/CI use the service otherwise.
+#
+# Note: relative paths in a compose file merged via `-f` resolve against the
+# project directory (repo root), not against the file's own directory (.devcontainer/).
+# This differs from `include:`, where paths resolve against the including file's directory.
 services:
     laravel.test:
         volumes:
-            - '..:/workspace'
+            - '.:/workspace'
