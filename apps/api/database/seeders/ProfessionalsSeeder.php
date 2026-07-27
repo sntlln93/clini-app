@@ -17,9 +17,11 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
 /**
- * Membership fixtures covering role variety, dev/test only. Idempotent via
- * firstOrCreate on the user email so a repeated migrate:fresh --seed never
- * blows up on the unique constraint.
+ * Membership fixtures covering role variety, dev/test only. Idempotent for a
+ * repeated migrate:fresh --seed: the user lookup is guarded via
+ * firstOrCreateUser, and an early guard returns before touching memberships
+ * (and everything derived from them) once the fixture memberships already
+ * exist for the given organization, so a re-run creates no duplicate rows.
  */
 class ProfessionalsSeeder extends Seeder
 {
@@ -30,6 +32,16 @@ class ProfessionalsSeeder extends Seeder
         $owner = $this->firstOrCreateUser('owner@test.com', 'Dueño Uno');
         $staff = $this->firstOrCreateUser('staff@test.com', 'Staff Uno');
         $ownerStaff = $this->firstOrCreateUser('owner+staff@test.com', 'Dueño Staff');
+
+        $fixtureUserIds = [$prof1->id, $prof2->id, $owner->id, $staff->id, $ownerStaff->id];
+
+        $existingFixtureMemberships = Membership::where('organization_id', $organization->id)
+            ->whereIn('user_id', $fixtureUserIds)
+            ->count();
+
+        if ($existingFixtureMemberships === count($fixtureUserIds)) {
+            return;
+        }
 
         $prof1Membership = Membership::factory()->professional()->create([
             'organization_id' => $organization->id,

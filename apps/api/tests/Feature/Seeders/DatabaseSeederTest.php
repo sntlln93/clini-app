@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
@@ -12,8 +13,6 @@ use App\Models\User;
 use App\Models\UserSpecialty;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\ProfessionalsSeeder;
-use Illuminate\Database\QueryException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 test('Test User ends up with exactly one active membership in exactly one organization', function () {
@@ -185,19 +184,14 @@ test('every seeded patient is attributed to Test User as its creator', function 
     }
 });
 
-test('re-invoking ProfessionalsSeeder for the same organization does not duplicate the prof1 user', function () {
+test('re-invoking ProfessionalsSeeder for the same organization does not duplicate fixtures', function () {
     $this->seed(DatabaseSeeder::class);
 
     $organization = Organization::where('name', 'Test Organization')->firstOrFail();
+    $membershipCountBefore = Membership::where('organization_id', $organization->id)->count();
 
-    // Only the user lookup (firstOrCreateUser) is idempotent: it resolves the
-    // existing prof1 user before the seeder goes on to recreate memberships,
-    // which aren't guarded and collide with the existing unique constraint.
-    // That later failure is expected here and irrelevant to what this case
-    // covers; running it inside its own transaction keeps the failure from
-    // poisoning the surrounding RefreshDatabase transaction.
-    expect(fn () => DB::transaction(fn () => app(ProfessionalsSeeder::class)->run($organization)))
-        ->toThrow(QueryException::class);
+    app(ProfessionalsSeeder::class)->run($organization);
 
     expect(User::where('email', 'prof1@test.com')->count())->toBe(1);
+    expect(Membership::where('organization_id', $organization->id)->count())->toBe($membershipCountBefore);
 });
