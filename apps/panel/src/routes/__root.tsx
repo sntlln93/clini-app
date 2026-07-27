@@ -1,3 +1,4 @@
+import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/features/theme/ThemeProvider';
 import type { QueryClient } from '@tanstack/react-query';
 import { createRootRouteWithContext, Outlet } from '@tanstack/react-router';
@@ -8,6 +9,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         component: () => (
             <ThemeProvider>
                 <Outlet />
+                <Toaster />
                 {import.meta.env.DEV && <TanStackRouterDevtools />}
             </ThemeProvider>
         ),
