@@ -7,7 +7,9 @@
 #
 # Note: relative paths in a compose file merged via `-f` resolve against the
 # project directory (repo root), not against the file's own directory (.devcontainer/).
-# This differs from `include:`, where paths resolve against the including file's directory.
+# With `include:`, paths resolve against the included file's own directory instead.
+# Compose defaults --project-directory to the first file listed; devcontainer.json
+# lists ../compose.yaml first, so '.:/workspace' is correct and depends on that order.
 services:
     laravel.test:
         volumes:
