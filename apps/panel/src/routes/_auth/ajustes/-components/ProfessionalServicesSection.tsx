@@ -1,7 +1,7 @@
 import { QueryErrorState } from '@/components/QueryErrorState';
+import { useProfessionals } from '@/hooks/use-professionals';
 import { useCatalogServices } from '../-hooks/use-catalog';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
-import { useProfessionals } from '../-hooks/use-professionals';
 import { ProfessionalServiceRow } from './ProfessionalServiceRow';
 
 export function ProfessionalServicesSection() {
