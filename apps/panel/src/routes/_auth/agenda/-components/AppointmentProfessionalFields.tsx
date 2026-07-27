@@ -36,11 +36,14 @@ export function AppointmentProfessionalFields({
                     value={
                         values.membershipId !== null
                             ? String(values.membershipId)
-                            : undefined
+                            : ''
                     }
-                    onValueChange={(value) =>
-                        onChange('membershipId', Number(value))
-                    }
+                    onValueChange={(value) => {
+                        if (value === '') {
+                            return;
+                        }
+                        onChange('membershipId', Number(value));
+                    }}
                 >
                     <SelectTrigger id="membership_id" className="w-full">
                         <SelectValue placeholder="Seleccioná un profesional" />
@@ -70,11 +73,14 @@ export function AppointmentProfessionalFields({
                     value={
                         values.serviceId !== null
                             ? String(values.serviceId)
-                            : undefined
+                            : ''
                     }
-                    onValueChange={(value) =>
-                        onChange('serviceId', Number(value))
-                    }
+                    onValueChange={(value) => {
+                        if (value === '') {
+                            return;
+                        }
+                        onChange('serviceId', Number(value));
+                    }}
                 >
                     <SelectTrigger id="service_id" className="w-full">
                         <SelectValue placeholder="Seleccioná un servicio" />

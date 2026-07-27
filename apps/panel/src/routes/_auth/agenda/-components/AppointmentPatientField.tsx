@@ -36,8 +36,13 @@ export function AppointmentPatientField({
                 onChange={(event) => onPatientQueryChange(event.target.value)}
             />
             <Select
-                value={patientId !== null ? String(patientId) : undefined}
-                onValueChange={(value) => onPatientIdChange(Number(value))}
+                value={patientId !== null ? String(patientId) : ''}
+                onValueChange={(value) => {
+                    if (value === '') {
+                        return;
+                    }
+                    onPatientIdChange(Number(value));
+                }}
             >
                 <SelectTrigger id="patient_id" className="w-full">
                     <SelectValue placeholder="Seleccioná un paciente" />
