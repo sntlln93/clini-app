@@ -90,7 +90,7 @@ export function AgendaDayView({
                                     <button
                                         key={hour}
                                         type="button"
-                                        className="absolute left-0 w-full border-t hover:bg-muted/50"
+                                        className="absolute left-0 w-full cursor-pointer border-t hover:bg-muted/50"
                                         style={{
                                             top:
                                                 (hour - START_HOUR) *
