@@ -6,9 +6,11 @@ namespace App\Models;
 
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
+use App\Enums\Permission;
 use App\Support\Concerns\BelongsToOrganization;
 use Database\Factories\AppointmentFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -111,5 +113,21 @@ class Appointment extends Model
     public function reminders(): HasMany
     {
         return $this->hasMany(Reminder::class);
+    }
+
+    /**
+     * Narrows to the acting membership's own appointments when it lacks
+     * org-wide view permission; a no-op otherwise.
+     *
+     * @param  Builder<Appointment>  $query
+     * @return Builder<Appointment>
+     */
+    public function scopeVisibleTo(Builder $query, Membership $membership): Builder
+    {
+        if ($membership->hasPermission(Permission::AppointmentsView)) {
+            return $query;
+        }
+
+        return $query->where('membership_id', $membership->id);
     }
 }
