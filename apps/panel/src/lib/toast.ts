@@ -13,7 +13,7 @@ export function notifySuccess(message: string): void {
 export function notifyError(error: unknown, fallback: string): void {
     const message =
         axios.isAxiosError<{ message?: string }>(error) &&
-        error.response?.data.message
+        error.response?.data?.message
             ? error.response.data.message
             : fallback;
 

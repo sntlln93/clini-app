@@ -52,4 +52,13 @@ describe('notifyError', () => {
 
         expect(toast.error).toHaveBeenCalledWith('Fallback message');
     });
+
+    it('falls back when the axios error response body is null', () => {
+        const error = axiosError(null);
+
+        notifyError(error, 'Fallback message');
+
+        expect(toast.error).toHaveBeenCalledTimes(1);
+        expect(toast.error).toHaveBeenCalledWith('Fallback message');
+    });
 });
