@@ -27,6 +27,7 @@ class ProfessionalServiceResource extends JsonResource
             'service_name' => $this->whenLoaded('service', fn () => $professionalService->service?->name),
             'duration_minutes' => $professionalService->duration_minutes,
             'price_cents' => $professionalService->price_cents,
+            'active' => $professionalService->active,
         ];
     }
 

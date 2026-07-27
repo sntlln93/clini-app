@@ -33,6 +33,7 @@ class AssignProfessionalServiceAction implements Action
                 'organization_id' => $dto->organizationId,
                 'duration_minutes' => $dto->durationMinutes,
                 'price_cents' => $dto->priceCents,
+                'active' => $dto->active,
             ],
         );
     }

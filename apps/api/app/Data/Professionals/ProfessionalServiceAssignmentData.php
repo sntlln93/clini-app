@@ -14,6 +14,7 @@ final readonly class ProfessionalServiceAssignmentData implements Data
         public int $serviceId,
         public int $durationMinutes,
         public ?int $priceCents,
+        public bool $active,
     ) {}
 
     /**
@@ -27,6 +28,7 @@ final readonly class ProfessionalServiceAssignmentData implements Data
             'serviceId' => $this->serviceId,
             'durationMinutes' => $this->durationMinutes,
             'priceCents' => $this->priceCents,
+            'active' => $this->active,
         ];
     }
 }
