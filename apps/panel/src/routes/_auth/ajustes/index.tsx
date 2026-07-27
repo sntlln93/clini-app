@@ -1,4 +1,8 @@
+import { Separator } from '@/components/ui/separator';
 import { createFileRoute } from '@tanstack/react-router';
+import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
+import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
+import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
 import { ThemeToggle } from './-components/ThemeToggle';
 
 export const Route = createFileRoute('/_auth/ajustes/')({
@@ -11,9 +15,11 @@ function AjustesPage() {
             <header className="space-y-1">
                 <h1 className="text-2xl font-semibold">Ajustes</h1>
                 <p className="text-sm text-muted-foreground">
-                    Personalizá la apariencia del panel.
+                    Personalizá la apariencia del panel y las asignaciones del
+                    consultorio.
                 </p>
             </header>
+
             <section className="space-y-3">
                 <div className="space-y-1">
                     <h2 className="text-sm font-medium">Tema</h2>
@@ -24,6 +30,18 @@ function AjustesPage() {
                 </div>
                 <ThemeToggle />
             </section>
+
+            <Separator />
+
+            <MySpecialtiesSection />
+
+            <Separator />
+
+            <ProfessionalSpecialtiesSection />
+
+            <Separator />
+
+            <ProfessionalServicesSection />
         </div>
     );
 }
