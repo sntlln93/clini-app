@@ -1,7 +1,10 @@
+import { DataTablePagination } from '@/components/DataTablePagination';
+import { EmptyState } from '@/components/EmptyState';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { SearchX, Users } from 'lucide-react';
 import { useState } from 'react';
 import { PatientsTable } from './-components/PatientsTable';
 import { usePatients } from './-hooks/use-patients';
@@ -19,6 +22,43 @@ function PacientesPage() {
         setQ(value);
         setPage(1);
     }
+
+    function clearSearch() {
+        setQ('');
+        setPage(1);
+    }
+
+    const empty =
+        q !== '' ? (
+            <EmptyState
+                icon={SearchX}
+                title="Sin resultados"
+                description="No encontramos pacientes que coincidan con la búsqueda."
+                action={
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={clearSearch}
+                    >
+                        Limpiar búsqueda
+                    </Button>
+                }
+            />
+        ) : (
+            <EmptyState
+                icon={Users}
+                title="Todavía no hay pacientes"
+                description="Cargá el primer paciente para empezar a agendar turnos."
+                action={
+                    <Button
+                        render={<Link to="/pacientes/nuevo" />}
+                        nativeButton={false}
+                    >
+                        Nuevo paciente
+                    </Button>
+                }
+            />
+        );
 
     return (
         <div className="space-y-6">
@@ -45,51 +85,17 @@ function PacientesPage() {
                 <p className="text-sm text-muted-foreground">Cargando…</p>
             )}
 
-            {!isError && !isPending && data && data.data.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    No se encontraron pacientes.
-                </p>
-            )}
-
-            {!isError && !isPending && data && data.data.length > 0 && (
+            {!isError && !isPending && data && (
                 <>
-                    <div className="overflow-auto rounded-md border">
-                        <PatientsTable patients={data.data} />
-                    </div>
+                    <PatientsTable patients={data.data} empty={empty} />
 
-                    <div className="flex items-center justify-between gap-4">
-                        <p className="text-sm text-muted-foreground">
-                            Página {data.meta.current_page} de{' '}
-                            {data.meta.last_page} ({data.meta.total} pacientes)
-                        </p>
-                        <div className="flex gap-2">
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={data.meta.current_page <= 1}
-                                onClick={() =>
-                                    setPage((current) =>
-                                        Math.max(1, current - 1),
-                                    )
-                                }
-                            >
-                                Anterior
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                disabled={
-                                    data.meta.current_page >=
-                                    data.meta.last_page
-                                }
-                                onClick={() =>
-                                    setPage((current) => current + 1)
-                                }
-                            >
-                                Siguiente
-                            </Button>
-                        </div>
-                    </div>
+                    <DataTablePagination
+                        currentPage={data.meta.current_page}
+                        lastPage={data.meta.last_page}
+                        total={data.meta.total}
+                        label="pacientes"
+                        onPageChange={setPage}
+                    />
                 </>
             )}
         </div>
