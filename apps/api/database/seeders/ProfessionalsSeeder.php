@@ -57,7 +57,7 @@ class ProfessionalsSeeder extends Seeder
         ]);
 
         $prof1Specialties = $this->attachCredentialSpecialties($prof1);
-        $this->attachCredentialSpecialties($prof2);
+        $prof2Specialties = $this->attachCredentialSpecialties($prof2);
 
         foreach ($prof1Specialties as $specialty) {
             ProfessionalSpecialty::factory()->create([
@@ -67,12 +67,20 @@ class ProfessionalsSeeder extends Seeder
             ]);
         }
 
+        foreach ($prof2Specialties as $specialty) {
+            ProfessionalSpecialty::factory()->create([
+                'organization_id' => $organization->id,
+                'membership_id' => $prof2Membership->id,
+                'specialty_id' => $specialty->id,
+            ]);
+        }
+
         $service = Service::inRandomOrder()->first();
 
         if ($service !== null) {
             ProfessionalService::factory()->create([
                 'organization_id' => $organization->id,
-                'membership_id' => $prof2Membership->id,
+                'membership_id' => $prof1Membership->id,
                 'service_id' => $service->id,
             ]);
         }
