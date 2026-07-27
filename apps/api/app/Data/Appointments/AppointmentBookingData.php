@@ -20,6 +20,7 @@ final readonly class AppointmentBookingData implements Data
         public AppointmentOrigin $origin,
         public ?string $reason,
         public ?string $notes,
+        public ?int $rescheduledFromId = null,
     ) {}
 
     /**
@@ -37,6 +38,7 @@ final readonly class AppointmentBookingData implements Data
             'origin' => $this->origin,
             'reason' => $this->reason,
             'notes' => $this->notes,
+            'rescheduledFromId' => $this->rescheduledFromId,
         ];
     }
 }
