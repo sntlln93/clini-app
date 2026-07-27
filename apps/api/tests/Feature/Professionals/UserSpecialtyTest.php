@@ -2,13 +2,17 @@
 
 declare(strict_types=1);
 
+use App\Enums\MembershipStatus;
+use App\Enums\Permission;
 use App\Models\Membership;
+use App\Models\Organization;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Specialty;
 use App\Models\User;
 use App\Models\UserSpecialty;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
@@ -23,6 +27,114 @@ test('index returns the user own credential specialties', function () {
 
     $response->assertOk();
     expect(collect($response->json('data'))->pluck('specialty_id'))->toContain($specialty->id);
+});
+
+/**
+ * A real HTTP round trip can never reach the controller with
+ * CurrentOrganization actually null: the 'organization' route middleware
+ * (App\Http\Middleware\ResolveCurrentOrganization) aborts 403 first for any
+ * user without an active membership, and resolves one otherwise — see
+ * tests/Feature/Auth/CurrentOrganizationMiddlewareTest.php. So this asserts
+ * the policy directly, the same way the identity check is meant to work
+ * regardless of organization context.
+ */
+test('viewAny allows self-read with no organization in scope', function () {
+    $user = User::factory()->create();
+    $specialty = Specialty::factory()->create();
+    UserSpecialty::factory()->create(['user_id' => $user->id, 'specialty_id' => $specialty->id]);
+
+    app(CurrentOrganization::class)->set(null);
+
+    expect(Gate::forUser($user)->allows('viewAny', [UserSpecialty::class, $user]))->toBeTrue();
+});
+
+test('index allows an org-wide catalog reader to view a colleague credential', function () {
+    $organization = Organization::factory()->create();
+    $actorMembership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $targetMembership = Membership::factory()->create(['organization_id' => $organization->id]);
+    $specialty = Specialty::factory()->create();
+    UserSpecialty::factory()->create(['user_id' => $targetMembership->user_id, 'specialty_id' => $specialty->id]);
+
+    expect($actorMembership->permissions())->toContain(Permission::CatalogView);
+    expect($actorMembership->permissions())->not->toContain(Permission::CatalogManage);
+
+    app(CurrentOrganization::class)->set($organization->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('specialty_id'))->toContain($specialty->id);
+});
+
+test('index allows an actor whose only catalog permission is CatalogManage', function () {
+    $organization = Organization::factory()->create();
+    $actorMembership = Membership::factory()
+        ->state(['roles' => [], 'extra_permissions' => [Permission::CatalogManage]])
+        ->create(['organization_id' => $organization->id]);
+    $targetMembership = Membership::factory()->create(['organization_id' => $organization->id]);
+    $specialty = Specialty::factory()->create();
+    UserSpecialty::factory()->create(['user_id' => $targetMembership->user_id, 'specialty_id' => $specialty->id]);
+
+    expect($actorMembership->permissions())->toContain(Permission::CatalogManage);
+    expect($actorMembership->permissions())->not->toContain(Permission::CatalogView);
+
+    app(CurrentOrganization::class)->set($organization->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('specialty_id'))->toContain($specialty->id);
+});
+
+test('index denies a member of the same organization without a catalog permission', function () {
+    $organization = Organization::factory()->create();
+    $actorMembership = Membership::factory()
+        ->state(['roles' => [], 'extra_permissions' => []])
+        ->create(['organization_id' => $organization->id]);
+    $targetMembership = Membership::factory()->create(['organization_id' => $organization->id]);
+
+    expect($actorMembership->permissions())->not->toContain(Permission::CatalogView);
+    expect($actorMembership->permissions())->not->toContain(Permission::CatalogManage);
+
+    app(CurrentOrganization::class)->set($organization->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertStatus(403);
+});
+
+test('index denies an actor and target with no organization in common', function () {
+    $organizationA = Organization::factory()->create();
+    $organizationB = Organization::factory()->create();
+    $actorMembership = Membership::factory()->owner()->create(['organization_id' => $organizationA->id]);
+    $targetMembership = Membership::factory()->create(['organization_id' => $organizationB->id]);
+
+    expect($actorMembership->permissions())->toContain(Permission::CatalogManage);
+
+    app(CurrentOrganization::class)->set($organizationA->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertStatus(403);
+});
+
+test('viewAny denies when the target membership in the actor organization is not active', function () {
+    $organization = Organization::factory()->create();
+    $actorMembership = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $targetMembership = Membership::factory()->create([
+        'organization_id' => $organization->id,
+        'status' => MembershipStatus::Inactive,
+    ]);
+    $specialty = Specialty::factory()->create();
+    UserSpecialty::factory()->create(['user_id' => $targetMembership->user_id, 'specialty_id' => $specialty->id]);
+
+    expect($actorMembership->permissions())->toContain(Permission::CatalogManage);
+
+    app(CurrentOrganization::class)->set($organization->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertStatus(403);
 });
 
 test('store assigns a specialty to the own credential and creates exactly one row', function () {
