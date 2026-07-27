@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query';
  */
 export function useProfessionals() {
     return useQuery({
-        queryKey: ['memberships'],
+        queryKey: ['memberships', 'professionals'],
         queryFn: () =>
             api
                 .get<{ data: Membership[] }>('/memberships')

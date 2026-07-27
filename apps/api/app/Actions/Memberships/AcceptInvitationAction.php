@@ -34,6 +34,7 @@ class AcceptInvitationAction implements Action
             $invitation = MembershipInvitation::query()
                 ->where('token', hash('sha256', $dto->token))
                 ->whereNull('accepted_at')
+                ->lockForUpdate()
                 ->firstOrFail();
 
             $user = User::where('email', $invitation->email)->first();

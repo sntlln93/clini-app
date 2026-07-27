@@ -31,9 +31,11 @@ class UpdateMembershipRequest extends FormRequest
     }
 
     /**
-     * CU-04/CU-05 guards: the organization must always keep at least one
-     * active, non-deleted owner/admin membership, and nobody may suspend
-     * themselves or drop their own owner/admin roles.
+     * CU-04/CU-05 guard: nobody may suspend themselves or drop their own
+     * owner/admin roles. The organization-wide "keeps at least one active
+     * owner/admin" guard is race-sensitive (two concurrent updates could
+     * both pass it), so it is checked and enforced transactionally, under a
+     * row lock, inside UpdateMembershipAction instead.
      */
     public function withValidator(Validator $validator): void
     {
@@ -41,6 +43,10 @@ class UpdateMembershipRequest extends FormRequest
             $membership = $this->route('membership');
 
             if (! $membership instanceof Membership) {
+                return;
+            }
+
+            if ($membership->user_id !== $this->user()?->id) {
                 return;
             }
 
@@ -56,44 +62,20 @@ class UpdateMembershipRequest extends FormRequest
                 fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
             );
 
-            if ($membership->user_id === $this->user()?->id) {
-                if ($newStatus !== MembershipStatus::Active) {
-                    $validator->errors()->add('status', 'No podés desactivar o suspender tu propia membresía.');
-                }
-
-                /** @var array<int, MembershipRole> $existingRoles */
-                $existingRoles = $membership->roles;
-
-                $hadOwnerOrAdmin = collect($existingRoles)->contains(
-                    fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-                );
-
-                if ($hadOwnerOrAdmin && ! $newRolesKeepOwnerOrAdmin) {
-                    $validator->errors()->add('roles', 'No podés quitarte a vos mismo el rol de propietario o administrador.');
-                }
+            if ($newStatus !== MembershipStatus::Active) {
+                $validator->errors()->add('status', 'No podés desactivar o suspender tu propia membresía.');
             }
 
-            $organizationKeepsOwnerOrAdmin = $newStatus === MembershipStatus::Active && $newRolesKeepOwnerOrAdmin;
+            /** @var array<int, MembershipRole> $existingRoles */
+            $existingRoles = $membership->roles;
 
-            if (! $organizationKeepsOwnerOrAdmin && ! $this->anotherActiveOwnerOrAdminExists($membership)) {
-                $validator->errors()->add('roles', 'La organización debe mantener al menos un miembro activo con rol de propietario o administrador.');
+            $hadOwnerOrAdmin = collect($existingRoles)->contains(
+                fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
+            );
+
+            if ($hadOwnerOrAdmin && ! $newRolesKeepOwnerOrAdmin) {
+                $validator->errors()->add('roles', 'No podés quitarte a vos mismo el rol de propietario o administrador.');
             }
         });
-    }
-
-    private function anotherActiveOwnerOrAdminExists(Membership $membership): bool
-    {
-        return Membership::query()
-            ->where('id', '!=', $membership->id)
-            ->where('status', MembershipStatus::Active)
-            ->get()
-            ->contains(function (Membership $other): bool {
-                /** @var array<int, MembershipRole> $roles */
-                $roles = $other->roles;
-
-                return collect($roles)->contains(
-                    fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-                );
-            });
     }
 }
