@@ -37,5 +37,6 @@ class DatabaseSeeder extends Seeder
 
         $this->call(InsuranceProviderSeeder::class);
         $this->call(CatalogSeeder::class);
+        $this->callWith(ProfessionalsSeeder::class, ['organization' => $organization]);
     }
 }
