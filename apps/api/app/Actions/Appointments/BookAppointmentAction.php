@@ -84,6 +84,7 @@ class BookAppointmentAction implements Action
                 'end_at' => $endAt,
                 'reason' => $dto->reason,
                 'notes' => $dto->notes,
+                'rescheduled_from_id' => $dto->rescheduledFromId,
             ]);
         });
     }

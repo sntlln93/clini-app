@@ -3,10 +3,16 @@ import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
+    DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
+import { useState } from 'react';
+import {
+    useCancelAppointment,
+    useUpdateAppointmentStatus,
+} from '../-hooks/use-appointments';
+import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
 
 /**
  * Mirrors `AppointmentStatus::allowedTransitions()` in the backend enum
@@ -21,6 +27,23 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
     cancelled: [],
     rescheduled: [],
 };
+
+/**
+ * Mirrors `CancelAppointmentAction::CANCELLABLE_STATUSES` in the backend
+ * (`app/Actions/Appointments/CancelAppointmentAction.php`) — keep in sync.
+ */
+const CANCELLABLE_STATUSES: AppointmentStatus[] = [
+    'scheduled',
+    'confirmed',
+    'arrived',
+];
+
+/**
+ * Mirrors `RescheduleAppointmentAction::RESCHEDULABLE_STATUSES` in the
+ * backend (`app/Actions/Appointments/RescheduleAppointmentAction.php`) —
+ * keep in sync.
+ */
+const RESCHEDULABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed'];
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
     scheduled: 'Agendado',
@@ -61,8 +84,12 @@ export function AppointmentCard({
     appointment,
     canUpdate,
 }: AppointmentCardProps) {
+    const [showReschedule, setShowReschedule] = useState(false);
     const { mutate } = useUpdateAppointmentStatus();
+    const { mutate: cancelAppointment } = useCancelAppointment();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
+    const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
+    const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
 
     const content = (
         <div className="flex h-full flex-col gap-0.5 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-1.5 text-left text-xs">
@@ -86,27 +113,63 @@ export function AppointmentCard({
         </div>
     );
 
-    if (!canUpdate || nextStatuses.length === 0) {
+    const hasActions =
+        canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);
+
+    if (!hasActions) {
         return content;
     }
 
     return (
-        <DropdownMenu>
-            <DropdownMenuTrigger className="block h-full w-full text-left">
-                {content}
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-                {nextStatuses.map((status) => (
-                    <DropdownMenuItem
-                        key={status}
-                        onClick={() =>
-                            mutate({ appointmentId: appointment.id, status })
-                        }
-                    >
-                        {STATUS_LABELS[status]}
-                    </DropdownMenuItem>
-                ))}
-            </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger className="block h-full w-full text-left">
+                    {content}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                    {nextStatuses.map((status) => (
+                        <DropdownMenuItem
+                            key={status}
+                            onClick={() =>
+                                mutate({
+                                    appointmentId: appointment.id,
+                                    status,
+                                })
+                            }
+                        >
+                            {STATUS_LABELS[status]}
+                        </DropdownMenuItem>
+                    ))}
+                    {(canCancel || canReschedule) &&
+                        nextStatuses.length > 0 && <DropdownMenuSeparator />}
+                    {canReschedule && (
+                        <DropdownMenuItem
+                            onClick={() => setShowReschedule(true)}
+                        >
+                            Reprogramar
+                        </DropdownMenuItem>
+                    )}
+                    {canCancel && (
+                        <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() =>
+                                cancelAppointment({
+                                    appointmentId: appointment.id,
+                                    cancellationReason: null,
+                                })
+                            }
+                        >
+                            Cancelar
+                        </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <RescheduleAppointmentDialog
+                open={showReschedule}
+                onOpenChange={setShowReschedule}
+                appointment={appointment}
+            />
+        </>
     );
 }

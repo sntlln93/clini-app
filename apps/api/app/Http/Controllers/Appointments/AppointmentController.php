@@ -5,13 +5,19 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Appointments;
 
 use App\Actions\Appointments\BookAppointmentAction;
+use App\Actions\Appointments\CancelAppointmentAction;
+use App\Actions\Appointments\RescheduleAppointmentAction;
 use App\Actions\Appointments\TransitionAppointmentStatusAction;
 use App\Data\Appointments\AppointmentBookingData;
+use App\Data\Appointments\AppointmentCancellationData;
+use App\Data\Appointments\AppointmentReschedulingData;
 use App\Data\Appointments\AppointmentStatusTransitionData;
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Appointments\CancelAppointmentRequest;
 use App\Http\Requests\Appointments\IndexAppointmentRequest;
+use App\Http\Requests\Appointments\RescheduleAppointmentRequest;
 use App\Http\Requests\Appointments\StoreAppointmentRequest;
 use App\Http\Requests\Appointments\UpdateAppointmentStatusRequest;
 use App\Http\Resources\Appointments\AppointmentResource;
@@ -90,5 +96,49 @@ class AppointmentController extends Controller
         ));
 
         return new AppointmentResource($updated);
+    }
+
+    public function cancel(
+        CancelAppointmentRequest $request,
+        Appointment $appointment,
+        CancelAppointmentAction $action
+    ): AppointmentResource {
+        Gate::authorize('update', $appointment);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $cancelled = $action->handle(new AppointmentCancellationData(
+            appointmentId: $appointment->id,
+            cancelledBy: $user->id,
+            cancellationReason: $request->filled('cancellation_reason')
+                ? $request->string('cancellation_reason')->toString()
+                : null,
+        ));
+
+        return new AppointmentResource($cancelled);
+    }
+
+    public function reschedule(
+        RescheduleAppointmentRequest $request,
+        Appointment $appointment,
+        RescheduleAppointmentAction $action
+    ): JsonResponse {
+        Gate::authorize('update', $appointment);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        $rescheduled = $action->handle(new AppointmentReschedulingData(
+            appointmentId: $appointment->id,
+            startAt: CarbonImmutable::parse($request->string('start_at')->toString()),
+            rescheduledBy: $user->id,
+            reason: $request->filled('reason') ? $request->string('reason')->toString() : null,
+            notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
+        ));
+
+        return (new AppointmentResource($rescheduled))
+            ->response()
+            ->setStatusCode(201);
     }
 }
