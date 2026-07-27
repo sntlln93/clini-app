@@ -23,9 +23,12 @@ class AvailabilityExceptionResource extends JsonResource
         return [
             'id' => $availabilityException->id,
             'membership_id' => $availabilityException->membership_id,
-            'type' => $availabilityException->type->value,
-            'start_at' => $availabilityException->start_at?->toIso8601String(),
-            'end_at' => $availabilityException->end_at?->toIso8601String(),
+            // Backed enums and Carbon instances both serialize to their
+            // scalar/ISO 8601 string form natively on json_encode(), so
+            // these are returned as-is rather than via ->value/->format().
+            'type' => $availabilityException->type,
+            'start_at' => $availabilityException->start_at,
+            'end_at' => $availabilityException->end_at,
             'reason' => $availabilityException->reason,
         ];
     }
