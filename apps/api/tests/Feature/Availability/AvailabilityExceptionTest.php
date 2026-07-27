@@ -1,0 +1,351 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Models\AvailabilityException;
+use App\Models\Membership;
+use App\Models\Organization;
+use App\Support\CurrentOrganization;
+use Illuminate\Support\Facades\DB;
+
+afterEach(function () {
+    app(CurrentOrganization::class)->set(null);
+});
+
+test('store creates a professional-scoped blocked exception with a reason', function () {
+    $membership = Membership::factory()->create();
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+        'reason' => 'Turno médico personal',
+    ]);
+
+    $response->assertCreated();
+    $row = DB::table('availability_exceptions')->where('membership_id', $membership->id)->first();
+    expect($row->organization_id)->toBe($membership->organization_id);
+    expect($row->type)->toBe('blocked');
+    expect($row->reason)->toBe('Turno médico personal');
+});
+
+test('store creates an org-wide exception with membership_id null', function () {
+    $membership = Membership::factory()->owner()->create();
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'blocked',
+        'start_at' => '2026-12-25 00:00:00',
+        'end_at' => '2026-12-26 00:00:00',
+        'reason' => 'Feriado',
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.membership_id', null);
+    $row = DB::table('availability_exceptions')
+        ->where('organization_id', $membership->organization_id)
+        ->whereNull('membership_id')
+        ->first();
+    expect($row)->not->toBeNull();
+});
+
+test('store creates an extra exception', function () {
+    $membership = Membership::factory()->create();
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.type', 'extra');
+});
+
+test('store with type outside blocked or extra returns 422', function () {
+    $membership = Membership::factory()->create();
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'holiday',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertStatus(422)->assertJsonValidationErrors('type');
+});
+
+test('store with end_at <= start_at returns 422', function () {
+    $membership = Membership::factory()->create();
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 11:00:00',
+        'end_at' => '2026-08-10 09:00:00',
+    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 09:00:00',
+    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+});
+
+test('store with a membership_id from another organization returns 422', function () {
+    $owner = Membership::factory()->owner()->create();
+    $otherOrgMembership = Membership::factory()->create();
+
+    $response = $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $otherOrgMembership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response->assertStatus(422);
+    $response->assertJsonValidationErrors('membership_id');
+});
+
+test('store overlapping an existing exception of the same membership returns 422', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 10:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+});
+
+test('store of an org-wide exception overlapping an existing professional-scoped one succeeds', function () {
+    $membership = Membership::factory()->owner()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertCreated();
+});
+
+test('store of an org-wide exception overlapping an existing org-wide one returns 422', function () {
+    $membership = Membership::factory()->owner()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => null,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 10:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+});
+
+test('index returns the organization exceptions ordered by start_at and never leaks another organization rows', function () {
+    $membership = Membership::factory()->create();
+    $otherOrgException = AvailabilityException::factory()->create();
+
+    $later = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'start_at' => '2026-08-15 09:00:00',
+        'end_at' => '2026-08-15 11:00:00',
+    ]);
+    $earlier = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'start_at' => '2026-08-01 09:00:00',
+        'end_at' => '2026-08-01 11:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/availability-exceptions');
+
+    $response->assertOk();
+    $ids = collect($response->json('data'))->pluck('id');
+    expect($ids->toArray())->toBe([$earlier->id, $later->id]);
+    expect($ids->contains($otherOrgException->id))->toBeFalse();
+});
+
+test('index filtered by membership_id returns that membership exceptions plus org-wide ones, excluding another professional', function () {
+    $organization = Organization::factory()->create();
+    $owner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $target = Membership::factory()->create(['organization_id' => $organization->id]);
+    $another = Membership::factory()->create(['organization_id' => $organization->id]);
+
+    $targetException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $target->id,
+    ]);
+    $orgWideException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => null,
+    ]);
+    $anotherException = AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $another->id,
+    ]);
+
+    $response = $this->actingAs($owner->user)->getJson("/api/v1/availability-exceptions?membership_id={$target->id}");
+
+    $response->assertOk();
+    $ids = collect($response->json('data'))->pluck('id');
+    expect($ids->toArray())->toEqualCanonicalizing([$targetException->id, $orgWideException->id]);
+    expect($ids->contains($anotherException->id))->toBeFalse();
+});
+
+test('update changes type, start_at, end_at and reason without self-colliding', function () {
+    $membership = Membership::factory()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+        'reason' => 'Original',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 09:30:00',
+        'end_at' => '2026-08-10 11:30:00',
+        'reason' => 'Actualizado',
+    ]);
+
+    $response->assertOk();
+    $row = DB::table('availability_exceptions')->where('id', $exception->id)->first();
+    expect($row->type)->toBe('extra');
+    expect($row->reason)->toBe('Actualizado');
+});
+
+test('destroy deletes the exception and returns 204, including an org-wide one', function () {
+    $membership = Membership::factory()->owner()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+    $orgWideException = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => null,
+    ]);
+
+    $this->actingAs($membership->user)->deleteJson("/api/v1/availability-exceptions/{$exception->id}")->assertNoContent();
+    $this->actingAs($membership->user)->deleteJson("/api/v1/availability-exceptions/{$orgWideException->id}")->assertNoContent();
+
+    expect(DB::table('availability_exceptions')->where('id', $exception->id)->count())->toBe(0);
+    expect(DB::table('availability_exceptions')->where('id', $orgWideException->id)->count())->toBe(0);
+});
+
+test('a professional holding only availability.manage.own gets 403 on org-wide and another professional store, 2xx on its own; an owner gets 2xx on all three', function () {
+    $organization = Organization::factory()->create();
+    $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $another = Membership::factory()->create(['organization_id' => $organization->id]);
+    $owner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+
+    $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertStatus(403);
+
+    $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $another->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-11 09:00:00',
+        'end_at' => '2026-08-11 11:00:00',
+    ])->assertStatus(403);
+
+    $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $professional->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-12 09:00:00',
+        'end_at' => '2026-08-12 11:00:00',
+    ])->assertSuccessful();
+
+    $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'blocked',
+        'start_at' => '2026-09-10 09:00:00',
+        'end_at' => '2026-09-10 11:00:00',
+    ])->assertSuccessful();
+
+    $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $another->id,
+        'type' => 'blocked',
+        'start_at' => '2026-09-11 09:00:00',
+        'end_at' => '2026-09-11 11:00:00',
+    ])->assertSuccessful();
+
+    $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $professional->id,
+        'type' => 'blocked',
+        'start_at' => '2026-09-12 09:00:00',
+        'end_at' => '2026-09-12 11:00:00',
+    ])->assertSuccessful();
+});
+
+test('update on an exception from another organization returns 403', function () {
+    $owner = Membership::factory()->owner()->create();
+    $otherOrgMembership = Membership::factory()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $otherOrgMembership->organization_id,
+        'membership_id' => $otherOrgMembership->id,
+    ]);
+
+    $this->actingAs($owner->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertStatus(403);
+});
+
+test('destroy on an exception from another organization returns 403', function () {
+    $owner = Membership::factory()->owner()->create();
+    $otherOrgMembership = Membership::factory()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $otherOrgMembership->organization_id,
+        'membership_id' => $otherOrgMembership->id,
+    ]);
+
+    $this->actingAs($owner->user)->deleteJson("/api/v1/availability-exceptions/{$exception->id}")->assertStatus(403);
+});
+
+test('a guest gets 401 on index, store, update and destroy', function () {
+    $membership = Membership::factory()->create();
+    $exception = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+
+    $this->getJson('/api/v1/availability-exceptions')->assertStatus(401);
+    $this->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertStatus(401);
+    $this->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ])->assertStatus(401);
+    $this->deleteJson("/api/v1/availability-exceptions/{$exception->id}")->assertStatus(401);
+});
