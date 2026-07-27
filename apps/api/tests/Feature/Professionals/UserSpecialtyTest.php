@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\MembershipStatus;
 use App\Enums\Permission;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -111,6 +112,25 @@ test('index denies an actor and target with no organization in common', function
     expect($actorMembership->permissions())->toContain(Permission::CatalogManage);
 
     app(CurrentOrganization::class)->set($organizationA->id);
+
+    $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
+
+    $response->assertStatus(403);
+});
+
+test('viewAny denies when the target membership in the actor organization is not active', function () {
+    $organization = Organization::factory()->create();
+    $actorMembership = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $targetMembership = Membership::factory()->create([
+        'organization_id' => $organization->id,
+        'status' => MembershipStatus::Inactive,
+    ]);
+    $specialty = Specialty::factory()->create();
+    UserSpecialty::factory()->create(['user_id' => $targetMembership->user_id, 'specialty_id' => $specialty->id]);
+
+    expect($actorMembership->permissions())->toContain(Permission::CatalogManage);
+
+    app(CurrentOrganization::class)->set($organization->id);
 
     $response = $this->actingAs($actorMembership->user)->getJson("/api/v1/users/{$targetMembership->user_id}/specialties");
 
