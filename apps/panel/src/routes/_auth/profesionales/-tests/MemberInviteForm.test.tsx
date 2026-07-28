@@ -80,7 +80,7 @@ describe('MemberInviteForm', () => {
         );
     });
 
-    it('navigates to /profesionales on a successful invitation', async () => {
+    it('shows a success message and does not navigate on a successful invitation', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { message: 'Invitación enviada.' },
         });
@@ -91,7 +91,8 @@ describe('MemberInviteForm', () => {
             screen.getByRole('button', { name: 'Enviar invitación' }),
         );
 
-        await screen.findByText('Profesionales');
+        await screen.findByText('Invitación enviada correctamente.');
+        expect(screen.queryByText('Profesionales')).toBeNull();
     });
 
     it('surfaces a 422 email error under that field', async () => {

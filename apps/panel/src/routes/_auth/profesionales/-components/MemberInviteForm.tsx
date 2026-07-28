@@ -2,16 +2,16 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { MembershipRole } from '@/types/membership';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link } from '@tanstack/react-router';
 import { useState, type FormEvent } from 'react';
 import { useInviteMember } from '../-hooks/use-invite-member';
 import { MemberRoleFields } from './MemberRoleFields';
 
 export function MemberInviteForm() {
-    const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [roles, setRoles] = useState<MembershipRole[]>([]);
-    const { mutate, isPending, message, errors } = useInviteMember();
+    const { mutate, isPending, isSuccess, message, errors } =
+        useInviteMember();
 
     function toggleRole(role: MembershipRole, checked: boolean) {
         setRoles((previous) =>
@@ -23,9 +23,23 @@ export function MemberInviteForm() {
 
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault();
-        mutate(
-            { email, roles },
-            { onSuccess: () => navigate({ to: '/profesionales' }) },
+        mutate({ email, roles });
+    }
+
+    if (isSuccess) {
+        return (
+            <div className="max-w-xl space-y-4">
+                <p className="text-sm text-foreground">
+                    Invitación enviada correctamente.
+                </p>
+                <Button
+                    type="button"
+                    render={<Link to="/profesionales" />}
+                    nativeButton={false}
+                >
+                    Volver
+                </Button>
+            </div>
         );
     }
 
