@@ -134,9 +134,7 @@ export function AvailabilityExceptionsSection({
                                                     type="button"
                                                     size="sm"
                                                     variant="ghost"
-                                                    disabled={
-                                                        remove.isPending
-                                                    }
+                                                    disabled={remove.isPending}
                                                 >
                                                     Eliminar
                                                 </Button>
