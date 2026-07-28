@@ -90,9 +90,54 @@ describe('MemberEditForm', () => {
                 .getAttribute('aria-checked'),
         ).toBe('false');
 
-        fireEvent.click(screen.getByRole('combobox', { name: 'Estado' }));
-        const option = await screen.findByRole('option', { name: 'Activo' });
-        expect(option.getAttribute('aria-selected')).toBe('true');
+        expect(
+            screen
+                .getByRole('radio', { name: 'Activo' })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
+    });
+
+    it('renders Estado as a radio group and submits a newly picked status', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({
+            data: { data: { ...MEMBERSHIP, status: 'suspended' } },
+        });
+        renderMemberEditForm();
+        await screen.findByRole('button', { name: 'Guardar cambios' });
+
+        expect(screen.getByRole('radiogroup')).not.toBeNull();
+        const suspendedRadio = screen.getByRole('radio', {
+            name: 'Suspendido',
+        });
+        expect(suspendedRadio.getAttribute('aria-checked')).toBe('false');
+
+        fireEvent.click(suspendedRadio);
+        expect(suspendedRadio.getAttribute('aria-checked')).toBe('true');
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Guardar cambios' }),
+        );
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith('/memberships/5', {
+                roles: ['owner', 'professional'],
+                status: 'suspended',
+            }),
+        );
+    });
+
+    it('keeps roles as a multi-select: several roles stay checked at the same time', async () => {
+        renderMemberEditForm();
+        await screen.findByRole('button', { name: 'Guardar cambios' });
+
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Administrador' }));
+
+        for (const role of ['Propietario', 'Profesional', 'Administrador']) {
+            expect(
+                screen
+                    .getByRole('checkbox', { name: role })
+                    .getAttribute('aria-checked'),
+            ).toBe('true');
+        }
     });
 
     it('updates against the membership id with the current payload and navigates on success', async () => {

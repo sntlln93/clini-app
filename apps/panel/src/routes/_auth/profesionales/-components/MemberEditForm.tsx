@@ -1,16 +1,17 @@
-import { Button } from '@/components/ui/button';
-import type {
-    Membership,
-    MembershipRole,
-    MembershipStatus,
-} from '@/types/membership';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useForm } from 'react-hook-form';
+
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import { extractFormErrors } from '@/lib/form-errors';
+import type { Membership } from '@/types/membership';
 import {
     useDeactivateMembership,
     useUpdateMembership,
 } from '../-hooks/use-update-membership';
-import { MemberRoleFields } from './MemberRoleFields';
+import { MemberRoleFields, MemberStatusField } from './MemberRoleFields';
+import { memberEditSchema, type MemberEditFormValues } from './member-schemas';
 
 type MemberEditFormProps = {
     membership: Membership;
@@ -18,37 +19,47 @@ type MemberEditFormProps = {
 
 export function MemberEditForm({ membership }: MemberEditFormProps) {
     const navigate = useNavigate();
-    const [roles, setRoles] = useState<MembershipRole[]>(
-        () => membership.roles,
-    );
-    const [status, setStatus] = useState<MembershipStatus>(
-        () => membership.status,
-    );
 
-    const { mutate, isPending, message, errors } = useUpdateMembership(
-        membership.id,
-    );
+    // The page mounts this form only once its membership has loaded, and it
+    // never swaps to a different one in place, so the prop can seed
+    // `defaultValues` directly — no `form.reset()` in an effect needed, unlike
+    // the dialog this replaced.
+    const form = useForm<MemberEditFormValues>({
+        resolver: zodResolver(memberEditSchema),
+        defaultValues: {
+            roles: membership.roles,
+            status: membership.status,
+        },
+    });
+
+    const { mutateAsync, isPending } = useUpdateMembership(membership.id);
     const {
         mutate: deactivate,
         isPending: isDeactivating,
         message: deactivateMessage,
     } = useDeactivateMembership();
 
-    function toggleRole(role: MembershipRole, checked: boolean) {
-        setRoles((previous) =>
-            checked
-                ? [...previous, role]
-                : previous.filter((current) => current !== role),
-        );
-    }
-
     function goToList() {
         navigate({ to: '/profesionales' });
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        mutate({ roles, status }, { onSuccess: goToList });
+    async function onSubmit(values: MemberEditFormValues) {
+        try {
+            await mutateAsync(values);
+            goToList();
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.roles) {
+                form.setError('roles', { message: errors.roles });
+            }
+            if (errors.status) {
+                form.setError('status', { message: errors.status });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     function handleDeactivate() {
@@ -63,43 +74,49 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
         deactivate(membership.id, { onSuccess: goToList });
     }
 
+    const generalError =
+        form.formState.errors.root?.message ?? deactivateMessage;
+
     return (
-        <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
-            {(message ?? deactivateMessage) && (
-                <p className="text-sm text-destructive">
-                    {message ?? deactivateMessage}
-                </p>
-            )}
+        <Form {...form}>
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="max-w-xl space-y-4"
+            >
+                {generalError && (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                        {generalError}
+                    </div>
+                )}
 
-            <MemberRoleFields
-                roles={roles}
-                onToggleRole={toggleRole}
-                status={status}
-                onStatusChange={setStatus}
-                errors={errors}
-            />
+                <MemberRoleFields control={form.control} name="roles" />
+                <MemberStatusField control={form.control} name="status" />
 
-            <div className="flex gap-2">
-                <Button type="submit" disabled={isPending}>
-                    {isPending ? 'Guardando…' : 'Guardar cambios'}
-                </Button>
-                <Button
-                    type="button"
-                    variant="destructive"
-                    onClick={handleDeactivate}
-                    disabled={isDeactivating}
-                >
-                    {isDeactivating ? 'Dando de baja…' : 'Dar de baja'}
-                </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    render={<Link to="/profesionales" />}
-                    nativeButton={false}
-                >
-                    Cancelar
-                </Button>
-            </div>
-        </form>
+                <div className="flex gap-2">
+                    <Button
+                        type="submit"
+                        disabled={isPending || form.formState.isSubmitting}
+                    >
+                        {isPending ? 'Guardando…' : 'Guardar cambios'}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        onClick={handleDeactivate}
+                        disabled={isDeactivating}
+                    >
+                        {isDeactivating ? 'Dando de baja…' : 'Dar de baja'}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        render={<Link to="/profesionales" />}
+                        nativeButton={false}
+                    >
+                        Cancelar
+                    </Button>
+                </div>
+            </form>
+        </Form>
     );
 }

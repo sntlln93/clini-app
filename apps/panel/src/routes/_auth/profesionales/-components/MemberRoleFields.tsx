@@ -1,97 +1,112 @@
+import type { Control, FieldPath, FieldValues } from 'react-hook-form';
+
 import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
 import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import type { MembershipRole, MembershipStatus } from '@/types/membership';
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import type { MembershipRole } from '@/types/membership';
+import { ROLE_OPTIONS, STATUS_OPTIONS } from './member-schemas';
 
-const ROLE_OPTIONS: { value: MembershipRole; label: string }[] = [
-    { value: 'owner', label: 'Propietario' },
-    { value: 'admin', label: 'Administrador' },
-    { value: 'professional', label: 'Profesional' },
-    { value: 'staff', label: 'Personal' },
-];
-
-const STATUS_OPTIONS: { value: MembershipStatus; label: string }[] = [
-    { value: 'active', label: 'Activo' },
-    { value: 'inactive', label: 'Inactivo' },
-    { value: 'suspended', label: 'Suspendido' },
-];
-
-type MemberRoleFieldsProps = {
-    roles: MembershipRole[];
-    onToggleRole: (role: MembershipRole, checked: boolean) => void;
-    status?: MembershipStatus;
-    onStatusChange?: (status: MembershipStatus) => void;
-    errors: Record<string, string>;
+type MemberFieldProps<TFieldValues extends FieldValues> = {
+    control: Control<TFieldValues>;
+    name: FieldPath<TFieldValues>;
 };
 
-export function MemberRoleFields({
-    roles,
-    onToggleRole,
-    status,
-    onStatusChange,
-    errors,
-}: MemberRoleFieldsProps) {
+// `roles` is multi-selection (a membership can hold several roles at once,
+// e.g. owner + admin), so it stays a Checkbox group regardless of the
+// <5-options RadioGroup rule — that rule only applies to single-choice
+// fields.
+export function MemberRoleFields<TFieldValues extends FieldValues>({
+    control,
+    name,
+}: MemberFieldProps<TFieldValues>) {
     return (
-        <>
-            <div className="space-y-2">
-                <Label>Roles</Label>
-                <div className="space-y-1.5">
-                    {ROLE_OPTIONS.map((option) => (
-                        <label
-                            key={option.value}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                checked={roles.includes(option.value)}
-                                onCheckedChange={(checked) =>
-                                    onToggleRole(option.value, checked === true)
-                                }
-                            />
-                            {option.label}
-                        </label>
-                    ))}
-                </div>
-                {errors.roles && (
-                    <p className="text-sm text-destructive">{errors.roles}</p>
-                )}
-            </div>
+        <FormField
+            control={control}
+            name={name}
+            render={({ field }) => {
+                const selected = (field.value ?? []) as MembershipRole[];
 
-            {status && onStatusChange && (
-                <div className="space-y-2">
-                    <Label htmlFor="member-status">Estado</Label>
-                    <Select
-                        value={status}
-                        onValueChange={(value) =>
-                            onStatusChange(value as MembershipStatus)
+                return (
+                    <FormItem>
+                        <FormLabel>Roles</FormLabel>
+                        <FormControl render={<div className="space-y-1.5" />}>
+                            {ROLE_OPTIONS.map((option) => (
+                                <label
+                                    key={option.value}
+                                    className="flex items-center gap-2 text-sm"
+                                >
+                                    <Checkbox
+                                        checked={selected.includes(
+                                            option.value,
+                                        )}
+                                        onCheckedChange={(checked) =>
+                                            field.onChange(
+                                                checked === true
+                                                    ? [
+                                                          ...selected,
+                                                          option.value,
+                                                      ]
+                                                    : selected.filter(
+                                                          (role) =>
+                                                              role !==
+                                                              option.value,
+                                                      ),
+                                            )
+                                        }
+                                    />
+                                    {option.label}
+                                </label>
+                            ))}
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                );
+            }}
+        />
+    );
+}
+
+// `Estado` (MembershipStatus) is single-choice with 3 options, so it follows
+// the <5-options rule and uses RadioGroup instead of Select.
+export function MemberStatusField<TFieldValues extends FieldValues>({
+    control,
+    name,
+}: MemberFieldProps<TFieldValues>) {
+    return (
+        <FormField
+            control={control}
+            name={name}
+            render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Estado</FormLabel>
+                    <FormControl
+                        render={
+                            <RadioGroup
+                                value={field.value}
+                                onValueChange={field.onChange}
+                                className="flex flex-col gap-2"
+                            />
                         }
                     >
-                        <SelectTrigger id="member-status" className="w-full">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {STATUS_OPTIONS.map((option) => (
-                                <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {errors.status && (
-                        <p className="text-sm text-destructive">
-                            {errors.status}
-                        </p>
-                    )}
-                </div>
+                        {STATUS_OPTIONS.map((option) => (
+                            <label
+                                key={option.value}
+                                className="flex items-center gap-2 text-sm"
+                            >
+                                <RadioGroupItem value={option.value} />
+                                {option.label}
+                            </label>
+                        ))}
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
             )}
-        </>
+        />
     );
 }
