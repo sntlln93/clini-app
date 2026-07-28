@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import type { Availability } from '@/types/availability';
@@ -42,9 +43,7 @@ export function WeeklyAvailabilitySection({
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton rows={7} />}
 
             {!isError && !isPending && (
                 <div className="space-y-3">

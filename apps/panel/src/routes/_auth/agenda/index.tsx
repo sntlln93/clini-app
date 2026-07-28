@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import { useProfessionals } from '@/hooks/use-professionals';
@@ -125,9 +126,7 @@ function AgendaPage() {
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton rows={5} />}
 
             {!isError && !isPending && (professionals?.length ?? 0) === 0 && (
                 <p className="text-sm text-muted-foreground">

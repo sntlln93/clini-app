@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { createFileRoute } from '@tanstack/react-router';
 import { PatientForm } from './-components/PatientForm';
 import { usePatient } from './-hooks/use-patient';
@@ -13,9 +14,7 @@ function EditarPacientePage() {
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-semibold">Editar paciente</h1>
-            {isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {isPending && <ListSkeleton />}
             {!isPending && !patient && (
                 <p className="text-sm text-muted-foreground">
                     No se encontró el paciente.

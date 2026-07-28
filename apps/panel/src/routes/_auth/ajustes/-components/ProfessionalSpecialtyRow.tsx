@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Membership } from '@/types/membership';
 import {
@@ -37,9 +38,7 @@ export function ProfessionalSpecialtyRow({
                 {membership.user.name ?? membership.user.email}
             </p>
 
-            {isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {isPending && <ListSkeleton rows={1} />}
 
             {!isPending && credentials && credentials.length === 0 && (
                 <p className="text-sm text-muted-foreground">

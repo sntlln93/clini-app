@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { extractFormErrors } from '@/lib/form-errors';
@@ -93,7 +94,7 @@ export function AcceptInvitationForm({ token }: AcceptInvitationFormProps) {
     }
 
     if (isPending) {
-        return <p className="text-sm text-muted-foreground">Cargando…</p>;
+        return <ListSkeleton />;
     }
 
     if (isError || !invitation) {

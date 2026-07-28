@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { useProfessionals } from '@/hooks/use-professionals';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
@@ -26,9 +27,7 @@ export function ProfessionalSpecialtiesSection() {
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton />}
 
             {!isError &&
                 !isPending &&

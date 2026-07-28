@@ -1,6 +1,7 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
 import { QueryErrorState } from '@/components/QueryErrorState';
+import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
@@ -81,9 +82,7 @@ function PacientesPage() {
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <TableSkeleton columns={5} />}
 
             {!isError && !isPending && data && (
                 <>
