@@ -1,5 +1,6 @@
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { PanelBreadcrumbs } from '@/features/panel-breadcrumbs/PanelBreadcrumbs';
 import { PanelFooter } from '@/features/panel-footer/PanelFooter';
 import { PanelHeader } from '@/features/panel-header/PanelHeader';
 import { PanelSidebar } from '@/features/panel-sidebar/PanelSidebar';
@@ -25,6 +26,7 @@ export function PanelLayout({ children }: { children: ReactNode }) {
                         id="main-content"
                         className="min-w-0 flex-1 overflow-auto p-4 md:p-6"
                     >
+                        <PanelBreadcrumbs />
                         {children}
                     </main>
                     <PanelFooter />
