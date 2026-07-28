@@ -1,6 +1,14 @@
 import type { Membership } from '@/types/membership';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import {
+    createMemoryHistory,
+    createRootRoute,
+    createRoute,
+    createRouter,
+    Outlet,
+    RouterProvider,
+} from '@tanstack/react-router';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
 import { MembersTable } from '../-components/MembersTable';
 
 const MEMBERSHIPS: Membership[] = [
@@ -15,47 +23,67 @@ const MEMBERSHIPS: Membership[] = [
     },
 ];
 
-describe('MembersTable', () => {
-    it('renders one row per membership with name, email, roles and status in Spanish', async () => {
-        render(
+function renderMembersTable(memberships: Membership[]) {
+    const rootRoute = createRootRoute({ component: () => <Outlet /> });
+    const profesionalesRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/profesionales',
+        component: () => (
             <MembersTable
-                memberships={MEMBERSHIPS}
-                onEdit={vi.fn()}
+                memberships={memberships}
                 empty={<p>Todavía no hay miembros.</p>}
-            />,
-        );
+            />
+        ),
+    });
+    const editarRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/profesionales/$id/editar',
+        component: () => <div>Editar profesional</div>,
+    });
+    const routeTree = rootRoute.addChildren([
+        profesionalesRoute,
+        editarRoute,
+    ]);
+    const router = createRouter({
+        routeTree,
+        history: createMemoryHistory({ initialEntries: ['/profesionales'] }),
+    });
+    return render(<RouterProvider router={router} />);
+}
+
+describe('MembersTable', () => {
+    it('renders one row per membership with name, email, roles, status and an icon-only Editar action', async () => {
+        renderMembersTable(MEMBERSHIPS);
 
         await screen.findByText('Ana Gomez');
         screen.getByText('ana@clini.app');
         screen.getByText('Propietario');
         screen.getByText('Profesional');
         screen.getByText('Activo');
+
         screen.getByRole('button', { name: 'Editar' });
     });
 
+    it('navigates to the editar page from the Editar action', async () => {
+        renderMembersTable(MEMBERSHIPS);
+
+        await screen.findByText('Ana Gomez');
+        fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+
+        await screen.findByText('Editar profesional');
+    });
+
     it('renders the empty state when the list is empty', async () => {
-        render(
-            <MembersTable
-                memberships={[]}
-                onEdit={vi.fn()}
-                empty={<p>Todavía no hay miembros.</p>}
-            />,
-        );
+        renderMembersTable([]);
 
         await screen.findByText('Todavía no hay miembros.');
         expect(screen.queryByRole('table')).toBeNull();
     });
 
     it('renders no action for a soft-deleted membership', async () => {
-        render(
-            <MembersTable
-                memberships={[
-                    { ...MEMBERSHIPS[0]!, deleted_at: '2026-01-02T00:00:00Z' },
-                ]}
-                onEdit={vi.fn()}
-                empty={<p>Todavía no hay miembros.</p>}
-            />,
-        );
+        renderMembersTable([
+            { ...MEMBERSHIPS[0]!, deleted_at: '2026-01-02T00:00:00Z' },
+        ]);
 
         await screen.findByText('Ana Gomez');
         expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
