@@ -12,9 +12,29 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
     return <MenuPrimitive.Portal data-slot="dropdown-menu-portal" {...props} />;
 }
 
-function DropdownMenuTrigger({ ...props }: MenuPrimitive.Trigger.Props) {
+function DropdownMenuTrigger({
+    className,
+    render,
+    ...props
+}: MenuPrimitive.Trigger.Props) {
+    // Only the bare (no `render`) usage renders its own focusable button
+    // with no styling of its own — a `render` target (e.g. Button,
+    // SidebarMenuButton) already brings its own focus recipe, so adding one
+    // here too would double it up.
     return (
-        <MenuPrimitive.Trigger data-slot="dropdown-menu-trigger" {...props} />
+        <MenuPrimitive.Trigger
+            data-slot="dropdown-menu-trigger"
+            className={
+                render
+                    ? className
+                    : typeof className === 'function'
+                      ? (state: MenuPrimitive.Trigger.State) =>
+                            cn('focus-ring', className(state))
+                      : cn('focus-ring', className)
+            }
+            render={render}
+            {...props}
+        />
     );
 }
 
