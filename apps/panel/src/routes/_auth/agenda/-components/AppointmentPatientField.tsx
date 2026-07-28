@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Control } from 'react-hook-form';
 
 import {
@@ -31,6 +32,15 @@ export function AppointmentPatientField({
     patientQuery,
     onPatientQueryChange,
 }: AppointmentPatientFieldProps) {
+    const patientItems = useMemo(
+        () =>
+            patients.map((patient) => ({
+                value: String(patient.id),
+                label: `${patient.name} — ${patient.document_number}`,
+            })),
+        [patients],
+    );
+
     return (
         <FormField
             control={control}
@@ -46,6 +56,7 @@ export function AppointmentPatientField({
                         }
                     />
                     <Select
+                        items={patientItems}
                         value={field.value !== null ? String(field.value) : ''}
                         onValueChange={(value) => {
                             if (value === '') {
@@ -60,12 +71,9 @@ export function AppointmentPatientField({
                             <SelectValue placeholder="Seleccioná un paciente" />
                         </FormControl>
                         <SelectContent>
-                            {patients.map((patient) => (
-                                <SelectItem
-                                    key={patient.id}
-                                    value={String(patient.id)}
-                                >
-                                    {patient.name} — {patient.document_number}
+                            {patientItems.map((item) => (
+                                <SelectItem key={item.value} value={item.value}>
+                                    {item.label}
                                 </SelectItem>
                             ))}
                         </SelectContent>
