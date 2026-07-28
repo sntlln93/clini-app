@@ -61,6 +61,16 @@ OR
 
 Do not exceed this budget unless the user explicitly asks for a deeper investigation.
 
+`mcp__shadcn__*` lookups do **not** count toward this budget — see the next section.
+
+---
+
+### 3b. Never Plan an Invented shadcn API
+
+A handoff is executed literally, so a component API invented at planning time ships as written. Whenever the plan names a shadcn/registry component, prop, variant or sub-component, **confirm it exists before writing it into a step** — use `mcp__shadcn__search_items_in_registries` / `view_items_in_registries` / `get_item_examples_from_registries`, always passing `registries: ["@shadcn"]` (omitting it wrongly reports that no registries are configured). These calls are exempt from the tool budget above.
+
+If you cannot confirm an API, do not guess it into a step: either name the component without pinning its props and have the step say "read the real API before writing the markup", or raise it as a blocking question. The same applies to the project's own components in `src/components/` and `src/features/`, except that there the source file is the reference, not the MCP.
+
 ---
 
 ### 4. Planning Principles

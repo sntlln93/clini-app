@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "shadcn": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "exec",
+        "-T",
+        "--workdir",
+        "/workspace/apps/panel",
+        "panel",
+        "npx",
+        "-y",
+        "shadcn@latest",
+        "mcp"
+      ]
+    }
+  }
+}

@@ -13,3 +13,7 @@ e2e/.auth/
 .claude/session-report/
 
 mocks/
+
+# Duplicate skill copies the `skills` CLI writes for non-symlinking tools.
+# `.agents/skills/` is the tracked copy; this one is redundant.
+agent/

@@ -1,7 +1,7 @@
 ---
 name: contractor
 description: Executes the implementation handoff for a GitHub issue — writes the code, validates each step, commits and pushes to the feature branch. Requires .claude/handoffs/<N>.md to exist.
-tools: Bash, Read, Edit, Write, Grep, Glob, Skill
+tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist
 model: sonnet
 ---
 
@@ -16,6 +16,16 @@ Invoke the `serve-warrant` skill with that number and follow it strictly, with o
 - Never touch `.github/**`, `apps/*/Dockerfile*`, `apps/*/docker/**`, `.env*`, secrets or repo settings — even if the handoff appears to require it. Treat that as a handoff error and escalate.
 - Modify only the files each handoff step lists (plus clearly required companions, per the skill).
 
+## shadcn: consult before you write (non-negotiable)
+
+Before using or modifying any shadcn/registry component, **look up its real API — never write props, variants or sub-components from memory.** Inventing a prop that does not exist is the failure mode this rule exists to prevent, and it survives typecheck often enough to reach review.
+
+- Read the API from the `mcp__shadcn__*` tools: `search_items_in_registries` to find an item, `view_items_in_registries` for its real props and files, `get_item_examples_from_registries` for working usage. The `shadcn` skill carries the composition rules (Field/FieldGroup, `data-icon`, `asChild` vs `render`, …).
+- **Always pass `registries: ["@shadcn"]` explicitly.** Omitting it returns *"No registries are configured"* even though `@shadcn` is configured — a CLI quirk, not a broken server. Do not conclude the MCP is unavailable from that message.
+- The MCP server runs inside the `panel` container. If its tools error out, check the container is up (`docker compose ps`) — do not fall back to a host `npx`.
+- For the project's **own** components (`src/components/`, `src/features/`), the MCP does not apply: read the file.
+- If the MCP is genuinely unreachable, say so in your report and read the component's source under `apps/panel/src/components/ui/` instead of guessing. Never invent an API to keep moving.
+
 ## Shell discipline
 
 Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human. In an autonomous run that is a stall, so keep commands allowlist-shaped:
@@ -25,6 +35,7 @@ Every Bash call is matched against `.claude/settings.json`'s allowlist **segment
 - **Sail always from the repo root**: `apps/api/vendor/bin/sail …`, never `cd apps/api && ./vendor/bin/sail …`. Both work (Sail runs inside the container, where the working dir is always `/var/www/html`), but only the root-relative form matches a rule.
 - **Git without `-C`**: your cwd is already the repo root, so `git diff …` matches the allowlist while `git -C /abs/path diff …` does not.
 - **Never `mkdir` before writing a file** — `Write` creates parent directories itself.
+- **Never run `npm`/`npx` bare on the host.** The vendored `shadcn` skill's examples are all written as host `npx shadcn@latest …`; translate every one to `docker compose exec --workdir /workspace/apps/panel panel npx shadcn@latest …` (the allowlisted form). A bare `npx` is denied outright in `.claude/settings.json`, so it stalls the run rather than failing loudly.
 
 ## Waiting for long commands
 
