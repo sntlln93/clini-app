@@ -82,8 +82,7 @@ async function fillMinimalPatientForm() {
     fireEvent.change(await screen.findByLabelText('Nombre'), {
         target: { value: 'Juan Perez' },
     });
-    fireEvent.click(screen.getByLabelText('Tipo de documento'));
-    fireEvent.click(await screen.findByRole('option', { name: 'DNI' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'DNI' }));
     fireEvent.change(screen.getByLabelText('Número de documento'), {
         target: { value: '12345678' },
     });

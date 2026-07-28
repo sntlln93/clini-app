@@ -1,121 +1,105 @@
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import type { DocumentType, PatientPayload } from '@/types/patient';
+import type { Control } from 'react-hook-form';
 
-const DOCUMENT_TYPE_OPTIONS: { value: DocumentType; label: string }[] = [
-    { value: 'dni', label: 'DNI' },
-    { value: 'passport', label: 'Pasaporte' },
-    { value: 'insurance_id', label: 'Carnet de obra social' },
-];
+import {
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import type { PatientPayload } from '@/types/patient';
+import { DOCUMENT_TYPE_OPTIONS } from './patient-schemas';
 
 type PatientBasicFieldsProps = {
-    values: PatientPayload;
-    onChange: <K extends keyof PatientPayload>(
-        field: K,
-        value: PatientPayload[K],
-    ) => void;
-    errors: Record<string, string>;
+    control: Control<PatientPayload>;
 };
 
-export function PatientBasicFields({
-    values,
-    onChange,
-    errors,
-}: PatientBasicFieldsProps) {
+export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
     return (
         <>
-            <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                    id="name"
-                    value={values.name}
-                    onChange={(event) => onChange('name', event.target.value)}
-                    required
-                />
-                {errors.name && (
-                    <p className="text-sm text-destructive">{errors.name}</p>
+            <FormField
+                control={control}
+                name="name"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Nombre</FormLabel>
+                        <FormControl render={<Input {...field} />} />
+                        <FormMessage />
+                    </FormItem>
                 )}
-            </div>
+            />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                    <Label htmlFor="document_type">Tipo de documento</Label>
-                    <Select
-                        value={values.document_type}
-                        onValueChange={(value) =>
-                            onChange('document_type', value as DocumentType)
-                        }
-                    >
-                        <SelectTrigger id="document_type" className="w-full">
-                            <SelectValue placeholder="Seleccioná" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {DOCUMENT_TYPE_OPTIONS.map((option) => (
-                                <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    {errors.document_type && (
-                        <p className="text-sm text-destructive">
-                            {errors.document_type}
-                        </p>
+                <FormField
+                    control={control}
+                    name="document_type"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Tipo de documento</FormLabel>
+                            <FormControl
+                                render={
+                                    <RadioGroup
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        className="flex flex-col gap-2"
+                                    />
+                                }
+                            >
+                                {DOCUMENT_TYPE_OPTIONS.map((option) => (
+                                    <label
+                                        key={option.value}
+                                        className="flex items-center gap-2 text-sm"
+                                    >
+                                        <RadioGroupItem value={option.value} />
+                                        {option.label}
+                                    </label>
+                                ))}
+                            </FormControl>
+                            <FormMessage />
+                        </FormItem>
                     )}
-                </div>
+                />
 
-                <div className="space-y-2">
-                    <Label htmlFor="document_number">Número de documento</Label>
-                    <Input
-                        id="document_number"
-                        value={values.document_number}
-                        onChange={(event) =>
-                            onChange('document_number', event.target.value)
-                        }
-                        required
-                    />
-                    {errors.document_number && (
-                        <p className="text-sm text-destructive">
-                            {errors.document_number}
-                        </p>
+                <FormField
+                    control={control}
+                    name="document_number"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Número de documento</FormLabel>
+                            <FormControl render={<Input {...field} />} />
+                            <FormMessage />
+                        </FormItem>
                     )}
-                </div>
+                />
             </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    value={values.email}
-                    onChange={(event) => onChange('email', event.target.value)}
-                />
-                {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
+            <FormField
+                control={control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormControl
+                            render={<Input type="email" {...field} />}
+                        />
+                        <FormMessage />
+                    </FormItem>
                 )}
-            </div>
+            />
 
-            <div className="space-y-2">
-                <Label htmlFor="phone">Teléfono</Label>
-                <Input
-                    id="phone"
-                    value={values.phone}
-                    onChange={(event) => onChange('phone', event.target.value)}
-                />
-                {errors.phone && (
-                    <p className="text-sm text-destructive">{errors.phone}</p>
+            <FormField
+                control={control}
+                name="phone"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Teléfono</FormLabel>
+                        <FormControl render={<Input {...field} />} />
+                        <FormMessage />
+                    </FormItem>
                 )}
-            </div>
+            />
         </>
     );
 }
