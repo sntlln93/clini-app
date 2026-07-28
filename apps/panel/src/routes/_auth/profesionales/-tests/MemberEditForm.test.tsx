@@ -10,7 +10,7 @@ import {
     RouterProvider,
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberEditForm } from '../-components/MemberEditForm';
 
 vi.mock('@/lib/api', () => ({
@@ -61,6 +61,11 @@ function renderMemberEditForm(membership: Membership = MEMBERSHIP) {
 }
 
 describe('MemberEditForm', () => {
+    beforeEach(() => {
+        vi.mocked(api.patch).mockReset();
+        vi.mocked(api.delete).mockReset();
+    });
+
     afterEach(() => {
         vi.restoreAllMocks();
     });
@@ -182,24 +187,39 @@ describe('MemberEditForm', () => {
         );
     });
 
-    it('does not send a deactivation request when the confirm dialog is cancelled', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(false);
+    it('requires confirmation before deactivating a member', async () => {
         renderMemberEditForm();
 
         fireEvent.click(
             await screen.findByRole('button', { name: 'Dar de baja' }),
         );
 
+        await screen.findByRole('button', { name: 'Confirmar' });
         expect(api.delete).not.toHaveBeenCalled();
     });
 
-    it('deactivates the membership and navigates on confirm', async () => {
-        vi.spyOn(window, 'confirm').mockReturnValue(true);
+    it('does not deactivate when the confirmation is dismissed', async () => {
+        renderMemberEditForm();
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Dar de baja' }),
+        );
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Cancelar' }),
+        );
+
+        expect(api.delete).not.toHaveBeenCalled();
+    });
+
+    it('deactivates the membership and navigates once confirmed', async () => {
         vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
         renderMemberEditForm();
 
         fireEvent.click(
             await screen.findByRole('button', { name: 'Dar de baja' }),
+        );
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Confirmar' }),
         );
 
         await waitFor(() =>

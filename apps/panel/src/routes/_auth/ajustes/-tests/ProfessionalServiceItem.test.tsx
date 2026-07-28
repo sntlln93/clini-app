@@ -38,6 +38,7 @@ function renderItem(assignment: ProfessionalService | null) {
 describe('ProfessionalServiceItem', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
+        vi.mocked(api.delete).mockReset();
     });
 
     it('renders currency as read-only ARS text with no editable control', () => {
@@ -76,6 +77,27 @@ describe('ProfessionalServiceItem', () => {
                     price_cents: 7500,
                     active: false,
                 },
+            ),
+        );
+    });
+
+    it('requires confirmation before removing an assigned service', async () => {
+        vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
+        renderItem(ASSIGNMENT);
+
+        fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Consulta general' }),
+        );
+
+        expect(api.delete).not.toHaveBeenCalled();
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Confirmar' }),
+        );
+
+        await waitFor(() =>
+            expect(api.delete).toHaveBeenCalledWith(
+                '/memberships/3/services/1',
             ),
         );
     });
