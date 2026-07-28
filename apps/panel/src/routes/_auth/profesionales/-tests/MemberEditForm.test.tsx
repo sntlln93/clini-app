@@ -129,7 +129,9 @@ describe('MemberEditForm', () => {
         renderMemberEditForm();
         await screen.findByRole('button', { name: 'Guardar cambios' });
 
-        fireEvent.click(screen.getByRole('checkbox', { name: 'Administrador' }));
+        fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Administrador' }),
+        );
 
         for (const role of ['Propietario', 'Profesional', 'Administrador']) {
             expect(
