@@ -4,21 +4,14 @@ import { useForm } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Form } from '@/components/ui/form';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Availability } from '@/types/availability';
 import {
     useDeleteAvailability,
     useSaveAvailability,
 } from '../-hooks/use-availabilities';
+import { AvailabilitySlotFields } from './AvailabilitySlotFields';
 import {
     availabilitySlotSchema,
     type AvailabilitySlotFormValues,
@@ -104,49 +97,9 @@ export function AvailabilitySlotRow({
                 onSubmit={form.handleSubmit(onSubmit)}
                 className="flex flex-wrap items-end gap-2"
             >
-                <FormField
+                <AvailabilitySlotFields
                     control={form.control}
-                    name="startTime"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">
-                                Desde
-                            </FormLabel>
-                            <FormControl
-                                render={
-                                    <Input
-                                        type="time"
-                                        disabled={!canManage}
-                                        className="w-28"
-                                        {...field}
-                                    />
-                                }
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-                <FormField
-                    control={form.control}
-                    name="endTime"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">
-                                Hasta
-                            </FormLabel>
-                            <FormControl
-                                render={
-                                    <Input
-                                        type="time"
-                                        disabled={!canManage}
-                                        className="w-28"
-                                        {...field}
-                                    />
-                                }
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
+                    canManage={canManage}
                 />
 
                 {canManage && (
