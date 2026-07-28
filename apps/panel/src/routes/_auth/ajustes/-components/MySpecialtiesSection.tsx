@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSession } from '@/lib/session';
@@ -49,9 +50,7 @@ export function MySpecialtiesSection() {
                 <QueryErrorState error={specialtiesError ?? mineError} />
             )}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton />}
 
             {!isError &&
                 !isPending &&

@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { useProfessionals } from '@/hooks/use-professionals';
 import { useSession } from '@/lib/session';
@@ -55,9 +56,7 @@ function DisponibilidadPage() {
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton />}
 
             {!isError &&
                 !isPending &&

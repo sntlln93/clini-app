@@ -136,4 +136,11 @@ describe('AcceptInvitationForm', () => {
         expect(screen.queryByLabelText('Contraseña')).toBeNull();
         expect(screen.queryByRole('button')).toBeNull();
     });
+
+    it('renders the skeleton status region while the invitation query is pending', async () => {
+        vi.mocked(api.get).mockReturnValueOnce(new Promise(() => {}));
+        renderAcceptInvitationForm();
+
+        expect(await screen.findByRole('status')).not.toBeNull();
+    });
 });

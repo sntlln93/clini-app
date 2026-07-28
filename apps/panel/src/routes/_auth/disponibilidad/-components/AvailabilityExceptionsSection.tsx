@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import type { AvailabilityException } from '@/types/availability';
@@ -59,9 +60,7 @@ export function AvailabilityExceptionsSection({
 
             {isError && <QueryErrorState error={error} />}
 
-            {!isError && isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {!isError && isPending && <ListSkeleton />}
 
             {isCreating && (
                 <AvailabilityExceptionForm

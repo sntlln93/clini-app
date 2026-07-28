@@ -1,3 +1,4 @@
+import { ListSkeleton } from '@/components/ListSkeleton';
 import type { Membership } from '@/types/membership';
 import type { CatalogService } from '@/types/professional';
 import { useProfessionalServices } from '../-hooks/use-professional-services';
@@ -24,9 +25,7 @@ export function ProfessionalServiceRow({
                 {membership.user.name ?? membership.user.email}
             </p>
 
-            {isPending && (
-                <p className="text-sm text-muted-foreground">Cargando…</p>
-            )}
+            {isPending && <ListSkeleton rows={1} />}
 
             {!isPending && assigned && (
                 <div className="space-y-2">
