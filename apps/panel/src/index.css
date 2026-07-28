@@ -127,4 +127,15 @@
     html {
         @apply font-sans;
     }
+    :focus-visible {
+        @apply outline-2 outline-offset-2 outline-ring;
+    }
+}
+
+@utility focus-ring {
+    @apply outline-none;
+
+    &:focus-visible {
+        @apply border-ring ring-3 ring-ring/50;
+    }
 }
