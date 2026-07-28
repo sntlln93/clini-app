@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { UserSpecialty } from '@/types/professional';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -27,13 +28,23 @@ export function useToggleUserSpecialty(userId: number) {
             api.post(`/users/${userId}/specialties`, {
                 specialty_id: specialtyId,
             }),
-        onSuccess: invalidate,
+        onSuccess: () => {
+            invalidate();
+            notifySuccess('Especialidad asignada');
+        },
+        onError: (error) =>
+            notifyError(error, 'No se pudo asignar la especialidad'),
     });
 
     const remove = useMutation({
         mutationFn: (specialtyId: number) =>
             api.delete(`/users/${userId}/specialties/${specialtyId}`),
-        onSuccess: invalidate,
+        onSuccess: () => {
+            invalidate();
+            notifySuccess('Especialidad quitada');
+        },
+        onError: (error) =>
+            notifyError(error, 'No se pudo quitar la especialidad'),
     });
 
     return { assign, remove };
