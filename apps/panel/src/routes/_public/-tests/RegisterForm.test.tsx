@@ -143,4 +143,17 @@ describe('RegisterForm', () => {
 
         await screen.findByText('Agenda');
     });
+
+    it('shows an inline message when the password confirmation does not match, and does not call POST /register', async () => {
+        renderRegisterForm();
+
+        await fillForm();
+        fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+            target: { value: 'otra-contraseña' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await screen.findByText('Las contraseñas no coinciden.');
+        expect(api.post).not.toHaveBeenCalled();
+    });
 });

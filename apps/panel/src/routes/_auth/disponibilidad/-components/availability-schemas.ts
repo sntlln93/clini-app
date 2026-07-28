@@ -10,13 +10,18 @@ export const TYPE_OPTIONS: {
     { value: 'extra', label: 'Extra' },
 ];
 
-export const availabilityExceptionSchema = z.object({
-    type: z.enum(['blocked', 'extra']),
-    startAt: z.string().min(1, 'La fecha de inicio es obligatoria.'),
-    endAt: z.string().min(1, 'La fecha de fin es obligatoria.'),
-    reason: z.string(),
-    isOrgWide: z.boolean(),
-});
+export const availabilityExceptionSchema = z
+    .object({
+        type: z.enum(['blocked', 'extra']),
+        startAt: z.string().min(1, 'La fecha de inicio es obligatoria.'),
+        endAt: z.string().min(1, 'La fecha de fin es obligatoria.'),
+        reason: z.string(),
+        isOrgWide: z.boolean(),
+    })
+    .refine((values) => values.endAt > values.startAt, {
+        message: 'La fecha de fin debe ser posterior a la de inicio.',
+        path: ['endAt'],
+    });
 
 export type AvailabilityExceptionFormValues = z.infer<
     typeof availabilityExceptionSchema

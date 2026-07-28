@@ -9,18 +9,23 @@ import { extractFormErrors } from '@/lib/form-errors';
 import { useRegister } from '../-hooks/use-register';
 import { RegisterFormFields } from './RegisterFormFields';
 
-const registerSchema = z.object({
-    name: z.string().min(1, 'El nombre es obligatorio.'),
-    organization_name: z
-        .string()
-        .min(1, 'El nombre del consultorio es obligatorio.'),
-    email: z
-        .string()
-        .min(1, 'El correo es obligatorio.')
-        .email('El correo no es válido.'),
-    password: z.string().min(1, 'La contraseña es obligatoria.'),
-    password_confirmation: z.string(),
-});
+const registerSchema = z
+    .object({
+        name: z.string().min(1, 'El nombre es obligatorio.'),
+        organization_name: z
+            .string()
+            .min(1, 'El nombre del consultorio es obligatorio.'),
+        email: z
+            .string()
+            .min(1, 'El correo es obligatorio.')
+            .email('El correo no es válido.'),
+        password: z.string().min(1, 'La contraseña es obligatoria.'),
+        password_confirmation: z.string(),
+    })
+    .refine((v) => v.password === v.password_confirmation, {
+        path: ['password_confirmation'],
+        message: 'Las contraseñas no coinciden.',
+    });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 

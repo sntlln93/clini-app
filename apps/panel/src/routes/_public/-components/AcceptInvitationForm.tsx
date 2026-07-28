@@ -42,11 +42,16 @@ function buildSchema(requiresRegistration: boolean) {
         });
     }
 
-    return z.object({
-        name: z.string().min(1, 'El nombre es obligatorio.'),
-        password: z.string().min(1, 'La contraseña es obligatoria.'),
-        password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
-    });
+    return z
+        .object({
+            name: z.string().min(1, 'El nombre es obligatorio.'),
+            password: z.string().min(1, 'La contraseña es obligatoria.'),
+            password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
+        })
+        .refine((v) => v.password === v.password_confirmation, {
+            path: ['password_confirmation'],
+            message: 'Las contraseñas no coinciden.',
+        });
 }
 
 type AcceptInvitationFormProps = {
