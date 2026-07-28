@@ -40,10 +40,7 @@ function renderMembersTable(memberships: Membership[]) {
         path: '/profesionales/$id/editar',
         component: () => <div>Editar profesional</div>,
     });
-    const routeTree = rootRoute.addChildren([
-        profesionalesRoute,
-        editarRoute,
-    ]);
+    const routeTree = rootRoute.addChildren([profesionalesRoute, editarRoute]);
     const router = createRouter({
         routeTree,
         history: createMemoryHistory({ initialEntries: ['/profesionales'] }),

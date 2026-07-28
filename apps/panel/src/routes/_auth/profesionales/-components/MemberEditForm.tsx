@@ -18,7 +18,9 @@ type MemberEditFormProps = {
 
 export function MemberEditForm({ membership }: MemberEditFormProps) {
     const navigate = useNavigate();
-    const [roles, setRoles] = useState<MembershipRole[]>(() => membership.roles);
+    const [roles, setRoles] = useState<MembershipRole[]>(
+        () => membership.roles,
+    );
     const [status, setStatus] = useState<MembershipStatus>(
         () => membership.status,
     );
