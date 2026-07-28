@@ -1,24 +1,16 @@
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import type {
-    AvailabilityException,
-    AvailabilityExceptionType,
-} from '@/types/availability';
-import { useState } from 'react';
-import { useSaveAvailabilityException } from '../-hooks/use-availability-exceptions';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
 
-const TYPE_OPTIONS: { value: AvailabilityExceptionType; label: string }[] = [
-    { value: 'blocked', label: 'Bloqueo' },
-    { value: 'extra', label: 'Extra' },
-];
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import { extractFormErrors } from '@/lib/form-errors';
+import type { AvailabilityException } from '@/types/availability';
+import { useSaveAvailabilityException } from '../-hooks/use-availability-exceptions';
+import { AvailabilityExceptionFields } from './AvailabilityExceptionFields';
+import {
+    availabilityExceptionSchema,
+    type AvailabilityExceptionFormValues,
+} from './availability-schemas';
 
 type AvailabilityExceptionFormProps = {
     membershipId: number;
@@ -33,122 +25,81 @@ export function AvailabilityExceptionForm({
     exception,
     onDone,
 }: AvailabilityExceptionFormProps) {
-    const [type, setType] = useState<AvailabilityExceptionType>(
-        exception?.type ?? 'blocked',
-    );
-    const [startAt, setStartAt] = useState(exception?.start_at ?? '');
-    const [endAt, setEndAt] = useState(exception?.end_at ?? '');
-    const [reason, setReason] = useState(exception?.reason ?? '');
-    const [isOrgWide, setIsOrgWide] = useState(
-        exception ? exception.membership_id === null : false,
-    );
+    const { mutateAsync, isPending } =
+        useSaveAvailabilityException(membershipId);
 
-    const save = useSaveAvailabilityException(membershipId);
+    const form = useForm<AvailabilityExceptionFormValues>({
+        resolver: zodResolver(availabilityExceptionSchema),
+        defaultValues: {
+            type: exception?.type ?? 'blocked',
+            startAt: exception?.start_at ?? '',
+            endAt: exception?.end_at ?? '',
+            reason: exception?.reason ?? '',
+            isOrgWide: exception ? exception.membership_id === null : false,
+        },
+    });
 
-    function handleSubmit() {
-        save.mutate(
-            {
+    async function onSubmit(values: AvailabilityExceptionFormValues) {
+        try {
+            await mutateAsync({
                 id: exception?.id,
-                membershipId: isOrgWide ? null : membershipId,
-                type,
-                startAt,
-                endAt,
-                reason: reason || null,
-            },
-            { onSuccess: () => onDone() },
-        );
+                membershipId: values.isOrgWide ? null : membershipId,
+                type: values.type,
+                startAt: values.startAt,
+                endAt: values.endAt,
+                reason: values.reason || null,
+            });
+            onDone();
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.start_at) {
+                form.setError('startAt', { message: errors.start_at });
+            }
+            if (errors.end_at) {
+                form.setError('endAt', { message: errors.end_at });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     return (
-        <div className="space-y-2 rounded-md border p-3">
-            <div className="flex flex-wrap items-end gap-3">
-                <label className="space-y-1 text-xs text-muted-foreground">
-                    Tipo
-                    <Select
-                        value={type}
-                        onValueChange={(value) =>
-                            setType(value as AvailabilityExceptionType)
-                        }
-                    >
-                        <SelectTrigger className="w-36">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {TYPE_OPTIONS.map((option) => (
-                                <SelectItem
-                                    key={option.value}
-                                    value={option.value}
-                                >
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </label>
-                <label className="space-y-1 text-xs text-muted-foreground">
-                    Desde
-                    <Input
-                        type="datetime-local"
-                        className="w-52"
-                        value={startAt}
-                        onChange={(event) => setStartAt(event.target.value)}
-                    />
-                </label>
-                <label className="space-y-1 text-xs text-muted-foreground">
-                    Hasta
-                    <Input
-                        type="datetime-local"
-                        className="w-52"
-                        value={endAt}
-                        onChange={(event) => setEndAt(event.target.value)}
-                    />
-                </label>
-            </div>
-
-            <label className="space-y-1 text-xs text-muted-foreground">
-                Motivo
-                <Input
-                    value={reason}
-                    onChange={(event) => setReason(event.target.value)}
+        <Form {...form}>
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="space-y-2 rounded-md border p-3"
+            >
+                <AvailabilityExceptionFields
+                    control={form.control}
+                    canManageOrgWide={canManageOrgWide}
                 />
-            </label>
 
-            {canManageOrgWide && (
-                <label className="flex items-center gap-2 text-sm">
-                    <Checkbox
-                        checked={isOrgWide}
-                        onCheckedChange={(checked) =>
-                            setIsOrgWide(checked === true)
-                        }
-                    />
-                    Aplicar a toda la organización
-                </label>
-            )}
+                {form.formState.errors.root && (
+                    <p className="text-sm text-destructive">
+                        {form.formState.errors.root.message}
+                    </p>
+                )}
 
-            {save.message && (
-                <p className="text-sm text-destructive">
-                    {save.errors.end_at ?? save.errors.start_at ?? save.message}
-                </p>
-            )}
-
-            <div className="flex gap-2">
-                <Button
-                    type="button"
-                    size="sm"
-                    disabled={save.isPending}
-                    onClick={handleSubmit}
-                >
-                    Guardar
-                </Button>
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={onDone}
-                >
-                    Cancelar
-                </Button>
-            </div>
-        </div>
+                <div className="flex gap-2">
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={isPending || form.formState.isSubmitting}
+                    >
+                        Guardar
+                    </Button>
+                    <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={onDone}
+                    >
+                        Cancelar
+                    </Button>
+                </div>
+            </form>
+        </Form>
     );
 }

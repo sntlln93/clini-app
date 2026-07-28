@@ -1,80 +1,130 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { extractFormErrors } from '@/lib/form-errors';
 import { useLogin } from '../-hooks/use-login';
 
-export function LoginForm() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const { mutate, isPending, message, errors } = useLogin();
+const loginSchema = z.object({
+    email: z
+        .string()
+        .min(1, 'El correo es obligatorio.')
+        .email('El correo no es válido.'),
+    password: z.string().min(1, 'La contraseña es obligatoria.'),
+});
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        mutate({ email, password });
+type LoginFormValues = z.infer<typeof loginSchema>;
+
+export function LoginForm() {
+    const form = useForm<LoginFormValues>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: { email: '', password: '' },
+    });
+    const { mutateAsync } = useLogin();
+
+    async function onSubmit(values: LoginFormValues) {
+        try {
+            await mutateAsync(values);
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.email) {
+                form.setError('email', { message: errors.email });
+            }
+            if (errors.password) {
+                form.setError('password', { message: errors.password });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1 text-center">
-                <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
-                <p className="text-sm text-muted-foreground">
-                    Ingresá tus datos para continuar
-                </p>
-            </div>
-
-            {message && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                    {message}
-                </div>
-            )}
-
-            <div className="space-y-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                />
-                {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                    id="password"
-                    type="password"
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                />
-                {errors.password && (
-                    <p className="text-sm text-destructive">
-                        {errors.password}
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-1 text-center">
+                    <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Ingresá tus datos para continuar
                     </p>
+                </div>
+
+                {form.formState.errors.root && (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                        {form.formState.errors.root.message}
+                    </div>
                 )}
-            </div>
 
-            <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? 'Ingresando…' : 'Ingresar'}
-            </Button>
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Correo electrónico</FormLabel>
+                            <FormControl
+                                render={
+                                    <Input
+                                        type="email"
+                                        autoComplete="email"
+                                        {...field}
+                                    />
+                                }
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-            <p className="text-center text-sm text-muted-foreground">
-                ¿No tenés cuenta?{' '}
-                <Link
-                    to="/registro"
-                    className="font-medium text-foreground underline underline-offset-4"
+                <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Contraseña</FormLabel>
+                            <FormControl
+                                render={
+                                    <Input
+                                        type="password"
+                                        autoComplete="current-password"
+                                        {...field}
+                                    />
+                                }
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
+
+                <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={form.formState.isSubmitting}
                 >
-                    Registrate
-                </Link>
-            </p>
-        </form>
+                    {form.formState.isSubmitting ? 'Ingresando…' : 'Ingresar'}
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                    ¿No tenés cuenta?{' '}
+                    <Link
+                        to="/registro"
+                        className="font-medium text-foreground underline underline-offset-4"
+                    >
+                        Registrate
+                    </Link>
+                </p>
+            </form>
+        </Form>
     );
 }

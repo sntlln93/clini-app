@@ -113,4 +113,21 @@ describe('AvailabilityExceptionForm', () => {
             }),
         ).toBeNull();
     });
+
+    it('shows an inline message when endAt is not after startAt, and does not call POST', async () => {
+        renderForm({ membershipId: 3, canManageOrgWide: true });
+
+        fireEvent.change(screen.getByLabelText(/Desde/), {
+            target: { value: '2026-08-10T11:00' },
+        });
+        fireEvent.change(screen.getByLabelText(/Hasta/), {
+            target: { value: '2026-08-10T09:00' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText(
+            'La fecha de fin debe ser posterior a la de inicio.',
+        );
+        expect(api.post).not.toHaveBeenCalled();
+    });
 });

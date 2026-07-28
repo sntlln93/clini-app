@@ -1,3 +1,7 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -7,17 +11,30 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
-import { useState, type FormEvent } from 'react';
 import { useRescheduleAppointment } from '../-hooks/use-appointments';
+import {
+    rescheduleSchema,
+    type RescheduleFormValues,
+} from './appointment-schemas';
 
 type RescheduleAppointmentDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     appointment: Appointment | null;
 };
+
+const EMPTY_VALUES: RescheduleFormValues = { date: '', time: '' };
 
 function toDateInput(iso: string): string {
     return iso.slice(0, 10);
@@ -37,36 +54,46 @@ export function RescheduleAppointmentDialog({
     onOpenChange,
     appointment,
 }: RescheduleAppointmentDialogProps) {
-    const [date, setDate] = useState('');
-    const [time, setTime] = useState('');
-    const [appliedId, setAppliedId] = useState<number | null>(null);
+    const form = useForm<RescheduleFormValues>({
+        resolver: zodResolver(rescheduleSchema),
+        defaultValues: EMPTY_VALUES,
+    });
 
-    const openId = open ? (appointment?.id ?? null) : null;
+    // `form.reset()` notifies Controller-subscribed children synchronously,
+    // so prefilling from the appointment being rescheduled has to happen in
+    // an effect rather than during render.
+    useEffect(() => {
+        if (open && appointment) {
+            form.reset({
+                date: toDateInput(appointment.start_at),
+                time: toTimeInput(appointment.start_at),
+            });
+        }
+    }, [open, appointment, form]);
 
-    // Adjust state during render instead of an Effect: reset the form every
-    // time the dialog (re)opens for a given appointment.
-    if (open && appointment && openId !== appliedId) {
-        setAppliedId(openId);
-        setDate(toDateInput(appointment.start_at));
-        setTime(toTimeInput(appointment.start_at));
-    }
+    const { mutateAsync, isPending } = useRescheduleAppointment();
 
-    const { mutate, isPending, message, errors } = useRescheduleAppointment();
-
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        if (!appointment || !date || !time) {
+    async function onSubmit(values: RescheduleFormValues) {
+        if (!appointment) {
             return;
         }
 
-        mutate(
-            {
+        try {
+            await mutateAsync({
                 appointmentId: appointment.id,
-                startAt: `${date}T${time}`,
-            },
-            { onSuccess: () => onOpenChange(false) },
-        );
+                startAt: `${values.date}T${values.time}`,
+            });
+            onOpenChange(false);
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.start_at) {
+                form.setError('time', { message: errors.start_at });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     return (
@@ -79,49 +106,69 @@ export function RescheduleAppointmentDialog({
                     </DialogDescription>
                 </DialogHeader>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    {message && (
-                        <p className="text-sm text-destructive">{message}</p>
-                    )}
-
-                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div className="space-y-2">
-                            <Label htmlFor="reschedule-date">Fecha</Label>
-                            <Input
-                                id="reschedule-date"
-                                type="date"
-                                value={date}
-                                onChange={(event) =>
-                                    setDate(event.target.value)
-                                }
-                                required
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="reschedule-time">Hora</Label>
-                            <Input
-                                id="reschedule-time"
-                                type="time"
-                                value={time}
-                                onChange={(event) =>
-                                    setTime(event.target.value)
-                                }
-                                required
-                            />
-                        </div>
-                        {errors.start_at && (
-                            <p className="text-sm text-destructive sm:col-span-2">
-                                {errors.start_at}
+                <Form {...form}>
+                    <form
+                        onSubmit={form.handleSubmit(onSubmit)}
+                        className="space-y-4"
+                    >
+                        {form.formState.errors.root && (
+                            <p className="text-sm text-destructive">
+                                {form.formState.errors.root.message}
                             </p>
                         )}
-                    </div>
 
-                    <DialogFooter>
-                        <Button type="submit" disabled={isPending}>
-                            {isPending ? 'Reprogramando…' : 'Reprogramar'}
-                        </Button>
-                    </DialogFooter>
-                </form>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <FormField
+                                control={form.control}
+                                name="date"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Fecha</FormLabel>
+                                        <FormControl
+                                            render={
+                                                <Input type="date" {...field} />
+                                            }
+                                        />
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                            <FormField
+                                control={form.control}
+                                name="time"
+                                render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Hora</FormLabel>
+                                        <FormControl
+                                            render={
+                                                <Input type="time" {...field} />
+                                            }
+                                        />
+                                        <FormMessage />
+                                    </FormItem>
+                                )}
+                            />
+                        </div>
+
+                        <DialogFooter>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => onOpenChange(false)}
+                            >
+                                Cancelar
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={
+                                    isPending || form.formState.isSubmitting
+                                }
+                            >
+                                {isPending ? 'Reprogramando…' : 'Reprogramar'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </Form>
             </DialogContent>
         </Dialog>
     );

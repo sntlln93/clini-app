@@ -1,139 +1,104 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
+import { Button } from '@/components/ui/button';
+import { Form } from '@/components/ui/form';
+import { extractFormErrors } from '@/lib/form-errors';
 import { useRegister } from '../-hooks/use-register';
+import { RegisterFormFields } from './RegisterFormFields';
+
+const registerSchema = z
+    .object({
+        name: z.string().min(1, 'El nombre es obligatorio.'),
+        organization_name: z
+            .string()
+            .min(1, 'El nombre del consultorio es obligatorio.'),
+        email: z
+            .string()
+            .min(1, 'El correo es obligatorio.')
+            .email('El correo no es válido.'),
+        password: z.string().min(1, 'La contraseña es obligatoria.'),
+        password_confirmation: z.string(),
+    })
+    .refine((v) => v.password === v.password_confirmation, {
+        path: ['password_confirmation'],
+        message: 'Las contraseñas no coinciden.',
+    });
+
+export type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export function RegisterForm() {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [organizationName, setOrganizationName] = useState('');
-    const [password, setPassword] = useState('');
-    const [passwordConfirmation, setPasswordConfirmation] = useState('');
-    const { mutate, isPending, message, errors } = useRegister();
+    const form = useForm<RegisterFormValues>({
+        resolver: zodResolver(registerSchema),
+        defaultValues: {
+            name: '',
+            organization_name: '',
+            email: '',
+            password: '',
+            password_confirmation: '',
+        },
+    });
+    const { mutateAsync } = useRegister();
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        mutate({
-            name,
-            email,
-            organization_name: organizationName,
-            password,
-            password_confirmation: passwordConfirmation,
-        });
+    async function onSubmit(values: RegisterFormValues) {
+        try {
+            await mutateAsync(values);
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            for (const field of Object.keys(
+                values,
+            ) as (keyof RegisterFormValues)[]) {
+                if (errors[field]) {
+                    form.setError(field, { message: errors[field] });
+                }
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1 text-center">
-                <h1 className="text-2xl font-semibold">Crear cuenta</h1>
-                <p className="text-sm text-muted-foreground">
-                    Registrá tu consultorio en Clini
-                </p>
-            </div>
-
-            {message && (
-                <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
-                    {message}
+        <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="space-y-1 text-center">
+                    <h1 className="text-2xl font-semibold">Crear cuenta</h1>
+                    <p className="text-sm text-muted-foreground">
+                        Registrá tu consultorio en Clini
+                    </p>
                 </div>
-            )}
 
-            <div className="space-y-2">
-                <Label htmlFor="name">Nombre</Label>
-                <Input
-                    id="name"
-                    autoComplete="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    required
-                />
-                {errors.name && (
-                    <p className="text-sm text-destructive">{errors.name}</p>
+                {form.formState.errors.root && (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                        {form.formState.errors.root.message}
+                    </div>
                 )}
-            </div>
 
-            <div className="space-y-2">
-                <Label htmlFor="organization_name">
-                    Nombre del consultorio
-                </Label>
-                <Input
-                    id="organization_name"
-                    autoComplete="organization"
-                    value={organizationName}
-                    onChange={(event) =>
-                        setOrganizationName(event.target.value)
-                    }
-                    required
-                />
-                {errors.organization_name && (
-                    <p className="text-sm text-destructive">
-                        {errors.organization_name}
-                    </p>
-                )}
-            </div>
+                <RegisterFormFields control={form.control} />
 
-            <div className="space-y-2">
-                <Label htmlFor="email">Correo electrónico</Label>
-                <Input
-                    id="email"
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                />
-                {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="password">Contraseña</Label>
-                <Input
-                    id="password"
-                    type="password"
-                    autoComplete="new-password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    required
-                />
-                {errors.password && (
-                    <p className="text-sm text-destructive">
-                        {errors.password}
-                    </p>
-                )}
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="password_confirmation">
-                    Confirmar contraseña
-                </Label>
-                <Input
-                    id="password_confirmation"
-                    type="password"
-                    autoComplete="new-password"
-                    value={passwordConfirmation}
-                    onChange={(event) =>
-                        setPasswordConfirmation(event.target.value)
-                    }
-                    required
-                />
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? 'Creando cuenta…' : 'Crear cuenta'}
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-                ¿Ya tenés cuenta?{' '}
-                <Link
-                    to="/login"
-                    className="font-medium text-foreground underline underline-offset-4"
+                <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={form.formState.isSubmitting}
                 >
-                    Iniciá sesión
-                </Link>
-            </p>
-        </form>
+                    {form.formState.isSubmitting
+                        ? 'Creando cuenta…'
+                        : 'Crear cuenta'}
+                </Button>
+
+                <p className="text-center text-sm text-muted-foreground">
+                    ¿Ya tenés cuenta?{' '}
+                    <Link
+                        to="/login"
+                        className="font-medium text-foreground underline underline-offset-4"
+                    >
+                        Iniciá sesión
+                    </Link>
+                </p>
+            </form>
+        </Form>
     );
 }

@@ -1,28 +1,51 @@
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import type { MembershipRole } from '@/types/membership';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useState, type FormEvent } from 'react';
+import { useForm } from 'react-hook-form';
+
+import { Button } from '@/components/ui/button';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { extractFormErrors } from '@/lib/form-errors';
 import { useInviteMember } from '../-hooks/use-invite-member';
 import { MemberRoleFields } from './MemberRoleFields';
+import {
+    inviteMemberSchema,
+    type InviteMemberFormValues,
+} from './member-schemas';
+
+const DEFAULT_VALUES: InviteMemberFormValues = { email: '', roles: [] };
 
 export function MemberInviteForm() {
-    const [email, setEmail] = useState('');
-    const [roles, setRoles] = useState<MembershipRole[]>([]);
-    const { mutate, isPending, isSuccess, message, errors } = useInviteMember();
+    const { mutateAsync, isSuccess } = useInviteMember();
 
-    function toggleRole(role: MembershipRole, checked: boolean) {
-        setRoles((previous) =>
-            checked
-                ? [...previous, role]
-                : previous.filter((current) => current !== role),
-        );
-    }
+    const form = useForm<InviteMemberFormValues>({
+        resolver: zodResolver(inviteMemberSchema),
+        defaultValues: DEFAULT_VALUES,
+    });
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-        mutate({ email, roles });
+    async function onSubmit(values: InviteMemberFormValues) {
+        try {
+            await mutateAsync(values);
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.email) {
+                form.setError('email', { message: errors.email });
+            }
+            if (errors.roles) {
+                form.setError('roles', { message: errors.roles });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     if (isSuccess) {
@@ -43,42 +66,52 @@ export function MemberInviteForm() {
     }
 
     return (
-        <form onSubmit={handleSubmit} className="max-w-xl space-y-4">
-            {message && <p className="text-sm text-destructive">{message}</p>}
-
-            <div className="space-y-2">
-                <Label htmlFor="invite-email">Correo electrónico</Label>
-                <Input
-                    id="invite-email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    required
-                />
-                {errors.email && (
-                    <p className="text-sm text-destructive">{errors.email}</p>
+        <Form {...form}>
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="max-w-xl space-y-4"
+            >
+                {form.formState.errors.root && (
+                    <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                        {form.formState.errors.root.message}
+                    </div>
                 )}
-            </div>
 
-            <MemberRoleFields
-                roles={roles}
-                onToggleRole={toggleRole}
-                errors={errors}
-            />
+                <FormField
+                    control={form.control}
+                    name="email"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Correo electrónico</FormLabel>
+                            <FormControl
+                                render={<Input type="email" {...field} />}
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
+                />
 
-            <div className="flex gap-2">
-                <Button type="submit" disabled={isPending}>
-                    {isPending ? 'Enviando…' : 'Enviar invitación'}
-                </Button>
-                <Button
-                    type="button"
-                    variant="outline"
-                    render={<Link to="/profesionales" />}
-                    nativeButton={false}
-                >
-                    Cancelar
-                </Button>
-            </div>
-        </form>
+                <MemberRoleFields control={form.control} name="roles" />
+
+                <div className="flex gap-2">
+                    <Button
+                        type="submit"
+                        disabled={form.formState.isSubmitting}
+                    >
+                        {form.formState.isSubmitting
+                            ? 'Enviando…'
+                            : 'Enviar invitación'}
+                    </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        render={<Link to="/profesionales" />}
+                        nativeButton={false}
+                    >
+                        Cancelar
+                    </Button>
+                </div>
+            </form>
+        </Form>
     );
 }

@@ -8,15 +8,13 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { AcceptInvitationFormValues } from './AcceptInvitationForm';
+import type { RegisterFormValues } from './RegisterForm';
 
-type AcceptInvitationRegistrationFieldsProps = {
-    control: Control<AcceptInvitationFormValues>;
+type RegisterFormFieldsProps = {
+    control: Control<RegisterFormValues>;
 };
 
-export function AcceptInvitationRegistrationFields({
-    control,
-}: AcceptInvitationRegistrationFieldsProps) {
+export function RegisterFormFields({ control }: RegisterFormFieldsProps) {
     return (
         <>
             <FormField
@@ -27,6 +25,42 @@ export function AcceptInvitationRegistrationFields({
                         <FormLabel>Nombre</FormLabel>
                         <FormControl
                             render={<Input autoComplete="name" {...field} />}
+                        />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={control}
+                name="organization_name"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Nombre del consultorio</FormLabel>
+                        <FormControl
+                            render={
+                                <Input autoComplete="organization" {...field} />
+                            }
+                        />
+                        <FormMessage />
+                    </FormItem>
+                )}
+            />
+
+            <FormField
+                control={control}
+                name="email"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormControl
+                            render={
+                                <Input
+                                    type="email"
+                                    autoComplete="email"
+                                    {...field}
+                                />
+                            }
                         />
                         <FormMessage />
                     </FormItem>

@@ -82,8 +82,7 @@ async function fillMinimalPatientForm() {
     fireEvent.change(await screen.findByLabelText('Nombre'), {
         target: { value: 'Juan Perez' },
     });
-    fireEvent.click(screen.getByLabelText('Tipo de documento'));
-    fireEvent.click(await screen.findByRole('option', { name: 'DNI' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'DNI' }));
     fireEvent.change(screen.getByLabelText('Número de documento'), {
         target: { value: '12345678' },
     });
@@ -113,6 +112,17 @@ describe('PatientForm', () => {
                 insurance_provider_id: null,
             }),
         );
+    });
+
+    it('shows a client-side validation message for the empty required Nombre field and does not call POST /patients', async () => {
+        mockInsuranceProviders();
+        renderPatientForm();
+
+        await screen.findByLabelText('Nombre');
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText('El nombre es obligatorio.');
+        expect(api.post).not.toHaveBeenCalled();
     });
 
     it('surfaces a 422 document_number message under that field', async () => {
