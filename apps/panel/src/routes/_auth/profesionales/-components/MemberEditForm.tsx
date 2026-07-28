@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { extractFormErrors } from '@/lib/form-errors';
@@ -62,15 +63,7 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
         }
     }
 
-    function handleDeactivate() {
-        const confirmed = window.confirm(
-            '¿Dar de baja a este miembro? Esta acción no se puede deshacer.',
-        );
-
-        if (!confirmed) {
-            return;
-        }
-
+    function handleConfirmDeactivate() {
         deactivate(membership.id, { onSuccess: goToList });
     }
 
@@ -99,14 +92,23 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
                     >
                         {isPending ? 'Guardando…' : 'Guardar cambios'}
                     </Button>
-                    <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={handleDeactivate}
-                        disabled={isDeactivating}
-                    >
-                        {isDeactivating ? 'Dando de baja…' : 'Dar de baja'}
-                    </Button>
+                    <ConfirmDialog
+                        trigger={
+                            <Button
+                                type="button"
+                                variant="destructive"
+                                disabled={isDeactivating}
+                            >
+                                {isDeactivating
+                                    ? 'Dando de baja…'
+                                    : 'Dar de baja'}
+                            </Button>
+                        }
+                        title="Dar de baja a este miembro"
+                        description="¿Dar de baja a este miembro? Esta acción no se puede deshacer."
+                        onConfirm={handleConfirmDeactivate}
+                        isPending={isDeactivating}
+                    />
                     <Button
                         type="button"
                         variant="outline"
