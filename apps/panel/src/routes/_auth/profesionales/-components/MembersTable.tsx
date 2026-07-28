@@ -1,14 +1,10 @@
+import { DataTable } from '@/components/DataTable';
+import { DataTableRowActions } from '@/components/DataTableRowActions';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/components/ui/table';
 import type { Membership, MembershipRole } from '@/types/membership';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Pencil } from 'lucide-react';
+import type { ReactNode } from 'react';
 
 const ROLE_LABELS: Record<MembershipRole, string> = {
     owner: 'Propietario',
@@ -26,62 +22,87 @@ const STATUS_LABELS: Record<Membership['status'], string> = {
 type MembersTableProps = {
     memberships: Membership[];
     onEdit: (membership: Membership) => void;
+    empty: ReactNode;
 };
 
-export function MembersTable({ memberships, onEdit }: MembersTableProps) {
+function buildColumns(
+    onEdit: (membership: Membership) => void,
+): ColumnDef<Membership, unknown>[] {
+    return [
+        {
+            accessorKey: 'name',
+            header: 'Nombre',
+            cell: ({ row }) => (
+                <span className="font-medium">
+                    {row.original.user.name ?? '—'}
+                </span>
+            ),
+        },
+        {
+            id: 'email',
+            header: 'Email',
+            cell: ({ row }) => row.original.user.email ?? '—',
+            meta: { className: 'hidden md:table-cell' },
+        },
+        {
+            id: 'roles',
+            header: 'Roles',
+            cell: ({ row }) => (
+                <div className="flex flex-wrap gap-1">
+                    {row.original.roles.map((role) => (
+                        <Badge key={role} variant="outline">
+                            {ROLE_LABELS[role]}
+                        </Badge>
+                    ))}
+                </div>
+            ),
+            meta: { className: 'hidden md:table-cell' },
+        },
+        {
+            id: 'status',
+            header: 'Estado',
+            cell: ({ row }) => (
+                <Badge
+                    variant={
+                        row.original.status === 'active'
+                            ? 'default'
+                            : 'secondary'
+                    }
+                >
+                    {STATUS_LABELS[row.original.status]}
+                </Badge>
+            ),
+        },
+        {
+            id: 'actions',
+            header: () => <span className="sr-only">Acciones</span>,
+            cell: ({ row }) =>
+                row.original.deleted_at === null ? (
+                    <DataTableRowActions
+                        actions={[
+                            {
+                                label: 'Editar',
+                                icon: Pencil,
+                                onSelect: () => onEdit(row.original),
+                            },
+                        ]}
+                    />
+                ) : null,
+            meta: { className: 'text-right' },
+        },
+    ];
+}
+
+export function MembersTable({
+    memberships,
+    onEdit,
+    empty,
+}: MembersTableProps) {
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-right">Acción</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {memberships.map((membership) => (
-                    <TableRow key={membership.id}>
-                        <TableCell className="font-medium">
-                            {membership.user.name ?? '—'}
-                        </TableCell>
-                        <TableCell>{membership.user.email ?? '—'}</TableCell>
-                        <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                                {membership.roles.map((role) => (
-                                    <Badge key={role} variant="outline">
-                                        {ROLE_LABELS[role]}
-                                    </Badge>
-                                ))}
-                            </div>
-                        </TableCell>
-                        <TableCell>
-                            <Badge
-                                variant={
-                                    membership.status === 'active'
-                                        ? 'default'
-                                        : 'secondary'
-                                }
-                            >
-                                {STATUS_LABELS[membership.status]}
-                            </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                            {membership.deleted_at === null && (
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => onEdit(membership)}
-                                >
-                                    Editar
-                                </Button>
-                            )}
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <DataTable
+            columns={buildColumns(onEdit)}
+            data={memberships}
+            empty={empty}
+        />
     );
 }

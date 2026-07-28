@@ -1,6 +1,8 @@
+import { EmptyState } from '@/components/EmptyState';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import type { Membership } from '@/types/membership';
 import { createFileRoute } from '@tanstack/react-router';
+import { UserPlus } from 'lucide-react';
 import { useState } from 'react';
 import { InviteMemberDialog } from './-components/InviteMemberDialog';
 import { MemberEditDialog } from './-components/MemberEditDialog';
@@ -16,6 +18,15 @@ function ProfesionalesPage() {
     const [editingMembership, setEditingMembership] =
         useState<Membership | null>(null);
 
+    const empty = (
+        <EmptyState
+            icon={UserPlus}
+            title="Todavía no hay miembros"
+            description="Invitá a un profesional para que pueda gestionar su agenda."
+            action={<InviteMemberDialog />}
+        />
+    );
+
     return (
         <div className="space-y-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
@@ -29,26 +40,13 @@ function ProfesionalesPage() {
                 <p className="text-sm text-muted-foreground">Cargando…</p>
             )}
 
-            {!isError &&
-                !isPending &&
-                memberships &&
-                memberships.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay miembros en esta organización.
-                    </p>
-                )}
-
-            {!isError &&
-                !isPending &&
-                memberships &&
-                memberships.length > 0 && (
-                    <div className="overflow-auto rounded-md border">
-                        <MembersTable
-                            memberships={memberships}
-                            onEdit={setEditingMembership}
-                        />
-                    </div>
-                )}
+            {!isError && !isPending && memberships && (
+                <MembersTable
+                    memberships={memberships}
+                    onEdit={setEditingMembership}
+                    empty={empty}
+                />
+            )}
 
             <MemberEditDialog
                 membership={editingMembership}

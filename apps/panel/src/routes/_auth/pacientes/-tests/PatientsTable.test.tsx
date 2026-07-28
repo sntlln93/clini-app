@@ -32,7 +32,12 @@ function renderPatientsTable(patients: Patient[]) {
     const pacientesRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/pacientes',
-        component: () => <PatientsTable patients={patients} />,
+        component: () => (
+            <PatientsTable
+                patients={patients}
+                empty={<p>No se encontraron pacientes.</p>}
+            />
+        ),
     });
     const editarRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -48,21 +53,20 @@ function renderPatientsTable(patients: Patient[]) {
 }
 
 describe('PatientsTable', () => {
-    it('renders one row per patient with name, document and an Editar link', async () => {
+    it('renders one row per patient with name, document and an icon-only Editar action', async () => {
         renderPatientsTable(PATIENTS);
 
         await screen.findByText('Ana Gomez');
         screen.getByText('DNI 12345678');
 
-        const link = screen.getByRole('link', { name: 'Editar' });
-        expect(link.getAttribute('href')).toBe('/pacientes/1/editar');
+        screen.getByRole('button', { name: 'Editar' });
     });
 
     it('renders the empty state for an empty list, with no Eliminar affordance in either state', async () => {
         const empty = renderPatientsTable([]);
 
-        await screen.findAllByRole('columnheader');
-        expect(screen.queryAllByRole('row')).toHaveLength(1);
+        await screen.findByText('No se encontraron pacientes.');
+        expect(screen.queryByRole('table')).toBeNull();
         expect(screen.queryByText(/eliminar/i)).toBeNull();
 
         empty.unmount();
