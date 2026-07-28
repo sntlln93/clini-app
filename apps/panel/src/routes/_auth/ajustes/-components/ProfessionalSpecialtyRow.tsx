@@ -1,6 +1,8 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Membership } from '@/types/membership';
+import { useState } from 'react';
 import {
     useProfessionalSpecialties,
     useToggleProfessionalSpecialty,
@@ -21,6 +23,7 @@ export function ProfessionalSpecialtyRow({
     const { data: assigned, isPending: isAssignedPending } =
         useProfessionalSpecialties(membership.id);
     const { assign, remove } = useToggleProfessionalSpecialty(membership.id);
+    const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
     const isPending = isCredentialsPending || isAssignedPending;
 
@@ -28,7 +31,13 @@ export function ProfessionalSpecialtyRow({
         if (checked) {
             assign.mutate(specialtyId);
         } else {
-            remove.mutate(specialtyId);
+            setConfirmingId(specialtyId);
+        }
+    }
+
+    function handleConfirmRemove() {
+        if (confirmingId !== null) {
+            remove.mutate(confirmingId);
         }
     }
 
@@ -73,6 +82,15 @@ export function ProfessionalSpecialtyRow({
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={confirmingId !== null}
+                onOpenChange={(open) => !open && setConfirmingId(null)}
+                title="Quitar especialidad"
+                description="¿Quitar esta especialidad de este profesional? Esta acción no se puede deshacer."
+                onConfirm={handleConfirmRemove}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }

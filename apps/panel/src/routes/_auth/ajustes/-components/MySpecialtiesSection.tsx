@@ -1,7 +1,9 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useSession } from '@/lib/session';
+import { useState } from 'react';
 import { useCatalogSpecialties } from '../-hooks/use-catalog';
 import {
     useToggleUserSpecialty,
@@ -25,6 +27,7 @@ export function MySpecialtiesSection() {
         error: mineError,
     } = useUserSpecialties(userId);
     const { assign, remove } = useToggleUserSpecialty(userId);
+    const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
     const isPending = isSpecialtiesPending || isMinePending;
     const isError = isSpecialtiesError || isMineError;
@@ -33,7 +36,13 @@ export function MySpecialtiesSection() {
         if (checked) {
             assign.mutate(specialtyId);
         } else {
-            remove.mutate(specialtyId);
+            setConfirmingId(specialtyId);
+        }
+    }
+
+    function handleConfirmRemove() {
+        if (confirmingId !== null) {
+            remove.mutate(confirmingId);
         }
     }
 
@@ -82,6 +91,15 @@ export function MySpecialtiesSection() {
                     ))}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={confirmingId !== null}
+                onOpenChange={(open) => !open && setConfirmingId(null)}
+                title="Quitar especialidad"
+                description="¿Quitar esta especialidad de tu perfil? Esta acción no se puede deshacer."
+                onConfirm={handleConfirmRemove}
+                isPending={remove.isPending}
+            />
         </section>
     );
 }

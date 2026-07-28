@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -33,6 +34,7 @@ export function ProfessionalServiceItem({
     );
     const [active, setActive] = useState(assignment?.active ?? true);
     const [appliedId, setAppliedId] = useState<number | null>(null);
+    const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
     // Adjust state during render instead of an Effect: sync local fields
     // whenever this item's assignment (re)loads or changes remotely.
@@ -57,8 +59,12 @@ export function ProfessionalServiceItem({
                 active: true,
             });
         } else if (assignment) {
-            remove.mutate(service.id);
+            setShowRemoveConfirm(true);
         }
+    }
+
+    function handleConfirmRemove() {
+        remove.mutate(service.id);
     }
 
     function handleSave() {
@@ -144,6 +150,15 @@ export function ProfessionalServiceItem({
                     )}
                 </div>
             )}
+
+            <ConfirmDialog
+                open={showRemoveConfirm}
+                onOpenChange={setShowRemoveConfirm}
+                title="Quitar servicio"
+                description="¿Quitar este servicio del profesional? Esta acción no se puede deshacer."
+                onConfirm={handleConfirmRemove}
+                isPending={remove.isPending}
+            />
         </div>
     );
 }
