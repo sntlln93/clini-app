@@ -10,8 +10,7 @@ import { MemberRoleFields } from './MemberRoleFields';
 export function MemberInviteForm() {
     const [email, setEmail] = useState('');
     const [roles, setRoles] = useState<MembershipRole[]>([]);
-    const { mutate, isPending, isSuccess, message, errors } =
-        useInviteMember();
+    const { mutate, isPending, isSuccess, message, errors } = useInviteMember();
 
     function toggleRole(role: MembershipRole, checked: boolean) {
         setRoles((previous) =>
