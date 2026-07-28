@@ -1,11 +1,27 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
+import {
+    Form,
+    FormControl,
+    FormField,
+    FormItem,
+    FormLabel,
+    FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { extractFormErrors } from '@/lib/form-errors';
 import type { Availability } from '@/types/availability';
-import { useState } from 'react';
 import {
     useDeleteAvailability,
     useSaveAvailability,
 } from '../-hooks/use-availabilities';
+import {
+    availabilitySlotSchema,
+    type AvailabilitySlotFormValues,
+} from './availability-schemas';
 
 type AvailabilitySlotRowProps = {
     membershipId: number;
@@ -16,6 +32,11 @@ type AvailabilitySlotRowProps = {
     onCancel?: () => void;
 };
 
+const DEFAULT_VALUES: AvailabilitySlotFormValues = {
+    startTime: '09:00',
+    endTime: '10:00',
+};
+
 export function AvailabilitySlotRow({
     membershipId,
     dayOfWeek,
@@ -24,26 +45,50 @@ export function AvailabilitySlotRow({
     onSaved,
     onCancel,
 }: AvailabilitySlotRowProps) {
-    const [startTime, setStartTime] = useState(slot?.start_time ?? '09:00');
-    const [endTime, setEndTime] = useState(slot?.end_time ?? '10:00');
-    const [appliedId, setAppliedId] = useState<number | null>(null);
+    const form = useForm<AvailabilitySlotFormValues>({
+        resolver: zodResolver(availabilitySlotSchema),
+        defaultValues: slot
+            ? { startTime: slot.start_time, endTime: slot.end_time }
+            : DEFAULT_VALUES,
+    });
 
-    // Adjust state during render instead of an Effect: sync local fields
-    // whenever this row's slot (re)loads or changes remotely.
-    if (slot && slot.id !== appliedId) {
-        setAppliedId(slot.id);
-        setStartTime(slot.start_time);
-        setEndTime(slot.end_time);
-    }
+    // `form.reset()` notifies Controller-subscribed children synchronously,
+    // so syncing this row's slot whenever it (re)loads or changes remotely
+    // has to happen in an effect rather than during render.
+    useEffect(() => {
+        if (slot) {
+            form.reset({
+                startTime: slot.start_time,
+                endTime: slot.end_time,
+            });
+        }
+    }, [slot, form]);
 
     const save = useSaveAvailability(membershipId);
     const remove = useDeleteAvailability(membershipId);
 
-    function handleSave() {
-        save.mutate(
-            { id: slot?.id, dayOfWeek, startTime, endTime },
-            { onSuccess: () => onSaved?.() },
-        );
+    async function onSubmit(values: AvailabilitySlotFormValues) {
+        try {
+            await save.mutateAsync({
+                id: slot?.id,
+                dayOfWeek,
+                startTime: values.startTime,
+                endTime: values.endTime,
+            });
+            onSaved?.();
+        } catch (error) {
+            const { message, errors } = extractFormErrors(error);
+
+            if (errors.start_time) {
+                form.setError('startTime', { message: errors.start_time });
+            }
+            if (errors.end_time) {
+                form.setError('endTime', { message: errors.end_time });
+            }
+            if (message) {
+                form.setError('root', { message });
+            }
+        }
     }
 
     function handleDelete() {
@@ -53,71 +98,99 @@ export function AvailabilitySlotRow({
     }
 
     return (
-        <div className="flex flex-wrap items-end gap-2">
-            <label className="space-y-1 text-xs text-muted-foreground">
-                Desde
-                <Input
-                    type="time"
-                    disabled={!canManage}
-                    className="w-28"
-                    value={startTime}
-                    onChange={(event) => setStartTime(event.target.value)}
+        <Form {...form}>
+            <form
+                onSubmit={form.handleSubmit(onSubmit)}
+                className="flex flex-wrap items-end gap-2"
+            >
+                <FormField
+                    control={form.control}
+                    name="startTime"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">
+                                Desde
+                            </FormLabel>
+                            <FormControl
+                                render={
+                                    <Input
+                                        type="time"
+                                        disabled={!canManage}
+                                        className="w-28"
+                                        {...field}
+                                    />
+                                }
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
-            </label>
-            <label className="space-y-1 text-xs text-muted-foreground">
-                Hasta
-                <Input
-                    type="time"
-                    disabled={!canManage}
-                    className="w-28"
-                    value={endTime}
-                    onChange={(event) => setEndTime(event.target.value)}
+                <FormField
+                    control={form.control}
+                    name="endTime"
+                    render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="text-xs text-muted-foreground">
+                                Hasta
+                            </FormLabel>
+                            <FormControl
+                                render={
+                                    <Input
+                                        type="time"
+                                        disabled={!canManage}
+                                        className="w-28"
+                                        {...field}
+                                    />
+                                }
+                            />
+                            <FormMessage />
+                        </FormItem>
+                    )}
                 />
-            </label>
 
-            {canManage && (
-                <div className="flex gap-2">
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        disabled={save.isPending}
-                        onClick={handleSave}
-                    >
-                        Guardar
-                    </Button>
-                    {slot ? (
+                {canManage && (
+                    <div className="flex gap-2">
                         <Button
-                            type="button"
+                            type="submit"
                             size="sm"
-                            variant="ghost"
-                            disabled={remove.isPending}
-                            onClick={handleDelete}
+                            variant="outline"
+                            disabled={
+                                save.isPending || form.formState.isSubmitting
+                            }
                         >
-                            Eliminar
+                            Guardar
                         </Button>
-                    ) : (
-                        onCancel && (
+                        {slot ? (
                             <Button
                                 type="button"
                                 size="sm"
                                 variant="ghost"
-                                onClick={onCancel}
+                                disabled={remove.isPending}
+                                onClick={handleDelete}
                             >
-                                Cancelar
+                                Eliminar
                             </Button>
-                        )
-                    )}
-                </div>
-            )}
+                        ) : (
+                            onCancel && (
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={onCancel}
+                                >
+                                    Cancelar
+                                </Button>
+                            )
+                        )}
+                    </div>
+                )}
 
-            {save.message && (
-                <p className="w-full text-sm text-destructive">
-                    {save.errors.end_time ??
-                        save.errors.start_time ??
-                        save.message}
-                </p>
-            )}
-        </div>
+                {form.formState.errors.root && (
+                    <p className="w-full text-sm text-destructive">
+                        {form.formState.errors.root.message}
+                    </p>
+                )}
+            </form>
+        </Form>
     );
 }
