@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import {
     Form,
@@ -160,15 +161,22 @@ export function AvailabilitySlotRow({
                             Guardar
                         </Button>
                         {slot ? (
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                disabled={remove.isPending}
-                                onClick={handleDelete}
-                            >
-                                Eliminar
-                            </Button>
+                            <ConfirmDialog
+                                trigger={
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        disabled={remove.isPending}
+                                    >
+                                        Eliminar
+                                    </Button>
+                                }
+                                title="Eliminar horario"
+                                description="¿Eliminar este horario? Esta acción no se puede deshacer."
+                                onConfirm={handleDelete}
+                                isPending={remove.isPending}
+                            />
                         ) : (
                             onCancel && (
                                 <Button
