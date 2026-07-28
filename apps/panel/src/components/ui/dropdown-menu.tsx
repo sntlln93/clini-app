@@ -25,7 +25,12 @@ function DropdownMenuTrigger({
         <MenuPrimitive.Trigger
             data-slot="dropdown-menu-trigger"
             className={
-                render ? className : cn('focus-ring', className as string)
+                render
+                    ? className
+                    : typeof className === 'function'
+                      ? (state: MenuPrimitive.Trigger.State) =>
+                            cn('focus-ring', className(state))
+                      : cn('focus-ring', className)
             }
             render={render}
             {...props}

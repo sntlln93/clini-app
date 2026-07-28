@@ -65,6 +65,21 @@ describe('focus-visible treatment', () => {
         expect(classes).toContain('custom-x');
     });
 
+    it('keeps both focus-ring and a function-valued className on a bare trigger', () => {
+        render(
+            <DropdownMenu>
+                <DropdownMenuTrigger className={() => 'custom-fn'}>
+                    Abrir
+                </DropdownMenuTrigger>
+            </DropdownMenu>,
+        );
+
+        const trigger = screen.getByText('Abrir');
+        const classes = trigger.className.split(' ');
+        expect(classes).toContain('focus-ring');
+        expect(classes).toContain('custom-fn');
+    });
+
     it('applies focus-ring to DialogContent', () => {
         render(
             <Dialog open>
