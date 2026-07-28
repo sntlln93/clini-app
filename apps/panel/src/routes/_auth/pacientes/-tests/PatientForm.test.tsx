@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { Patient } from '@/types/patient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -46,7 +47,7 @@ function mockLookupHit(patient: Record<string, unknown>) {
     vi.mocked(api.get).mockResolvedValueOnce({ data: { data: patient } });
 }
 
-function renderPatientForm() {
+function renderPatientForm(patient?: Patient) {
     // Disable retries here (independent of the app's shared queryClient
     // policy) so a rejected query surfaces its error immediately instead of
     // exhausting React Query's default retry/backoff before assertions run.
@@ -63,7 +64,7 @@ function renderPatientForm() {
     const nuevoRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/pacientes/nuevo',
-        component: PatientForm,
+        component: () => <PatientForm patient={patient} />,
     });
     const pacientesRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -226,5 +227,39 @@ describe('PatientForm', () => {
                 'No pudimos cargar la información. Intentá nuevamente.',
             ),
         ).toBeNull();
+    });
+
+    it('shows the insurance provider name at mount in edit mode, not the raw id', async () => {
+        mockInsuranceProviders([
+            { id: 1, name: 'OSDE' },
+            { id: 2, name: 'Swiss Medical' },
+        ]);
+        renderPatientForm({
+            id: 7,
+            name: 'Juan Perez',
+            email: 'juan@example.com',
+            phone: '1122334455',
+            document_type: 'dni',
+            document_number: '12345678',
+            sex: 'm',
+            birth_date: '1990-01-01',
+            insurance_provider_id: 2,
+            created_at: '2026-01-01T00:00:00Z',
+        });
+
+        const trigger = await screen.findByLabelText('Obra social');
+        await waitFor(() =>
+            expect(trigger.textContent).toContain('Swiss Medical'),
+        );
+        expect(trigger.textContent).not.toContain('2');
+    });
+
+    it('shows the placeholder, not an empty value or 0, in create mode', async () => {
+        mockInsuranceProviders([{ id: 1, name: 'OSDE' }]);
+        renderPatientForm();
+
+        const trigger = await screen.findByLabelText('Obra social');
+        expect(trigger.textContent).toContain('Sin obra social');
+        expect(trigger.textContent).not.toContain('0');
     });
 });
