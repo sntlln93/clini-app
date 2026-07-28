@@ -102,7 +102,11 @@
       "Bash(gh repo edit*)",
       "Read(.env)",
       "Read(./.env)",
-      "Read(apps/*/.env)"
+      "Read(apps/*/.env)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(pnpm *)",
+      "Bash(bunx *)"
     ],
     "ask": [
       "Edit(.github/**)",

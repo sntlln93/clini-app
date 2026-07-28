@@ -1,7 +1,7 @@
 ---
 name: judge
 description: Reviews the feature-branch diff against develop for correctness, architecture-rule and security problems before the PR is considered ready. Read-only — reports findings, never edits.
-tools: Bash, Read, Grep, Glob, Skill
+tools: Bash, Read, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist
 model: sonnet
 ---
 
