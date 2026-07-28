@@ -88,7 +88,8 @@ export function AppointmentCard({
     const [showReschedule, setShowReschedule] = useState(false);
     const [showCancelConfirm, setShowCancelConfirm] = useState(false);
     const { mutate } = useUpdateAppointmentStatus();
-    const { mutate: cancelAppointment } = useCancelAppointment();
+    const { mutate: cancelAppointment, isPending: isCancelling } =
+        useCancelAppointment();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
@@ -179,6 +180,7 @@ export function AppointmentCard({
                         cancellationReason: null,
                     })
                 }
+                isPending={isCancelling}
             />
         </>
     );
