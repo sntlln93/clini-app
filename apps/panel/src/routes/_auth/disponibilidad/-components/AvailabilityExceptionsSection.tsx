@@ -1,3 +1,4 @@
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
@@ -127,17 +128,24 @@ export function AvailabilityExceptionsSection({
                                         >
                                             Editar
                                         </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            disabled={remove.isPending}
-                                            onClick={() =>
+                                        <ConfirmDialog
+                                            trigger={
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    variant="ghost"
+                                                    disabled={remove.isPending}
+                                                >
+                                                    Eliminar
+                                                </Button>
+                                            }
+                                            title="Eliminar excepción"
+                                            description="¿Eliminar esta excepción? Esta acción no se puede deshacer."
+                                            onConfirm={() =>
                                                 remove.mutate(exception.id)
                                             }
-                                        >
-                                            Eliminar
-                                        </Button>
+                                            isPending={remove.isPending}
+                                        />
                                     </div>
                                 )}
                             </div>

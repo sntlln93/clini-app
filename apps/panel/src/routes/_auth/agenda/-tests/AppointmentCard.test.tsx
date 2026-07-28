@@ -91,13 +91,19 @@ describe('AppointmentCard', () => {
         expect(screen.getByText('Juan Pérez')).toBeTruthy();
     });
 
-    it('clicking Cancelar triggers the cancel mutation against the /cancel endpoint', async () => {
+    it('clicking Cancelar opens a confirmation and only cancels once confirmed', async () => {
         vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
         renderCard(buildAppointment({ id: 42, status: 'scheduled' }));
 
         fireEvent.click(screen.getByRole('button'));
         fireEvent.click(
             await screen.findByRole('menuitem', { name: 'Cancelar' }),
+        );
+
+        expect(api.patch).not.toHaveBeenCalled();
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Confirmar' }),
         );
 
         await waitFor(() =>
