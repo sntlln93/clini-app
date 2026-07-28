@@ -44,8 +44,7 @@ export function AppointmentProfessionalFields({
             services.map((service) => ({
                 value: String(service.service_id),
                 label:
-                    service.service_name ??
-                    `Servicio #${service.service_id}`,
+                    service.service_name ?? `Servicio #${service.service_id}`,
             })),
         [services],
     );
