@@ -1,3 +1,7 @@
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useEffect, useState } from 'react';
+import { useForm, useWatch, type UseFormReturn } from 'react-hook-form';
+
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -7,18 +11,20 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Form } from '@/components/ui/form';
 import { api } from '@/lib/api';
+import { extractFormErrors } from '@/lib/form-errors';
 import type { Membership } from '@/types/membership';
 import type { Paginated, Patient } from '@/types/patient';
 import type { ProfessionalService } from '@/types/professional';
 import { useQuery } from '@tanstack/react-query';
-import { useState, type FormEvent } from 'react';
 import { useCreateAppointment } from '../-hooks/use-appointments';
 import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
 import {
-    AppointmentFormFields,
+    appointmentSchema,
     type AppointmentFormValues,
-} from './AppointmentFormFields';
+} from './appointment-schemas';
+import { AppointmentFormFields } from './AppointmentFormFields';
 import { AvailabilityWarningDialog } from './AvailabilityWarningDialog';
 
 export type AppointmentPrefill = {
@@ -54,6 +60,32 @@ function valuesFromPrefill(
     };
 }
 
+function applyServerErrors(
+    form: UseFormReturn<AppointmentFormValues>,
+    error: unknown,
+) {
+    const { message, errors } = extractFormErrors(error);
+
+    if (errors.membership_id) {
+        form.setError('membershipId', { message: errors.membership_id });
+    }
+    if (errors.service_id) {
+        form.setError('serviceId', { message: errors.service_id });
+    }
+    if (errors.patient_id) {
+        form.setError('patientId', { message: errors.patient_id });
+    }
+    if (errors.start_at) {
+        form.setError('time', { message: errors.start_at });
+    }
+    if (errors.reason) {
+        form.setError('reason', { message: errors.reason });
+    }
+    if (message) {
+        form.setError('root', { message });
+    }
+}
+
 /**
  * Manual entry and quick-create-from-free-cell both funnel through this
  * dialog: `prefill` is empty for the former and carries the clicked cell's
@@ -66,31 +98,49 @@ export function AppointmentFormDialog({
     professionals,
     prefill,
 }: AppointmentFormDialogProps) {
-    const [values, setValues] = useState<AppointmentFormValues>(EMPTY_VALUES);
-    const [appliedKey, setAppliedKey] = useState<string | null>(null);
     const [patientQuery, setPatientQuery] = useState('');
     const [showWarning, setShowWarning] = useState(false);
+    const [appliedKey, setAppliedKey] = useState<string | null>(null);
 
     const openKey = open ? JSON.stringify(prefill ?? {}) : null;
 
-    // Adjust state during render instead of an Effect: reset the form every
-    // time the dialog (re)opens, applying the clicked cell's prefill, if any.
+    // Adjust state during render instead of an Effect for this plain local
+    // state: reset the patient search box and the warning flag every time
+    // the dialog (re)opens, applying the clicked cell's prefill, if any.
     if (open && openKey !== appliedKey) {
         setAppliedKey(openKey);
-        setValues(valuesFromPrefill(prefill));
         setPatientQuery('');
         setShowWarning(false);
     }
 
+    const form = useForm<AppointmentFormValues>({
+        resolver: zodResolver(appointmentSchema),
+        defaultValues: EMPTY_VALUES,
+    });
+
+    // `form.reset()` notifies Controller-subscribed children synchronously,
+    // so applying the prefill has to happen in an effect rather than during
+    // render, gated by the same open/prefill key as above.
+    useEffect(() => {
+        if (open) {
+            form.reset(valuesFromPrefill(prefill));
+        }
+    }, [open, prefill, form]);
+
+    const membershipId = useWatch({
+        control: form.control,
+        name: 'membershipId',
+    });
+
     const { data: services } = useQuery({
-        queryKey: ['professional-services', values.membershipId],
+        queryKey: ['professional-services', membershipId],
         queryFn: () =>
             api
                 .get<{ data: ProfessionalService[] }>(
-                    `/memberships/${values.membershipId}/services`,
+                    `/memberships/${membershipId}/services`,
                 )
                 .then((response) => response.data.data),
-        enabled: values.membershipId !== null,
+        enabled: membershipId !== null,
     });
 
     const { data: patientsPage } = useQuery({
@@ -104,53 +154,32 @@ export function AppointmentFormDialog({
         enabled: open,
     });
 
-    const { isOutside } = useAvailabilityWarning(values.membershipId);
-    const { mutate, isPending, message, errors } = useCreateAppointment();
+    const { isOutside } = useAvailabilityWarning(membershipId);
+    const { mutateAsync, isPending } = useCreateAppointment();
 
-    function setField<K extends keyof AppointmentFormValues>(
-        field: K,
-        value: AppointmentFormValues[K],
-    ) {
-        setValues((previous) => ({ ...previous, [field]: value }));
-    }
-
-    function submit() {
-        if (
-            values.membershipId === null ||
-            values.serviceId === null ||
-            values.patientId === null ||
-            !values.date ||
-            !values.time
-        ) {
-            return;
-        }
-
-        mutate(
-            {
-                membershipId: values.membershipId,
-                patientId: values.patientId,
-                serviceId: values.serviceId,
+    async function submit(values: AppointmentFormValues) {
+        try {
+            await mutateAsync({
+                membershipId: values.membershipId as number,
+                patientId: values.patientId as number,
+                serviceId: values.serviceId as number,
                 startAt: `${values.date}T${values.time}`,
                 reason: values.reason || null,
                 notes: null,
-            },
-            { onSuccess: () => onOpenChange(false) },
-        );
+            });
+            onOpenChange(false);
+        } catch (error) {
+            applyServerErrors(form, error);
+        }
     }
 
-    function handleSubmit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault();
-
-        if (
-            values.date &&
-            values.time &&
-            isOutside(new Date(`${values.date}T${values.time}`))
-        ) {
+    function onValid(values: AppointmentFormValues) {
+        if (isOutside(new Date(`${values.date}T${values.time}`))) {
             setShowWarning(true);
             return;
         }
 
-        submit();
+        void submit(values);
     }
 
     return (
@@ -164,30 +193,45 @@ export function AppointmentFormDialog({
                         </DialogDescription>
                     </DialogHeader>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        {message && (
-                            <p className="text-sm text-destructive">
-                                {message}
-                            </p>
-                        )}
+                    <Form {...form}>
+                        <form
+                            onSubmit={form.handleSubmit(onValid)}
+                            className="space-y-4"
+                        >
+                            {form.formState.errors.root && (
+                                <p className="text-sm text-destructive">
+                                    {form.formState.errors.root.message}
+                                </p>
+                            )}
 
-                        <AppointmentFormFields
-                            values={values}
-                            onChange={setField}
-                            professionals={professionals}
-                            services={services ?? []}
-                            patients={patientsPage?.data ?? []}
-                            patientQuery={patientQuery}
-                            onPatientQueryChange={setPatientQuery}
-                            errors={errors}
-                        />
+                            <AppointmentFormFields
+                                control={form.control}
+                                professionals={professionals}
+                                services={services ?? []}
+                                patients={patientsPage?.data ?? []}
+                                patientQuery={patientQuery}
+                                onPatientQueryChange={setPatientQuery}
+                            />
 
-                        <DialogFooter>
-                            <Button type="submit" disabled={isPending}>
-                                {isPending ? 'Guardando…' : 'Crear turno'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        isPending || form.formState.isSubmitting
+                                    }
+                                >
+                                    {isPending ? 'Guardando…' : 'Crear turno'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
                 </DialogContent>
             </Dialog>
 
@@ -196,7 +240,7 @@ export function AppointmentFormDialog({
                 onOpenChange={setShowWarning}
                 onConfirm={() => {
                     setShowWarning(false);
-                    submit();
+                    void submit(form.getValues());
                 }}
             />
         </>

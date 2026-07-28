@@ -1,7 +1,13 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     AppointmentFormDialog,
@@ -97,33 +103,31 @@ function renderDialog(prefill?: AppointmentPrefill) {
 
 async function selectComboboxOption(combobox: HTMLElement, optionText: string) {
     fireEvent.click(combobox);
-    fireEvent.click(await screen.findByRole('option', { name: optionText }));
-}
-
-/**
- * The patient select has no associated `<label>` of its own — the "Paciente"
- * label targets the search text input instead — and its trigger carries no
- * accessible name either, so it's located by DOM id instead of role+name.
- */
-function getPatientCombobox(): HTMLElement {
-    const combobox = document.getElementById('patient_id');
-    if (!combobox) {
-        throw new Error('patient combobox not found');
-    }
-    return combobox;
+    const option = await screen.findByRole('option', { name: optionText });
+    // A single option that hasn't been keyboard/pointer-highlighted yet
+    // isn't part of the roving-tabindex group base-ui uses for selection —
+    // a bare `click` doesn't register in jsdom, it needs the full pointer
+    // sequence a real browser would generate (same reasoning as the status
+    // select workaround in MemberEditDialog's tests).
+    fireEvent.pointerDown(option);
+    fireEvent.pointerUp(option);
+    fireEvent.click(option);
 }
 
 /**
  * Fills every field required for `submit()` to proceed beyond the
  * prefilled professional/date/time: the service select (labelled "Servicio")
- * and the patient select.
+ * and the patient select (labelled "Paciente").
  */
 async function fillPatientAndService() {
     await selectComboboxOption(
         screen.getByRole('combobox', { name: 'Servicio' }),
         'Consulta general',
     );
-    await selectComboboxOption(getPatientCombobox(), 'Juan Pérez — 30111222');
+    await selectComboboxOption(
+        screen.getByRole('combobox', { name: 'Paciente' }),
+        'Juan Pérez — 30111222',
+    );
 }
 
 describe('AppointmentFormDialog', () => {
@@ -256,7 +260,13 @@ describe('AppointmentFormDialog', () => {
             '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
         );
 
-        fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+        // Both the appointment dialog and the nested availability warning
+        // have their own "Cancelar" action, so scope the click to the alert
+        // dialog to cancel the warning specifically, not the whole form.
+        const warningDialog = screen.getByRole('alertdialog');
+        fireEvent.click(
+            within(warningDialog).getByRole('button', { name: 'Cancelar' }),
+        );
 
         await waitFor(() =>
             expect(
