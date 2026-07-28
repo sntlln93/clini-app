@@ -1,11 +1,8 @@
 import { EmptyState } from '@/components/EmptyState';
 import { QueryErrorState } from '@/components/QueryErrorState';
-import type { Membership } from '@/types/membership';
-import { createFileRoute } from '@tanstack/react-router';
+import { Button } from '@/components/ui/button';
+import { Link, createFileRoute } from '@tanstack/react-router';
 import { UserPlus } from 'lucide-react';
-import { useState } from 'react';
-import { InviteMemberDialog } from './-components/InviteMemberDialog';
-import { MemberEditDialog } from './-components/MemberEditDialog';
 import { MembersTable } from './-components/MembersTable';
 import { useMemberships } from './-hooks/use-memberships';
 
@@ -15,15 +12,20 @@ export const Route = createFileRoute('/_auth/profesionales/')({
 
 function ProfesionalesPage() {
     const { data: memberships, isPending, isError, error } = useMemberships();
-    const [editingMembership, setEditingMembership] =
-        useState<Membership | null>(null);
 
     const empty = (
         <EmptyState
             icon={UserPlus}
             title="Todavía no hay miembros"
             description="Invitá a un profesional para que pueda gestionar su agenda."
-            action={<InviteMemberDialog />}
+            action={
+                <Button
+                    render={<Link to="/profesionales/nuevo" />}
+                    nativeButton={false}
+                >
+                    Invitar miembro
+                </Button>
+            }
         />
     );
 
@@ -31,7 +33,12 @@ function ProfesionalesPage() {
         <div className="space-y-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-2xl font-semibold">Profesionales</h1>
-                <InviteMemberDialog />
+                <Button
+                    render={<Link to="/profesionales/nuevo" />}
+                    nativeButton={false}
+                >
+                    Invitar miembro
+                </Button>
             </header>
 
             {isError && <QueryErrorState error={error} />}
@@ -41,17 +48,8 @@ function ProfesionalesPage() {
             )}
 
             {!isError && !isPending && memberships && (
-                <MembersTable
-                    memberships={memberships}
-                    onEdit={setEditingMembership}
-                    empty={empty}
-                />
+                <MembersTable memberships={memberships} empty={empty} />
             )}
-
-            <MemberEditDialog
-                membership={editingMembership}
-                onClose={() => setEditingMembership(null)}
-            />
         </div>
     );
 }
