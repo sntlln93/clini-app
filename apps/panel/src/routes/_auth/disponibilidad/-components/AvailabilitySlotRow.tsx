@@ -153,7 +153,6 @@ export function AvailabilitySlotRow({
                         <Button
                             type="submit"
                             size="sm"
-                            variant="outline"
                             disabled={
                                 save.isPending || form.formState.isSubmitting
                             }
