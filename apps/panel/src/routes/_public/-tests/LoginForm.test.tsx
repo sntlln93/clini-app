@@ -80,6 +80,19 @@ describe('LoginForm', () => {
         );
     });
 
+    it('shows client-side validation messages for both fields and calls neither the CSRF warm-up nor POST /login when both are empty', async () => {
+        renderLoginForm();
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Ingresar' }),
+        );
+
+        await screen.findByText('El correo es obligatorio.');
+        screen.getByText('La contraseña es obligatoria.');
+        expect(refreshCsrfCookie).not.toHaveBeenCalled();
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
     it('renders per-field errors from a 422 and keeps the typed values', async () => {
         vi.mocked(api.post).mockRejectedValueOnce(
             unauthorizedError({

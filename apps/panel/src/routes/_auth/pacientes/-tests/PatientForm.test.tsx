@@ -114,6 +114,17 @@ describe('PatientForm', () => {
         );
     });
 
+    it('shows a client-side validation message for the empty required Nombre field and does not call POST /patients', async () => {
+        mockInsuranceProviders();
+        renderPatientForm();
+
+        await screen.findByLabelText('Nombre');
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText('El nombre es obligatorio.');
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
     it('surfaces a 422 document_number message under that field', async () => {
         mockInsuranceProviders();
         mockLookupMiss();
