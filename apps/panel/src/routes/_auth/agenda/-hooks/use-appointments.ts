@@ -1,7 +1,11 @@
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 
 type AppointmentsRange = {
     from: string;
@@ -22,8 +26,8 @@ function queryKey(range: AppointmentsRange) {
     return ['appointments', range.from, range.to, range.membershipId ?? null];
 }
 
-export function useAppointments(range: AppointmentsRange) {
-    return useQuery({
+export function appointmentsQueryOptions(range: AppointmentsRange) {
+    return queryOptions({
         queryKey: queryKey(range),
         queryFn: () =>
             api

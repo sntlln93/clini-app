@@ -1,9 +1,10 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
+import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
-import { useProfessionals } from '@/hooks/use-professionals';
+import { professionalsQueryOptions } from '@/hooks/use-professionals';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
+import { z } from 'zod';
 import { AgendaDayView } from './-components/AgendaDayView';
 import {
     AgendaToolbar,
@@ -15,18 +16,12 @@ import {
     type AppointmentPrefill,
 } from './-components/AppointmentFormDialog';
 import { useAppointmentPermissions } from './-hooks/use-appointment-permissions';
-import { useAppointments } from './-hooks/use-appointments';
+import { appointmentsQueryOptions } from './-hooks/use-appointments';
 
-export const Route = createFileRoute('/_auth/agenda/')({
-    component: AgendaPage,
+const agendaSearchSchema = z.object({
+    date: z.string().optional(),
+    view: z.enum(['day', 'week']).optional(),
 });
-
-type FormState = {
-    open: boolean;
-    prefill?: AppointmentPrefill;
-};
-
-const CLOSED_FORM: FormState = { open: false };
 
 function startOfDay(date: Date): Date {
     const result = new Date(date);
@@ -63,32 +58,75 @@ function toDateInputValue(date: Date): string {
     return `${year}-${month}-${day}`;
 }
 
+function fromDateInputValue(value: string): Date {
+    const [year, month, day] = value.split('-').map(Number);
+    return new Date(year, month - 1, day);
+}
+
+function rangeFor(date: Date, view: AgendaViewMode) {
+    return view === 'day'
+        ? { start: startOfDay(date), end: endOfDay(date) }
+        : { start: startOfWeek(date), end: endOfWeek(date) };
+}
+
+export const Route = createFileRoute('/_auth/agenda/')({
+    validateSearch: (search) => agendaSearchSchema.parse(search),
+    loaderDeps: ({ search }) => ({
+        date: search.date ?? toDateInputValue(new Date()),
+        view: search.view ?? 'day',
+    }),
+    loader: async ({ context, deps }) => {
+        const { start, end } = rangeFor(
+            fromDateInputValue(deps.date),
+            deps.view,
+        );
+
+        const [professionals, appointments] = await Promise.all([
+            context.queryClient.ensureQueryData(professionalsQueryOptions()),
+            context.queryClient.ensureQueryData(
+                appointmentsQueryOptions({
+                    from: start.toISOString(),
+                    to: end.toISOString(),
+                }),
+            ),
+        ]);
+
+        return { professionals, appointments };
+    },
+    pendingComponent: () => <ListSkeleton rows={5} />,
+    errorComponent: RouteErrorState,
+    component: AgendaPage,
+});
+
+type FormState = {
+    open: boolean;
+    prefill?: AppointmentPrefill;
+};
+
+const CLOSED_FORM: FormState = { open: false };
+
 function AgendaPage() {
-    const [view, setView] = useState<AgendaViewMode>('day');
-    const [date, setDate] = useState(() => new Date());
+    const { date: dateParam, view = 'day' } = Route.useSearch();
+    const navigate = Route.useNavigate();
+    const { professionals, appointments } = Route.useLoaderData();
+    const { canUpdate } = useAppointmentPermissions();
     const [formState, setFormState] = useState<FormState>(CLOSED_FORM);
 
-    const { data: professionals } = useProfessionals();
-    const { canUpdate } = useAppointmentPermissions();
+    const date = dateParam ? fromDateInputValue(dateParam) : new Date();
+    const { start: rangeStart } = rangeFor(date, view);
 
-    const rangeStart = view === 'day' ? startOfDay(date) : startOfWeek(date);
-    const rangeEnd = view === 'day' ? endOfDay(date) : endOfWeek(date);
-
-    const {
-        data: appointments,
-        isPending,
-        isError,
-        error,
-    } = useAppointments({
-        from: rangeStart.toISOString(),
-        to: rangeEnd.toISOString(),
-    });
+    function updateDate(next: Date) {
+        void navigate({
+            search: (prev) => ({ ...prev, date: toDateInputValue(next) }),
+        });
+    }
 
     const handlePrev = () =>
-        setDate((current) => addDays(current, view === 'day' ? -1 : -7));
-    const handleNext = () =>
-        setDate((current) => addDays(current, view === 'day' ? 1 : 7));
-    const handleToday = () => setDate(new Date());
+        updateDate(addDays(date, view === 'day' ? -1 : -7));
+    const handleNext = () => updateDate(addDays(date, view === 'day' ? 1 : 7));
+    const handleToday = () => updateDate(new Date());
+    const handleViewChange = (nextView: AgendaViewMode) =>
+        void navigate({ search: (prev) => ({ ...prev, view: nextView }) });
 
     const handleNewAppointment = () => setFormState({ open: true });
 
@@ -121,28 +159,21 @@ function AgendaPage() {
                 onPrev={handlePrev}
                 onNext={handleNext}
                 onToday={handleToday}
-                onViewChange={setView}
+                onViewChange={handleViewChange}
             />
 
-            {isError && <QueryErrorState error={error} />}
-
-            {!isError && isPending && <ListSkeleton rows={5} />}
-
-            {!isError && !isPending && (professionals?.length ?? 0) === 0 && (
+            {professionals.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                     Todavía no hay profesionales en esta organización.
                 </p>
             )}
 
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length > 0 &&
+            {professionals.length > 0 &&
                 (view === 'day' ? (
                     <AgendaDayView
                         date={date}
                         professionals={professionals}
-                        appointments={appointments ?? []}
+                        appointments={appointments}
                         canUpdate={canUpdate}
                         onCellClick={handleCellClick}
                     />
@@ -150,7 +181,7 @@ function AgendaPage() {
                     <AgendaWeekView
                         weekStart={rangeStart}
                         professionals={professionals}
-                        appointments={appointments ?? []}
+                        appointments={appointments}
                         canUpdate={canUpdate}
                     />
                 ))}
@@ -160,7 +191,7 @@ function AgendaPage() {
                 onOpenChange={(open) =>
                     setFormState((previous) => ({ ...previous, open }))
                 }
-                professionals={professionals ?? []}
+                professionals={professionals}
                 prefill={formState.prefill}
             />
         </div>

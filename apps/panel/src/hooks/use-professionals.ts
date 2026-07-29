@@ -1,13 +1,13 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions, useQuery } from '@tanstack/react-query';
 
 /**
  * Active, non-deleted memberships holding the `professional` role — the
  * only members that catalog assignments (services/specialties) apply to.
  */
-export function useProfessionals() {
-    return useQuery({
+export function professionalsQueryOptions() {
+    return queryOptions({
         queryKey: ['memberships', 'professionals'],
         queryFn: () =>
             api
@@ -21,4 +21,9 @@ export function useProfessionals() {
                     ),
                 ),
     });
+}
+
+/** @deprecated Page reads use `professionalsQueryOptions` via a route loader. */
+export function useProfessionals() {
+    return useQuery(professionalsQueryOptions());
 }
