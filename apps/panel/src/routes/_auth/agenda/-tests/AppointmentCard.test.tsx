@@ -9,6 +9,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
+
 function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     return {
         id: 1,
@@ -42,6 +49,7 @@ function renderCard(appointment: Appointment, canUpdate: boolean = true) {
 describe('AppointmentCard', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
+        invalidate.mockReset();
     });
 
     it('lists Cancelar and Reprogramar alongside the status transitions for a scheduled appointment', async () => {
@@ -111,5 +119,6 @@ describe('AppointmentCard', () => {
                 cancellation_reason: null,
             }),
         );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 });
