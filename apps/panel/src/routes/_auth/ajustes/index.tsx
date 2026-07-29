@@ -41,26 +41,30 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             userSpecialtiesQueryOptions(session.id),
         );
 
-        const perMembershipSpecialties = await Promise.all(
-            professionals.map((membership) =>
-                Promise.all([
-                    context.queryClient.ensureQueryData(
-                        userSpecialtiesQueryOptions(membership.user.id),
+        const [perMembershipSpecialties, perMembershipServices] =
+            await Promise.all([
+                Promise.all(
+                    professionals.map((membership) =>
+                        Promise.all([
+                            context.queryClient.ensureQueryData(
+                                userSpecialtiesQueryOptions(membership.user.id),
+                            ),
+                            context.queryClient.ensureQueryData(
+                                professionalSpecialtiesQueryOptions(
+                                    membership.id,
+                                ),
+                            ),
+                        ]),
                     ),
-                    context.queryClient.ensureQueryData(
-                        professionalSpecialtiesQueryOptions(membership.id),
-                    ),
-                ]),
-            ),
-        );
-
-        const perMembershipServices = await Promise.all(
-            professionals.map((membership) =>
-                context.queryClient.ensureQueryData(
-                    professionalServicesQueryOptions(membership.id),
                 ),
-            ),
-        );
+                Promise.all(
+                    professionals.map((membership) =>
+                        context.queryClient.ensureQueryData(
+                            professionalServicesQueryOptions(membership.id),
+                        ),
+                    ),
+                ),
+            ]);
 
         const credentialsByMembership: Record<number, UserSpecialty[]> = {};
         const assignedSpecialtiesByMembership: Record<
