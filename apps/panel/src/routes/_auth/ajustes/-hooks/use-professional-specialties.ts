@@ -1,14 +1,19 @@
 import { api } from '@/lib/api';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { ProfessionalSpecialty } from '@/types/professional';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 
 function queryKey(membershipId: number) {
     return ['professional-specialties', membershipId];
 }
 
-export function useProfessionalSpecialties(membershipId: number) {
-    return useQuery({
+export function professionalSpecialtiesQueryOptions(membershipId: number) {
+    return queryOptions({
         queryKey: queryKey(membershipId),
         queryFn: () =>
             api
@@ -21,9 +26,12 @@ export function useProfessionalSpecialties(membershipId: number) {
 
 export function useToggleProfessionalSpecialty(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
-    const invalidate = () =>
+    const invalidate = () => {
         queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
+        void router.invalidate();
+    };
 
     const assign = useMutation({
         mutationFn: (specialtyId: number) =>

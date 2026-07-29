@@ -9,7 +9,12 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
-const SESSION = { id: 9, name: 'Ana Gomez', email: 'ana@clini.app' };
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
 
 const SPECIALTIES: CatalogSpecialty[] = [{ id: 1, name: 'Cardiología' }];
 
@@ -17,33 +22,23 @@ const MY_SPECIALTIES: UserSpecialty[] = [
     { id: 5, specialty_id: 1, specialty_name: 'Cardiología' },
 ];
 
-function mockGet(url: string) {
-    if (url === '/me') {
-        return Promise.resolve({ data: SESSION });
-    }
-    if (url === '/specialties') {
-        return Promise.resolve({ data: { data: SPECIALTIES } });
-    }
-    if (url === '/users/9/specialties') {
-        return Promise.resolve({ data: { data: MY_SPECIALTIES } });
-    }
-    return Promise.reject(new Error(`unexpected GET ${url}`));
-}
-
 function renderSection() {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
-            <MySpecialtiesSection />
+            <MySpecialtiesSection
+                userId={9}
+                specialties={SPECIALTIES}
+                mySpecialties={MY_SPECIALTIES}
+            />
         </QueryClientProvider>,
     );
 }
 
 describe('MySpecialtiesSection', () => {
     beforeEach(() => {
-        vi.mocked(api.get).mockReset();
         vi.mocked(api.delete).mockReset();
-        vi.mocked(api.get).mockImplementation(mockGet);
+        invalidate.mockReset();
     });
 
     it('requires confirmation before removing one of the user own specialties', async () => {
@@ -63,5 +58,6 @@ describe('MySpecialtiesSection', () => {
         await waitFor(() =>
             expect(api.delete).toHaveBeenCalledWith('/users/9/specialties/1'),
         );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 });

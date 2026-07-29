@@ -14,6 +14,12 @@ vi.mock('sonner', () => ({
     toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
+});
+
 function unauthorizedError(data: unknown) {
     return { isAxiosError: true, response: { status: 422, data } };
 }

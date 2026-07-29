@@ -1,36 +1,22 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
 import { Checkbox } from '@/components/ui/checkbox';
-import { useSession } from '@/lib/session';
+import type { CatalogSpecialty, UserSpecialty } from '@/types/professional';
 import { useState } from 'react';
-import { useCatalogSpecialties } from '../-hooks/use-catalog';
-import {
-    useToggleUserSpecialty,
-    useUserSpecialties,
-} from '../-hooks/use-user-specialties';
+import { useToggleUserSpecialty } from '../-hooks/use-user-specialties';
 
-export function MySpecialtiesSection() {
-    const { data: session } = useSession();
-    const userId = session?.id ?? 0;
+type MySpecialtiesSectionProps = {
+    userId: number;
+    specialties: CatalogSpecialty[];
+    mySpecialties: UserSpecialty[];
+};
 
-    const {
-        data: specialties,
-        isPending: isSpecialtiesPending,
-        isError: isSpecialtiesError,
-        error: specialtiesError,
-    } = useCatalogSpecialties();
-    const {
-        data: mySpecialties,
-        isPending: isMinePending,
-        isError: isMineError,
-        error: mineError,
-    } = useUserSpecialties(userId);
+export function MySpecialtiesSection({
+    userId,
+    specialties,
+    mySpecialties,
+}: MySpecialtiesSectionProps) {
     const { assign, remove } = useToggleUserSpecialty(userId);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
-
-    const isPending = isSpecialtiesPending || isMinePending;
-    const isError = isSpecialtiesError || isMineError;
 
     function toggle(specialtyId: number, checked: boolean) {
         if (checked) {
@@ -55,22 +41,13 @@ export function MySpecialtiesSection() {
                 </p>
             </div>
 
-            {isError && (
-                <QueryErrorState error={specialtiesError ?? mineError} />
+            {specialties.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no hay especialidades en el catálogo.
+                </p>
             )}
 
-            {!isError && isPending && <ListSkeleton />}
-
-            {!isError &&
-                !isPending &&
-                specialties &&
-                specialties.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay especialidades en el catálogo.
-                    </p>
-                )}
-
-            {!isError && !isPending && specialties && mySpecialties && (
+            {specialties.length > 0 && (
                 <div className="space-y-1.5">
                     {specialties.map((specialty) => (
                         <label

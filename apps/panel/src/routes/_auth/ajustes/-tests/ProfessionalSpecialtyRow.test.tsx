@@ -13,6 +13,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
+
 const MEMBERSHIP: Membership = {
     id: 3,
     user: { id: 9, name: 'Ana Gomez', email: 'ana@clini.app' },
@@ -36,30 +43,24 @@ const ASSIGNED: ProfessionalSpecialty[] = [
     },
 ];
 
-function mockGet(url: string) {
-    if (url === '/users/9/specialties') {
-        return Promise.resolve({ data: { data: CREDENTIALS } });
-    }
-    if (url === '/memberships/3/specialties') {
-        return Promise.resolve({ data: { data: ASSIGNED } });
-    }
-    return Promise.reject(new Error(`unexpected GET ${url}`));
-}
-
 function renderRow() {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
-            <ProfessionalSpecialtyRow membership={MEMBERSHIP} canManage />
+            <ProfessionalSpecialtyRow
+                membership={MEMBERSHIP}
+                canManage
+                credentials={CREDENTIALS}
+                assigned={ASSIGNED}
+            />
         </QueryClientProvider>,
     );
 }
 
 describe('ProfessionalSpecialtyRow', () => {
     beforeEach(() => {
-        vi.mocked(api.get).mockReset();
         vi.mocked(api.delete).mockReset();
-        vi.mocked(api.get).mockImplementation(mockGet);
+        invalidate.mockReset();
     });
 
     it('requires confirmation before removing a professional specialty', async () => {
@@ -81,5 +82,6 @@ describe('ProfessionalSpecialtyRow', () => {
                 '/memberships/3/specialties/1',
             ),
         );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 });

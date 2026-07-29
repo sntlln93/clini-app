@@ -1,31 +1,28 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { ListSkeleton } from '@/components/ListSkeleton';
 import { Checkbox } from '@/components/ui/checkbox';
 import type { Membership } from '@/types/membership';
+import type {
+    ProfessionalSpecialty,
+    UserSpecialty,
+} from '@/types/professional';
 import { useState } from 'react';
-import {
-    useProfessionalSpecialties,
-    useToggleProfessionalSpecialty,
-} from '../-hooks/use-professional-specialties';
-import { useUserSpecialties } from '../-hooks/use-user-specialties';
+import { useToggleProfessionalSpecialty } from '../-hooks/use-professional-specialties';
 
 type ProfessionalSpecialtyRowProps = {
     membership: Membership;
     canManage: boolean;
+    credentials: UserSpecialty[];
+    assigned: ProfessionalSpecialty[];
 };
 
 export function ProfessionalSpecialtyRow({
     membership,
     canManage,
+    credentials,
+    assigned,
 }: ProfessionalSpecialtyRowProps) {
-    const { data: credentials, isPending: isCredentialsPending } =
-        useUserSpecialties(membership.user.id);
-    const { data: assigned, isPending: isAssignedPending } =
-        useProfessionalSpecialties(membership.id);
     const { assign, remove } = useToggleProfessionalSpecialty(membership.id);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
-
-    const isPending = isCredentialsPending || isAssignedPending;
 
     function toggle(specialtyId: number, checked: boolean) {
         if (checked) {
@@ -47,16 +44,14 @@ export function ProfessionalSpecialtyRow({
                 {membership.user.name ?? membership.user.email}
             </p>
 
-            {isPending && <ListSkeleton rows={1} />}
-
-            {!isPending && credentials && credentials.length === 0 && (
+            {credentials.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                     Este profesional no tiene especialidades credenciales
                     cargadas en «Mis especialidades».
                 </p>
             )}
 
-            {!isPending && credentials && assigned && (
+            {credentials.length > 0 && (
                 <div className="space-y-1.5">
                     {credentials.map((credential) => (
                         <label

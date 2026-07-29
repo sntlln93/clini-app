@@ -1,9 +1,9 @@
 import { api } from '@/lib/api';
 import type { CatalogService, CatalogSpecialty } from '@/types/professional';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions } from '@tanstack/react-query';
 
-export function useCatalogSpecialties() {
-    return useQuery({
+export function catalogSpecialtiesQueryOptions() {
+    return queryOptions({
         queryKey: ['catalog', 'specialties'],
         queryFn: () =>
             api
@@ -12,8 +12,8 @@ export function useCatalogSpecialties() {
     });
 }
 
-export function useCatalogServices() {
-    return useQuery({
+export function catalogServicesQueryOptions() {
+    return queryOptions({
         queryKey: ['catalog', 'services'],
         queryFn: () =>
             api
