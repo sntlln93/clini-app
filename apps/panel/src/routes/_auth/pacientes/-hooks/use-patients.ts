@@ -1,14 +1,14 @@
 import { api } from '@/lib/api';
 import type { Paginated, Patient } from '@/types/patient';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, queryOptions } from '@tanstack/react-query';
 
-type UsePatientsParams = {
+type PatientsQueryParams = {
     q: string;
     page: number;
 };
 
-export function usePatients({ q, page }: UsePatientsParams) {
-    return useQuery({
+export function patientsQueryOptions({ q, page }: PatientsQueryParams) {
+    return queryOptions({
         queryKey: ['patients', { q, page }],
         queryFn: () =>
             api

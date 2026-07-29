@@ -1,32 +1,51 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { QueryErrorState } from '@/components/QueryErrorState';
+import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { SearchX, Users } from 'lucide-react';
-import { useState } from 'react';
+import { z } from 'zod';
 import { PatientsTable } from './-components/PatientsTable';
-import { usePatients } from './-hooks/use-patients';
+import { patientsQueryOptions } from './-hooks/use-patients';
+
+const patientsSearchSchema = z.object({
+    q: z.string().optional(),
+    page: z.number().int().min(1).optional(),
+});
 
 export const Route = createFileRoute('/_auth/pacientes/')({
+    validateSearch: (search) => patientsSearchSchema.parse(search),
+    loaderDeps: ({ search }) => ({
+        q: search.q ?? '',
+        page: search.page ?? 1,
+    }),
+    loader: ({ context, deps }) =>
+        context.queryClient.ensureQueryData(patientsQueryOptions(deps)),
+    pendingComponent: () => <TableSkeleton columns={5} />,
+    errorComponent: RouteErrorState,
     component: PacientesPage,
 });
 
 function PacientesPage() {
-    const [q, setQ] = useState('');
-    const [page, setPage] = useState(1);
-    const { data, isPending, isError, error } = usePatients({ q, page });
+    const { q = '' } = Route.useSearch();
+    const navigate = Route.useNavigate();
+    const data = Route.useLoaderData();
 
     function handleSearchChange(value: string) {
-        setQ(value);
-        setPage(1);
+        void navigate({
+            search: (prev) => ({ ...prev, q: value, page: 1 }),
+            replace: true,
+        });
     }
 
     function clearSearch() {
-        setQ('');
-        setPage(1);
+        handleSearchChange('');
+    }
+
+    function handlePageChange(nextPage: number) {
+        void navigate({ search: (prev) => ({ ...prev, page: nextPage }) });
     }
 
     const empty =
@@ -80,23 +99,15 @@ function PacientesPage() {
                 className="max-w-sm"
             />
 
-            {isError && <QueryErrorState error={error} />}
+            <PatientsTable patients={data.data} empty={empty} />
 
-            {!isError && isPending && <TableSkeleton columns={5} />}
-
-            {!isError && !isPending && data && (
-                <>
-                    <PatientsTable patients={data.data} empty={empty} />
-
-                    <DataTablePagination
-                        currentPage={data.meta.current_page}
-                        lastPage={data.meta.last_page}
-                        total={data.meta.total}
-                        label="pacientes"
-                        onPageChange={setPage}
-                    />
-                </>
-            )}
+            <DataTablePagination
+                currentPage={data.meta.current_page}
+                lastPage={data.meta.last_page}
+                total={data.meta.total}
+                label="pacientes"
+                onPageChange={handlePageChange}
+            />
         </div>
     );
 }
