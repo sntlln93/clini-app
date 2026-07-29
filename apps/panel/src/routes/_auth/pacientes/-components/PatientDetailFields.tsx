@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Control } from 'react-hook-form';
 
 import {
@@ -28,6 +29,15 @@ export function PatientDetailFields({
     control,
     insuranceProviders,
 }: PatientDetailFieldsProps) {
+    const insuranceProviderItems = useMemo(
+        () =>
+            insuranceProviders.map((provider) => ({
+                value: String(provider.id),
+                label: provider.name,
+            })),
+        [insuranceProviders],
+    );
+
     return (
         <>
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -83,6 +93,7 @@ export function PatientDetailFields({
                     <FormItem>
                         <FormLabel>Obra social</FormLabel>
                         <Select
+                            items={insuranceProviderItems}
                             value={field.value ? String(field.value) : ''}
                             onValueChange={(value) =>
                                 field.onChange(value ? Number(value) : null)
@@ -94,12 +105,12 @@ export function PatientDetailFields({
                                 <SelectValue placeholder="Sin obra social" />
                             </FormControl>
                             <SelectContent>
-                                {insuranceProviders.map((provider) => (
+                                {insuranceProviderItems.map((item) => (
                                     <SelectItem
-                                        key={provider.id}
-                                        value={String(provider.id)}
+                                        key={item.value}
+                                        value={item.value}
                                     >
-                                        {provider.name}
+                                        {item.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

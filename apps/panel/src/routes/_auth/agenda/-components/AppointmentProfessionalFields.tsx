@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { Control } from 'react-hook-form';
 
 import {
@@ -29,6 +30,25 @@ export function AppointmentProfessionalFields({
     professionals,
     services,
 }: AppointmentProfessionalFieldsProps) {
+    const professionalItems = useMemo(
+        () =>
+            professionals.map((professional) => ({
+                value: String(professional.id),
+                label: professional.user.name ?? professional.user.email,
+            })),
+        [professionals],
+    );
+
+    const serviceItems = useMemo(
+        () =>
+            services.map((service) => ({
+                value: String(service.service_id),
+                label:
+                    service.service_name ?? `Servicio #${service.service_id}`,
+            })),
+        [services],
+    );
+
     return (
         <>
             <FormField
@@ -38,6 +58,7 @@ export function AppointmentProfessionalFields({
                     <FormItem>
                         <FormLabel>Profesional</FormLabel>
                         <Select
+                            items={professionalItems}
                             value={
                                 field.value !== null ? String(field.value) : ''
                             }
@@ -54,13 +75,12 @@ export function AppointmentProfessionalFields({
                                 <SelectValue placeholder="Seleccioná un profesional" />
                             </FormControl>
                             <SelectContent>
-                                {professionals.map((professional) => (
+                                {professionalItems.map((item) => (
                                     <SelectItem
-                                        key={professional.id}
-                                        value={String(professional.id)}
+                                        key={item.value}
+                                        value={item.value}
                                     >
-                                        {professional.user.name ??
-                                            professional.user.email}
+                                        {item.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -77,6 +97,7 @@ export function AppointmentProfessionalFields({
                     <FormItem>
                         <FormLabel>Servicio</FormLabel>
                         <Select
+                            items={serviceItems}
                             value={
                                 field.value !== null ? String(field.value) : ''
                             }
@@ -93,13 +114,12 @@ export function AppointmentProfessionalFields({
                                 <SelectValue placeholder="Seleccioná un servicio" />
                             </FormControl>
                             <SelectContent>
-                                {services.map((service) => (
+                                {serviceItems.map((item) => (
                                     <SelectItem
-                                        key={service.id}
-                                        value={String(service.service_id)}
+                                        key={item.value}
+                                        value={item.value}
                                     >
-                                        {service.service_name ??
-                                            `Servicio #${service.service_id}`}
+                                        {item.label}
                                     </SelectItem>
                                 ))}
                             </SelectContent>

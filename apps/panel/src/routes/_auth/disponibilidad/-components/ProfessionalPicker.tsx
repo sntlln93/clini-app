@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+
 import {
     Select,
     SelectContent,
@@ -23,8 +25,18 @@ export function ProfessionalPicker({
     selectedId,
     onSelect,
 }: ProfessionalPickerProps) {
+    const professionalItems = useMemo(
+        () =>
+            professionals.map((membership) => ({
+                value: String(membership.id),
+                label: membership.user.name ?? membership.user.email,
+            })),
+        [professionals],
+    );
+
     return (
         <Select
+            items={professionalItems}
             value={selectedId !== null ? String(selectedId) : undefined}
             onValueChange={(value) => onSelect(Number(value))}
         >
@@ -32,12 +44,9 @@ export function ProfessionalPicker({
                 <SelectValue placeholder="Seleccioná un profesional" />
             </SelectTrigger>
             <SelectContent>
-                {professionals.map((membership) => (
-                    <SelectItem
-                        key={membership.id}
-                        value={String(membership.id)}
-                    >
-                        {membership.user.name ?? membership.user.email}
+                {professionalItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                        {item.label}
                     </SelectItem>
                 ))}
             </SelectContent>
