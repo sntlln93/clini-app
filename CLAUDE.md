@@ -38,7 +38,7 @@ apps/api/vendor/bin/sail artisan migrate          # first run
 - Panel: <http://localhost:5174>
 - Mailpit (dev mail UI): <http://localhost:8025> — dev mail transport; SMTP on port `1025`. Production uses `MAIL_MAILER=resend` with a `RESEND_API_KEY` environment variable (no real value in the repo).
 
-No demo users/seeders yet — the seeded-data convention (`migrate:fresh --seed`) applies once `database/seeders/DatabaseSeeder.php` has real data.
+`database/seeders/DatabaseSeeder.php` seeds a full literal, deterministic fixture set (two organizations, users/memberships covering every role and status, professionals, patients, scheduling data) — safe to re-run (`php artisan db:seed`) and safe on the production image (no factories/faker). See `docs/architecture/development.md` § Datos de prueba (seeders) for the credentials table and how to seed a deployed environment (manual only, production never seeds automatically).
 
 **TypeScript is pinned to `~6.0.2`** in both `package.json` (root) and `apps/panel/package.json` — deliberately, not an oversight. `typescript-eslint@8.64.0`'s peer dependency caps at `<6.1.0`; bumping to TS 7 breaks ESLint with a hard-to-read `ts-api-utils` crash, not a version-mismatch error. Bump both together only once `typescript-eslint` supports it.
 

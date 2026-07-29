@@ -73,6 +73,35 @@ pisan los reales — se comprobó en la práctica: la API pasó de `8080→80` a
 `80→80`. Siempre `cd apps/api && ./vendor/bin/sail up -d`; para bajar todo,
 mejor `docker compose down` desde la raíz en lugar de `sail down`.
 
+## Datos de prueba (seeders)
+
+`database/seeders/DatabaseSeeder.php` es el único punto de entrada — no hay comandos artisan alternativos ni perfiles/subconjuntos. Es literal y determinístico (sin factories, sin faker, `Model::create`/`firstOrCreate` únicamente), así que corre también sobre la imagen de producción (`composer install --no-dev`) y es re-ejecutable: un `php artisan db:seed` repetido no duplica filas.
+
+Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`) y `Consultorio Dos` (slug `consultorio-dos`) — con estos usuarios. **Contraseña única para todos: `password`** (sin override por variable de entorno).
+
+| Email                          | Organización     | Rol(es)         | Estado      |
+|---------------------------------|------------------|------------------|-------------|
+| `ana.duena@test.com`            | Clínica Modelo   | Owner            | Active      |
+| `bruno.admin@test.com`          | Clínica Modelo   | Admin            | Active      |
+| `carla.profesional@test.com`    | Clínica Modelo   | Professional     | Active      |
+| `carla.profesional@test.com`    | Consultorio Dos  | Professional     | Active      |
+| `diego.profesional@test.com`    | Clínica Modelo   | Professional     | Inactive    |
+| `elena.staff@test.com`          | Clínica Modelo   | Staff            | Active      |
+| `fabian.duenostaff@test.com`    | Clínica Modelo   | Owner + Staff    | Active      |
+| `gabriela.duena@test.com`       | Consultorio Dos  | Owner            | Active      |
+| `hernan.admin@test.com`         | Consultorio Dos  | Admin            | Suspended   |
+| `julian.staff@test.com`         | Consultorio Dos  | Staff            | Active      |
+
+`carla.profesional@test.com` aparece dos veces a propósito: es el único usuario con membresía en ambas organizaciones. Cada organización también queda con pacientes (uno compartido entre ambas vía el pivot `organization_patient`, sin duplicar la fila de `patients`), especialidades/servicios asignados a las membresías profesionales, y disponibilidad/excepciones/turnos/recordatorios con fechas relativas a `now()` (pasado, hoy y futuro).
+
+Sembrar un ambiente ya desplegado es **manual, nunca automático**: `apps/api/docker/entrypoint.sh` corre `php artisan migrate --force` en cada arranque de contenedor, pero jamás `db:seed`. Para sembrar a mano (útil en un ambiente de testing/demo, nunca en producción real con datos de pacientes):
+
+```bash
+apps/api/vendor/bin/sail artisan db:seed --force
+```
+
+`--force` es necesario porque `db:seed` pide confirmación interactiva fuera de `local`/`testing`.
+
 ## Build de producción (verificación local)
 
 ```bash
