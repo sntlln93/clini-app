@@ -23,7 +23,7 @@ function PaginationContent({ className, ...props }: ComponentProps<'ul'>) {
     return (
         <ul
             data-slot="pagination-content"
-            className={cn('flex flex-row items-center gap-1', className)}
+            className={cn('flex items-center gap-0.5', className)}
             {...props}
         />
     );
@@ -60,34 +60,36 @@ function PaginationLink({
 
 function PaginationPrevious({
     className,
+    text = 'Anterior',
     ...props
-}: ComponentProps<typeof PaginationLink>) {
+}: ComponentProps<typeof PaginationLink> & { text?: string }) {
     return (
         <PaginationLink
             aria-label="Ir a la página anterior"
             size="default"
-            className={cn('gap-1 px-2.5', className)}
+            className={cn('pl-1.5!', className)}
             {...props}
         >
-            <ChevronLeftIcon />
-            <span>Anterior</span>
+            <ChevronLeftIcon data-icon="inline-start" />
+            <span className="hidden sm:block">{text}</span>
         </PaginationLink>
     );
 }
 
 function PaginationNext({
     className,
+    text = 'Siguiente',
     ...props
-}: ComponentProps<typeof PaginationLink>) {
+}: ComponentProps<typeof PaginationLink> & { text?: string }) {
     return (
         <PaginationLink
             aria-label="Ir a la página siguiente"
             size="default"
-            className={cn('gap-1 px-2.5', className)}
+            className={cn('pr-1.5!', className)}
             {...props}
         >
-            <span>Siguiente</span>
-            <ChevronRightIcon />
+            <span className="hidden sm:block">{text}</span>
+            <ChevronRightIcon data-icon="inline-end" />
         </PaginationLink>
     );
 }
@@ -97,10 +99,13 @@ function PaginationEllipsis({ className, ...props }: ComponentProps<'span'>) {
         <span
             aria-hidden
             data-slot="pagination-ellipsis"
-            className={cn('flex size-8 items-center justify-center', className)}
+            className={cn(
+                "flex size-8 items-center justify-center [&_svg:not([class*='size-'])]:size-4",
+                className,
+            )}
             {...props}
         >
-            <MoreHorizontalIcon className="size-4" />
+            <MoreHorizontalIcon />
             <span className="sr-only">Más páginas</span>
         </span>
     );
