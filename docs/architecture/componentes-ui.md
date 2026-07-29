@@ -18,7 +18,7 @@ Nunca `--overwrite`: toda corrección de drift real se aplica a mano con un edit
 
 | Componente | Estado tras la auditoría | Divergencias respecto del registry |
 |---|---|---|
-| `alert-dialog` | Drift real corregido | `AlertDialogContent` con prop `size`; clases de `Header`/`Footer`/`Title`/`Description` actualizadas; nuevo subcomponente `AlertDialogMedia`. `AlertDialogAction`/`AlertDialogCancel` **no** se migraron a la composición con `<Button>` del registry (ver detalle abajo) |
+| `alert-dialog` | Drift real corregido | `AlertDialogContent` con prop `size` y `focus-ring` (customización deliberada, ver detalle abajo); clases de `Header`/`Footer`/`Title`/`Description` actualizadas; nuevo subcomponente `AlertDialogMedia`. `AlertDialogAction`/`AlertDialogCancel` **no** se migraron a la composición con `<Button>` del registry (ver detalle abajo) |
 | `avatar` | Sin divergencias | Sólo ruido de formato (orden de imports) |
 | `badge` | Customización deliberada | `focus-ring` en lugar de `focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50` |
 | `breadcrumb` | Drift real corregido | `Breadcrumb` gana passthrough de `className`; `break-words` → `wrap-break-word`; espaciados de `BreadcrumbItem`/`BreadcrumbList` ajustados; `BreadcrumbEllipsis` de `size-9` a `size-5`; iconos renombrados a `ChevronRightIcon`/`MoreHorizontalIcon` |
@@ -43,7 +43,7 @@ Nunca `--overwrite`: toda corrección de drift real se aplica a mano con un edit
 
 ## Detalle de cada customización deliberada
 
-- **`focus-ring` (badge, button, checkbox, dialog, input, select, sheet, switch)**: utilidad propia que reemplaza la repetición de `outline-none focus-visible:border-ring focus-visible:ring-[3px]/[3] focus-visible:ring-ring/50` en cada componente. Preexistente a esta auditoría, con test dedicado (`focus-visible.test.tsx`) y uso en los 8 componentes listados.
+- **`focus-ring` (alert-dialog, badge, button, checkbox, dialog, input, select, sheet, switch)**: utilidad propia que reemplaza la repetición de `outline-none focus-visible:border-ring focus-visible:ring-[3px]/[3] focus-visible:ring-ring/50` en cada componente. Preexistente a esta auditoría, con test dedicado (`focus-visible.test.tsx`) y uso en los 9 componentes listados.
 - **`dropdown-menu` — `focus-ring` condicional en `DropdownMenuTrigger`**: sólo se aplica cuando el trigger no recibe `render`. Documentado en un comentario en el propio archivo: un target de `render` (`Button`, `SidebarMenuButton`) ya trae su propio anillo de foco, y aplicar `focus-ring` también ahí lo duplicaría.
 - **`sonner` — `useTheme` propio**: el proyecto no depende de `next-themes` (no está en `package.json`); en su lugar usa `@/hooks/use-theme`, con su propio proveedor (`src/features/theme/ThemeProvider.tsx`) y su propio toggle (`ThemeToggle.tsx`).
 - **`avatar`, `select`, `switch` — prop `size` propio**; **`dropdown-menu` — prop `variant` propio**: preexistentes a esta auditoría, no tocados por el registry en este ciclo (sin diferencia reportada por `--diff` en esos props puntuales).
