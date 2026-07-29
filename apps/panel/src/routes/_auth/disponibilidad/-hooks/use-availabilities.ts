@@ -1,7 +1,12 @@
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Availability } from '@/types/availability';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 
 type AvailabilitySlotPayload = {
     id?: number;
@@ -22,8 +27,8 @@ function toRequestBody(payload: AvailabilitySlotPayload) {
     };
 }
 
-export function useAvailabilities(membershipId: number) {
-    return useQuery({
+export function availabilitiesQueryOptions(membershipId: number) {
+    return queryOptions({
         queryKey: queryKey(membershipId),
         queryFn: () =>
             api
@@ -36,6 +41,7 @@ export function useAvailabilities(membershipId: number) {
 
 export function useSaveAvailability(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: (payload: AvailabilitySlotPayload) =>
@@ -50,6 +56,7 @@ export function useSaveAvailability(membershipId: number) {
                   ),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
+            void router.invalidate();
         },
     });
 
@@ -62,11 +69,13 @@ export function useSaveAvailability(membershipId: number) {
 
 export function useDeleteAvailability(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: (id: number) => api.delete(`/availabilities/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
+            void router.invalidate();
         },
     });
 }

@@ -9,6 +9,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
+
 const SERVICE: CatalogService = { id: 1, name: 'Consulta general' };
 
 const ASSIGNMENT: ProfessionalService = {
@@ -39,6 +46,7 @@ describe('ProfessionalServiceItem', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
         vi.mocked(api.delete).mockReset();
+        invalidate.mockReset();
     });
 
     it('renders currency as read-only ARS text with no editable control', () => {

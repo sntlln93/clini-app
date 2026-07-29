@@ -1,27 +1,20 @@
-import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
-import { useProfessionals } from '@/hooks/use-professionals';
-import { useCatalogServices } from '../-hooks/use-catalog';
+import type { Membership } from '@/types/membership';
+import type { CatalogService, ProfessionalService } from '@/types/professional';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
 import { ProfessionalServiceRow } from './ProfessionalServiceRow';
 
-export function ProfessionalServicesSection() {
-    const {
-        data: professionals,
-        isPending: isProfessionalsPending,
-        isError: isProfessionalsError,
-        error: professionalsError,
-    } = useProfessionals();
-    const {
-        data: services,
-        isPending: isServicesPending,
-        isError: isServicesError,
-        error: servicesError,
-    } = useCatalogServices();
-    const canManage = useCanManageProfessionalCatalog();
+type ProfessionalServicesSectionProps = {
+    professionals: Membership[];
+    services: CatalogService[];
+    assignedByMembership: Record<number, ProfessionalService[]>;
+};
 
-    const isPending = isProfessionalsPending || isServicesPending;
-    const isError = isProfessionalsError || isServicesError;
+export function ProfessionalServicesSection({
+    professionals,
+    services,
+    assignedByMembership,
+}: ProfessionalServicesSectionProps) {
+    const canManage = useCanManageProfessionalCatalog();
 
     return (
         <section className="space-y-3">
@@ -35,33 +28,19 @@ export function ProfessionalServicesSection() {
                 </p>
             </div>
 
-            {isError && (
-                <QueryErrorState error={professionalsError ?? servicesError} />
+            {professionals.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no hay profesionales en esta organización.
+                </p>
             )}
 
-            {!isError && isPending && <ListSkeleton />}
+            {professionals.length > 0 && services.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no hay servicios en el catálogo.
+                </p>
+            )}
 
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay profesionales en esta organización.
-                    </p>
-                )}
-
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length > 0 &&
-                services &&
-                services.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay servicios en el catálogo.
-                    </p>
-                )}
-
-            {!isError && !isPending && professionals && services && (
+            {professionals.length > 0 && services.length > 0 && (
                 <div className="space-y-3">
                     {professionals.map((membership) => (
                         <ProfessionalServiceRow
@@ -69,6 +48,7 @@ export function ProfessionalServicesSection() {
                             membership={membership}
                             services={services}
                             canManage={canManage(membership)}
+                            assigned={assignedByMembership[membership.id] ?? []}
                         />
                     ))}
                 </div>

@@ -1,7 +1,12 @@
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { ProfessionalService } from '@/types/professional';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 
 type ProfessionalServicePayload = {
     serviceId: number;
@@ -23,8 +28,8 @@ function toRequestBody(payload: ProfessionalServicePayload) {
     };
 }
 
-export function useProfessionalServices(membershipId: number) {
-    return useQuery({
+export function professionalServicesQueryOptions(membershipId: number) {
+    return queryOptions({
         queryKey: queryKey(membershipId),
         queryFn: () =>
             api
@@ -37,6 +42,7 @@ export function useProfessionalServices(membershipId: number) {
 
 export function useAssignProfessionalService(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: (payload: ProfessionalServicePayload) =>
@@ -48,6 +54,7 @@ export function useAssignProfessionalService(membershipId: number) {
             queryClient.invalidateQueries({
                 queryKey: queryKey(membershipId),
             });
+            void router.invalidate();
         },
     });
 
@@ -60,6 +67,7 @@ export function useAssignProfessionalService(membershipId: number) {
 
 export function useUpdateProfessionalService(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: (payload: ProfessionalServicePayload) =>
@@ -71,6 +79,7 @@ export function useUpdateProfessionalService(membershipId: number) {
             queryClient.invalidateQueries({
                 queryKey: queryKey(membershipId),
             });
+            void router.invalidate();
         },
     });
 
@@ -83,6 +92,7 @@ export function useUpdateProfessionalService(membershipId: number) {
 
 export function useRemoveProfessionalService(membershipId: number) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: (serviceId: number) =>
@@ -91,6 +101,7 @@ export function useRemoveProfessionalService(membershipId: number) {
             queryClient.invalidateQueries({
                 queryKey: queryKey(membershipId),
             });
+            void router.invalidate();
         },
     });
 }

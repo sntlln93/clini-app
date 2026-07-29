@@ -1,7 +1,12 @@
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 
 type AppointmentsRange = {
     from: string;
@@ -22,8 +27,8 @@ function queryKey(range: AppointmentsRange) {
     return ['appointments', range.from, range.to, range.membershipId ?? null];
 }
 
-export function useAppointments(range: AppointmentsRange) {
-    return useQuery({
+export function appointmentsQueryOptions(range: AppointmentsRange) {
+    return queryOptions({
         queryKey: queryKey(range),
         queryFn: () =>
             api
@@ -40,6 +45,7 @@ export function useAppointments(range: AppointmentsRange) {
 
 export function useCreateAppointment() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: (payload: CreateAppointmentPayload) =>
@@ -53,6 +59,7 @@ export function useCreateAppointment() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            void router.invalidate();
         },
     });
 
@@ -65,6 +72,7 @@ export function useCreateAppointment() {
 
 export function useUpdateAppointmentStatus() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -76,6 +84,7 @@ export function useUpdateAppointmentStatus() {
         }) => api.patch(`/appointments/${appointmentId}/status`, { status }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            void router.invalidate();
         },
     });
 
@@ -88,6 +97,7 @@ export function useUpdateAppointmentStatus() {
 
 export function useCancelAppointment() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -102,6 +112,7 @@ export function useCancelAppointment() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            void router.invalidate();
         },
     });
 
@@ -114,6 +125,7 @@ export function useCancelAppointment() {
 
 export function useRescheduleAppointment() {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -134,6 +146,7 @@ export function useRescheduleAppointment() {
             }),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['appointments'] });
+            void router.invalidate();
         },
     });
 

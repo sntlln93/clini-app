@@ -1,48 +1,95 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
-import { useProfessionals } from '@/hooks/use-professionals';
-import { useSession } from '@/lib/session';
+import { RouteErrorState } from '@/components/RouteErrorState';
+import { professionalsQueryOptions } from '@/hooks/use-professionals';
+import { sessionQueryOptions, type SessionUser } from '@/lib/session';
+import type { Membership } from '@/types/membership';
 import { createFileRoute } from '@tanstack/react-router';
-import { useState } from 'react';
+import { z } from 'zod';
 import { AvailabilityExceptionsSection } from './-components/AvailabilityExceptionsSection';
 import { ProfessionalPicker } from './-components/ProfessionalPicker';
 import { WeeklyAvailabilitySection } from './-components/WeeklyAvailabilitySection';
+import { availabilitiesQueryOptions } from './-hooks/use-availabilities';
+import { availabilityExceptionsQueryOptions } from './-hooks/use-availability-exceptions';
 import { useAvailabilityPermissions } from './-hooks/use-availability-permissions';
 
+const disponibilidadSearchSchema = z.object({
+    membershipId: z.coerce.number().optional(),
+});
+
+/**
+ * Mirrors `useAvailabilityPermissions`' own-vs-org-wide rule so the default
+ * selection matches what the acting user is allowed to manage, without
+ * pulling a hook into the loader (loaders run outside React).
+ */
+function defaultMembershipId(
+    professionals: Membership[],
+    session: SessionUser | undefined,
+): number | undefined {
+    if (professionals.length === 0) {
+        return undefined;
+    }
+
+    const permissions = session?.permissions ?? [];
+    if (permissions.includes('availability.manage')) {
+        return professionals[0].id;
+    }
+
+    const ownMembership = professionals.find(
+        (membership) => membership.user.id === session?.id,
+    );
+
+    return ownMembership?.id ?? professionals[0].id;
+}
+
 export const Route = createFileRoute('/_auth/disponibilidad/')({
+    validateSearch: (search) => disponibilidadSearchSchema.parse(search),
+    loaderDeps: ({ search }) => ({ membershipId: search.membershipId }),
+    loader: async ({ context, deps }) => {
+        const [session, professionals] = await Promise.all([
+            context.queryClient.ensureQueryData(sessionQueryOptions),
+            context.queryClient.ensureQueryData(professionalsQueryOptions()),
+        ]);
+
+        const selectedId =
+            deps.membershipId !== undefined &&
+            professionals.some(
+                (membership) => membership.id === deps.membershipId,
+            )
+                ? deps.membershipId
+                : defaultMembershipId(professionals, session);
+
+        const [slots, exceptions] =
+            selectedId === undefined
+                ? [[], []]
+                : await Promise.all([
+                      context.queryClient.ensureQueryData(
+                          availabilitiesQueryOptions(selectedId),
+                      ),
+                      context.queryClient.ensureQueryData(
+                          availabilityExceptionsQueryOptions(selectedId),
+                      ),
+                  ]);
+
+        return { professionals, selectedId, slots, exceptions };
+    },
+    pendingComponent: () => <ListSkeleton />,
+    errorComponent: RouteErrorState,
     component: DisponibilidadPage,
 });
 
 function DisponibilidadPage() {
-    const { data: session } = useSession();
-    const {
-        data: professionals,
-        isPending,
-        isError,
-        error,
-    } = useProfessionals();
+    const navigate = Route.useNavigate();
+    const { professionals, selectedId, slots, exceptions } =
+        Route.useLoaderData();
     const { canManageOrgWide, canManage } = useAvailabilityPermissions();
-    const [selectedId, setSelectedId] = useState<number | null>(null);
 
-    const ownMembership = professionals?.find(
-        (membership) => membership.user.id === session?.id,
-    );
-
-    // Adjust state during render instead of an Effect: default the
-    // selection once the professional list loads — the acting user's own
-    // membership when they can only manage their own, otherwise the first
-    // one in the org-wide list.
-    if (selectedId === null && professionals && professionals.length > 0) {
-        setSelectedId(
-            canManageOrgWide
-                ? professionals[0].id
-                : (ownMembership?.id ?? professionals[0].id),
-        );
-    }
-
-    const selectedMembership = professionals?.find(
+    const selectedMembership = professionals.find(
         (membership) => membership.id === selectedId,
     );
+
+    function handleSelect(membershipId: number) {
+        void navigate({ search: (prev) => ({ ...prev, membershipId }) });
+    }
 
     return (
         <div className="space-y-6">
@@ -54,47 +101,39 @@ function DisponibilidadPage() {
                 </p>
             </div>
 
-            {isError && <QueryErrorState error={error} />}
+            {professionals.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no hay profesionales en esta organización.
+                </p>
+            )}
 
-            {!isError && isPending && <ListSkeleton />}
+            {professionals.length > 0 && (
+                <div className="space-y-6">
+                    {canManageOrgWide && (
+                        <ProfessionalPicker
+                            professionals={professionals}
+                            selectedId={selectedId ?? null}
+                            onSelect={handleSelect}
+                        />
+                    )}
 
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay profesionales en esta organización.
-                    </p>
-                )}
-
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length > 0 && (
-                    <div className="space-y-6">
-                        {canManageOrgWide && (
-                            <ProfessionalPicker
-                                professionals={professionals}
-                                selectedId={selectedId}
-                                onSelect={setSelectedId}
+                    {selectedMembership && (
+                        <>
+                            <WeeklyAvailabilitySection
+                                membershipId={selectedMembership.id}
+                                canManage={canManage(selectedMembership)}
+                                slots={slots}
                             />
-                        )}
-
-                        {selectedMembership && (
-                            <>
-                                <WeeklyAvailabilitySection
-                                    membershipId={selectedMembership.id}
-                                    canManage={canManage(selectedMembership)}
-                                />
-                                <AvailabilityExceptionsSection
-                                    membershipId={selectedMembership.id}
-                                    canManageOwn={canManage(selectedMembership)}
-                                    canManageOrgWide={canManageOrgWide}
-                                />
-                            </>
-                        )}
-                    </div>
-                )}
+                            <AvailabilityExceptionsSection
+                                membershipId={selectedMembership.id}
+                                canManageOwn={canManage(selectedMembership)}
+                                canManageOrgWide={canManageOrgWide}
+                                exceptions={exceptions}
+                            />
+                        </>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

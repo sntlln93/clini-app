@@ -2,12 +2,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { extractFormErrors } from '@/lib/form-errors';
-import type { Patient, PatientPayload } from '@/types/patient';
-import { useInsuranceProviders } from '../-hooks/use-insurance-providers';
+import type {
+    InsuranceProvider,
+    Patient,
+    PatientPayload,
+} from '@/types/patient';
 import { usePatientLookup } from '../-hooks/use-patient-lookup';
 import { useSavePatient } from '../-hooks/use-save-patient';
 import { PatientFormFields } from './PatientFormFields';
@@ -15,6 +17,7 @@ import { patientSchema } from './patient-schemas';
 
 type PatientFormProps = {
     patient?: Patient;
+    insuranceProviders: InsuranceProvider[];
 };
 
 function initialValues(patient?: Patient): PatientPayload {
@@ -46,12 +49,7 @@ function valuesFromFoundPatient(found: Patient): PatientPayload {
     };
 }
 
-export function PatientForm({ patient }: PatientFormProps) {
-    const {
-        data: insuranceProviders,
-        isError: isInsuranceProvidersError,
-        error: insuranceProvidersError,
-    } = useInsuranceProviders();
+export function PatientForm({ patient, insuranceProviders }: PatientFormProps) {
     const { mutateAsync } = useSavePatient(patient?.id);
 
     const form = useForm<PatientPayload>({
@@ -128,13 +126,9 @@ export function PatientForm({ patient }: PatientFormProps) {
                     </div>
                 )}
 
-                {isInsuranceProvidersError && (
-                    <QueryErrorState error={insuranceProvidersError} />
-                )}
-
                 <PatientFormFields
                     control={form.control}
-                    insuranceProviders={insuranceProviders ?? []}
+                    insuranceProviders={insuranceProviders}
                 />
 
                 <Button type="submit" disabled={form.formState.isSubmitting}>

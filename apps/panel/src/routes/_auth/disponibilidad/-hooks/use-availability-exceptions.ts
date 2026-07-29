@@ -4,7 +4,12 @@ import type {
     AvailabilityException,
     AvailabilityExceptionType,
 } from '@/types/availability';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
+import { useRouter } from '@tanstack/react-router';
 
 type AvailabilityExceptionPayload = {
     id?: number;
@@ -29,8 +34,10 @@ function toRequestBody(payload: AvailabilityExceptionPayload) {
     };
 }
 
-export function useAvailabilityExceptions(membershipId: number | null) {
-    return useQuery({
+export function availabilityExceptionsQueryOptions(
+    membershipId: number | null,
+) {
+    return queryOptions({
         queryKey: queryKey(membershipId),
         queryFn: () =>
             api
@@ -46,6 +53,7 @@ export function useAvailabilityExceptions(membershipId: number | null) {
 
 export function useSaveAvailabilityException(membershipId: number | null) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     const mutation = useMutation({
         mutationFn: (payload: AvailabilityExceptionPayload) =>
@@ -57,6 +65,7 @@ export function useSaveAvailabilityException(membershipId: number | null) {
                   ),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
+            void router.invalidate();
         },
     });
 
@@ -69,12 +78,14 @@ export function useSaveAvailabilityException(membershipId: number | null) {
 
 export function useDeleteAvailabilityException(membershipId: number | null) {
     const queryClient = useQueryClient();
+    const router = useRouter();
 
     return useMutation({
         mutationFn: (id: number) =>
             api.delete(`/availability-exceptions/${id}`),
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
+            void router.invalidate();
         },
     });
 }

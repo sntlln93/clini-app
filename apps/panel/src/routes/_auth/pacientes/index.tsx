@@ -1,32 +1,87 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { QueryErrorState } from '@/components/QueryErrorState';
+import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { SearchX, Users } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { z } from 'zod';
 import { PatientsTable } from './-components/PatientsTable';
-import { usePatients } from './-hooks/use-patients';
+import { patientsQueryOptions } from './-hooks/use-patients';
+
+const patientsSearchSchema = z.object({
+    q: z.string().optional(),
+    page: z.number().int().min(1).optional(),
+});
+
+// Typing writes `q` to the URL, which re-runs the loader on every
+// keystroke. The global `defaultPendingMs: 0` (`src/main.tsx`, do not
+// change) would otherwise swap the whole page for `pendingComponent` on
+// each character, remounting the search Input and dropping focus. Debouncing
+// the navigate and raising this route's `pendingMs` keeps a normal refetch
+// from ever flashing the skeleton — see ADR 0007.
+const SEARCH_DEBOUNCE_MS = 300;
 
 export const Route = createFileRoute('/_auth/pacientes/')({
+    validateSearch: (search) => patientsSearchSchema.parse(search),
+    loaderDeps: ({ search }) => ({
+        q: search.q ?? '',
+        page: search.page ?? 1,
+    }),
+    loader: ({ context, deps }) =>
+        context.queryClient.ensureQueryData(patientsQueryOptions(deps)),
+    pendingMs: SEARCH_DEBOUNCE_MS,
+    pendingComponent: () => <TableSkeleton columns={5} />,
+    errorComponent: RouteErrorState,
     component: PacientesPage,
 });
 
 function PacientesPage() {
-    const [q, setQ] = useState('');
-    const [page, setPage] = useState(1);
-    const { data, isPending, isError, error } = usePatients({ q, page });
+    const { q = '' } = Route.useSearch();
+    const navigate = Route.useNavigate();
+    const data = Route.useLoaderData();
+
+    // Local echo of `q` for the Input's display value: it follows every
+    // keystroke immediately, while the URL (the source of truth) only
+    // updates once the debounce settles. Adjust-during-render sync (not a
+    // `useEffect`) so an external `q` change — the clear button, browser
+    // back/forward — still reaches it.
+    const [searchValue, setSearchValue] = useState(q);
+    const [syncedQ, setSyncedQ] = useState(q);
+    if (q !== syncedQ) {
+        setSyncedQ(q);
+        setSearchValue(q);
+    }
+
+    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+        undefined,
+    );
+    useEffect(() => () => clearTimeout(debounceRef.current), []);
 
     function handleSearchChange(value: string) {
-        setQ(value);
-        setPage(1);
+        setSearchValue(value);
+        clearTimeout(debounceRef.current);
+        debounceRef.current = setTimeout(() => {
+            void navigate({
+                search: (prev) => ({ ...prev, q: value, page: 1 }),
+                replace: true,
+            });
+        }, SEARCH_DEBOUNCE_MS);
     }
 
     function clearSearch() {
-        setQ('');
-        setPage(1);
+        setSearchValue('');
+        clearTimeout(debounceRef.current);
+        void navigate({
+            search: (prev) => ({ ...prev, q: '', page: 1 }),
+            replace: true,
+        });
+    }
+
+    function handlePageChange(nextPage: number) {
+        void navigate({ search: (prev) => ({ ...prev, page: nextPage }) });
     }
 
     const empty =
@@ -75,28 +130,20 @@ function PacientesPage() {
 
             <Input
                 placeholder="Buscar por nombre o documento…"
-                value={q}
+                value={searchValue}
                 onChange={(event) => handleSearchChange(event.target.value)}
                 className="max-w-sm"
             />
 
-            {isError && <QueryErrorState error={error} />}
+            <PatientsTable patients={data.data} empty={empty} />
 
-            {!isError && isPending && <TableSkeleton columns={5} />}
-
-            {!isError && !isPending && data && (
-                <>
-                    <PatientsTable patients={data.data} empty={empty} />
-
-                    <DataTablePagination
-                        currentPage={data.meta.current_page}
-                        lastPage={data.meta.last_page}
-                        total={data.meta.total}
-                        label="pacientes"
-                        onPageChange={setPage}
-                    />
-                </>
-            )}
+            <DataTablePagination
+                currentPage={data.meta.current_page}
+                lastPage={data.meta.last_page}
+                total={data.meta.total}
+                label="pacientes"
+                onPageChange={handlePageChange}
+            />
         </div>
     );
 }

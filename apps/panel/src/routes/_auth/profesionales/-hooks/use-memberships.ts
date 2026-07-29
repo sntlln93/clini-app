@@ -1,9 +1,9 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions } from '@tanstack/react-query';
 
-export function useMemberships() {
-    return useQuery({
+export function membershipsQueryOptions() {
+    return queryOptions({
         queryKey: ['memberships'],
         queryFn: () =>
             api

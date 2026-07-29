@@ -1,16 +1,22 @@
-import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
-import { useProfessionals } from '@/hooks/use-professionals';
+import type { Membership } from '@/types/membership';
+import type {
+    ProfessionalSpecialty,
+    UserSpecialty,
+} from '@/types/professional';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
 import { ProfessionalSpecialtyRow } from './ProfessionalSpecialtyRow';
 
-export function ProfessionalSpecialtiesSection() {
-    const {
-        data: professionals,
-        isPending,
-        isError,
-        error,
-    } = useProfessionals();
+type ProfessionalSpecialtiesSectionProps = {
+    professionals: Membership[];
+    credentialsByMembership: Record<number, UserSpecialty[]>;
+    assignedByMembership: Record<number, ProfessionalSpecialty[]>;
+};
+
+export function ProfessionalSpecialtiesSection({
+    professionals,
+    credentialsByMembership,
+    assignedByMembership,
+}: ProfessionalSpecialtiesSectionProps) {
     const canManage = useCanManageProfessionalCatalog();
 
     return (
@@ -25,26 +31,24 @@ export function ProfessionalSpecialtiesSection() {
                 </p>
             </div>
 
-            {isError && <QueryErrorState error={error} />}
+            {professionals.length === 0 && (
+                <p className="text-sm text-muted-foreground">
+                    Todavía no hay profesionales en esta organización.
+                </p>
+            )}
 
-            {!isError && isPending && <ListSkeleton />}
-
-            {!isError &&
-                !isPending &&
-                professionals &&
-                professionals.length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                        Todavía no hay profesionales en esta organización.
-                    </p>
-                )}
-
-            {!isError && !isPending && professionals && (
+            {professionals.length > 0 && (
                 <div className="space-y-3">
                     {professionals.map((membership) => (
                         <ProfessionalSpecialtyRow
                             key={membership.id}
                             membership={membership}
                             canManage={canManage(membership)}
+                            credentials={
+                                credentialsByMembership[membership.user.id] ??
+                                []
+                            }
+                            assigned={assignedByMembership[membership.id] ?? []}
                         />
                     ))}
                 </div>

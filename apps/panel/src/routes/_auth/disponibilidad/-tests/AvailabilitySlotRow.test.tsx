@@ -9,6 +9,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
+
 const SLOT: Availability = {
     id: 7,
     membership_id: 3,
@@ -35,6 +42,7 @@ describe('AvailabilitySlotRow', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
         vi.mocked(api.delete).mockReset();
+        invalidate.mockReset();
     });
 
     it('requires confirmation before deleting a slot', async () => {
@@ -52,5 +60,6 @@ describe('AvailabilitySlotRow', () => {
         await waitFor(() =>
             expect(api.delete).toHaveBeenCalledWith('/availabilities/7'),
         );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 });

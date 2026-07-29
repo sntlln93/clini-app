@@ -18,6 +18,12 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
+});
+
 const PROFESSIONAL: Membership = {
     id: 1,
     user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },

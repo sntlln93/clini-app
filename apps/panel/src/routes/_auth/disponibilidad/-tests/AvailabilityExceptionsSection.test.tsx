@@ -9,6 +9,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+const invalidate = vi.fn();
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate }) };
+});
+
 const EXCEPTION: AvailabilityException = {
     id: 12,
     membership_id: 3,
@@ -18,7 +25,7 @@ const EXCEPTION: AvailabilityException = {
     reason: null,
 };
 
-function renderSection() {
+function renderSection(exceptions: AvailabilityException[]) {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
@@ -26,6 +33,7 @@ function renderSection() {
                 membershipId={3}
                 canManageOwn
                 canManageOrgWide={false}
+                exceptions={exceptions}
             />
         </QueryClientProvider>,
     );
@@ -35,14 +43,12 @@ describe('AvailabilityExceptionsSection', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.delete).mockReset();
+        invalidate.mockReset();
     });
 
     it('requires confirmation before deleting an exception', async () => {
-        vi.mocked(api.get).mockResolvedValueOnce({
-            data: { data: [EXCEPTION] },
-        });
         vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
-        renderSection();
+        renderSection([EXCEPTION]);
 
         fireEvent.click(
             await screen.findByRole('button', { name: 'Eliminar' }),
@@ -59,5 +65,6 @@ describe('AvailabilityExceptionsSection', () => {
                 '/availability-exceptions/12',
             ),
         );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 });
