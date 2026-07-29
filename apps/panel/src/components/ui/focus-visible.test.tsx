@@ -8,6 +8,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Select, SelectTrigger } from '@/components/ui/select';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Switch } from '@/components/ui/switch';
 import { render, screen } from '@testing-library/react';
@@ -155,5 +156,16 @@ describe('focus-visible treatment', () => {
         expect(
             screen.getByLabelText('switch-de-prueba').className.split(' '),
         ).toContain('focus-ring');
+    });
+
+    it('applies focus-ring to the SelectTrigger', () => {
+        render(
+            <Select>
+                <SelectTrigger>Elegir</SelectTrigger>
+            </Select>,
+        );
+
+        const trigger = document.querySelector('[data-slot="select-trigger"]');
+        expect(trigger?.className.split(' ')).toContain('focus-ring');
     });
 });
