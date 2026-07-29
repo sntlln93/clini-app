@@ -11,6 +11,7 @@ use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\DeleteMembershipRequest;
+use App\Http\Requests\Memberships\IndexMembershipRequest;
 use App\Http\Requests\Memberships\UpdateMembershipRequest;
 use App\Http\Resources\Memberships\MembershipResource;
 use App\Models\Membership;
@@ -20,14 +21,19 @@ use Illuminate\Support\Facades\Gate;
 
 class MembershipController extends Controller
 {
-    public function index(): AnonymousResourceCollection
+    public function index(IndexMembershipRequest $request): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', Membership::class);
 
+        $perPage = $request->integer('per_page') ?: 15;
+
         $memberships = Membership::withTrashed()
+            ->search($request->string('q')->toString() ?: null)
             ->with('user')
             ->orderBy('created_at')
-            ->get();
+            ->orderBy('id')
+            ->paginate($perPage)
+            ->withQueryString();
 
         return MembershipResource::collection($memberships);
     }

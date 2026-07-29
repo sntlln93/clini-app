@@ -11,6 +11,7 @@ use App\Enums\Permission;
 use App\Support\Concerns\BelongsToOrganization;
 use Database\Factories\MembershipFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -119,5 +120,21 @@ class Membership extends Model
     public function appointments(): HasMany
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    /**
+     * @param  Builder<Membership>  $query
+     * @return Builder<Membership>
+     */
+    public function scopeSearch(Builder $query, ?string $term): Builder
+    {
+        if ($term === null || $term === '') {
+            return $query;
+        }
+
+        return $query->whereHas('user', function (Builder $query) use ($term) {
+            $query->where('name', 'ilike', "%{$term}%")
+                ->orWhere('email', 'ilike', "%{$term}%");
+        });
     }
 }
