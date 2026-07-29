@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 import type { Paginated, Patient } from '@/types/patient';
-import { keepPreviousData, queryOptions } from '@tanstack/react-query';
+import { queryOptions } from '@tanstack/react-query';
 
 type PatientsQueryParams = {
     q: string;
@@ -16,6 +16,5 @@ export function patientsQueryOptions({ q, page }: PatientsQueryParams) {
                     params: { q: q || undefined, page },
                 })
                 .then((response) => response.data),
-        placeholderData: keepPreviousData,
     });
 }
