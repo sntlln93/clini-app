@@ -1,18 +1,22 @@
 import { EmptyState } from '@/components/EmptyState';
-import { QueryErrorState } from '@/components/QueryErrorState';
+import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { UserPlus } from 'lucide-react';
 import { MembersTable } from './-components/MembersTable';
-import { useMemberships } from './-hooks/use-memberships';
+import { membershipsQueryOptions } from './-hooks/use-memberships';
 
 export const Route = createFileRoute('/_auth/profesionales/')({
+    loader: ({ context }) =>
+        context.queryClient.ensureQueryData(membershipsQueryOptions()),
+    pendingComponent: () => <TableSkeleton columns={5} />,
+    errorComponent: RouteErrorState,
     component: ProfesionalesPage,
 });
 
 function ProfesionalesPage() {
-    const { data: memberships, isPending, isError, error } = useMemberships();
+    const memberships = Route.useLoaderData();
 
     const empty = (
         <EmptyState
@@ -42,13 +46,7 @@ function ProfesionalesPage() {
                 </Button>
             </header>
 
-            {isError && <QueryErrorState error={error} />}
-
-            {!isError && isPending && <TableSkeleton columns={5} />}
-
-            {!isError && !isPending && memberships && (
-                <MembersTable memberships={memberships} empty={empty} />
-            )}
+            <MembersTable memberships={memberships} empty={empty} />
         </div>
     );
 }

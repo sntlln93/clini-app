@@ -37,7 +37,7 @@ function MemberRowActions({ membership }: { membership: Membership }) {
                     onSelect: () =>
                         navigate({
                             to: '/profesionales/$id/editar',
-                            params: { id: String(membership.id) },
+                            params: { id: membership.id },
                         }),
                 },
             ]}
