@@ -268,3 +268,38 @@ arch('enums are enums')
 arch('actions and services do not depend on the http layer')
     ->expect(['App\Actions', 'App\Services'])
     ->not->toUse('App\Http');
+
+// --- Seeders: literal, deterministic, factory-free --------------------------
+
+// Acceptance criterion of issue #106: seeders must be literal and
+// deterministic so they run on the production image (composer install
+// --no-dev, no dev dependencies) and are safely re-runnable. Arch
+// expectations can't see method calls like Model::factory(), so this is a
+// content scan, same approach as "controllers do not validate inline"
+// above. No baseline: every offender fails, naming the exact file.
+test('seeders are literal, deterministic and factory-free', function () {
+    $seedersDir = dirname(__DIR__, 2).'/database/seeders';
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($seedersDir, FilesystemIterator::SKIP_DOTS)
+    );
+
+    $forbiddenPrimitives = ['::factory(', '->factory(', 'fake(', 'inRandomOrder(', 'random_int('];
+
+    $offenders = [];
+    foreach ($iterator as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $contents = (string) file_get_contents($file->getPathname());
+
+        foreach ($forbiddenPrimitives as $primitive) {
+            if (str_contains($contents, $primitive)) {
+                $offenders[] = $file->getBasename().' uses '.$primitive;
+            }
+        }
+    }
+
+    sort($offenders);
+    expect($offenders)->toBe([], 'These seeder files use a non-deterministic or factory-based primitive: '.implode(', ', $offenders));
+});
