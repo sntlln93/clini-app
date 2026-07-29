@@ -1,13 +1,8 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { ListSkeleton } from '@/components/ListSkeleton';
-import { QueryErrorState } from '@/components/QueryErrorState';
 import { Button } from '@/components/ui/button';
 import type { AvailabilityException } from '@/types/availability';
 import { useState } from 'react';
-import {
-    useAvailabilityExceptions,
-    useDeleteAvailabilityException,
-} from '../-hooks/use-availability-exceptions';
+import { useDeleteAvailabilityException } from '../-hooks/use-availability-exceptions';
 import { AvailabilityExceptionForm } from './AvailabilityExceptionForm';
 
 const TYPE_LABELS: Record<AvailabilityException['type'], string> = {
@@ -19,19 +14,15 @@ type AvailabilityExceptionsSectionProps = {
     membershipId: number;
     canManageOwn: boolean;
     canManageOrgWide: boolean;
+    exceptions: AvailabilityException[];
 };
 
 export function AvailabilityExceptionsSection({
     membershipId,
     canManageOwn,
     canManageOrgWide,
+    exceptions,
 }: AvailabilityExceptionsSectionProps) {
-    const {
-        data: exceptions,
-        isPending,
-        isError,
-        error,
-    } = useAvailabilityExceptions(membershipId);
     const remove = useDeleteAvailabilityException(membershipId);
     const [editing, setEditing] = useState<AvailabilityException | null>(null);
     const [isCreating, setIsCreating] = useState(false);
@@ -59,10 +50,6 @@ export function AvailabilityExceptionsSection({
                 )}
             </div>
 
-            {isError && <QueryErrorState error={error} />}
-
-            {!isError && isPending && <ListSkeleton />}
-
             {isCreating && (
                 <AvailabilityExceptionForm
                     membershipId={membershipId}
@@ -71,17 +58,13 @@ export function AvailabilityExceptionsSection({
                 />
             )}
 
-            {!isError &&
-                !isPending &&
-                exceptions &&
-                exceptions.length === 0 &&
-                !isCreating && (
-                    <p className="text-sm text-muted-foreground">
-                        No hay excepciones cargadas.
-                    </p>
-                )}
+            {exceptions.length === 0 && !isCreating && (
+                <p className="text-sm text-muted-foreground">
+                    No hay excepciones cargadas.
+                </p>
+            )}
 
-            {!isError && !isPending && exceptions && (
+            {exceptions.length > 0 && (
                 <div className="space-y-2">
                     {exceptions.map((exception) =>
                         editing?.id === exception.id ? (
