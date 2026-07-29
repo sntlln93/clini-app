@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\Organization;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
 /**
@@ -29,5 +31,26 @@ class DatabaseSeeder extends Seeder
         $this->call(OrganizationsSeeder::class);
         $this->call(InsuranceProviderSeeder::class);
         $this->call(CatalogSeeder::class);
+
+        foreach ($this->fixtureOrganizations() as $organization) {
+            $this->callWith(ProfessionalsSeeder::class, ['organization' => $organization]);
+            $this->callWith(PatientsSeeder::class, ['organization' => $organization]);
+        }
+    }
+
+    /**
+     * The two organizations OrganizationsSeeder just created/found, looked
+     * up by slug rather than threading a return value through
+     * $this->call() (Illuminate\Database\Seeder::call() returns $this, not
+     * run()'s result).
+     *
+     * @return Collection<int, Organization>
+     */
+    private function fixtureOrganizations(): Collection
+    {
+        return Organization::whereIn('slug', [
+            OrganizationsSeeder::ORGANIZATION_A_SLUG,
+            OrganizationsSeeder::ORGANIZATION_B_SLUG,
+        ])->orderBy('id')->get();
     }
 }
