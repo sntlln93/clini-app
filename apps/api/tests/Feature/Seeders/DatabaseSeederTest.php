@@ -2,196 +2,233 @@
 
 declare(strict_types=1);
 
+use App\Enums\AppointmentStatus;
+use App\Enums\AvailabilityExceptionType;
+use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Models\Appointment;
+use App\Models\Availability;
+use App\Models\AvailabilityException;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
-use App\Models\Specialty;
+use App\Models\Reminder;
 use App\Models\User;
 use App\Models\UserSpecialty;
 use Database\Seeders\DatabaseSeeder;
-use Database\Seeders\ProfessionalsSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
-test('Test User ends up with exactly one active membership in exactly one organization', function () {
+test('re-seeding leaves every fixture table with identical row counts', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $user = User::where('email', 'test@example.com')->firstOrFail();
-
-    $memberships = $user->memberships;
-
-    expect($memberships)->toHaveCount(1);
-    expect($memberships->pluck('organization_id')->unique())->toHaveCount(1);
-    expect($memberships->first()->status)->toBe(MembershipStatus::Active);
-});
-
-test('an authenticated Test User can list patients instead of getting a 403 from the organization middleware', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $user = User::where('email', 'test@example.com')->firstOrFail();
-
-    $response = $this->actingAs($user)->getJson('/api/v1/patients');
-
-    $response->assertOk();
-});
-
-test('DatabaseSeeder creates the five fixture users with exactly one active membership each in Test Organization', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $organization = Organization::where('name', 'Test Organization')->firstOrFail();
-
-    $emails = [
-        'prof1@test.com',
-        'prof2@test.com',
-        'owner@test.com',
-        'staff@test.com',
-        'owner+staff@test.com',
+    $countRows = fn (): array => [
+        'organizations' => Organization::count(),
+        'users' => User::count(),
+        'memberships' => Membership::count(),
+        'patients' => Patient::count(),
+        'organization_patient' => DB::table('organization_patient')->count(),
+        'availabilities' => Availability::count(),
+        'availability_exceptions' => AvailabilityException::count(),
+        // Appointment soft-deletes: an earlier bug in this branch made
+        // re-seeding accumulate soft-deleted rows instead of clearing them.
+        'appointments' => Appointment::withTrashed()->count(),
+        'reminders' => Reminder::count(),
     ];
 
-    foreach ($emails as $email) {
-        $user = User::where('email', $email)->firstOrFail();
+    $countsBefore = $countRows();
 
-        $memberships = $user->memberships;
+    $this->seed(DatabaseSeeder::class);
 
-        expect($memberships)->toHaveCount(1);
-        expect($memberships->first()->organization_id)->toBe($organization->id);
-        expect($memberships->first()->status)->toBe(MembershipStatus::Active);
+    expect($countRows())->toBe($countsBefore);
+});
+
+test('the two fixture organizations exist by slug', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $clinicaModelo = Organization::where('slug', 'clinica-modelo')->firstOrFail();
+    $consultorioDos = Organization::where('slug', 'consultorio-dos')->firstOrFail();
+
+    expect($clinicaModelo->name)->toBe('Clínica Modelo');
+    expect($consultorioDos->name)->toBe('Consultorio Dos');
+});
+
+test('every documented user has the expected membership per organization', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $clinicaModelo = Organization::where('slug', 'clinica-modelo')->firstOrFail();
+    $consultorioDos = Organization::where('slug', 'consultorio-dos')->firstOrFail();
+
+    $expectations = [
+        ['email' => 'ana.duena@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Owner], 'status' => MembershipStatus::Active],
+        ['email' => 'bruno.admin@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Admin], 'status' => MembershipStatus::Active],
+        ['email' => 'carla.profesional@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Professional], 'status' => MembershipStatus::Active],
+        ['email' => 'carla.profesional@test.com', 'organization' => $consultorioDos, 'roles' => [MembershipRole::Professional], 'status' => MembershipStatus::Active],
+        ['email' => 'diego.profesional@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Professional], 'status' => MembershipStatus::Inactive],
+        ['email' => 'elena.staff@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Staff], 'status' => MembershipStatus::Active],
+        ['email' => 'fabian.duenostaff@test.com', 'organization' => $clinicaModelo, 'roles' => [MembershipRole::Owner, MembershipRole::Staff], 'status' => MembershipStatus::Active],
+        ['email' => 'gabriela.duena@test.com', 'organization' => $consultorioDos, 'roles' => [MembershipRole::Owner], 'status' => MembershipStatus::Active],
+        ['email' => 'hernan.admin@test.com', 'organization' => $consultorioDos, 'roles' => [MembershipRole::Admin], 'status' => MembershipStatus::Suspended],
+        ['email' => 'julian.staff@test.com', 'organization' => $consultorioDos, 'roles' => [MembershipRole::Staff], 'status' => MembershipStatus::Active],
+    ];
+
+    foreach ($expectations as $expectation) {
+        $user = User::where('email', $expectation['email'])->firstOrFail();
+
+        $membership = Membership::where('user_id', $user->id)
+            ->where('organization_id', $expectation['organization']->id)
+            ->firstOrFail();
+
+        expect($membership->roles)->toBe($expectation['roles']);
+        expect($membership->status)->toBe($expectation['status']);
     }
 });
 
-test('the fixture memberships carry the expected roles', function () {
+test('every MembershipRole and MembershipStatus case appears in at least one seeded membership', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $expectedRoles = [
-        'prof1@test.com' => [MembershipRole::Professional],
-        'prof2@test.com' => [MembershipRole::Professional],
-        'owner@test.com' => [MembershipRole::Owner],
-        'staff@test.com' => [MembershipRole::Staff],
-        'owner+staff@test.com' => [MembershipRole::Owner, MembershipRole::Staff],
-    ];
+    $memberships = Membership::all();
+    $seededRoles = $memberships->flatMap(fn (Membership $membership): array => $membership->roles);
+    $seededStatuses = $memberships->pluck('status');
 
-    foreach ($expectedRoles as $email => $roles) {
-        $user = User::where('email', $email)->firstOrFail();
+    foreach (MembershipRole::cases() as $role) {
+        expect($seededRoles->contains($role))->toBeTrue("missing a seeded membership with role {$role->value}");
+    }
 
-        expect($user->memberships->first()->roles)->toBe($roles);
+    foreach (MembershipStatus::cases() as $status) {
+        expect($seededStatuses->contains($status))->toBeTrue("missing a seeded membership with status {$status->value}");
     }
 });
 
-test('every fixture user shares the dev password', function () {
+test('carla.profesional is the cross-organization user with a membership in both organizations', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $emails = [
-        'prof1@test.com',
-        'prof2@test.com',
-        'owner@test.com',
-        'staff@test.com',
-        'owner+staff@test.com',
-    ];
+    $carla = User::where('email', 'carla.profesional@test.com')->firstOrFail();
 
-    foreach ($emails as $email) {
-        $user = User::where('email', $email)->firstOrFail();
+    $organizationIds = $carla->memberships->pluck('organization_id')->unique();
 
+    expect($organizationIds)->toHaveCount(2);
+});
+
+test('every seeded user password verifies against the shared dev password', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    foreach (User::all() as $user) {
         expect(Hash::check('password', $user->password))->toBeTrue();
     }
 });
 
-test('prof1 and prof2 each get between one and two catalog-backed user_specialties', function () {
+test('an authenticated active owner of clinica-modelo can list patients', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $catalogSpecialtyIds = Specialty::pluck('id');
+    $owner = User::where('email', 'ana.duena@test.com')->firstOrFail();
 
-    foreach (['prof1@test.com', 'prof2@test.com'] as $email) {
-        $user = User::where('email', $email)->firstOrFail();
+    $response = $this->actingAs($owner)->getJson('/api/v1/patients');
 
-        $specialtyIds = UserSpecialty::where('user_id', $user->id)->pluck('specialty_id');
-
-        expect($specialtyIds->count())->toBeGreaterThanOrEqual(1);
-        expect($specialtyIds->count())->toBeLessThanOrEqual(2);
-
-        foreach ($specialtyIds as $specialtyId) {
-            expect($catalogSpecialtyIds->contains($specialtyId))->toBeTrue();
-        }
-    }
-});
-
-test("prof1's org-level specialty assignments are credential-backed by their user_specialties", function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $prof1 = User::where('email', 'prof1@test.com')->firstOrFail();
-    $membership = $prof1->memberships->first();
-
-    $orgSpecialtyIds = ProfessionalSpecialty::where('membership_id', $membership->id)->pluck('specialty_id');
-    $credentialSpecialtyIds = UserSpecialty::where('user_id', $prof1->id)->pluck('specialty_id');
-
-    expect($orgSpecialtyIds->count())->toBeGreaterThanOrEqual(1);
-
-    foreach ($orgSpecialtyIds as $specialtyId) {
-        expect($credentialSpecialtyIds->contains($specialtyId))->toBeTrue();
-    }
-});
-
-test("prof1's membership has at least one valid professional_services row", function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $prof1 = User::where('email', 'prof1@test.com')->firstOrFail();
-    $membership = $prof1->memberships->first();
-
-    $services = ProfessionalService::where('membership_id', $membership->id)->get();
-
-    expect($services->count())->toBeGreaterThanOrEqual(1);
-
-    foreach ($services as $service) {
-        expect($service->duration_minutes)->toBeGreaterThan(0);
-        expect($service->price_cents)->toBeGreaterThan(0);
-        expect($service->currency)->toBe('ARS');
-    }
-});
-
-test('DatabaseSeeder seeds between 15 and 20 patients all attached to Test Organization', function () {
-    $this->seed(DatabaseSeeder::class);
-
-    $organization = Organization::where('name', 'Test Organization')->firstOrFail();
-
-    $patients = $organization->patients;
-
-    expect($patients->count())->toBeGreaterThanOrEqual(15);
-    expect($patients->count())->toBeLessThanOrEqual(20);
+    $response->assertOk();
 });
 
 test('the seeded patients include at least one with an insurance provider and at least one without', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $organization = Organization::where('name', 'Test Organization')->firstOrFail();
+    $patients = Patient::all();
 
-    $patients = $organization->patients;
-
-    expect($patients->contains(fn ($patient): bool => $patient->insurance_provider_id !== null))->toBeTrue();
-    expect($patients->contains(fn ($patient): bool => $patient->insurance_provider_id === null))->toBeTrue();
+    expect($patients->contains(fn (Patient $patient): bool => $patient->insurance_provider_id !== null))->toBeTrue();
+    expect($patients->contains(fn (Patient $patient): bool => $patient->insurance_provider_id === null))->toBeTrue();
 });
 
-test('every seeded patient is attributed to Test User as its creator', function () {
+test('the patient shared by both organizations is a single row linked through the organization_patient pivot', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $testUser = User::where('email', 'test@example.com')->firstOrFail();
-    $organization = Organization::where('name', 'Test Organization')->firstOrFail();
+    $patients = Patient::where('document_type', DocumentType::Dni)
+        ->where('document_number', '30111222')
+        ->get();
 
-    $patients = $organization->patients;
+    expect($patients)->toHaveCount(1);
 
-    foreach ($patients as $patient) {
-        expect($patient->created_by)->toBe($testUser->id);
+    $organizationSlugs = $patients->first()->organizations->pluck('slug')->sort()->values()->all();
+
+    expect($organizationSlugs)->toBe(['clinica-modelo', 'consultorio-dos']);
+});
+
+test('every professional membership has specialties and services, credential-backed by user_specialties', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $professionalMemberships = Membership::all()
+        ->filter(fn (Membership $membership): bool => in_array(MembershipRole::Professional, $membership->roles, true));
+
+    expect($professionalMemberships)->not->toBeEmpty();
+
+    foreach ($professionalMemberships as $membership) {
+        $specialtyAssignments = ProfessionalSpecialty::where('membership_id', $membership->id)->get();
+        $serviceAssignments = ProfessionalService::where('membership_id', $membership->id)->get();
+
+        expect($specialtyAssignments)->not->toBeEmpty();
+        expect($serviceAssignments)->not->toBeEmpty();
+
+        foreach ($specialtyAssignments as $assignment) {
+            $hasCredential = UserSpecialty::where('user_id', $membership->user_id)
+                ->where('specialty_id', $assignment->specialty_id)
+                ->exists();
+
+            expect($hasCredential)->toBeTrue();
+        }
     }
 });
 
-test('re-invoking ProfessionalsSeeder for the same organization does not duplicate fixtures', function () {
+test('both AvailabilityExceptionType cases appear among the seeded exceptions', function () {
     $this->seed(DatabaseSeeder::class);
 
-    $organization = Organization::where('name', 'Test Organization')->firstOrFail();
-    $membershipCountBefore = Membership::where('organization_id', $organization->id)->count();
+    $seededTypes = AvailabilityException::pluck('type');
 
-    app(ProfessionalsSeeder::class)->run($organization);
+    foreach (AvailabilityExceptionType::cases() as $type) {
+        expect($seededTypes->contains($type))->toBeTrue("missing a seeded availability exception of type {$type->value}");
+    }
+});
 
-    expect(User::where('email', 'prof1@test.com')->count())->toBe(1);
-    expect(Membership::where('organization_id', $organization->id)->count())->toBe($membershipCountBefore);
+test('every AppointmentStatus case appears in at least one seeded appointment', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $seededStatuses = Appointment::withTrashed()->pluck('status');
+
+    foreach (AppointmentStatus::cases() as $status) {
+        expect($seededStatuses->contains($status))->toBeTrue("missing a seeded appointment with status {$status->value}");
+    }
+});
+
+test('at least one appointment is cancelled and at least one has a resolvable rescheduled_from_id', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Appointment::withTrashed()->where('status', AppointmentStatus::Cancelled)->exists())->toBeTrue();
+
+    $rescheduled = Appointment::withTrashed()->whereNotNull('rescheduled_from_id')->first();
+
+    expect($rescheduled)->not->toBeNull();
+    expect(Appointment::withTrashed()->whereKey($rescheduled->rescheduled_from_id)->exists())->toBeTrue();
+});
+
+test('seeded appointments span past, today and future relative to now', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $appointments = Appointment::withTrashed()->get();
+
+    expect($appointments->contains(fn (Appointment $appointment): bool => $appointment->start_at->lt(now())))->toBeTrue();
+    expect($appointments->contains(fn (Appointment $appointment): bool => $appointment->start_at->isToday()))->toBeTrue();
+    expect($appointments->contains(fn (Appointment $appointment): bool => $appointment->start_at->gt(now())))->toBeTrue();
+});
+
+test('re-seeding never touches an organization outside the fixture', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $foreignOrganization = Organization::factory()->create();
+    $foreignAvailability = Availability::factory()->create(['organization_id' => $foreignOrganization->id]);
+    $foreignAppointment = Appointment::factory()->create(['organization_id' => $foreignOrganization->id]);
+
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Availability::find($foreignAvailability->id))->not->toBeNull();
+    expect(Appointment::find($foreignAppointment->id))->not->toBeNull();
 });
