@@ -1,9 +1,9 @@
 import { api } from '@/lib/api';
 import type { InsuranceProvider } from '@/types/patient';
-import { useQuery } from '@tanstack/react-query';
+import { queryOptions } from '@tanstack/react-query';
 
-export function useInsuranceProviders() {
-    return useQuery({
+export function insuranceProvidersQueryOptions() {
+    return queryOptions({
         queryKey: ['insurance-providers'],
         queryFn: () =>
             api

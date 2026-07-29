@@ -1,26 +1,39 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
+import { RouteErrorState } from '@/components/RouteErrorState';
 import { createFileRoute } from '@tanstack/react-router';
 import { PatientForm } from './-components/PatientForm';
-import { usePatient } from './-hooks/use-patient';
+import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers';
+import { patientQueryOptions } from './-hooks/use-patient';
 
 export const Route = createFileRoute('/_auth/pacientes/$id/editar')({
+    params: {
+        parse: (rawParams) => ({ id: Number(rawParams.id) }),
+    },
+    loader: async ({ context, params }) => {
+        const [patient, insuranceProviders] = await Promise.all([
+            context.queryClient.ensureQueryData(patientQueryOptions(params.id)),
+            context.queryClient.ensureQueryData(
+                insuranceProvidersQueryOptions(),
+            ),
+        ]);
+
+        return { patient, insuranceProviders };
+    },
+    pendingComponent: () => <ListSkeleton />,
+    errorComponent: RouteErrorState,
     component: EditarPacientePage,
 });
 
 function EditarPacientePage() {
-    const { id } = Route.useParams();
-    const { data: patient, isPending } = usePatient(Number(id));
+    const { patient, insuranceProviders } = Route.useLoaderData();
 
     return (
         <div className="space-y-6">
             <h1 className="text-2xl font-semibold">Editar paciente</h1>
-            {isPending && <ListSkeleton />}
-            {!isPending && !patient && (
-                <p className="text-sm text-muted-foreground">
-                    No se encontró el paciente.
-                </p>
-            )}
-            {patient && <PatientForm patient={patient} />}
+            <PatientForm
+                patient={patient}
+                insuranceProviders={insuranceProviders}
+            />
         </div>
     );
 }

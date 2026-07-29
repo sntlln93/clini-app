@@ -29,7 +29,7 @@ function PatientRowActions({ patient }: { patient: Patient }) {
                     onSelect: () =>
                         navigate({
                             to: '/pacientes/$id/editar',
-                            params: { id: String(patient.id) },
+                            params: { id: patient.id },
                         }),
                 },
             ]}
