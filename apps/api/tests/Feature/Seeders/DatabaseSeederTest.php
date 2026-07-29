@@ -189,6 +189,32 @@ test('both AvailabilityExceptionType cases appear among the seeded exceptions', 
     }
 });
 
+test('each fixture organization schedules its active professional, not its inactive one', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $clinicaModelo = Organization::where('slug', 'clinica-modelo')->firstOrFail();
+    $consultorioDos = Organization::where('slug', 'consultorio-dos')->firstOrFail();
+
+    $carla = User::where('email', 'carla.profesional@test.com')->firstOrFail();
+    $diego = User::where('email', 'diego.profesional@test.com')->firstOrFail();
+
+    $carlaAtClinicaModelo = Membership::where('user_id', $carla->id)
+        ->where('organization_id', $clinicaModelo->id)
+        ->firstOrFail();
+
+    $carlaAtConsultorioDos = Membership::where('user_id', $carla->id)
+        ->where('organization_id', $consultorioDos->id)
+        ->firstOrFail();
+
+    $diegoAtClinicaModelo = Membership::where('user_id', $diego->id)
+        ->where('organization_id', $clinicaModelo->id)
+        ->firstOrFail();
+
+    expect(Availability::where('membership_id', $carlaAtClinicaModelo->id)->count())->toBeGreaterThan(0);
+    expect(Availability::where('membership_id', $carlaAtConsultorioDos->id)->count())->toBeGreaterThan(0);
+    expect(Availability::where('membership_id', $diegoAtClinicaModelo->id)->count())->toBe(0);
+});
+
 test('every AppointmentStatus case appears in at least one seeded appointment', function () {
     $this->seed(DatabaseSeeder::class);
 

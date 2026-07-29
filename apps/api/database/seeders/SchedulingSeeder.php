@@ -8,6 +8,7 @@ use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
 use App\Enums\AvailabilityExceptionType;
 use App\Enums\MembershipRole;
+use App\Enums\MembershipStatus;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Models\Appointment;
@@ -40,13 +41,18 @@ class SchedulingSeeder extends Seeder
     {
         $this->clearFixtureRows($organization);
 
-        $professionalMemberships = Membership::where('organization_id', $organization->id)
+        // Only an Active professional membership gets a schedule: an
+        // Inactive one (e.g. diego.profesional@test.com) deliberately has
+        // none, so this filter — not insertion order — decides who is
+        // picked.
+        $activeProfessionalMemberships = Membership::where('organization_id', $organization->id)
+            ->where('status', MembershipStatus::Active)
             ->orderBy('id')
             ->get()
             ->filter(fn (Membership $membership): bool => in_array(MembershipRole::Professional, $membership->roles, true))
             ->values();
 
-        $membership = $professionalMemberships->first();
+        $membership = $activeProfessionalMemberships->first();
 
         if ($membership === null) {
             return;
