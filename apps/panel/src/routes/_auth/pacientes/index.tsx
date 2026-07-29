@@ -3,10 +3,9 @@ import { EmptyState } from '@/components/EmptyState';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { SEARCH_DEBOUNCE_MS, Searchbar } from '@/features/Searchbar';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { SearchX, Users } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
 import { z } from 'zod';
 import { PatientsTable } from './-components/PatientsTable';
 import { patientsQueryOptions } from './-hooks/use-patients';
@@ -15,14 +14,6 @@ const patientsSearchSchema = z.object({
     q: z.string().optional(),
     page: z.number().int().min(1).optional(),
 });
-
-// Typing writes `q` to the URL, which re-runs the loader on every
-// keystroke. The global `defaultPendingMs: 0` (`src/main.tsx`, do not
-// change) would otherwise swap the whole page for `pendingComponent` on
-// each character, remounting the search Input and dropping focus. Debouncing
-// the navigate and raising this route's `pendingMs` keeps a normal refetch
-// from ever flashing the skeleton — see ADR 0007.
-const SEARCH_DEBOUNCE_MS = 300;
 
 export const Route = createFileRoute('/_auth/pacientes/')({
     validateSearch: (search) => patientsSearchSchema.parse(search),
@@ -43,37 +34,14 @@ function PacientesPage() {
     const navigate = Route.useNavigate();
     const data = Route.useLoaderData();
 
-    // Local echo of `q` for the Input's display value: it follows every
-    // keystroke immediately, while the URL (the source of truth) only
-    // updates once the debounce settles. Adjust-during-render sync (not a
-    // `useEffect`) so an external `q` change — the clear button, browser
-    // back/forward — still reaches it.
-    const [searchValue, setSearchValue] = useState(q);
-    const [syncedQ, setSyncedQ] = useState(q);
-    if (q !== syncedQ) {
-        setSyncedQ(q);
-        setSearchValue(q);
-    }
-
-    const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-        undefined,
-    );
-    useEffect(() => () => clearTimeout(debounceRef.current), []);
-
-    function handleSearchChange(value: string) {
-        setSearchValue(value);
-        clearTimeout(debounceRef.current);
-        debounceRef.current = setTimeout(() => {
-            void navigate({
-                search: (prev) => ({ ...prev, q: value, page: 1 }),
-                replace: true,
-            });
-        }, SEARCH_DEBOUNCE_MS);
+    function handleSearch(value: string) {
+        void navigate({
+            search: (prev) => ({ ...prev, q: value, page: 1 }),
+            replace: true,
+        });
     }
 
     function clearSearch() {
-        setSearchValue('');
-        clearTimeout(debounceRef.current);
         void navigate({
             search: (prev) => ({ ...prev, q: '', page: 1 }),
             replace: true,
@@ -128,10 +96,10 @@ function PacientesPage() {
                 </Button>
             </header>
 
-            <Input
+            <Searchbar
+                value={q}
+                onSearch={handleSearch}
                 placeholder="Buscar por nombre o documento…"
-                value={searchValue}
-                onChange={(event) => handleSearchChange(event.target.value)}
                 className="max-w-sm"
             />
 

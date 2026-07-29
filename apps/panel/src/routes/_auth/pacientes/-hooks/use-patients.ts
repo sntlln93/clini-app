@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
-import type { Paginated, Patient } from '@/types/patient';
+import type { Paginated } from '@/types/pagination';
+import type { Patient } from '@/types/patient';
 import { queryOptions } from '@tanstack/react-query';
 
 type PatientsQueryParams = {

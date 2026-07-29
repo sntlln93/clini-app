@@ -31,19 +31,3 @@ export type PatientPayload = {
     birth_date: string;
     insurance_provider_id: number | null;
 };
-
-export type Paginated<T> = {
-    data: T[];
-    meta: {
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-    };
-    links: {
-        first: string | null;
-        last: string | null;
-        prev: string | null;
-        next: string | null;
-    };
-};
