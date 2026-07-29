@@ -9,7 +9,13 @@ export const Route = createFileRoute('/_auth/profesionales/$id/editar')({
         parse: (rawParams) => ({ id: Number(rawParams.id) }),
     },
     loader: ({ context }) =>
-        context.queryClient.ensureQueryData(membershipsQueryOptions()),
+        // Stopgap: resolves the membership by id from a single, capped-size
+        // page instead of a dedicated show endpoint. 100 is
+        // IndexMembershipRequest's validated maximum. Follow-up: a real
+        // GET /api/v1/memberships/{membership} endpoint (filed separately).
+        context.queryClient.ensureQueryData(
+            membershipsQueryOptions({ q: '', page: 1, per_page: 100 }),
+        ),
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
     component: EditarProfesionalPage,
@@ -18,7 +24,9 @@ export const Route = createFileRoute('/_auth/profesionales/$id/editar')({
 function EditarProfesionalPage() {
     const { id } = Route.useParams();
     const memberships = Route.useLoaderData();
-    const membership = memberships.find((candidate) => candidate.id === id);
+    const membership = memberships.data.find(
+        (candidate) => candidate.id === id,
+    );
 
     return (
         <div className="space-y-6">
