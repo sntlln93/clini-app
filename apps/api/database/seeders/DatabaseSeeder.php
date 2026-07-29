@@ -35,6 +35,7 @@ class DatabaseSeeder extends Seeder
         foreach ($this->fixtureOrganizations() as $organization) {
             $this->callWith(ProfessionalsSeeder::class, ['organization' => $organization]);
             $this->callWith(PatientsSeeder::class, ['organization' => $organization]);
+            $this->callWith(SchedulingSeeder::class, ['organization' => $organization]);
         }
     }
 
