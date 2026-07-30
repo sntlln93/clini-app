@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentType;
+use App\Enums\ErrorCode;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Support\CurrentOrganization;
@@ -40,13 +41,14 @@ test('lookup does not link the resolved patient to the active organization', fun
     expect(DB::table('organization_patient')->where('patient_id', $patient->id)->count())->toBe(0);
 });
 
-test('lookup returns 404 for an unknown pair', function () {
+test('lookup returns 404 with the patients-not-found domain error for an unknown pair', function () {
     $membership = Membership::factory()->create();
 
     $response = $this->actingAs($membership->user)
         ->getJson('/api/v1/patients/lookup?document_type=dni&document_number=00000001');
 
     $response->assertStatus(404);
+    $response->assertJsonPath('error.code', ErrorCode::PatientsNotFound->value);
 });
 
 test('lookup returns 422 when document_type or document_number is missing', function () {

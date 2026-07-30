@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ErrorCode;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Mail\Memberships\MembershipInvitationMail;
@@ -149,14 +150,14 @@ test('showing a valid token whose email already belongs to a user reports regist
     expect($response->json('requires_registration'))->toBeFalse();
 });
 
-test('showing an invalid token returns a Spanish error that does not reveal whether the email is registered', function () {
+test('showing an invalid token returns the invitation domain error, which does not reveal whether the email is registered', function () {
     $response = $this->getJson('/api/v1/invitations/'.Str::random(40));
 
     $response->assertStatus(404);
-    expect($response->json('message'))->toBe('La invitación no es válida o ya expiró.');
+    $response->assertJsonPath('error.code', ErrorCode::MembershipsInvitationInvalidOrExpired->value);
 });
 
-test('showing an expired token returns a Spanish error', function () {
+test('showing an expired token returns the invitation domain error', function () {
     $rawToken = Str::random(40);
     MembershipInvitation::factory()->expired()->create([
         'token' => hash('sha256', $rawToken),
@@ -165,10 +166,10 @@ test('showing an expired token returns a Spanish error', function () {
     $response = $this->getJson('/api/v1/invitations/'.$rawToken);
 
     $response->assertStatus(404);
-    expect($response->json('message'))->toBe('La invitación no es válida o ya expiró.');
+    $response->assertJsonPath('error.code', ErrorCode::MembershipsInvitationInvalidOrExpired->value);
 });
 
-test('showing an already-accepted token returns a Spanish error', function () {
+test('showing an already-accepted token returns the invitation domain error', function () {
     $rawToken = Str::random(40);
     MembershipInvitation::factory()->accepted()->create([
         'token' => hash('sha256', $rawToken),
@@ -177,7 +178,7 @@ test('showing an already-accepted token returns a Spanish error', function () {
     $response = $this->getJson('/api/v1/invitations/'.$rawToken);
 
     $response->assertStatus(404);
-    expect($response->json('message'))->toBe('La invitación no es válida o ya expiró.');
+    $response->assertJsonPath('error.code', ErrorCode::MembershipsInvitationInvalidOrExpired->value);
 });
 
 test('accepting with an unknown email creates the user and an active membership with the invited roles, in the inviting organization only', function () {

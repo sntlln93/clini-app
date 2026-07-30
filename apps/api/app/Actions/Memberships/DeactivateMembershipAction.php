@@ -9,9 +9,9 @@ use App\Contracts\Data;
 use App\Data\Memberships\MembershipUpdateData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Models\Membership;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Deactivation is a status change plus a soft delete — never forceDelete,
@@ -45,9 +45,7 @@ class DeactivateMembershipAction implements Action
             $status = $membership->status;
 
             if ($status === MembershipStatus::Active && $isOwnerOrAdmin && ! $this->anotherActiveOwnerOrAdminExists($membership)) {
-                throw ValidationException::withMessages([
-                    'membership' => ['La organización debe mantener al menos un miembro activo con rol de propietario o administrador.'],
-                ]);
+                throw new LastActiveAdminException($membership->id, $membership->organization_id);
             }
 
             $membership->update([

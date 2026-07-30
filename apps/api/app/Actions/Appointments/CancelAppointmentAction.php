@@ -8,8 +8,8 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentCancellationData;
 use App\Enums\AppointmentStatus;
+use App\Exceptions\Appointments\AppointmentNotCancellableException;
 use App\Models\Appointment;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Cancellation is not modeled through
@@ -41,9 +41,7 @@ class CancelAppointmentAction implements Action
         $currentStatus = $appointment->status;
 
         if (! in_array($currentStatus, self::CANCELLABLE_STATUSES, true)) {
-            throw ValidationException::withMessages([
-                'status' => ['Este turno no puede cancelarse desde su estado actual.'],
-            ]);
+            throw new AppointmentNotCancellableException($dto->appointmentId, $currentStatus);
         }
 
         $appointment->update([

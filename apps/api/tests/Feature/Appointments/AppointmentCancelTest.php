@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
+use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -77,7 +78,7 @@ test('cancelling with no cancellation_reason in the payload leaves it null', fun
     expect($appointment->cancellation_reason)->toBeNull();
 });
 
-test('cancelling from a terminal status returns 422 and leaves the status unchanged', function (AppointmentStatus $status) {
+test('cancelling from a terminal status returns 409 with the not-cancellable domain error and leaves the status unchanged', function (AppointmentStatus $status) {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -86,8 +87,8 @@ test('cancelling from a terminal status returns 422 and leaves the status unchan
     ]);
 
     $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$appointment->id}/cancel", [])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('status');
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsNotCancellableFromStatus->value);
 
     expect($appointment->fresh()->status)->toBe($status);
 })->with([

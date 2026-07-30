@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\ErrorCode;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Enums\Permission;
@@ -134,7 +135,7 @@ test('update on a membership of another organization returns 403', function () {
     $response->assertStatus(403);
 });
 
-test('demoting the organization\'s only active owner/admin returns 422 with a Spanish message', function () {
+test('demoting the organization\'s only active owner/admin returns 409 with the last-active-admin domain error', function () {
     $organization = Organization::factory()->create();
     $soleOwner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
     $manager = Membership::factory()->staff()->create([
@@ -147,10 +148,8 @@ test('demoting the organization\'s only active owner/admin returns 422 with a Sp
         'status' => 'active',
     ]);
 
-    $response->assertStatus(422);
-    $response->assertJsonValidationErrors('roles');
-    expect($response->json('errors.roles.0'))
-        ->toBe('La organización debe mantener al menos un miembro activo con rol de propietario o administrador.');
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', ErrorCode::MembershipsLastActiveAdmin->value);
 });
 
 test('a user dropping their own owner/admin roles returns 422 with a Spanish message', function () {
@@ -199,7 +198,7 @@ test('destroy soft-deletes and sets status to inactive without force-deleting', 
     expect($trashed->deleted_at)->not->toBeNull();
 });
 
-test('deactivating the last active owner/admin returns 422 with a Spanish message', function () {
+test('deactivating the last active owner/admin returns 409 with the last-active-admin domain error', function () {
     $organization = Organization::factory()->create();
     $soleOwner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
     $manager = Membership::factory()->staff()->create([
@@ -209,10 +208,8 @@ test('deactivating the last active owner/admin returns 422 with a Spanish messag
 
     $response = $this->actingAs($manager->user)->deleteJson("/api/v1/memberships/{$soleOwner->id}");
 
-    $response->assertStatus(422);
-    $response->assertJsonValidationErrors('membership');
-    expect($response->json('errors.membership.0'))
-        ->toBe('La organización debe mantener al menos un miembro activo con rol de propietario o administrador.');
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', ErrorCode::MembershipsLastActiveAdmin->value);
 });
 
 test('destroy on a membership of another organization returns 403', function () {
