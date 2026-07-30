@@ -14,8 +14,10 @@ services:
         command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     panel:
         image: 'node:24-bookworm-slim'
-        # The npm workspace root (repo root) is mounted, not just apps/panel,
-        # so `npm install` sees the workspace lockfile.
+        # Only apps/panel plus the two root manifests are mounted (not the
+        # whole repo root): the workspace lockfile is indexed by workspace
+        # path, so npm still needs both manifests present at /workspace to
+        # resolve the apps/panel workspace correctly.
         working_dir: /workspace
         user: '${WWWUSER:-1000}:${WWWGROUP:-1000}'
         depends_on:
@@ -26,8 +28,10 @@ services:
         environment:
             HOME: /tmp
         volumes:
-            - '../..:/workspace'
-            # Overlaid on top of the bind mount above: node_modules holds
+            - '.:/workspace/apps/panel'
+            - '../../package.json:/workspace/package.json'
+            - '../../package-lock.json:/workspace/package-lock.json'
+            # Overlaid on top of the bind mounts above: node_modules holds
             # platform-specific native bindings (e.g. rolldown's), so it
             # can't be shared as-is between the host (macOS) and this
             # container (Linux) without one install clobbering the other's
@@ -35,7 +39,7 @@ services:
             - 'panel_node_modules:/workspace/node_modules'
         networks:
             - sail
-        command: sh -c "npm install && npm run dev --workspace=apps/panel"
+        command: sh -c "npm install --workspace=apps/panel --include-workspace-root=false && npm run dev --workspace=apps/panel"
 networks:
     sail:
         driver: bridge
