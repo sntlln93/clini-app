@@ -90,4 +90,37 @@ describe('RouteErrorState', () => {
             screen.getByRole('button', { name: 'Ir al inicio' }),
         ).not.toBeNull();
     });
+
+    it('shows the recovery UI when a route component throws during render, not just the loader', async () => {
+        const rootRoute = createRootRoute();
+        const failingRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: '/failing',
+            component: () => {
+                throw new Error('boom');
+            },
+            errorComponent: RouteErrorState,
+        });
+        const homeRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: '/',
+            component: () => <div>Inicio</div>,
+        });
+        const routeTree = rootRoute.addChildren([homeRoute, failingRoute]);
+        const router = createRouter({
+            routeTree,
+            history: createMemoryHistory({ initialEntries: ['/', '/failing'] }),
+        });
+
+        render(<RouterProvider router={router} />);
+
+        expect(
+            await screen.findByText(
+                'Ocurrió un error inesperado. Intentá nuevamente.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Reintentar' }),
+        ).not.toBeNull();
+    });
 });
