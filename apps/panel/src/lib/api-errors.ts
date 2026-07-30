@@ -27,7 +27,7 @@ export class BusinessError extends Error {
 
 /**
  * Laravel's native FormRequest input-validation shape (422), untouched by
- * the domain envelope — see ADR 0008. `fields` carries the first message
+ * the domain envelope — see ADR 0009. `fields` carries the first message
  * per field, same as the panel already showed before this module existed.
  */
 export class ValidationError extends Error {

@@ -6,7 +6,7 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
  * read. Reuses `QueryErrorState`'s presentation and recovery actions — no
  * parallel component, and `__root`/`_auth`/`_public` deliberately keep
  * having no `errorComponent`/`notFoundComponent` of their own (see ADR
- * 0008): every module route composes its own recovery UI here instead.
+ * 0009): every module route composes its own recovery UI here instead.
  *
  * `error` arrives typed as `Error` by `ErrorComponentProps`, but the real
  * value can be anything a loader threw — `mapToAppError` (inside
