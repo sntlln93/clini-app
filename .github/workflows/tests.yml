@@ -68,6 +68,8 @@ jobs:
 
       - name: ⚙️ Node.js + npm
         uses: ./.github/actions/setup-node
+        with:
+          scope: panel
 
       - name: 🧪 Vitest
         working-directory: apps/panel
@@ -117,6 +119,8 @@ jobs:
 
       - name: ⚙️ Node.js + npm
         uses: ./.github/actions/setup-node
+        with:
+          scope: workspace-root
 
       - name: ⚡ Setup panel env
         run: cp apps/panel/.env.example apps/panel/.env

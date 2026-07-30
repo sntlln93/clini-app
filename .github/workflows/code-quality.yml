@@ -60,6 +60,8 @@ jobs:
 
       - name: ⚙️ Node.js + npm
         uses: ./.github/actions/setup-node
+        with:
+          scope: panel
 
       - name: ✨ Prettier
         working-directory: apps/panel
