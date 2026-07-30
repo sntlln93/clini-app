@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 use App\Contracts\Action;
 use App\Contracts\Data;
+use App\Contracts\DomainError;
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Validation\ValidationException;
 
 /*
  |-----------------------------------------------------------------------------
@@ -174,6 +177,86 @@ test('actions expose exactly one handle(Data $dto) method', function () {
     expect($offenders)->toBe([], 'These actions do not expose exactly one handle(Data $dto) method: '.implode(', ', $offenders));
 });
 
+// --- Domain errors: consistent contract, no generic exceptions for expected
+//     flows (see CLAUDE.md and issue #87) -------------------------------------
+
+// The abstract base is excluded from all three: it cannot be final, and its
+// own httpStatus() is intentionally left unimplemented. Kept as separate
+// arch() calls — `ignoring()` only reaches the assertion it is chained
+// directly off of, not earlier ones in the same chain.
+arch('domain exceptions are final')
+    ->expect('App\Exceptions')
+    ->toBeFinal()
+    ->ignoring(DomainException::class);
+
+arch('domain exceptions are suffixed')
+    ->expect('App\Exceptions')
+    ->toHaveSuffix('Exception')
+    ->ignoring(DomainException::class);
+
+arch('domain exceptions implement the DomainError contract')
+    ->expect('App\Exceptions')
+    ->toImplement(DomainError::class)
+    ->ignoring(DomainException::class);
+
+// Business rules go through a domain exception with an explicit HTTP
+// status; 422 stays reserved for FormRequest input validation.
+arch('actions do not throw Laravel input-validation exceptions')
+    ->expect('App\Actions')
+    ->not->toUse(ValidationException::class);
+
+// Arch expectations can't see `abort(...)` calls or `throw new <generic>`,
+// so this is a content scan, same approach as "controllers do not validate
+// inline" above. The allow-list below is the exact "Fuera de alcance" set
+// from issue #87: defensive assertions over states `auth:sanctum` and route
+// model binding already make unreachable, not business rules. No baseline
+// for anything outside it: every other offender fails, naming the exact
+// file. The final assertion (more than zero matches) guards against the
+// scan silently matching nothing and passing vacuously.
+test('no generic exceptions or abort() are used outside the allowed defensive sites', function () {
+    $appDir = dirname(__DIR__, 2).'/app';
+    $iterator = new RecursiveIteratorIterator(
+        new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS)
+    );
+
+    $allowedAbortSites = [
+        'Http/Middleware/ResolveCurrentOrganization.php',
+        'Http/Controllers/Patients/PatientController.php',
+        'Http/Controllers/Memberships/MembershipInvitationController.php',
+        'Http/Controllers/Memberships/InvitationAcceptanceController.php',
+    ];
+
+    $genericExceptionPattern = '/throw\s+new\s+\\\\?(Exception|RuntimeException|DomainException)\b/';
+
+    $offenders = [];
+    $allowedMatches = 0;
+
+    foreach ($iterator as $file) {
+        if ($file->getExtension() !== 'php') {
+            continue;
+        }
+
+        $relative = str_replace($appDir.DIRECTORY_SEPARATOR, '', $file->getPathname());
+        $contents = (string) file_get_contents($file->getPathname());
+
+        if (preg_match($genericExceptionPattern, $contents) === 1) {
+            $offenders[] = $relative.' throws a generic exception for what should be a domain error';
+        }
+
+        if (str_contains($contents, 'abort(')) {
+            if (in_array($relative, $allowedAbortSites, true)) {
+                $allowedMatches++;
+            } else {
+                $offenders[] = $relative.' calls abort() outside the allowed defensive sites';
+            }
+        }
+    }
+
+    sort($offenders);
+    expect($offenders)->toBe([], 'Generic exceptions or abort() found for what should be expected/domain flows: '.implode(', ', $offenders));
+    expect($allowedMatches)->toBeGreaterThan(0);
+});
+
 // --- Services: business logic that talks to third-party APIs/SDKs ----------
 
 // Each Service implements its own domain interface in App\Contracts (e.g.
@@ -214,11 +297,12 @@ arch('data transfer objects are conventional')
 
 // --- Modularization: per-module subdirectories ------------------------------
 
-// The six modularized namespaces (Actions, Services, Data, Http\Requests,
-// Http\Resources, Http\Controllers) must group classes under a per-module
-// subdirectory — no class sits directly at the namespace root, except the
-// framework-mandated base Controller. App\Models and App\Enums stay flat.
-test('the six modularized namespaces have no flat classes', function () {
+// The seven modularized namespaces (Actions, Services, Data, Http\Requests,
+// Http\Resources, Http\Controllers, Exceptions) must group classes under a
+// per-module subdirectory — no class sits directly at the namespace root,
+// except the framework-mandated base Controller and the abstract
+// DomainException base. App\Models and App\Enums stay flat.
+test('the seven modularized namespaces have no flat classes', function () {
     $root = dirname(__DIR__, 2).'/app';
     $namespacedDirs = [
         'Actions',
@@ -227,6 +311,7 @@ test('the six modularized namespaces have no flat classes', function () {
         'Http/Requests',
         'Http/Resources',
         'Http/Controllers',
+        'Exceptions',
     ];
 
     $offenders = [];
@@ -239,6 +324,9 @@ test('the six modularized namespaces have no flat classes', function () {
         foreach (glob($path.'/*.php') ?: [] as $file) {
             $basename = basename($file);
             if ($dir === 'Http/Controllers' && $basename === 'Controller.php') {
+                continue;
+            }
+            if ($dir === 'Exceptions' && $basename === 'DomainException.php') {
                 continue;
             }
 

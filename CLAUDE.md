@@ -109,7 +109,7 @@ Standard Laravel structure (see [ADR 0002](docs/adr/0002-estructura-laravel-esta
 
 ```text
 app/
-├── Contracts/          # Action and Data interfaces
+├── Contracts/          # Action, Data and DomainError interfaces
 ├── Http/
 │   ├── Controllers/<Module>/   # Controller.php is the only file allowed directly under Controllers/
 │   ├── Requests/<Module>/
@@ -118,6 +118,7 @@ app/
 ├── Actions/<Module>/     # single-responsibility business logic
 ├── Services/<Module>/    # third-party API/SDK adapters
 ├── Data/<Module>/        # DTOs
+├── Exceptions/<Module>/  # domain exceptions; DomainException.php is the only file allowed directly under Exceptions/
 ├── Enums/                # stays flat, no per-module subdirectories
 └── Providers/
 ```
@@ -125,7 +126,8 @@ app/
 - **Thin controllers**: HTTP routing, authorization, responses only. No SQL, validation, or business logic. Never `$request->validate()` — always inject a FormRequest.
 - **Actions/Services**: single-responsibility classes exposing one `handle()` method. Action encapsulates core business logic and implements `App\Contracts\Action`; since PHP can't narrow the native param type, the narrowing is declared via `@implements Action<XData>` on the class and `@param XData $dto` on the method (verified by PHPStan/Larastan), while the return type is narrowed natively. Service wraps third-party APIs/SDKs (adapter pattern) and implements its own domain interface in `App\Contracts` (e.g. `TwilioService implements SmsGateway`), never a common marker interface.
 - **DTOs**: live in `App\Data\<Module>`, `final readonly`, implement `App\Contracts\Data` (`toArray(): array` only, no constructor/factory in the contract).
-- **Per-module subdirectories**: `Actions/`, `Services/`, `Data/`, `Http/Requests/`, `Http/Resources/` and `Http/Controllers/` are grouped by module (e.g. `Actions/Auth/`, `Http/Controllers/Auth/`) — no `.php` file sits directly under those six roots, except `Http/Controllers/Controller.php`. `Models/` and `Enums/` stay flat.
+- **Domain errors**: never throw a generic exception (`Exception`, `RuntimeException`, `\DomainException`) or call `abort()` for an expected business flow — throw a concrete exception under `App\Exceptions\<Module>`, `final`, suffixed `Exception`, implementing `App\Contracts\DomainError` (`errorCode(): ErrorCode`, `httpStatus(): int`, `logContext(): array`, `publicContext(): array`). Business rules return **409**; `422` stays reserved for FormRequest input validation. `catch`/`render` operate on the `DomainError` interface, never on the abstract base `App\Exceptions\DomainException`, so an un-`use`d catch can't silently catch SPL's own `\DomainException` instead. A single `render` callback in `bootstrap/app.php` is the only place that translates a `DomainError` into an HTTP response — no controller or Action builds one. See [ADR 0008](docs/adr/0008-contrato-de-errores-de-dominio.md) and `docs/architecture/error-contract.md`. The only calls to `abort()` still allowed are the handful of defensive assertions over states the framework already makes unreachable (documented at each call site) — not business rules.
+- **Per-module subdirectories**: `Actions/`, `Services/`, `Data/`, `Http/Requests/`, `Http/Resources/`, `Http/Controllers/` and `Exceptions/` are grouped by module (e.g. `Actions/Auth/`, `Http/Controllers/Auth/`) — no `.php` file sits directly under those seven roots, except `Http/Controllers/Controller.php` and `Exceptions/DomainException.php`. `Models/` and `Enums/` stay flat.
 - **Thin models**: relations, casts, basic scopes only. API Resources/DTOs do data shaping. Complex queries go in scopes/query classes, not controllers.
 - **API routes**: live in `routes/api/v1/<module>.php` (one file per module); `routes/api.php` only loads them inside a single `Route::prefix('v1')` group, so the `v1` prefix is applied once, in that loader.
 
