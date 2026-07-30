@@ -1,5 +1,11 @@
 name: Setup Node
-description: Node.js with the npm workspace (root + apps/panel) installed. Single source of truth for the Node version.
+description: Node.js with the npm workspace installed (full root, or apps/panel only via the `scope` input). Single source of truth for the Node version.
+
+inputs:
+  scope:
+    description: 'Install scope: `workspace-root` (full monorepo install) or `panel` (apps/panel only).'
+    required: false
+    default: workspace-root
 
 runs:
   using: composite
@@ -12,4 +18,18 @@ runs:
 
     - name: 📦 npm install
       shell: bash
-      run: npm ci
+      env:
+        SCOPE: ${{ inputs.scope }}
+      run: |
+        case "$SCOPE" in
+          workspace-root)
+            npm ci
+            ;;
+          panel)
+            npm ci --workspace=apps/panel --include-workspace-root=false
+            ;;
+          *)
+            echo "::error::Unrecognized setup-node scope: $SCOPE"
+            exit 1
+            ;;
+        esac
