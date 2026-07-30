@@ -258,3 +258,118 @@ test('re-seeding never touches an organization outside the fixture', function ()
     expect(Availability::find($foreignAvailability->id))->not->toBeNull();
     expect(Appointment::find($foreignAppointment->id))->not->toBeNull();
 });
+
+test('the seeded patients listing paginates with a partial second page', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $owner = User::where('email', 'ana.duena@test.com')->firstOrFail();
+
+    $response = $this->actingAs($owner)->getJson('/api/v1/patients');
+
+    $response->assertOk();
+    expect($response->json('meta.total'))->toBe(23);
+    expect($response->json('data'))->toHaveCount(15);
+    expect($response->json('meta.last_page'))->toBe(2);
+    expect($response->json('meta.current_page'))->toBe(1);
+});
+
+test('the seeded patients listing second page is partial', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $owner = User::where('email', 'ana.duena@test.com')->firstOrFail();
+
+    $response = $this->actingAs($owner)->getJson('/api/v1/patients?page=2');
+
+    $response->assertOk();
+    expect($response->json('data'))->toHaveCount(8);
+});
+
+test('the seeded memberships listing paginates with a partial second page', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $owner = User::where('email', 'ana.duena@test.com')->firstOrFail();
+
+    $firstPage = $this->actingAs($owner)->getJson('/api/v1/memberships');
+
+    $firstPage->assertOk();
+    expect($firstPage->json('meta.total'))->toBe(20);
+    expect($firstPage->json('data'))->toHaveCount(15);
+    expect($firstPage->json('meta.last_page'))->toBe(2);
+
+    $secondPage = $this->actingAs($owner)->getJson('/api/v1/memberships?page=2');
+
+    $secondPage->assertOk();
+    expect($secondPage->json('data'))->toHaveCount(5);
+});
+
+test('the volume fixtures do not leak into consultorio-dos', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $consultorioDos = Organization::where('slug', 'consultorio-dos')->firstOrFail();
+
+    expect(DB::table('organization_patient')->where('organization_id', $consultorioDos->id)->count())->toBe(3);
+    expect(Membership::where('organization_id', $consultorioDos->id)->count())->toBe(4);
+});
+
+test('re-seeding keeps the volume counts for clinica-modelo exact and does not duplicate users', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+
+    $clinicaModelo = Organization::where('slug', 'clinica-modelo')->firstOrFail();
+
+    expect(DB::table('organization_patient')->where('organization_id', $clinicaModelo->id)->count())->toBe(23);
+    expect(Membership::where('organization_id', $clinicaModelo->id)->count())->toBe(20);
+    expect(User::pluck('email')->duplicates())->toBeEmpty();
+});
+
+test('the volume fixtures are literal and deterministic, and no document or email repeats in the seeded database', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $volumeDocumentNumbers = [
+        '40000001', '40000002', '40000003', '40000004', '40000005',
+        '40000006', '40000007', '40000008', '40000009', '40000010',
+        '40000011', '40000012', '40000013', '40000014', '40000015',
+        '40000016', '40000017', '40000018', '40000019', '40000020',
+    ];
+
+    $volumeStaffEmails = [
+        'staff01@test.com', 'staff02@test.com', 'staff03@test.com', 'staff04@test.com', 'staff05@test.com',
+        'staff06@test.com', 'staff07@test.com', 'staff08@test.com', 'staff09@test.com', 'staff10@test.com',
+        'staff11@test.com', 'staff12@test.com', 'staff13@test.com', 'staff14@test.com',
+    ];
+
+    $seededVolumeDocuments = Patient::where('document_type', DocumentType::Dni)
+        ->whereIn('document_number', $volumeDocumentNumbers)
+        ->pluck('document_number')
+        ->sort()
+        ->values()
+        ->all();
+
+    $seededVolumeEmails = User::whereIn('email', $volumeStaffEmails)
+        ->pluck('email')
+        ->sort()
+        ->values()
+        ->all();
+
+    expect($seededVolumeDocuments)->toBe($volumeDocumentNumbers);
+    expect($seededVolumeEmails)->toBe($volumeStaffEmails);
+
+    expect(Patient::pluck('document_number')->duplicates())->toBeEmpty();
+    expect(User::pluck('email')->duplicates())->toBeEmpty();
+});
+
+test('the volume memberships have no seeded availabilities', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $volumeStaffEmails = [
+        'staff01@test.com', 'staff02@test.com', 'staff03@test.com', 'staff04@test.com', 'staff05@test.com',
+        'staff06@test.com', 'staff07@test.com', 'staff08@test.com', 'staff09@test.com', 'staff10@test.com',
+        'staff11@test.com', 'staff12@test.com', 'staff13@test.com', 'staff14@test.com',
+    ];
+
+    $volumeMembershipIds = Membership::whereIn('user_id', User::whereIn('email', $volumeStaffEmails)->pluck('id'))
+        ->pluck('id');
+
+    expect($volumeMembershipIds)->toHaveCount(14);
+    expect(Availability::whereIn('membership_id', $volumeMembershipIds)->count())->toBe(0);
+});
