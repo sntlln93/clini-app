@@ -34,6 +34,28 @@ class OrganizationsSeeder extends Seeder
      */
     private const string SEEDED_PASSWORD = 'password';
 
+    /**
+     * First names for the volume membership block, combined by index with
+     * VOLUME_LAST_NAMES. Only seeded into ORGANIZATION_A_SLUG, so
+     * GET /api/v1/memberships has a second page to exercise.
+     *
+     * @var array<int, string>
+     */
+    private const array VOLUME_FIRST_NAMES = [
+        'Renata', 'Ezequiel', 'Delfina', 'Bautista', 'Guadalupe',
+        'Thiago', 'Abril', 'Franco', 'Catalina', 'Lautaro',
+        'Pilar', 'Ramiro', 'Martina', 'Ciro',
+    ];
+
+    /**
+     * @var array<int, string>
+     */
+    private const array VOLUME_LAST_NAMES = [
+        'Suárez', 'Bravo', 'Lucero', 'Godoy', 'Farías',
+        'Quiroga', 'Ibáñez', 'Sosa', 'Escobar', 'Villalba',
+        'Maldonado', 'Coronel', 'Ojeda', 'Chávez',
+    ];
+
     public function run(): void
     {
         $organizationA = Organization::firstOrCreate(
@@ -62,6 +84,26 @@ class OrganizationsSeeder extends Seeder
         $this->seedMembership($organizationB, $this->firstOrCreateUser('hernan.admin@test.com', 'Hernán Admin'), [MembershipRole::Admin], MembershipStatus::Suspended);
         $this->seedMembership($organizationB, $sharedProfessional, [MembershipRole::Professional], MembershipStatus::Active);
         $this->seedMembership($organizationB, $this->firstOrCreateUser('julian.staff@test.com', 'Julián Staff'), [MembershipRole::Staff], MembershipStatus::Active);
+
+        $this->seedVolumeMemberships($organizationA);
+    }
+
+    /**
+     * 14 volume Staff memberships, literal and deterministic, so
+     * GET /api/v1/memberships always has a second page in this
+     * organization. Staff (not Professional) on purpose: ProfessionalsSeeder
+     * and SchedulingSeeder filter by MembershipRole::Professional, so the
+     * professionals/agenda dataset stays untouched.
+     */
+    private function seedVolumeMemberships(Organization $organization): void
+    {
+        foreach (self::VOLUME_FIRST_NAMES as $index => $firstName) {
+            $sequence = str_pad((string) ($index + 1), 2, '0', STR_PAD_LEFT);
+            $name = $firstName.' '.self::VOLUME_LAST_NAMES[$index];
+            $user = $this->firstOrCreateUser("staff{$sequence}@test.com", $name);
+
+            $this->seedMembership($organization, $user, [MembershipRole::Staff], MembershipStatus::Active);
+        }
     }
 
     private function firstOrCreateUser(string $email, string $name): User
