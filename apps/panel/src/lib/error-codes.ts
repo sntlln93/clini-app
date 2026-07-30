@@ -1,3 +1,5 @@
+import type { AppError } from './api-errors';
+
 /**
  * Public contract mirrored from `apps/api/app/Enums/ErrorCode.php`. Kept in
  * sync by the parity test in `src/lib/-tests/error-code-parity.test.ts` —
@@ -38,5 +40,42 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
     'patients.not_found': 'No encontramos un paciente con ese documento.',
     'memberships.invitation_invalid_or_expired':
-        'La invitación no es válida o ya expiró.',
+        'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
 };
+
+/**
+ * Generic Spanish copy for every `AppError` kind that isn't `'business'`
+ * (which resolves through `ERROR_CODE_MESSAGES` above). `validation`'s own
+ * per-field messages come straight from the backend's native 422 shape —
+ * this entry is only the fallback for the rare case that shape carries no
+ * top-level message at all.
+ */
+const GENERIC_MESSAGES: Record<
+    Exclude<AppError['kind'], 'business'>,
+    string
+> = {
+    validation: 'Los datos ingresados no son válidos.',
+    unauthorized: 'Tu sesión no es válida. Iniciá sesión nuevamente.',
+    session_expired: 'Tu sesión expiró. Recargá la página e intentá de nuevo.',
+    rate_limited:
+        'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
+    network: 'No pudimos conectarnos. Revisá tu conexión e intentá nuevamente.',
+    unexpected: 'Ocurrió un error inesperado. Intentá nuevamente.',
+};
+
+/**
+ * The single place that turns any `AppError` into Spanish UI copy: by
+ * `ErrorCode` for a `BusinessError`, and a generic message per kind
+ * otherwise. Never surfaces the backend's own `message`.
+ */
+export function messageForAppError(error: AppError): string {
+    if (error.kind === 'business') {
+        return ERROR_CODE_MESSAGES[error.code];
+    }
+
+    if (error.kind === 'validation') {
+        return error.serverMessage ?? GENERIC_MESSAGES.validation;
+    }
+
+    return GENERIC_MESSAGES[error.kind];
+}

@@ -1,40 +1,39 @@
-import axios from 'axios';
+import { mapToAppError } from './api-errors';
+import { messageForAppError, type ErrorCode } from './error-codes';
 
 type FormErrors = {
     message: string | null;
     errors: Record<string, string>;
 };
 
-const GENERIC_ERROR_MESSAGE =
-    'Ocurrió un error inesperado. Intentá nuevamente.';
+/**
+ * Extracts form-friendly `{ message, errors }` from any error a mutation can
+ * throw, over the typed `AppError` union (never axios directly).
+ *
+ * `fieldMap` is a per-form `código → campo` map: it lets a 409 business
+ * error keep the same inline-on-field display the panel had when these
+ * rules were still 422s. A code with no entry in the map — or no map at
+ * all, for backward compatibility with existing call sites — falls back to
+ * a general form message; it is never silently dropped.
+ */
+export function extractFormErrors(
+    error: unknown,
+    fieldMap: Partial<Record<ErrorCode, string>> = {},
+): FormErrors {
+    const appError = mapToAppError(error);
 
-const SESSION_EXPIRED_MESSAGE =
-    'Tu sesión expiró. Recargá la página e intentá de nuevo.';
-
-export function extractFormErrors(error: unknown): FormErrors {
-    if (!axios.isAxiosError(error)) {
-        return { message: GENERIC_ERROR_MESSAGE, errors: {} };
+    if (appError.kind === 'validation') {
+        return { message: appError.serverMessage, errors: appError.fields };
     }
 
-    if (error.response?.status === 419) {
-        return { message: SESSION_EXPIRED_MESSAGE, errors: {} };
+    if (appError.kind === 'business') {
+        const field = fieldMap[appError.code];
+        const message = messageForAppError(appError);
+
+        return field
+            ? { message: null, errors: { [field]: message } }
+            : { message, errors: {} };
     }
 
-    if (error.response?.status !== 422) {
-        return { message: GENERIC_ERROR_MESSAGE, errors: {} };
-    }
-
-    const data = error.response.data as {
-        message?: string;
-        errors?: Record<string, string[]>;
-    };
-
-    const errors = Object.fromEntries(
-        Object.entries(data.errors ?? {}).map(([field, messages]) => [
-            field,
-            messages[0],
-        ]),
-    );
-
-    return { message: data.message ?? null, errors };
+    return { message: messageForAppError(appError), errors: {} };
 }

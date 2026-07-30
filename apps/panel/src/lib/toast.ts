@@ -1,5 +1,6 @@
-import axios from 'axios';
 import { toast } from 'sonner';
+import { mapToAppError } from './api-errors';
+import { messageForAppError } from './error-codes';
 
 /**
  * Panel-wide convention for async feedback: call these two helpers from a
@@ -10,12 +11,24 @@ export function notifySuccess(message: string): void {
     toast.success(message);
 }
 
+/**
+ * `fallback` is used whenever the error has nothing useful of its own to
+ * say: an `UnexpectedError`, or a `ValidationError` whose response carried
+ * no top-level message. A `BusinessError` always shows its own code's
+ * catalog copy instead — never the backend's own `message`.
+ */
 export function notifyError(error: unknown, fallback: string): void {
-    const message =
-        axios.isAxiosError<{ message?: string }>(error) &&
-        error.response?.data?.message
-            ? error.response.data.message
-            : fallback;
+    const appError = mapToAppError(error);
 
-    toast.error(message);
+    if (appError.kind === 'unexpected') {
+        toast.error(fallback);
+        return;
+    }
+
+    if (appError.kind === 'validation') {
+        toast.error(appError.serverMessage ?? fallback);
+        return;
+    }
+
+    toast.error(messageForAppError(appError));
 }

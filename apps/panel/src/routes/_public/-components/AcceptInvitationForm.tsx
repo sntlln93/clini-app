@@ -1,11 +1,12 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import axios from 'axios';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import { mapToAppError } from '@/lib/api-errors';
+import { messageForAppError } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
 import {
     useAcceptInvitation,
@@ -13,19 +14,8 @@ import {
 } from '../-hooks/use-accept-invitation';
 import { AcceptInvitationRegistrationFields } from './AcceptInvitationRegistrationFields';
 
-const GENERIC_ERROR_MESSAGE =
-    'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.';
-
 function infoErrorMessage(error: unknown): string {
-    if (axios.isAxiosError(error)) {
-        const data = error.response?.data as { message?: string } | undefined;
-
-        if (data?.message) {
-            return data.message;
-        }
-    }
-
-    return GENERIC_ERROR_MESSAGE;
+    return messageForAppError(mapToAppError(error));
 }
 
 export type AcceptInvitationFormValues = {

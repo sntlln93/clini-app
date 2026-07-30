@@ -33,11 +33,18 @@ export class BusinessError extends Error {
 export class ValidationError extends Error {
     readonly kind = 'validation' as const;
     readonly fields: Record<string, string>;
+    /**
+     * The backend's own `message`, verbatim, or `null` when the response
+     * carried none — distinct from `Error.message` (which can't be `null`)
+     * so callers can tell "no message" apart from a placeholder string.
+     */
+    readonly serverMessage: string | null;
 
     constructor(message: string | null, fields: Record<string, string>) {
         super(message ?? 'Validation error');
         this.name = 'ValidationError';
         this.fields = fields;
+        this.serverMessage = message;
     }
 }
 
@@ -129,26 +136,28 @@ export function mapToAppError(error: unknown): AppError {
 
     const { status, data } = error.response;
 
-    const envelope = data as DomainErrorBody;
-    const code = envelope.error?.code;
+    // `data` can be `null`/`undefined` (an empty response body), so every
+    // read below goes through optional chaining — a bare `data.error` would
+    // throw instead of falling through to the generic cases.
+    const envelope = data as DomainErrorBody | null | undefined;
+    const code = envelope?.error?.code;
     if (typeof code === 'string') {
         return new BusinessError(
             code as ErrorCode,
-            envelope.error?.message ?? '',
-            envelope.error?.context ?? {},
+            envelope?.error?.message ?? '',
+            envelope?.error?.context ?? {},
         );
     }
 
     if (status === 422) {
-        const validation = data as ValidationErrorBody;
+        const validation = data as ValidationErrorBody | null | undefined;
         const fields = Object.fromEntries(
-            Object.entries(validation.errors ?? {}).map(([field, messages]) => [
-                field,
-                messages[0],
-            ]),
+            Object.entries(validation?.errors ?? {}).map(
+                ([field, messages]) => [field, messages[0]],
+            ),
         );
 
-        return new ValidationError(validation.message ?? null, fields);
+        return new ValidationError(validation?.message ?? null, fields);
     }
 
     if (status === 401) {

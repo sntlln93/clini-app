@@ -19,13 +19,13 @@ function overlapError() {
     return {
         isAxiosError: true,
         response: {
-            status: 422,
+            status: 409,
             data: {
-                message: 'The given data was invalid.',
-                errors: {
-                    start_at: [
-                        'El profesional ya tiene un turno en ese horario.',
-                    ],
+                error: {
+                    code: 'appointments.slot_taken',
+                    message:
+                        'The professional already has an appointment at that time.',
+                    context: {},
                 },
             },
         },
@@ -87,7 +87,7 @@ describe('RescheduleAppointmentDialog', () => {
         });
     });
 
-    it('surfaces the overlap validation message returned by the API', async () => {
+    it('surfaces the slot-taken domain error inline on the time field', async () => {
         vi.mocked(api.post).mockRejectedValueOnce(overlapError());
         renderDialog();
 

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
+import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Membership } from '@/types/membership';
 import {
@@ -16,6 +17,10 @@ import { memberEditSchema, type MemberEditFormValues } from './member-schemas';
 
 type MemberEditFormProps = {
     membership: Membership;
+};
+
+const UPDATE_MEMBERSHIP_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'memberships.last_active_admin': 'roles',
 };
 
 export function MemberEditForm({ membership }: MemberEditFormProps) {
@@ -49,7 +54,10 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
             await mutateAsync(values);
             goToList();
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
+            const { message, errors } = extractFormErrors(
+                error,
+                UPDATE_MEMBERSHIP_FIELD_MAP,
+            );
 
             if (errors.roles) {
                 form.setError('roles', { message: errors.roles });

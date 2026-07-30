@@ -3,8 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { RouteErrorState } from './RouteErrorState';
 
-function axiosError(status: number) {
-    return { isAxiosError: true, response: { status } };
+function domainError(status: number, code: string) {
+    return {
+        isAxiosError: true,
+        response: {
+            status,
+            data: { error: { code, message: 'x', context: {} } },
+        },
+    };
 }
 
 function errorProps(error: unknown): ErrorComponentProps {
@@ -12,22 +18,35 @@ function errorProps(error: unknown): ErrorComponentProps {
 }
 
 describe('RouteErrorState', () => {
-    it('renders the missing-active-organization message for a 403 axios error', () => {
-        render(<RouteErrorState {...errorProps(axiosError(403))} />);
+    it('renders the no-active-organization message for the organizations.no_active_membership domain error', () => {
+        render(
+            <RouteErrorState
+                {...errorProps(
+                    domainError(403, 'organizations.no_active_membership'),
+                )}
+            />,
+        );
 
         expect(
             screen.getByText(
-                'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador para ver los pacientes.',
+                'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
             ),
         ).not.toBeNull();
     });
 
-    it('renders the generic message for a 500 axios error', () => {
-        render(<RouteErrorState {...errorProps(axiosError(500))} />);
+    it('renders the generic message for a 500 axios error with no domain envelope', () => {
+        render(
+            <RouteErrorState
+                {...errorProps({
+                    isAxiosError: true,
+                    response: { status: 500, data: {} },
+                })}
+            />,
+        );
 
         expect(
             screen.getByText(
-                'No pudimos cargar la información. Intentá nuevamente.',
+                'Ocurrió un error inesperado. Intentá nuevamente.',
             ),
         ).not.toBeNull();
     });
@@ -37,7 +56,7 @@ describe('RouteErrorState', () => {
 
         expect(
             screen.getByText(
-                'No pudimos cargar la información. Intentá nuevamente.',
+                'Ocurrió un error inesperado. Intentá nuevamente.',
             ),
         ).not.toBeNull();
     });
