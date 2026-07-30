@@ -1,5 +1,6 @@
 import { QueryErrorState } from '@/components/QueryErrorState';
 import type { ErrorComponentProps } from '@tanstack/react-router';
+import { useRouter } from '@tanstack/react-router';
 
 /**
  * Shared `errorComponent` for routes whose loader failed to resolve a page
@@ -14,7 +15,21 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
  * `AppError` before any copy is resolved. This component never re-throws:
  * doing so would just hand the failure to a parent boundary that doesn't
  * exist, back to a blank screen.
+ *
+ * `reset` alone only clears the local `CatchBoundary` render state — it
+ * never re-invokes the failed route's loader, so a loader that keeps
+ * failing would leave the boundary stuck. `router.invalidate()` is
+ * TanStack's documented pairing to actually re-run the loader before
+ * clearing the boundary; a render-time error (no loader involved) still
+ * recovers because `reset` alone is enough for that case.
  */
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
-    return <QueryErrorState error={error} onRetry={reset} />;
+    const router = useRouter();
+
+    const retry = () => {
+        void router.invalidate();
+        reset();
+    };
+
+    return <QueryErrorState error={error} onRetry={retry} />;
 }

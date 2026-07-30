@@ -5,7 +5,7 @@ import {
     createRouter,
     RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { RouteErrorState } from './RouteErrorState';
 
@@ -122,5 +122,42 @@ describe('RouteErrorState', () => {
         expect(
             screen.getByRole('button', { name: 'Reintentar' }),
         ).not.toBeNull();
+    });
+
+    it('re-runs the failed loader on retry instead of only clearing the boundary', async () => {
+        let loaderCalls = 0;
+        const rootRoute = createRootRoute();
+        const failingRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: '/failing',
+            loader: () => {
+                loaderCalls += 1;
+                if (loaderCalls === 1) {
+                    throw new Error('boom');
+                }
+            },
+            component: () => <div>Contenido recuperado</div>,
+            errorComponent: RouteErrorState,
+        });
+        const homeRoute = createRoute({
+            getParentRoute: () => rootRoute,
+            path: '/',
+            component: () => <div>Inicio</div>,
+        });
+        const routeTree = rootRoute.addChildren([homeRoute, failingRoute]);
+        const router = createRouter({
+            routeTree,
+            history: createMemoryHistory({ initialEntries: ['/', '/failing'] }),
+        });
+
+        render(<RouterProvider router={router} />);
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Reintentar' }),
+        );
+
+        expect(await screen.findByText('Contenido recuperado')).not.toBeNull();
+        expect(screen.queryByText('Reintentar')).toBeNull();
+        expect(loaderCalls).toBe(2);
     });
 });
