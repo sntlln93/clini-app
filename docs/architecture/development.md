@@ -92,9 +92,11 @@ Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`) y `C
 | `hernan.admin@test.com`         | Consultorio Dos  | Admin            | Suspended   |
 | `julian.staff@test.com`         | Consultorio Dos  | Staff            | Active      |
 
-`carla.profesional@test.com` aparece dos veces a propósito: es el único usuario con membresía en ambas organizaciones. Cada organización también queda con pacientes (uno compartido entre ambas vía el pivot `organization_patient`, sin duplicar la fila de `patients`), especialidades/servicios asignados a las membresías profesionales, y disponibilidad/excepciones/turnos/recordatorios con fechas relativas a `now()` (pasado, hoy y futuro).
+`carla.profesional@test.com` aparece dos veces a propósito: es el único usuario con membresía en ambas organizaciones. Cada organización también queda con pacientes (uno compartido entre ambas vía el pivot `organization_patient`, sin duplicar la fila de `patients`), especialidades/servicios asignados a las membresías profesionales, y disponibilidad/excepciones/turnos/recordatorios con fechas relativas a `now()` (pasado, hoy y futuro). Además, `clinica-modelo` suma un bloque de volumen literal y determinístico — 20 pacientes más (23 en total) y 14 usuarios más con membresía `Staff` (20 membresías en total) — para que los listados paginados (`GET /api/v1/patients`, `GET /api/v1/memberships`) siempre tengan una segunda página; `consultorio-dos` no lleva volumen y se queda con 3 pacientes y 4 membresías.
 
-Sembrar un ambiente ya desplegado es **manual, nunca automático**: `apps/api/docker/entrypoint.sh` corre `php artisan migrate --force` en cada arranque de contenedor, pero jamás `db:seed`. Para sembrar a mano (útil en un ambiente de testing/demo, nunca en producción real con datos de pacientes):
+Sembrar un ambiente ya desplegado puede ser manual o automático, según la variable `RUN_SEEDERS`. `apps/api/docker/entrypoint.sh` corre `php artisan migrate --force` en cada arranque de contenedor y, si `RUN_SEEDERS=true`, también `php artisan db:seed --force` a continuación; el default es `false`, así que sin la variable definida el arranque se comporta exactamente igual que siempre (sólo migra). `RUN_SEEDERS` se activa desde la pestaña **Environment** de Dokploy —es una variable de runtime del contenedor, no un build-time argument— y está pensada para el server de testing/demo: **en producción real no se setea**. Que sea seguro correrla en cada arranque se apoya en la idempotencia de los seeders ya documentada arriba.
+
+Para sembrar a mano (útil en un ambiente de testing/demo, nunca en producción real con datos de pacientes):
 
 ```bash
 apps/api/vendor/bin/sail artisan db:seed --force
