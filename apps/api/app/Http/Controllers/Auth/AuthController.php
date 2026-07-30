@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\IssueEmailVerificationAction;
 use App\Actions\Auth\RegisterOrganizationOwnerAction;
+use App\Data\Auth\EmailVerificationIssuanceData;
 use App\Data\Auth\OrganizationOwnerRegistrationData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
@@ -28,8 +30,11 @@ class AuthController extends Controller
         return response()->json(Auth::user());
     }
 
-    public function register(RegisterRequest $request, RegisterOrganizationOwnerAction $action): JsonResponse
-    {
+    public function register(
+        RegisterRequest $request,
+        RegisterOrganizationOwnerAction $action,
+        IssueEmailVerificationAction $issueEmailVerificationAction,
+    ): JsonResponse {
         $dto = new OrganizationOwnerRegistrationData(
             name: $request->string('name')->toString(),
             email: $request->string('email')->toString(),
@@ -39,6 +44,8 @@ class AuthController extends Controller
         );
 
         $user = $action->handle($dto);
+
+        $issueEmailVerificationAction->handle(new EmailVerificationIssuanceData($user));
 
         Auth::login($user);
         $request->session()->regenerate();

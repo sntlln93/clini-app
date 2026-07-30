@@ -21,4 +21,5 @@ enum ErrorCode: string
     case OrganizationsNoActiveMembership = 'organizations.no_active_membership';
     case PatientsNotFound = 'patients.not_found';
     case MembershipsInvitationInvalidOrExpired = 'memberships.invitation_invalid_or_expired';
+    case AuthEmailVerificationInvalidOrExpired = 'auth.email_verification_invalid_or_expired';
 }
