@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
+use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -88,7 +89,7 @@ test('scheduled and confirmed both transition successfully to no_show', function
     expect($confirmed->fresh()->status)->toBe(AppointmentStatus::NoShow);
 });
 
-test('invalid transitions return 422 and leave the status unchanged', function () {
+test('invalid transitions return 409 with the status-transition-not-allowed domain error and leave the status unchanged', function () {
     $membership = Membership::factory()->create();
     $scheduled = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -108,17 +109,23 @@ test('invalid transitions return 422 and leave the status unchanged', function (
 
     $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$scheduled->id}/status", [
         'status' => 'completed',
-    ])->assertStatus(422);
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsStatusTransitionNotAllowed->value);
     expect($scheduled->fresh()->status)->toBe(AppointmentStatus::Scheduled);
 
     $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$arrived->id}/status", [
         'status' => 'confirmed',
-    ])->assertStatus(422);
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsStatusTransitionNotAllowed->value);
     expect($arrived->fresh()->status)->toBe(AppointmentStatus::Arrived);
 
     $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$completed->id}/status", [
         'status' => 'scheduled',
-    ])->assertStatus(422);
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsStatusTransitionNotAllowed->value);
     expect($completed->fresh()->status)->toBe(AppointmentStatus::Completed);
 });
 

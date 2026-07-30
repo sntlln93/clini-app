@@ -1,15 +1,17 @@
 import { api } from '@/lib/api';
+import { mapToAppError } from '@/lib/api-errors';
 import type { DocumentType, Patient } from '@/types/patient';
 import { useQuery } from '@tanstack/react-query';
-import axios from 'axios';
 
 const MIN_DOCUMENT_NUMBER_LENGTH = 6;
 
 /**
  * Prefill support for the create form: resolves an existing patient by
- * document pair. A 404 means "no existe" — the normal, expected answer for
- * a document that hasn't been registered yet — so it resolves to `null`
- * instead of surfacing as a query error.
+ * document pair. `patients.not_found` means "no existe" — the normal,
+ * expected answer for a document that hasn't been registered yet — so it
+ * resolves to `null` instead of surfacing as a query error. This is one of
+ * the interaction `useQuery`s that never escalates to a route boundary: its
+ * error is mapped and handled right here, inline.
  */
 export function usePatientLookup(
     documentType: DocumentType | '',
@@ -27,9 +29,11 @@ export function usePatientLookup(
                 })
                 .then((response) => response.data.data)
                 .catch((error: unknown) => {
+                    const appError = mapToAppError(error);
+
                     if (
-                        axios.isAxiosError(error) &&
-                        error.response?.status === 404
+                        appError.kind === 'business' &&
+                        appError.code === 'patients.not_found'
                     ) {
                         return null;
                     }

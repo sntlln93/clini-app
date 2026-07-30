@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
+use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -71,7 +72,7 @@ test('rescheduling a confirmed appointment succeeds', function () {
     expect($original->fresh()->status)->toBe(AppointmentStatus::Rescheduled);
 });
 
-test('rescheduling from a non-reschedulable status returns 422 and creates no new row', function (AppointmentStatus $status) {
+test('rescheduling from a non-reschedulable status returns 409 with the not-reschedulable domain error and creates no new row', function (AppointmentStatus $status) {
     $membership = Membership::factory()->create();
     $professionalService = ProfessionalService::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -88,7 +89,9 @@ test('rescheduling from a non-reschedulable status returns 422 and creates no ne
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
         'start_at' => '2026-08-04T09:00:00',
-    ])->assertStatus(422);
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsNotReschedulableFromStatus->value);
 
     expect($original->fresh()->status)->toBe($status);
     expect(Appointment::count())->toBe($countBefore);
@@ -151,7 +154,9 @@ test('rescheduling to a slot overlapping a different active appointment rolls ba
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
         'start_at' => '2026-08-04T09:15:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('start_at');
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
 
     expect($original->fresh()->status)->toBe(AppointmentStatus::Scheduled);
     expect(Appointment::count())->toBe($countBefore);

@@ -10,16 +10,16 @@ use App\Data\Appointments\AppointmentBookingData;
 use App\Data\Appointments\AppointmentReschedulingData;
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
+use App\Exceptions\Appointments\AppointmentNotReschedulableException;
 use App\Models\Appointment;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * Reuses `BookAppointmentAction` for the new appointment. Critical order:
  * the original is marked `rescheduled` before `BookAppointmentAction` runs
  * — otherwise, if the new time overlaps the old one, the original's own row
  * would trip the overlap check inside `BookAppointmentAction`. Both writes
- * happen inside a single transaction, so a `ValidationException` from
+ * happen inside a single transaction, so a domain exception from
  * `BookAppointmentAction` (overlap / inactive service) rolls back the
  * original's status change too.
  *
@@ -51,9 +51,7 @@ class RescheduleAppointmentAction implements Action
             $currentStatus = $original->status;
 
             if (! in_array($currentStatus, self::RESCHEDULABLE_STATUSES, true)) {
-                throw ValidationException::withMessages([
-                    'status' => ['Este turno no puede reprogramarse desde su estado actual.'],
-                ]);
+                throw new AppointmentNotReschedulableException($dto->appointmentId, $currentStatus);
             }
 
             $original->update(['status' => AppointmentStatus::Rescheduled]);

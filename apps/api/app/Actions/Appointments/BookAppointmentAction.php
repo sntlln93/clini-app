@@ -8,11 +8,12 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentBookingData;
 use App\Enums\AppointmentStatus;
+use App\Exceptions\Appointments\ServiceNotActiveForProfessionalException;
+use App\Exceptions\Appointments\SlotTakenException;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\ProfessionalService;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * The single write path for appointments (ADR 0004): derives the duration
@@ -47,9 +48,7 @@ class BookAppointmentAction implements Action
                 ->first();
 
             if ($professionalService === null) {
-                throw ValidationException::withMessages([
-                    'service_id' => ['El profesional no tiene este servicio activo.'],
-                ]);
+                throw new ServiceNotActiveForProfessionalException($dto->membershipId, $dto->serviceId);
             }
 
             $endAt = $dto->startAt->addMinutes($professionalService->duration_minutes);
@@ -67,9 +66,7 @@ class BookAppointmentAction implements Action
                 ->exists();
 
             if ($hasOverlap) {
-                throw ValidationException::withMessages([
-                    'start_at' => ['El profesional ya tiene un turno en ese horario.'],
-                ]);
+                throw new SlotTakenException($dto->membershipId, $dto->startAt, $endAt);
             }
 
             return Appointment::create([

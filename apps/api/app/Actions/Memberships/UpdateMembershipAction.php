@@ -9,9 +9,9 @@ use App\Contracts\Data;
 use App\Data\Memberships\MembershipUpdateData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Models\Membership;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 /**
  * The CU-04/CU-05 "organization keeps at least one active owner/admin"
@@ -38,9 +38,7 @@ class UpdateMembershipAction implements Action
             $organizationKeepsOwnerOrAdmin = $dto->status === MembershipStatus::Active && $newRolesKeepOwnerOrAdmin;
 
             if (! $organizationKeepsOwnerOrAdmin && ! $this->anotherActiveOwnerOrAdminExists($membership)) {
-                throw ValidationException::withMessages([
-                    'roles' => ['La organización debe mantener al menos un miembro activo con rol de propietario o administrador.'],
-                ]);
+                throw new LastActiveAdminException($membership->id, $membership->organization_id);
             }
 
             $membership->update([

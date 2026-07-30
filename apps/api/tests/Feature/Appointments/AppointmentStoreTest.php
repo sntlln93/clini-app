@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
+use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -62,7 +63,7 @@ test('store creates the appointment scheduled, manual, with created_by and deriv
     expect($appointment->end_at->format('Y-m-d H:i'))->toBe('2026-08-03 10:45');
 });
 
-test('store returns 422 when no professional_services row exists for the membership/service pair', function () {
+test('store returns 409 when no professional_services row exists for the membership/service pair', function () {
     $membership = Membership::factory()->create();
     $service = Service::factory()->create();
     $patient = Patient::factory()->create();
@@ -72,10 +73,12 @@ test('store returns 422 when no professional_services row exists for the members
         'patient_id' => $patient->id,
         'service_id' => $service->id,
         'start_at' => '2026-08-03T10:00:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('service_id');
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsServiceNotActiveForProfessional->value);
 });
 
-test('store returns 422 when the professional_services row exists but is inactive', function () {
+test('store returns 409 when the professional_services row exists but is inactive', function () {
     $membership = Membership::factory()->create();
     $professionalService = ProfessionalService::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -89,10 +92,12 @@ test('store returns 422 when the professional_services row exists but is inactiv
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
         'start_at' => '2026-08-03T10:00:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('service_id');
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsServiceNotActiveForProfessional->value);
 });
 
-test('store returns 422 when the new appointment overlaps an existing active appointment of the same membership (CU-20)', function () {
+test('store returns 409 when the new appointment overlaps an existing active appointment of the same membership (CU-20)', function () {
     $membership = Membership::factory()->create();
     $professionalService = ProfessionalService::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -114,7 +119,9 @@ test('store returns 422 when the new appointment overlaps an existing active app
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
         'start_at' => '2026-08-03T10:15:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('start_at');
+    ])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
 });
 
 test('store succeeds when the new appointment starts exactly when an existing one ends', function () {
@@ -192,7 +199,7 @@ test('store succeeds when the only overlapping appointment has status reschedule
     ])->assertCreated();
 });
 
-test('store returns 422 when the same physical professional in a different organization already has an overlapping active appointment (CU-23)', function () {
+test('store returns 409 when the same physical professional in a different organization already has an overlapping active appointment (CU-23)', function () {
     $user = User::factory()->create();
 
     $organizationA = Organization::factory()->create();
@@ -241,7 +248,7 @@ test('store returns 422 when the same physical professional in a different organ
         'start_at' => '2026-08-03T10:15:00',
     ]);
 
-    $response->assertStatus(422)->assertJsonValidationErrors('start_at');
+    $response->assertStatus(409)->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
 });
 
 test('store succeeds when a different professional has an overlapping appointment at the same time', function () {
@@ -341,7 +348,7 @@ test('a guest gets 401 on store', function () {
 // this test's own transaction rollback (see raceCleanupTasks()/afterAll()
 // above), so every test declared before this one must run — and finish
 // rolling back its own transaction — before this row ever exists.
-test('two concurrent requests booking the identical slot: only one appointment is created and the loser gets 422, not a 500', function () {
+test('two concurrent requests booking the identical slot: only one appointment is created and the loser gets 409, not a 500', function () {
     // A genuinely separate database session (its own PDO connection, own
     // Postgres backend). Every row it creates below is committed
     // immediately (no explicit transaction), so it's visible to this
@@ -426,7 +433,7 @@ test('two concurrent requests booking the identical slot: only one appointment i
             'start_at' => '2026-08-03T10:15:00',
         ]);
 
-        $response->assertStatus(422);
+        $response->assertStatus(409)->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
         expect(Appointment::query()->count())->toBe(1);
         expect(Appointment::query()->first()?->id)->toBe($winnerAppointmentId);
     } finally {

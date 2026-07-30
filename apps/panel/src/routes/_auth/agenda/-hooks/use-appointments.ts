@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import {
@@ -21,6 +22,28 @@ type CreateAppointmentPayload = {
     startAt: string;
     reason: string | null;
     notes: string | null;
+};
+
+// Per-form código → campo maps: the panel showed these business rules
+// inline on a field back when they were 422s (ValidationException), and the
+// move to 409 domain errors preserves that display instead of degrading it
+// to a toast.
+const CREATE_APPOINTMENT_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'appointments.service_not_active_for_professional': 'service_id',
+    'appointments.slot_taken': 'start_at',
+};
+
+const STATUS_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'appointments.status_transition_not_allowed': 'status',
+};
+
+const CANCEL_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'appointments.not_cancellable_from_status': 'status',
+};
+
+const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'appointments.not_reschedulable_from_status': 'status',
+    'appointments.slot_taken': 'start_at',
 };
 
 function queryKey(range: AppointmentsRange) {
@@ -64,7 +87,7 @@ export function useCreateAppointment() {
     });
 
     const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error)
+        ? extractFormErrors(mutation.error, CREATE_APPOINTMENT_FIELD_MAP)
         : { message: null, errors: {} };
 
     return { ...mutation, message, errors };
@@ -89,7 +112,7 @@ export function useUpdateAppointmentStatus() {
     });
 
     const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error)
+        ? extractFormErrors(mutation.error, STATUS_FIELD_MAP)
         : { message: null, errors: {} };
 
     return { ...mutation, message, errors };
@@ -117,7 +140,7 @@ export function useCancelAppointment() {
     });
 
     const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error)
+        ? extractFormErrors(mutation.error, CANCEL_FIELD_MAP)
         : { message: null, errors: {} };
 
     return { ...mutation, message, errors };
@@ -151,7 +174,7 @@ export function useRescheduleAppointment() {
     });
 
     const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error)
+        ? extractFormErrors(mutation.error, RESCHEDULE_FIELD_MAP)
         : { message: null, errors: {} };
 
     return { ...mutation, message, errors };

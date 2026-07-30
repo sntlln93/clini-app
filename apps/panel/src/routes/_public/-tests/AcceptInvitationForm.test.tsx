@@ -19,8 +19,20 @@ vi.mock('@/lib/api', () => ({
 
 const TOKEN = 'abc123';
 
-function notFoundError(message: string) {
-    return { isAxiosError: true, response: { status: 404, data: { message } } };
+function invitationDomainError() {
+    return {
+        isAxiosError: true,
+        response: {
+            status: 404,
+            data: {
+                error: {
+                    code: 'memberships.invitation_invalid_or_expired',
+                    message: 'The invitation is invalid or has expired.',
+                    context: {},
+                },
+            },
+        },
+    };
 }
 
 function renderAcceptInvitationForm() {
@@ -125,13 +137,16 @@ describe('AcceptInvitationForm', () => {
         );
     });
 
-    it('renders the backend Spanish error for an invalid/expired token with no hint about registration', async () => {
-        vi.mocked(api.get).mockRejectedValueOnce(
-            notFoundError('La invitación no es válida o ya expiró.'),
-        );
+    it('renders the catalog Spanish copy for the invitation domain error, never the backend message, with no hint about registration', async () => {
+        vi.mocked(api.get).mockRejectedValueOnce(invitationDomainError());
         renderAcceptInvitationForm();
 
-        await screen.findByText('La invitación no es válida o ya expiró.');
+        await screen.findByText(
+            'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
+        );
+        expect(
+            screen.queryByText('The invitation is invalid or has expired.'),
+        ).toBeNull();
         expect(screen.queryByLabelText('Nombre')).toBeNull();
         expect(screen.queryByLabelText('Contraseña')).toBeNull();
         expect(screen.queryByRole('button')).toBeNull();

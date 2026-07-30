@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useState } from 'react';
-import { useForm, useWatch, type UseFormReturn } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { api } from '@/lib/api';
-import { extractFormErrors } from '@/lib/form-errors';
 import type { Membership } from '@/types/membership';
 import type { Paginated } from '@/types/pagination';
 import type { Patient } from '@/types/patient';
@@ -21,6 +20,7 @@ import type { ProfessionalService } from '@/types/professional';
 import { useQuery } from '@tanstack/react-query';
 import { useCreateAppointment } from '../-hooks/use-appointments';
 import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
+import { applyAppointmentServerErrors } from './apply-appointment-server-errors';
 import {
     appointmentSchema,
     type AppointmentFormValues,
@@ -59,32 +59,6 @@ function valuesFromPrefill(
         date: prefill?.date ?? '',
         time: prefill?.time ?? '',
     };
-}
-
-function applyServerErrors(
-    form: UseFormReturn<AppointmentFormValues>,
-    error: unknown,
-) {
-    const { message, errors } = extractFormErrors(error);
-
-    if (errors.membership_id) {
-        form.setError('membershipId', { message: errors.membership_id });
-    }
-    if (errors.service_id) {
-        form.setError('serviceId', { message: errors.service_id });
-    }
-    if (errors.patient_id) {
-        form.setError('patientId', { message: errors.patient_id });
-    }
-    if (errors.start_at) {
-        form.setError('time', { message: errors.start_at });
-    }
-    if (errors.reason) {
-        form.setError('reason', { message: errors.reason });
-    }
-    if (message) {
-        form.setError('root', { message });
-    }
 }
 
 /**
@@ -170,7 +144,7 @@ export function AppointmentFormDialog({
             });
             onOpenChange(false);
         } catch (error) {
-            applyServerErrors(form, error);
+            applyAppointmentServerErrors(form, error);
         }
     }
 

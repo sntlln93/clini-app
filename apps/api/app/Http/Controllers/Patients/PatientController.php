@@ -8,6 +8,7 @@ use App\Actions\Patients\RegisterPatientAction;
 use App\Data\Patients\PatientRegistrationData;
 use App\Enums\DocumentType;
 use App\Enums\Sex;
+use App\Exceptions\Patients\PatientNotFoundException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Patients\IndexPatientRequest;
 use App\Http\Requests\Patients\LookupPatientRequest;
@@ -91,13 +92,16 @@ class PatientController extends Controller
     {
         Gate::authorize('create', Patient::class);
 
+        $documentType = $request->string('document_type')->toString();
+        $documentNumber = $request->string('document_number')->toString();
+
         $patient = Patient::query()
-            ->where('document_type', $request->string('document_type')->toString())
-            ->where('document_number', $request->string('document_number')->toString())
+            ->where('document_type', $documentType)
+            ->where('document_number', $documentNumber)
             ->first();
 
         if ($patient === null) {
-            abort(404);
+            throw new PatientNotFoundException($documentType, $documentNumber);
         }
 
         return new PatientResource($patient);

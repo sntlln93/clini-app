@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Memberships;
 
 use App\Actions\Memberships\AcceptInvitationAction;
 use App\Data\Memberships\InvitationAcceptanceData;
+use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\AcceptInvitationRequest;
 use App\Models\Membership;
@@ -52,7 +53,7 @@ class InvitationAcceptanceController extends Controller
         $user = $membership->user;
 
         if ($user === null) {
-            abort(500, 'No se pudo autenticar al usuario invitado.');
+            abort(500);
         }
 
         return $user;
@@ -60,13 +61,15 @@ class InvitationAcceptanceController extends Controller
 
     private function findValidInvitation(string $token): MembershipInvitation
     {
+        $tokenHash = hash('sha256', $token);
+
         $invitation = MembershipInvitation::query()
-            ->where('token', hash('sha256', $token))
+            ->where('token', $tokenHash)
             ->whereNull('accepted_at')
             ->first();
 
         if ($invitation === null || $invitation->isExpired()) {
-            abort(404, 'La invitación no es válida o ya expiró.');
+            throw new InvitationInvalidOrExpiredException($tokenHash);
         }
 
         return $invitation;

@@ -8,8 +8,8 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentStatusTransitionData;
 use App\Enums\AppointmentStatus;
+use App\Exceptions\Appointments\StatusTransitionNotAllowedException;
 use App\Models\Appointment;
-use Illuminate\Validation\ValidationException;
 
 /**
  * @implements Action<AppointmentStatusTransitionData>
@@ -27,9 +27,7 @@ class TransitionAppointmentStatusAction implements Action
         $currentStatus = $appointment->status;
 
         if (! $currentStatus->canTransitionTo($dto->status)) {
-            throw ValidationException::withMessages([
-                'status' => ['Esa transición de estado no está permitida.'],
-            ]);
+            throw new StatusTransitionNotAllowedException($dto->appointmentId, $currentStatus, $dto->status);
         }
 
         $attributes = ['status' => $dto->status];

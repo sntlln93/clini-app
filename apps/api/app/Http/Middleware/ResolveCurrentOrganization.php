@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Middleware;
 
 use App\Enums\MembershipStatus;
+use App\Exceptions\Organizations\NoActiveMembershipException;
 use App\Support\CurrentOrganization;
 use Closure;
 use Illuminate\Http\Request;
@@ -40,7 +41,7 @@ class ResolveCurrentOrganization
             ->first();
 
         if ($membership === null) {
-            abort(403);
+            throw new NoActiveMembershipException($user->id);
         }
 
         app(CurrentOrganization::class)->set($membership->organization_id);

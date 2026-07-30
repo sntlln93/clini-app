@@ -20,6 +20,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import { useRescheduleAppointment } from '../-hooks/use-appointments';
@@ -35,6 +36,14 @@ type RescheduleAppointmentDialogProps = {
 };
 
 const EMPTY_VALUES: RescheduleFormValues = { date: '', time: '' };
+
+// Only `slot_taken` has a field to land on here — `date`/`time` are the only
+// inputs this dialog has. `not_reschedulable_from_status` has no matching
+// field in this form, so it deliberately falls through to the general
+// message instead: an unmapped code is never silently dropped.
+const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'appointments.slot_taken': 'start_at',
+};
 
 function toDateInput(iso: string): string {
     return iso.slice(0, 10);
@@ -85,7 +94,10 @@ export function RescheduleAppointmentDialog({
             });
             onOpenChange(false);
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
+            const { message, errors } = extractFormErrors(
+                error,
+                RESCHEDULE_FIELD_MAP,
+            );
 
             if (errors.start_at) {
                 form.setError('time', { message: errors.start_at });
