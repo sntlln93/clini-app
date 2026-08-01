@@ -30,6 +30,12 @@ class AssertSlotWithinPublishedScheduleAction implements Action
 
     /**
      * @param  SlotAvailabilityCheckData  $dto
+     *
+     * Returns null rather than declaring `void`: the Action contract
+     * declares `handle(Data $dto): mixed`, and PHP rejects `void` as a
+     * non-covariant override of `mixed` (a class-load-time Fatal, not one
+     * PHPStan catches) — no Action in this codebase declares `void` for
+     * that reason.
      */
     public function handle(Data $dto): mixed
     {
