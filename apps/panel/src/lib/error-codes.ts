@@ -59,6 +59,8 @@ const GENERIC_MESSAGES: Record<
 > = {
     validation: 'Los datos ingresados no son válidos.',
     unauthorized: 'Tu sesión no es válida. Iniciá sesión nuevamente.',
+    forbidden:
+        'No tenés permiso para ver esta sección. Pedí acceso a un administrador.',
     session_expired: 'Tu sesión expiró. Recargá la página e intentá de nuevo.',
     rate_limited:
         'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
     BusinessError,
+    ForbiddenError,
     NetworkError,
     RateLimitedError,
     SessionExpiredError,
@@ -10,6 +11,7 @@ import {
     mapToAppError,
     type AppError,
 } from './api-errors';
+import { messageForAppError } from './error-codes';
 
 function axiosError(status: number, data: unknown) {
     return { isAxiosError: true, response: { status, data } };
@@ -87,6 +89,43 @@ describe('mapToAppError', () => {
         );
     });
 
+    it('maps a 403 with no domain envelope to a ForbiddenError', () => {
+        const appError = mapToAppError(
+            axiosError(403, { message: 'This action is unauthorized.' }),
+        );
+
+        expect(appError).toBeInstanceOf(ForbiddenError);
+        expect(appError.kind).toBe('forbidden');
+    });
+
+    it('still maps a 403 domain envelope to a BusinessError with its code, not a ForbiddenError', () => {
+        const appError = mapToAppError(
+            axiosError(403, {
+                error: {
+                    code: 'organizations.no_active_membership',
+                    message: 'x',
+                    context: {},
+                },
+            }),
+        );
+
+        expect(appError).toBeInstanceOf(BusinessError);
+        expect(appError).not.toBeInstanceOf(ForbiddenError);
+        if (appError instanceof BusinessError) {
+            expect(appError.code).toBe('organizations.no_active_membership');
+        }
+    });
+
+    it('maps a 403 with an empty or null body to a ForbiddenError without throwing', () => {
+        expect(() => mapToAppError(axiosError(403, null))).not.toThrow();
+        expect(mapToAppError(axiosError(403, null))).toBeInstanceOf(
+            ForbiddenError,
+        );
+        expect(mapToAppError(axiosError(403, {}))).toBeInstanceOf(
+            ForbiddenError,
+        );
+    });
+
     it('maps a 419 to SessionExpiredError', () => {
         expect(mapToAppError(axiosError(419, {}))).toBeInstanceOf(
             SessionExpiredError,
@@ -126,6 +165,8 @@ describe('mapToAppError', () => {
                     return 'validation';
                 case 'unauthorized':
                     return 'unauthorized';
+                case 'forbidden':
+                    return 'forbidden';
                 case 'session_expired':
                     return 'session_expired';
                 case 'rate_limited':
@@ -145,5 +186,18 @@ describe('mapToAppError', () => {
         }
 
         expect(describeKind(new UnexpectedError())).toBe('unexpected');
+    });
+});
+
+describe('messageForAppError', () => {
+    it('returns the permissions copy for a ForbiddenError, not the generic unexpected message', () => {
+        const message = messageForAppError(new ForbiddenError());
+
+        expect(message).toBe(
+            'No tenés permiso para ver esta sección. Pedí acceso a un administrador.',
+        );
+        expect(message).not.toBe(
+            'Ocurrió un error inesperado. Intentá nuevamente.',
+        );
     });
 });
