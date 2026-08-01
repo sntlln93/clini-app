@@ -57,6 +57,23 @@ describe('QueryErrorState', () => {
         ).not.toBeNull();
     });
 
+    it('renders the re-authentication message for a 401 axios error with no domain envelope', async () => {
+        renderQueryErrorState({
+            error: { isAxiosError: true, response: { status: 401, data: {} } },
+        });
+
+        expect(
+            await screen.findByText(
+                'Tu sesión no es válida. Iniciá sesión nuevamente.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.queryByText(
+                'Ocurrió un error inesperado. Intentá nuevamente.',
+            ),
+        ).toBeNull();
+    });
+
     it('renders the generic message for a 500 axios error with no domain envelope', async () => {
         renderQueryErrorState({
             error: { isAxiosError: true, response: { status: 500, data: {} } },
