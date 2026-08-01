@@ -4,15 +4,21 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Booking;
 
+use App\Actions\Booking\ListAvailableSlotsAction;
+use App\Data\Booking\SlotSearchData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Booking\SlotSearchRequest;
+use App\Http\Resources\Booking\AvailableSlotResource;
 use App\Http\Resources\Booking\PublicOrganizationResource;
 use App\Http\Resources\Booking\PublicProfessionalResource;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\ProfessionalService;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Fully public: no auth:sanctum, no `organization` middleware. The tenant is
@@ -54,5 +60,20 @@ class PublicBookingController extends Controller
             'organization' => new PublicOrganizationResource($organization),
             'professionals' => PublicProfessionalResource::collection($professionals),
         ]);
+    }
+
+    public function slots(SlotSearchRequest $request, string $slug, ListAvailableSlotsAction $action): AnonymousResourceCollection
+    {
+        $organization = Organization::where('slug', $slug)->firstOrFail();
+
+        $slots = $action->handle(new SlotSearchData(
+            organizationId: $organization->id,
+            membershipId: $request->integer('membership_id'),
+            serviceId: $request->integer('service_id'),
+            from: CarbonImmutable::parse($request->string('from')->toString()),
+            to: CarbonImmutable::parse($request->string('to')->toString()),
+        ));
+
+        return AvailableSlotResource::collection($slots);
     }
 }
