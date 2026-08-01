@@ -93,13 +93,16 @@ function mockApiGet(overrides: {
     });
 }
 
-function renderDialog(prefill?: AppointmentPrefill) {
+function renderDialog(
+    prefill?: AppointmentPrefill,
+    onOpenChange: (open: boolean) => void = () => {},
+) {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
             <AppointmentFormDialog
                 open
-                onOpenChange={() => {}}
+                onOpenChange={onOpenChange}
                 professionals={[PROFESSIONAL]}
                 prefill={prefill}
             />
@@ -301,7 +304,11 @@ describe('AppointmentFormDialog', () => {
             exceptions: [],
         });
 
-        renderDialog({ membershipId: 1, date: '2026-08-03', time: '10:00' });
+        const onOpenChange = vi.fn();
+        renderDialog(
+            { membershipId: 1, date: '2026-08-03', time: '10:00' },
+            onOpenChange,
+        );
 
         await selectComboboxOption(
             screen.getByRole('combobox', { name: 'Paciente' }),
@@ -312,8 +319,12 @@ describe('AppointmentFormDialog', () => {
 
         await screen.findByText('Elegí un servicio.');
         expect(api.post).not.toHaveBeenCalled();
-        expect(
-            screen.getByRole('button', { name: 'Crear turno' }),
-        ).not.toBeNull();
+        // A successful submit calls `onOpenChange(false)` to close the
+        // dialog (see `submit()` in AppointmentFormDialog.tsx), so this
+        // failing to be called with `false` is what actually fixes the
+        // "modal stays open" acceptance criterion — `renderDialog`'s
+        // `onOpenChange` is a real no-op prop, not a hardcoded `open`, so
+        // the Dialog would in fact close if validation were broken.
+        expect(onOpenChange).not.toHaveBeenCalledWith(false);
     });
 });
