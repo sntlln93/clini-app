@@ -126,6 +126,8 @@ describe('mapToAppError', () => {
                     return 'validation';
                 case 'unauthorized':
                     return 'unauthorized';
+                case 'forbidden':
+                    return 'forbidden';
                 case 'session_expired':
                     return 'session_expired';
                 case 'rate_limited':

@@ -68,6 +68,23 @@ export class SessionExpiredError extends Error {
     }
 }
 
+/**
+ * 403 with no domain envelope: the session is authenticated but lacks the
+ * permission the endpoint requires (e.g. `Gate::authorize` failing with
+ * Laravel's native `AuthorizationException`, which carries no `error.code`).
+ * A 403 that *does* carry an envelope (e.g.
+ * `organizations.no_active_membership`) is a `BusinessError` instead — see
+ * `mapToAppError`.
+ */
+export class ForbiddenError extends Error {
+    readonly kind = 'forbidden' as const;
+
+    constructor() {
+        super('Forbidden');
+        this.name = 'ForbiddenError';
+    }
+}
+
 /** 429: login throttling. */
 export class RateLimitedError extends Error {
     readonly kind = 'rate_limited' as const;
@@ -102,6 +119,7 @@ export type AppError =
     | BusinessError
     | ValidationError
     | UnauthorizedError
+    | ForbiddenError
     | SessionExpiredError
     | RateLimitedError
     | NetworkError
@@ -162,6 +180,10 @@ export function mapToAppError(error: unknown): AppError {
 
     if (status === 401) {
         return new UnauthorizedError();
+    }
+
+    if (status === 403) {
+        return new ForbiddenError();
     }
 
     if (status === 419) {
