@@ -14,14 +14,15 @@ import {
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PanelSidebar } from './PanelSidebar';
-import { isNavItemActive } from './nav-items';
+import { isNavItemActive, navItems } from './nav-items';
 
-function renderSidebarAt(path: string) {
+function renderSidebarAt(path: string, permissions?: string[]) {
     const queryClient = new QueryClient();
     queryClient.setQueryData(sessionQueryOptions.queryKey, {
         id: 1,
         name: 'Ana Ejemplo',
         email: 'ana@clini.app',
+        ...(permissions ? { permissions } : {}),
     });
     const rootRoute = createRootRoute({
         component: () => (
@@ -89,6 +90,46 @@ describe('PanelSidebar', () => {
         expect(active.getAttribute('aria-current')).toBe('page');
         const inactive = screen.getByRole('link', { name: /Agenda/ });
         expect(inactive.getAttribute('aria-current')).toBeNull();
+    });
+});
+
+describe('PanelSidebar permission gating', () => {
+    it('renders Profesionales when the session has the memberships.view permission', async () => {
+        renderSidebarAt('/agenda', ['memberships.view']);
+
+        const link = await screen.findByRole('link', {
+            name: /Profesionales/,
+        });
+        expect(link.getAttribute('href')).toBe('/profesionales');
+    });
+
+    it('hides Profesionales when the session lacks the memberships.view permission', async () => {
+        renderSidebarAt('/agenda', [
+            'patients.view',
+            'availability.view',
+            'appointments.view',
+        ]);
+
+        await screen.findByRole('link', { name: /Agenda/ });
+        expect(
+            screen.queryByRole('link', { name: /Profesionales/ }),
+        ).toBeNull();
+    });
+
+    it('still renders items with no declared permission when memberships.view is missing', async () => {
+        renderSidebarAt('/agenda', [
+            'patients.view',
+            'availability.view',
+            'appointments.view',
+        ]);
+
+        const alwaysVisible = navItems.filter((item) => !item.permission);
+        for (const item of alwaysVisible) {
+            const link = await screen.findByRole('link', {
+                name: new RegExp(item.label),
+            });
+            expect(link.getAttribute('href')).toBe(item.to);
+        }
     });
 });
 

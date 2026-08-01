@@ -86,6 +86,23 @@ describe('QueryErrorState', () => {
         ).not.toBeNull();
     });
 
+    it('renders the permissions message for a 403 axios error with no domain envelope', async () => {
+        renderQueryErrorState({
+            error: { isAxiosError: true, response: { status: 403, data: {} } },
+        });
+
+        expect(
+            await screen.findByText(
+                'No tenés permiso para ver esta sección. Pedí acceso a un administrador.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.queryByText(
+                'Ocurrió un error inesperado. Intentá nuevamente.',
+            ),
+        ).toBeNull();
+    });
+
     it('renders the generic message for a plain non-axios Error', async () => {
         renderQueryErrorState({ error: new Error('boom') });
 
