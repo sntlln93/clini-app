@@ -319,6 +319,22 @@ test('missing or nonexistent membership_id or service_id returns 422', function 
     ]))->assertStatus(422)->assertJsonValidationErrors('service_id');
 });
 
+test('a membership_id from another organization returns 404', function () {
+    [$organization, , $service] = createSlotsFixture(30);
+    $otherOrganization = Organization::factory()->create();
+    $otherMembership = Membership::factory()->create(['organization_id' => $otherOrganization->id]);
+    ProfessionalService::factory()->create([
+        'organization_id' => $otherOrganization->id,
+        'membership_id' => $otherMembership->id,
+        'service_id' => $service->id,
+        'duration_minutes' => 30,
+        'active' => true,
+    ]);
+
+    $this->getJson(slotsUrl($organization, $otherMembership, $service, '2026-08-03'))
+        ->assertStatus(404);
+});
+
 test('a guest gets 200 on slots: the endpoint does not require authentication', function () {
     $this->travelTo('2026-07-20 00:00:00');
     [$organization, $membership, $service] = createSlotsFixture(30);

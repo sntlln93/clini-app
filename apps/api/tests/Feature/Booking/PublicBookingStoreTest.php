@@ -242,6 +242,31 @@ test('the 201 confirmation response exposes only confirmation data, no internal 
     expect($response->json('data.organization_name'))->toBe($organization->name);
 });
 
+test('store with a membership_id from another organization returns 404 and creates no appointment or patient', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, , $service] = createOnlineBookingFixture();
+    $otherOrganization = Organization::factory()->create(['timezone' => 'UTC']);
+    $otherMembership = Membership::factory()->create(['organization_id' => $otherOrganization->id]);
+    ProfessionalService::factory()->create([
+        'organization_id' => $otherOrganization->id,
+        'membership_id' => $otherMembership->id,
+        'service_id' => $service->id,
+        'duration_minutes' => 30,
+        'active' => true,
+    ]);
+
+    $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $otherMembership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-08-03T10:00:00',
+        'patient' => bookingPatientPayload(),
+    ]);
+
+    $response->assertStatus(404);
+    expect(Appointment::withoutGlobalScope('organization')->count())->toBe(0);
+    expect(Patient::count())->toBe(0);
+});
+
 test('store with a service not active for the professional returns 409 appointments.service_not_active_for_professional', function () {
     $this->travelTo('2026-07-20 00:00:00');
     $organization = Organization::factory()->create(['timezone' => 'UTC']);
