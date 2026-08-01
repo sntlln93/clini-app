@@ -10,7 +10,7 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentBookingData;
 use App\Data\Booking\OnlineBookingData;
-use App\Data\Booking\SlotSearchData;
+use App\Data\Booking\SlotAvailabilityCheckData;
 use App\Data\Patients\PatientRegistrationData;
 use App\Enums\AppointmentOrigin;
 use App\Exceptions\Booking\SlotNotAvailableException;
@@ -21,10 +21,10 @@ use App\Models\ProfessionalService;
  * The public counterpart to BookAppointmentAction: identifies or creates
  * the patient by document, then delegates the actual write (advisory lock,
  * overlap check, row creation) to BookAppointmentAction — never duplicating
- * its transaction/locking. Only adds one check of its own: the requested
- * start time must fall within the professional's *published* schedule
- * (ListAvailableSlotsAction::isWithinPublishedSchedule) — availabilities
- * plus `extra` exceptions, minus `blocked` exceptions, deliberately without
+ * its transaction/locking. Only adds one check of its own, delegated to
+ * AssertSlotWithinPublishedScheduleAction: the requested start time must
+ * fall within the professional's *published* schedule — availabilities plus
+ * `extra` exceptions, minus `blocked` exceptions, deliberately without
  * excluding busy appointments. BookAppointmentAction's own overlap check
  * remains the single source of SlotTakenException/appointments.slot_taken;
  * this action never re-derives or duplicates that check.
@@ -34,7 +34,7 @@ use App\Models\ProfessionalService;
 class BookOnlineAppointmentAction implements Action
 {
     public function __construct(
-        private readonly ListAvailableSlotsAction $listAvailableSlots,
+        private readonly AssertSlotWithinPublishedScheduleAction $assertSlotWithinPublishedSchedule,
         private readonly RegisterPatientAction $registerPatient,
         private readonly BookAppointmentAction $bookAppointment,
     ) {}
@@ -84,20 +84,11 @@ class BookOnlineAppointmentAction implements Action
             throw new SlotNotAvailableException($dto->membershipId, $dto->startAt);
         }
 
-        $withinPublishedSchedule = $this->listAvailableSlots->isWithinPublishedSchedule(
-            new SlotSearchData(
-                organizationId: $dto->organizationId,
-                membershipId: $dto->membershipId,
-                serviceId: $dto->serviceId,
-                from: $dto->startAt,
-                to: $dto->startAt,
-            ),
-            $dto->startAt,
-            $professionalService->duration_minutes,
-        );
-
-        if (! $withinPublishedSchedule) {
-            throw new SlotNotAvailableException($dto->membershipId, $dto->startAt);
-        }
+        $this->assertSlotWithinPublishedSchedule->handle(new SlotAvailabilityCheckData(
+            organizationId: $dto->organizationId,
+            membershipId: $dto->membershipId,
+            startAt: $dto->startAt,
+            durationMinutes: $professionalService->duration_minutes,
+        ));
     }
 }
