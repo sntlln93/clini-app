@@ -5,12 +5,20 @@ export type NavItem = {
     label: string;
     to: string;
     icon: ComponentType<{ className?: string }>;
+    // Absent = always visible. When present, the session must have this
+    // permission for the item to render — see `PanelSidebar`'s filter.
+    permission?: string;
 };
 
 export const navItems: NavItem[] = [
     { label: 'Agenda', to: '/agenda', icon: Calendar },
     { label: 'Pacientes', to: '/pacientes', icon: Users },
-    { label: 'Profesionales', to: '/profesionales', icon: Stethoscope },
+    {
+        label: 'Profesionales',
+        to: '/profesionales',
+        icon: Stethoscope,
+        permission: 'memberships.view',
+    },
     { label: 'Disponibilidad', to: '/disponibilidad', icon: Clock },
 ];
 

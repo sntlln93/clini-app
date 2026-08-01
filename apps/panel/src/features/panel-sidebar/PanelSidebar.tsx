@@ -10,12 +10,18 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { ProfileMenu } from '@/features/profile-menu/ProfileMenu';
+import { useSession } from '@/lib/session';
 import { Link, useLocation } from '@tanstack/react-router';
 import { Stethoscope } from 'lucide-react';
 import { isNavItemActive, navItems } from './nav-items';
 
 export function PanelSidebar() {
     const { pathname } = useLocation();
+    const { data: session } = useSession();
+    const permissions = session?.permissions ?? [];
+    const visibleNavItems = navItems.filter(
+        (item) => !item.permission || permissions.includes(item.permission),
+    );
 
     return (
         <Sidebar collapsible="icon">
@@ -34,7 +40,7 @@ export function PanelSidebar() {
                     <SidebarGroup>
                         <SidebarGroupContent>
                             <SidebarMenu>
-                                {navItems.map((item) => {
+                                {visibleNavItems.map((item) => {
                                     const active = isNavItemActive(
                                         pathname,
                                         item.to,
