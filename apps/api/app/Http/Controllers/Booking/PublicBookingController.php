@@ -4,13 +4,18 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Booking;
 
+use App\Actions\Booking\BookOnlineAppointmentAction;
 use App\Actions\Booking\ListAvailableSlotsAction;
+use App\Data\Booking\OnlineBookingData;
 use App\Data\Booking\SlotSearchData;
+use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Booking\SlotSearchRequest;
+use App\Http\Requests\Booking\StoreOnlineBookingRequest;
 use App\Http\Resources\Booking\AvailableSlotResource;
+use App\Http\Resources\Booking\BookingConfirmationResource;
 use App\Http\Resources\Booking\PublicOrganizationResource;
 use App\Http\Resources\Booking\PublicProfessionalResource;
 use App\Models\Membership;
@@ -75,5 +80,26 @@ class PublicBookingController extends Controller
         ));
 
         return AvailableSlotResource::collection($slots);
+    }
+
+    public function store(StoreOnlineBookingRequest $request, string $slug, BookOnlineAppointmentAction $action): JsonResponse
+    {
+        $organization = Organization::where('slug', $slug)->firstOrFail();
+
+        $appointment = $action->handle(new OnlineBookingData(
+            organizationId: $organization->id,
+            membershipId: $request->integer('membership_id'),
+            serviceId: $request->integer('service_id'),
+            startAt: CarbonImmutable::parse($request->string('start_at')->toString()),
+            patientName: $request->string('patient.name')->toString(),
+            documentType: DocumentType::from($request->string('patient.document_type')->toString()),
+            documentNumber: $request->string('patient.document_number')->toString(),
+            email: $request->filled('patient.email') ? $request->string('patient.email')->toString() : null,
+            phone: $request->filled('patient.phone') ? $request->string('patient.phone')->toString() : null,
+        ));
+
+        return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization'])))
+            ->response()
+            ->setStatusCode(201);
     }
 }

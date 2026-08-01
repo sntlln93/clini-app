@@ -37,6 +37,48 @@ class ListAvailableSlotsAction implements Action
     public const int BOOKING_WINDOW_DAYS = 60;
 
     /**
+     * Checks whether a single instant falls within the professional's
+     * *published* schedule for that day — availabilities plus `extra`
+     * exceptions, minus `blocked` exceptions — without excluding time
+     * already taken by busy appointments. Used by the online booking flow's
+     * own pre-check (BookOnlineAppointmentAction), which must stay
+     * independent from BookAppointmentAction's overlap check: this method
+     * only rejects times outside the published schedule, never times that
+     * are merely taken (that 409 is BookAppointmentAction's alone).
+     */
+    public function isWithinPublishedSchedule(SlotSearchData $dto, CarbonImmutable $startAt, int $durationMinutes): bool
+    {
+        $organization = Organization::query()->findOrFail($dto->organizationId);
+        $timezone = $organization->timezone;
+
+        $day = $startAt->setTimezone($timezone)->startOfDay();
+        $dayEnd = $day->addDay();
+
+        $availabilitiesByDay = Availability::query()
+            ->where('membership_id', $dto->membershipId)
+            ->where('day_of_week', $day->dayOfWeek)
+            ->get()
+            ->groupBy('day_of_week');
+
+        $exceptions = AvailabilityException::query()
+            ->where('membership_id', $dto->membershipId)
+            ->where('start_at', '<', $dayEnd)
+            ->where('end_at', '>', $day)
+            ->get();
+
+        $intervals = $this->intervalsForDay($day, $availabilitiesByDay, $exceptions);
+        $slotEnd = $startAt->addMinutes($durationMinutes);
+
+        foreach ($intervals as $interval) {
+            if ($startAt->gte($interval['start']) && $slotEnd->lte($interval['end'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * @param  SlotSearchData  $dto
      * @return array<int, AvailableSlotData>
      */

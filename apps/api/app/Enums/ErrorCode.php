@@ -22,4 +22,5 @@ enum ErrorCode: string
     case PatientsNotFound = 'patients.not_found';
     case MembershipsInvitationInvalidOrExpired = 'memberships.invitation_invalid_or_expired';
     case AuthEmailVerificationInvalidOrExpired = 'auth.email_verification_invalid_or_expired';
+    case BookingSlotNotAvailable = 'booking.slot_not_available';
 }
