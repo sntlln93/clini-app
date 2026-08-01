@@ -15,7 +15,8 @@ export type ErrorCode =
     | 'organizations.no_active_membership'
     | 'patients.not_found'
     | 'memberships.invitation_invalid_or_expired'
-    | 'auth.email_verification_invalid_or_expired';
+    | 'auth.email_verification_invalid_or_expired'
+    | 'booking.slot_not_available';
 
 /**
  * User-facing Spanish copy for each business-rule code. The backend's own
@@ -44,6 +45,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
     'auth.email_verification_invalid_or_expired':
         'El enlace de verificación no es válido o ya venció.',
+    'booking.slot_not_available':
+        'Ese horario ya no está disponible. Elegí otro turno.',
 };
 
 /**

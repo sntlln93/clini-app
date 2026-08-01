@@ -8,5 +8,9 @@ export const Route = createFileRoute('/_public/invitaciones/$token')({
 function InvitacionPage() {
     const { token } = Route.useParams();
 
-    return <AcceptInvitationForm token={token} />;
+    return (
+        <div className="w-full max-w-sm">
+            <AcceptInvitationForm token={token} />
+        </div>
+    );
 }
