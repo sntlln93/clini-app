@@ -9,7 +9,7 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookingWizard } from '../-components/booking/BookingWizard';
@@ -118,6 +118,19 @@ async function selectComboboxOption(combobox: HTMLElement, optionText: string) {
     fireEvent.click(option);
 }
 
+/**
+ * The service select only mounts once a professional is chosen — waits for
+ * the third combobox to actually appear instead of assuming the state update
+ * from the previous selection has already flushed synchronously.
+ */
+async function findServiceCombobox() {
+    return waitFor(() => {
+        const comboboxes = screen.getAllByRole('combobox');
+        expect(comboboxes).toHaveLength(3);
+        return comboboxes[2];
+    });
+}
+
 describe('BookingWizard selection cascade', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
@@ -143,7 +156,7 @@ describe('BookingWizard selection cascade', () => {
         await selectComboboxOption(professionalCombobox, 'Dr. Uno');
 
         // The service select now only shows Dr. Uno's own service.
-        const serviceCombobox = screen.getAllByRole('combobox')[2];
+        const serviceCombobox = await findServiceCombobox();
         fireEvent.click(serviceCombobox);
         expect(
             await screen.findByRole('option', {
@@ -163,7 +176,7 @@ describe('BookingWizard selection cascade', () => {
         )[1];
         await selectComboboxOption(professionalCombobox, 'Dra. Dos');
 
-        const serviceCombobox = screen.getAllByRole('combobox')[2];
+        const serviceCombobox = await findServiceCombobox();
         fireEvent.click(serviceCombobox);
         expect(
             await screen.findByRole('option', { name: 'Consulta clínica' }),
