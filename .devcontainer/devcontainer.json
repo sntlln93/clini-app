@@ -1,45 +1,69 @@
 {
-    "name": "clini-app",
-    "dockerComposeFile": ["../compose.yaml", "docker-compose.extend.yml"],
-    "service": "laravel.test",
-    "workspaceFolder": "/workspace",
-    "remoteUser": "sail",
-    "shutdownAction": "none",
-    "forwardPorts": [8080, 5174, 8025],
-    "postCreateCommand": "npm install",
-    "customizations": {
-        "vscode": {
-            "extensions": [
-                "bmewburn.vscode-intelephense-client",
-                "dbaeumer.vscode-eslint",
-                "esbenp.prettier-vscode",
-                "bradlc.vscode-tailwindcss",
-                "open-southeners.laravel-pint",
-                "SanderRonde.phpstan-vscode",
-                "vitest.explorer",
-                "ms-playwright.playwright"
-            ],
-            "settings": {
-                "editor.formatOnSave": true,
-                "[php]": {
-                    "editor.defaultFormatter": "open-southeners.laravel-pint"
-                },
-                "[javascript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[javascriptreact]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[typescript]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[typescriptreact]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                },
-                "[css]": {
-                    "editor.defaultFormatter": "esbenp.prettier-vscode"
-                }
-            }
-        }
+  "name": "clini-app",
+  "dockerComposeFile": ["../compose.yaml", "docker-compose.extend.yml"],
+  "service": "laravel.test",
+  "workspaceFolder": "/workspace",
+  "remoteUser": "sail",
+  "shutdownAction": "none",
+  "forwardPorts": [8080, 5174, 8025],
+  "postCreateCommand": "npm install",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "laravel.vscode-laravel",
+        "open-southeners.laravel-pint",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "bradlc.vscode-tailwindcss",
+        "usernamehw.errorlens",
+        "waderyan.gitblame"
+      ],
+      "settings": {
+        "laravel-pint.enable": true,
+        "eslint.enable": true,
+        "errorlens.enabled": true,
+        "gitblame.enabled": true,
+        "editor.formatOnSave": true,
+        "editor.defaultFormatter": "esbenp.prettier-vscode",
+        "editor.formatOnSaveTimeout": 1000,
+        "editor.formatOnSaveMode": "modifications",
+        "[php]": {
+          "editor.defaultFormatter": "open-southeners.laravel-pint"
+        },
+        "[javascript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[javascriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescript]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[typescriptreact]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        "[css]": {
+          "editor.defaultFormatter": "esbenp.prettier-vscode"
+        },
+        // --- PERFORMANCE OPTIMIZATIONS FOR M1 AIR ---
+        "search.followSymlinks": false,
+        "files.watcherExclude": {
+          "**/node_modules/**": true,
+          "**/vendor/**": true, // Critical for Laravel (ignores Composer packages)
+          "**/storage/framework/**": true, // Ignores Laravel cache/sessions
+          "**/.git/objects/**": true,
+          "**/build/**": true,
+          "**/dist/**": true
+        },
+        "search.exclude": {
+          "**/node_modules": true,
+          "**/vendor": true,
+          "**/storage/framework": true
+        },
+        "gitblame.inlineMessageEnabled": false, // Keeps GitBlame from constantly rendering text on every line click
+        "errorlens.delay": 500, // Delay linting checks slightly so your Mac doesn't lag while typing
+        "editor.minimap.enabled": false
+      }
     }
+  }
 }
