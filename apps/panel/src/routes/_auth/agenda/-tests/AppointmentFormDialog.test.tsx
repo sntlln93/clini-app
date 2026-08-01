@@ -283,4 +283,37 @@ describe('AppointmentFormDialog', () => {
         );
         expect(api.post).not.toHaveBeenCalled();
     });
+
+    it('shows an inline error and posts nothing when the service is not selected', async () => {
+        const dateTime = new Date('2026-08-03T10:00:00');
+        const dayOfWeek = dateTime.getDay();
+
+        mockApiGet({
+            availabilities: [
+                {
+                    id: 1,
+                    membership_id: 1,
+                    day_of_week: dayOfWeek,
+                    start_time: '09:00:00',
+                    end_time: '12:00:00',
+                },
+            ],
+            exceptions: [],
+        });
+
+        renderDialog({ membershipId: 1, date: '2026-08-03', time: '10:00' });
+
+        await selectComboboxOption(
+            screen.getByRole('combobox', { name: 'Paciente' }),
+            'Juan Pérez — 30111222',
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Crear turno' }));
+
+        await screen.findByText('Elegí un servicio.');
+        expect(api.post).not.toHaveBeenCalled();
+        expect(
+            screen.getByRole('button', { name: 'Crear turno' }),
+        ).not.toBeNull();
+    });
 });
