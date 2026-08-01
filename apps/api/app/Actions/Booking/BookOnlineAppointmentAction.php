@@ -13,7 +13,6 @@ use App\Data\Booking\OnlineBookingData;
 use App\Data\Booking\SlotAvailabilityCheckData;
 use App\Data\Patients\PatientRegistrationData;
 use App\Enums\AppointmentOrigin;
-use App\Exceptions\Booking\SlotNotAvailableException;
 use App\Models\Appointment;
 use App\Models\ProfessionalService;
 
@@ -27,7 +26,13 @@ use App\Models\ProfessionalService;
  * `extra` exceptions, minus `blocked` exceptions, deliberately without
  * excluding busy appointments. BookAppointmentAction's own overlap check
  * remains the single source of SlotTakenException/appointments.slot_taken;
- * this action never re-derives or duplicates that check.
+ * this action never re-derives or duplicates that check. Likewise, whether
+ * the service is active for the professional is BookAppointmentAction's own
+ * call: when no active ProfessionalService row exists, the pre-check simply
+ * skips the published-schedule check (it has no duration to check against
+ * anyway) instead of raising SlotNotAvailableException, so the 409 raised
+ * downstream is ServiceNotActiveForProfessionalException, not a
+ * booking-specific one that would mask it.
  *
  * @implements Action<OnlineBookingData>
  */
@@ -81,7 +86,11 @@ class BookOnlineAppointmentAction implements Action
             ->first();
 
         if ($professionalService === null) {
-            throw new SlotNotAvailableException($dto->membershipId, $dto->startAt);
+            // Not this action's call: BookAppointmentAction re-checks the
+            // same row and is the sole source of
+            // ServiceNotActiveForProfessionalException/
+            // appointments.service_not_active_for_professional.
+            return;
         }
 
         $this->assertSlotWithinPublishedSchedule->handle(new SlotAvailabilityCheckData(
