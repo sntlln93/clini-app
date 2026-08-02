@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Http\Middleware;
 
+use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Support\CurrentOrganization;
 use Closure;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -42,10 +44,24 @@ class ResolvePublicOrganization
             return $next($request);
         }
 
+        // `roles` is an EnumArrayCast column, so it can't be filtered with a
+        // plain SQL `where` — resolve the slug/status candidate(s) and
+        // filter for the professional role in PHP, the same way
+        // PublicBookingController::show() already does.
         $membership = Membership::withoutGlobalScope('organization')
             ->where('slug', $slug)
             ->where('status', MembershipStatus::Active)
-            ->firstOrFail();
+            ->get()
+            ->first(function (Membership $membership): bool {
+                /** @var array<int, MembershipRole> $roles */
+                $roles = $membership->roles;
+
+                return in_array(MembershipRole::Professional, $roles, true);
+            });
+
+        if ($membership === null) {
+            throw (new ModelNotFoundException)->setModel(Membership::class);
+        }
 
         app(CurrentOrganization::class)->set($membership->organization_id);
         $request->attributes->set('public_membership_id', $membership->id);
