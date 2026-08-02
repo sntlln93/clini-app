@@ -1,5 +1,4 @@
 import { test as base, expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
 
 export type ConsoleExpectation = string | RegExp
 
@@ -94,7 +93,7 @@ export const test = base.extend<GuardedFixtures>({
       }
     })
 
-    await use(page as Page)
+    await use(page)
 
     expect(
       violations,
