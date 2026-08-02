@@ -98,7 +98,7 @@ function renderDialog(
     onOpenChange: (open: boolean) => void = () => {},
 ) {
     const queryClient = new QueryClient();
-    render(
+    return render(
         <QueryClientProvider client={queryClient}>
             <AppointmentFormDialog
                 open
@@ -108,6 +108,62 @@ function renderDialog(
             />
         </QueryClientProvider>,
     );
+}
+
+/**
+ * Same as `mockApiGet`, except `/availabilities` and `/availability-exceptions`
+ * resolve to promises the caller controls (never auto-resolved), while
+ * `/services` and `/patients` behave normally so the form can still be filled.
+ * Used to reproduce a submit fired while both availability queries are
+ * still in flight (issue #136).
+ */
+function mockApiGetWithPendingAvailability() {
+    let resolveAvailabilities!: (value: { data: { data: unknown[] } }) => void;
+    let resolveExceptions!: (value: { data: { data: unknown[] } }) => void;
+
+    const availabilitiesPromise = new Promise<{ data: { data: unknown[] } }>(
+        (resolve) => {
+            resolveAvailabilities = resolve;
+        },
+    );
+    const exceptionsPromise = new Promise<{ data: { data: unknown[] } }>(
+        (resolve) => {
+            resolveExceptions = resolve;
+        },
+    );
+
+    vi.mocked(api.get).mockImplementation((url: string) => {
+        if (url.includes('/availabilities')) {
+            return availabilitiesPromise;
+        }
+        if (url === '/availability-exceptions') {
+            return exceptionsPromise;
+        }
+        if (url.includes('/services')) {
+            return Promise.resolve({ data: { data: [SERVICE] } });
+        }
+        if (url === '/patients') {
+            return Promise.resolve({
+                data: {
+                    data: [PATIENT],
+                    meta: {
+                        current_page: 1,
+                        last_page: 1,
+                        per_page: 15,
+                        total: 1,
+                    },
+                    links: { first: null, last: null, prev: null, next: null },
+                },
+            });
+        }
+        return Promise.resolve({ data: { data: [] } });
+    });
+
+    return {
+        resolveAvailabilities: () =>
+            resolveAvailabilities({ data: { data: [] } }),
+        resolveExceptions: () => resolveExceptions({ data: { data: [] } }),
+    };
 }
 
 async function selectComboboxOption(combobox: HTMLElement, optionText: string) {
@@ -326,5 +382,79 @@ describe('AppointmentFormDialog', () => {
         // `onOpenChange` is a real no-op prop, not a hardcoded `open`, so
         // the Dialog would in fact close if validation were broken.
         expect(onOpenChange).not.toHaveBeenCalledWith(false);
+    });
+
+    it('does not skip the warning when submitted immediately while the availability queries are loading', async () => {
+        const { resolveAvailabilities, resolveExceptions } =
+            mockApiGetWithPendingAvailability();
+
+        renderDialog({ membershipId: 1, date: '2026-08-03', time: '10:00' });
+
+        await fillPatientAndService();
+
+        const submitButton = screen.getByRole('button', {
+            name: 'Crear turno',
+        });
+        expect((submitButton as HTMLButtonElement).disabled).toBe(true);
+
+        fireEvent.click(submitButton);
+
+        expect(api.post).not.toHaveBeenCalled();
+        expect(
+            screen.queryByText(
+                '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+            ),
+        ).toBeNull();
+
+        // Let both availability queries settle with empty data — the queries
+        // this test kept in flight until now.
+        resolveAvailabilities();
+        resolveExceptions();
+
+        await waitFor(() =>
+            expect((submitButton as HTMLButtonElement).disabled).toBe(false),
+        );
+
+        fireEvent.click(submitButton);
+
+        // Core regression assertion: once the queries have settled, the same
+        // click now evaluates `isOutside` against real (empty) data and the
+        // warning shows, instead of having been silently skipped earlier.
+        await screen.findByText(
+            '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+        );
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('does not skip the warning when the form is submitted directly, bypassing the disabled submit button, while the availability queries are loading', async () => {
+        mockApiGetWithPendingAvailability();
+
+        const { baseElement } = renderDialog({
+            membershipId: 1,
+            date: '2026-08-03',
+            time: '10:00',
+        });
+
+        await fillPatientAndService();
+
+        // DialogContent renders through a portal appended straight to
+        // `document.body` (the render's `baseElement`), not inside
+        // `render()`'s own `container` — look up the form there instead.
+        const form = baseElement.querySelector('form');
+        expect(form).not.toBeNull();
+
+        // Submit the form node directly instead of clicking the button, to
+        // exercise `onValid`'s early-return guard independently of the
+        // button's `disabled` attribute.
+        fireEvent.submit(form as HTMLFormElement);
+
+        await waitFor(() => {
+            expect(api.post).not.toHaveBeenCalled();
+            expect(
+                screen.queryByText(
+                    '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+                ),
+            ).toBeNull();
+        });
     });
 });
