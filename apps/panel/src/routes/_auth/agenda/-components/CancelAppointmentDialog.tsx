@@ -134,9 +134,7 @@ export function CancelAppointmentDialog({
                             name="cancellation_reason"
                             render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>
-                                        Motivo (opcional)
-                                    </FormLabel>
+                                    <FormLabel>Motivo (opcional)</FormLabel>
                                     <FormControl
                                         render={
                                             <Input maxLength={255} {...field} />
