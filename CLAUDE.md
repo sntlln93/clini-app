@@ -183,7 +183,18 @@ Two independent aids, both consumed through the container — see the mandatory-
 
 ### E2E suite
 
-`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself whenever `CI` is set — true in real CI, and also true for the local `e2e` compose service (see Tests above), which sets it deliberately so the whole run stays in one process/network namespace instead of depending on the persistent dev-loop `laravel.test`/`panel` containers (whose baked `VITE_API_URL` only resolves correctly from a browser on the same host/network as that specific container). Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
+`e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself whenever `CI` is set — true in real CI, and also true for the local `e2e` compose service (see Tests above), which sets it deliberately so the whole run stays in one process/network namespace instead of depending on the persistent dev-loop `laravel.test`/`panel` containers (whose baked `VITE_API_URL` only resolves correctly from a browser on the same host/network as that specific container).
+
+Every spec that drives a `page` imports `test`/`expect` from `e2e/fixtures.ts`, never from `@playwright/test` directly. The fixture fails the spec on any unexpected browser `console.error`/`console.warn`, and on any HTTP response with status >= 400 (`log`/`info`/`debug` and connection-level failures are out of scope). Exceptions are declared per spec — never in a global list — with `test.use({ allowedConsoleMessages: [...], allowedResponses: [{ url, status }] })`, scoped as narrowly as possible (a `test.describe` around the one test that needs it) so adding one stays visible in the diff:
+
+```ts
+test.describe('panel redirects an unauthenticated visitor to login', () => {
+  test.use({ allowedResponses: [{ url: /\/api\/v1\/me$/, status: 401 }] })
+  // ...
+})
+```
+
+Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
 
 ## ADRs
 
