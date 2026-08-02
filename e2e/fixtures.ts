@@ -22,9 +22,21 @@ type ResponseViolation = {
 
 type Violation = ConsoleViolation | ResponseViolation
 
+export type ExpectedIssues = {
+  console?: ConsoleExpectation[]
+  responses?: ResponseExpectation[]
+}
+
 type GuardedFixtures = {
-  allowedConsoleMessages: ConsoleExpectation[]
-  allowedResponses: ResponseExpectation[]
+  // `expectedIssues` is a single object-valued option, not two array-valued
+  // options, because Playwright's fixture parser (`isFixtureTuple` in
+  // `playwright/lib/common/index.js`) treats any array whose second element
+  // is an object as a `[value, options]` tuple override. Two `RegExp`s
+  // qualify (`typeof /re/ === 'object'`), so `test.use({ allowedX: [/a/, /b/] })`
+  // would silently collapse to just `/a/`, dropping every exception past the
+  // first. A plain object is never tuple-parsed (`Array.isArray({}) === false`),
+  // so keep this as one object — do not split it back into arrays.
+  expectedIssues: ExpectedIssues
 }
 
 function matchesConsoleExpectation(text: string, expectation: ConsoleExpectation): boolean {
@@ -51,9 +63,10 @@ function formatViolation(violation: Violation): string {
 }
 
 export const test = base.extend<GuardedFixtures>({
-  allowedConsoleMessages: [[], { option: true }],
-  allowedResponses: [[], { option: true }],
-  page: async ({ page, allowedConsoleMessages, allowedResponses }, use) => {
+  expectedIssues: [{}, { option: true }],
+  page: async ({ page, expectedIssues }, use) => {
+    const allowedConsoleMessages = expectedIssues.console ?? []
+    const allowedResponses = expectedIssues.responses ?? []
     const violations: Violation[] = []
 
     page.on('console', (msg) => {
