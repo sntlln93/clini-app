@@ -129,7 +129,8 @@ export function AppointmentFormDialog({
         enabled: open,
     });
 
-    const { isOutside } = useAvailabilityWarning(membershipId);
+    const { isOutside, isLoading: isAvailabilityLoading } =
+        useAvailabilityWarning(membershipId);
     const { mutateAsync, isPending } = useCreateAppointment();
 
     async function submit(values: AppointmentFormValues) {
@@ -149,6 +150,12 @@ export function AppointmentFormDialog({
     }
 
     function onValid(values: AppointmentFormValues) {
+        // Deciding on partial data would silently report "available", so
+        // wait for the availability queries to settle before checking.
+        if (isAvailabilityLoading) {
+            return;
+        }
+
         if (isOutside(new Date(`${values.date}T${values.time}`))) {
             setShowWarning(true);
             return;
@@ -199,7 +206,9 @@ export function AppointmentFormDialog({
                                 <Button
                                     type="submit"
                                     disabled={
-                                        isPending || form.formState.isSubmitting
+                                        isPending ||
+                                        form.formState.isSubmitting ||
+                                        isAvailabilityLoading
                                     }
                                 >
                                     {isPending ? 'Guardando…' : 'Crear turno'}
