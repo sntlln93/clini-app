@@ -7,10 +7,34 @@ use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\Patient;
+use App\Models\Service;
 use App\Support\CurrentOrganization;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
+});
+
+test('cancel response includes the professional, patient and service names', function () {
+    $membership = Membership::factory()->create();
+    $patient = Patient::factory()->create();
+    $service = Service::factory()->create();
+    $appointment = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => $patient->id,
+        'service_id' => $service->id,
+        'status' => AppointmentStatus::Scheduled,
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$appointment->id}/cancel", [
+        'cancellation_reason' => 'El paciente no puede asistir.',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.professional_name', $membership->user->name);
+    $response->assertJsonPath('data.patient_name', $patient->name);
+    $response->assertJsonPath('data.service_name', $service->name);
 });
 
 test('cancelling a scheduled appointment succeeds and stamps cancelled_at, cancelled_by and the reason', function () {

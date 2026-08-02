@@ -78,6 +78,8 @@ class AppointmentController extends Controller
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
         ));
 
+        $appointment->load(['membership.user', 'patient', 'service']);
+
         return (new AppointmentResource($appointment))
             ->response()
             ->setStatusCode(201);
@@ -94,6 +96,8 @@ class AppointmentController extends Controller
             appointmentId: $appointment->id,
             status: AppointmentStatus::from($request->string('status')->toString()),
         ));
+
+        $updated->load(['membership.user', 'patient', 'service']);
 
         return new AppointmentResource($updated);
     }
@@ -116,6 +120,8 @@ class AppointmentController extends Controller
                 : null,
         ));
 
+        $cancelled->load(['membership.user', 'patient', 'service']);
+
         return new AppointmentResource($cancelled);
     }
 
@@ -136,6 +142,8 @@ class AppointmentController extends Controller
             reason: $request->filled('reason') ? $request->string('reason')->toString() : null,
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
         ));
+
+        $rescheduled->load(['membership.user', 'patient', 'service']);
 
         return (new AppointmentResource($rescheduled))
             ->response()
