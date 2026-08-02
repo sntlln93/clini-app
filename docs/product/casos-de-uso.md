@@ -501,6 +501,20 @@ Convenciones:
     página de reservas, además de su nombre visible.
   - El slug es único a nivel global (no puede colisionar entre organizaciones).
 
+### CU-52 · Link público por profesional
+
+- **Actor**: profesional que comparte su propio link de reserva con sus pacientes.
+- **Invariantes**:
+  - El link es **opcional y nunca autogenerado**: sin slug, el profesional no tiene link
+    público propio y solo queda accesible a través del link de la organización (CU-44).
+  - Lo edita únicamente **el propio profesional, desde Ajustes** — nunca el dueño/admin ni
+    el módulo de Profesionales.
+  - Comparte el **mismo namespace global** que el slug de organización (CU-44): no puede
+    colisionar con el slug de ninguna organización ni con el de otro profesional.
+  - `/reservar/{slug}` resuelve tanto un slug de organización como un slug de profesional;
+    en este último caso, el flujo de reserva se abre con la organización y el profesional
+    ya preseleccionados.
+
 ### CU-45 · Historia clínica por notas *(Futuro, pero visible en el mock)*
 
 - **Actor**: profesional que agrega una nota clínica a una visita del paciente.
