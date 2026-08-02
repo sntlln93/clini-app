@@ -34,8 +34,8 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
             <div className="space-y-1">
                 <h2 className="text-sm font-medium">Mi link público</h2>
                 <p className="text-sm text-muted-foreground">
-                    Definí un link propio para que tus pacientes reserven
-                    turnos directamente con vos, sin pasar por el resto del
+                    Definí un link propio para que tus pacientes reserven turnos
+                    directamente con vos, sin pasar por el resto del
                     consultorio. Dejalo vacío y guardá para quitar el link.
                 </p>
             </div>
