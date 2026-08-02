@@ -26,6 +26,7 @@ function buildMembership(overrides: Partial<Membership> = {}): Membership {
         user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
         roles: ['professional'],
         status: 'active',
+        slug: null,
         deleted_at: null,
         created_at: '2026-01-01T00:00:00',
         updated_at: '2026-01-01T00:00:00',

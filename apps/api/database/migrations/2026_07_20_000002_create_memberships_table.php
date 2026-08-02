@@ -20,6 +20,7 @@ return new class extends Migration
             $table->json('roles');
             $table->json('extra_permissions')->default('[]');
             $table->string('status')->default('active');
+            $table->string('slug')->nullable()->index();
             $table->timestamps();
             $table->softDeletes();
 

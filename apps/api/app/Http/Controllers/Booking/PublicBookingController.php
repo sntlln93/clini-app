@@ -21,24 +21,39 @@ use App\Http\Resources\Booking\PublicProfessionalResource;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\ProfessionalService;
+use App\Support\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Fully public: no auth:sanctum, no `organization` middleware. The tenant is
  * resolved by `public-organization` (App\Http\Middleware\ResolvePublicOrganization`)
- * straight from the {slug} route parameter, so every query below runs
- * scoped to that organization through the models' own global scope.
+ * from the {slug} route parameter — either an organization slug or a
+ * professional membership's own public slug (#32) — so every query below
+ * runs scoped to that organization through the models' own global scope.
+ * The organization itself is read from CurrentOrganization rather than
+ * re-queried by {slug}: a membership slug would 404 against
+ * `organizations.slug`.
  */
 class PublicBookingController extends Controller
 {
-    public function show(string $slug): JsonResponse
+    public function show(Request $request): JsonResponse
     {
-        $organization = Organization::where('slug', $slug)->firstOrFail();
+        $organization = $this->currentOrganization();
+        $preselectedMembershipId = $request->attributes->has('public_membership_id')
+            ? $request->attributes->getInt('public_membership_id')
+            : null;
 
-        $memberships = Membership::query()
-            ->where('status', MembershipStatus::Active)
+        $membershipsQuery = Membership::query()
+            ->where('status', MembershipStatus::Active);
+
+        if ($preselectedMembershipId !== null) {
+            $membershipsQuery->where('id', $preselectedMembershipId);
+        }
+
+        $memberships = $membershipsQuery
             ->with(['user', 'specialties'])
             ->get()
             ->filter(function (Membership $membership): bool {
@@ -64,12 +79,13 @@ class PublicBookingController extends Controller
         return response()->json([
             'organization' => new PublicOrganizationResource($organization),
             'professionals' => PublicProfessionalResource::collection($professionals),
+            'preselected_membership_id' => $preselectedMembershipId,
         ]);
     }
 
-    public function slots(SlotSearchRequest $request, string $slug, ListAvailableSlotsAction $action): AnonymousResourceCollection
+    public function slots(SlotSearchRequest $request, ListAvailableSlotsAction $action): AnonymousResourceCollection
     {
-        $organization = Organization::where('slug', $slug)->firstOrFail();
+        $organization = $this->currentOrganization();
 
         $slots = $action->handle(new SlotSearchData(
             organizationId: $organization->id,
@@ -82,9 +98,9 @@ class PublicBookingController extends Controller
         return AvailableSlotResource::collection($slots);
     }
 
-    public function store(StoreOnlineBookingRequest $request, string $slug, BookOnlineAppointmentAction $action): JsonResponse
+    public function store(StoreOnlineBookingRequest $request, BookOnlineAppointmentAction $action): JsonResponse
     {
-        $organization = Organization::where('slug', $slug)->firstOrFail();
+        $organization = $this->currentOrganization();
 
         $appointment = $action->handle(new OnlineBookingData(
             organizationId: $organization->id,
@@ -101,5 +117,16 @@ class PublicBookingController extends Controller
         return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization'])))
             ->response()
             ->setStatusCode(201);
+    }
+
+    /**
+     * `ResolvePublicOrganization` always sets a current organization before
+     * a request reaches this controller (it 404s beforehand otherwise), so
+     * the nullable getter is safely narrowed with a cast, same as
+     * AvailabilityExceptionController::store().
+     */
+    private function currentOrganization(): Organization
+    {
+        return Organization::findOrFail((int) app(CurrentOrganization::class)->get());
     }
 }

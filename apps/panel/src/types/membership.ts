@@ -11,6 +11,7 @@ export type Membership = {
     };
     roles: MembershipRole[];
     status: MembershipStatus;
+    slug: string | null;
     deleted_at: string | null;
     created_at: string;
     updated_at: string;

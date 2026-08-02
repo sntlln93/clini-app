@@ -105,12 +105,14 @@ Table memberships {
   user_id bigint [not null]
   role membership_role [not null]
   status membership_status [not null, default: 'active']
+  slug varchar [null, note: 'Optional public booking link for a professional membership; shares a flat, globally unique namespace with organizations.slug, validated in the Action rather than a DB constraint.']
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
 
   indexes {
     (organization_id, user_id) [unique]
+    slug
   }
 
   Note: '''
