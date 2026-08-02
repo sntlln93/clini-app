@@ -62,6 +62,12 @@ class SetMembershipSlugAction implements Action
                 throw new MembershipSlugInvalidFormatException($membership->id, $slug);
             }
 
+            // Serialises concurrent requests for the same slug (ADR 0004):
+            // released automatically at transaction end, never unlocked
+            // manually. Must run before isTaken(), whose lookups are
+            // otherwise unlocked and would race under READ COMMITTED.
+            DB::statement('select pg_advisory_xact_lock(hashtext(?))', [$slug]);
+
             if ($this->isTaken($membership, $slug)) {
                 throw new MembershipSlugTakenException($membership->id, $slug);
             }
