@@ -1,7 +1,17 @@
 import { expect, test } from './fixtures'
 
 test.describe('panel redirects an unauthenticated visitor to login', () => {
-  test.use({ allowedResponses: [{ url: /\/api\/v1\/me$/, status: 401 }] })
+  test.use({
+    allowedResponses: [{ url: /\/api\/v1\/me$/, status: 401 }],
+    // Expected console noise from the unauthenticated session check: the browser
+    // logs the failed 401 resource load, and query-client's onError logs the
+    // resulting failed query (once per guard that calls requireSession /
+    // redirectIfAuthenticated).
+    allowedConsoleMessages: [
+      /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
+      /Query failed: UnauthorizedError: Unauthorized/,
+    ],
+  })
 
   test('panel redirects an unauthenticated visitor to login', async ({ page }) => {
     await page.goto('/')
