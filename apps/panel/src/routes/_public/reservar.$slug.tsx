@@ -1,6 +1,6 @@
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 import { BookingWizard } from './-components/booking/BookingWizard';
 import {
@@ -17,6 +17,29 @@ const bookingSearchSchema = z.object({
 
 export const Route = createFileRoute('/_public/reservar/$slug')({
     validateSearch: (search) => bookingSearchSchema.parse(search),
+    // A membership slug reports the professional to preselect via
+    // `preselected_membership_id` (#32). Request state stays in the URL
+    // (ADR: request state lives in the URL), so it is resolved with a
+    // redirect into `search.professional` here, not local state.
+    beforeLoad: async ({ context, params, search }) => {
+        const organization = await context.queryClient.ensureQueryData(
+            bookingOrganizationQueryOptions(params.slug),
+        );
+
+        if (
+            organization.preselected_membership_id !== null &&
+            search.professional === undefined
+        ) {
+            throw redirect({
+                to: '/reservar/$slug',
+                params,
+                search: {
+                    ...search,
+                    professional: organization.preselected_membership_id,
+                },
+            });
+        }
+    },
     loaderDeps: ({ search }) => ({
         professional: search.professional,
         service: search.service,

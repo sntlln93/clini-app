@@ -29,6 +29,7 @@ export type BookingProfessional = {
 export type BookingOrganizationResponse = {
     organization: BookingOrganization;
     professionals: BookingProfessional[];
+    preselected_membership_id: number | null;
 };
 
 export type AvailableSlot = {
