@@ -14,6 +14,7 @@ function membership(id: number, userId: number): Membership {
         user: { id: userId, name: `User ${userId}`, email: null },
         roles: ['professional'],
         status: 'active',
+        slug: null,
         deleted_at: null,
         created_at: '2026-01-01T00:00:00.000Z',
         updated_at: '2026-01-01T00:00:00.000Z',

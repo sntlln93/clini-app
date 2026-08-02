@@ -9,6 +9,7 @@ import type {
     UserSpecialty,
 } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
+import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
@@ -114,6 +115,10 @@ function AjustesPage() {
         assignedServicesByMembership,
     } = Route.useLoaderData();
 
+    const ownMembership = professionals.find(
+        (membership) => membership.user.id === userId,
+    );
+
     return (
         <div className="mx-auto max-w-2xl space-y-8">
             <header className="space-y-1">
@@ -142,6 +147,13 @@ function AjustesPage() {
                 specialties={catalogSpecialties}
                 mySpecialties={mySpecialties}
             />
+
+            {ownMembership && (
+                <>
+                    <Separator />
+                    <MyPublicLinkSection membership={ownMembership} />
+                </>
+            )}
 
             <Separator />
 
