@@ -10,6 +10,7 @@ use App\Data\Appointments\AppointmentBookingData;
 use App\Data\Appointments\AppointmentReschedulingData;
 use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
+use App\Enums\ReminderStatus;
 use App\Exceptions\Appointments\AppointmentNotReschedulableException;
 use App\Models\Appointment;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,8 @@ class RescheduleAppointmentAction implements Action
             }
 
             $original->update(['status' => AppointmentStatus::Rescheduled]);
+
+            $original->reminders()->where('status', ReminderStatus::Pending)->delete();
 
             /** @var AppointmentOrigin $originalOrigin */
             $originalOrigin = $original->origin;

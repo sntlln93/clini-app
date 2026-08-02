@@ -8,8 +8,10 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentCancellationData;
 use App\Enums\AppointmentStatus;
+use App\Enums\ReminderStatus;
 use App\Exceptions\Appointments\AppointmentNotCancellableException;
 use App\Models\Appointment;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Cancellation is not modeled through
@@ -44,12 +46,16 @@ class CancelAppointmentAction implements Action
             throw new AppointmentNotCancellableException($dto->appointmentId, $currentStatus);
         }
 
-        $appointment->update([
-            'status' => AppointmentStatus::Cancelled,
-            'cancelled_at' => now(),
-            'cancelled_by' => $dto->cancelledBy,
-            'cancellation_reason' => $dto->cancellationReason,
-        ]);
+        DB::transaction(function () use ($appointment, $dto): void {
+            $appointment->update([
+                'status' => AppointmentStatus::Cancelled,
+                'cancelled_at' => now(),
+                'cancelled_by' => $dto->cancelledBy,
+                'cancellation_reason' => $dto->cancellationReason,
+            ]);
+
+            $appointment->reminders()->where('status', ReminderStatus::Pending)->delete();
+        });
 
         return $appointment;
     }
