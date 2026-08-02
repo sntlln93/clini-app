@@ -7,10 +7,34 @@ use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\Patient;
+use App\Models\Service;
 use App\Support\CurrentOrganization;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
+});
+
+test('status update response includes the professional, patient and service names', function () {
+    $membership = Membership::factory()->create();
+    $patient = Patient::factory()->create();
+    $service = Service::factory()->create();
+    $appointment = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => $patient->id,
+        'service_id' => $service->id,
+        'status' => AppointmentStatus::Scheduled,
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/appointments/{$appointment->id}/status", [
+        'status' => 'confirmed',
+    ]);
+
+    $response->assertSuccessful();
+    $response->assertJsonPath('data.professional_name', $membership->user->name);
+    $response->assertJsonPath('data.patient_name', $patient->name);
+    $response->assertJsonPath('data.service_name', $service->name);
 });
 
 test('scheduled to confirmed succeeds and stamps confirmed_at', function () {

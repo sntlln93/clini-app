@@ -63,6 +63,27 @@ test('store creates the appointment scheduled, manual, with created_by and deriv
     expect($appointment->end_at->format('Y-m-d H:i'))->toBe('2026-08-03 10:45');
 });
 
+test('store response includes the professional, patient and service names', function () {
+    $membership = Membership::factory()->create();
+    $professionalService = ProfessionalService::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+    $patient = Patient::factory()->create();
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
+        'membership_id' => $membership->id,
+        'patient_id' => $patient->id,
+        'service_id' => $professionalService->service_id,
+        'start_at' => '2026-08-03T10:00:00',
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.professional_name', $membership->user->name);
+    $response->assertJsonPath('data.patient_name', $patient->name);
+    $response->assertJsonPath('data.service_name', $professionalService->service->name);
+});
+
 test('store returns 409 when no professional_services row exists for the membership/service pair', function () {
     $membership = Membership::factory()->create();
     $service = Service::factory()->create();

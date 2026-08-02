@@ -7,11 +7,39 @@ use App\Enums\ErrorCode;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Support\CurrentOrganization;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
+});
+
+test('reschedule response includes the professional, patient and service names of the new appointment', function () {
+    $membership = Membership::factory()->create();
+    $professionalService = ProfessionalService::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+    $patient = Patient::factory()->create();
+    $original = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => $patient->id,
+        'service_id' => $professionalService->service_id,
+        'status' => AppointmentStatus::Scheduled,
+        'start_at' => '2026-08-03 10:00:00',
+        'end_at' => '2026-08-03 10:40:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
+        'start_at' => '2026-08-04T09:00:00',
+    ]);
+
+    $response->assertCreated();
+    $response->assertJsonPath('data.professional_name', $membership->user->name);
+    $response->assertJsonPath('data.patient_name', $patient->name);
+    $response->assertJsonPath('data.service_name', $professionalService->service->name);
 });
 
 test('rescheduling a scheduled appointment creates a new row, marks the original rescheduled and copies its fields', function () {
