@@ -34,6 +34,7 @@ export type AgendaDayViewProps = {
     professionals: Membership[];
     appointments: Appointment[];
     canUpdate: (membership: Membership) => boolean;
+    canCreate: (membership: Membership) => boolean;
     onCellClick?: (membershipId: number, hour: number) => void;
 };
 
@@ -42,6 +43,7 @@ export function AgendaDayView({
     professionals,
     appointments,
     canUpdate,
+    canCreate,
     onCellClick,
 }: AgendaDayViewProps) {
     const hours = Array.from(
@@ -72,6 +74,7 @@ export function AgendaDayView({
                             appointment.membership_id === professional.id &&
                             isSameDay(appointment.start_at, date),
                     );
+                    const canCreateForProfessional = canCreate(professional);
 
                     return (
                         <div
@@ -86,22 +89,38 @@ export function AgendaDayView({
                                 className="relative"
                                 style={{ height: columnHeight }}
                             >
-                                {hours.map((hour) => (
-                                    <button
-                                        key={hour}
-                                        type="button"
-                                        className="absolute left-0 w-full cursor-pointer border-t hover:bg-muted/50"
-                                        style={{
-                                            top:
-                                                (hour - START_HOUR) *
-                                                HOUR_HEIGHT_PX,
-                                            height: HOUR_HEIGHT_PX,
-                                        }}
-                                        onClick={() =>
-                                            onCellClick?.(professional.id, hour)
-                                        }
-                                    />
-                                ))}
+                                {hours.map((hour) =>
+                                    canCreateForProfessional ? (
+                                        <button
+                                            key={hour}
+                                            type="button"
+                                            className="absolute left-0 w-full cursor-pointer border-t hover:bg-muted/50"
+                                            style={{
+                                                top:
+                                                    (hour - START_HOUR) *
+                                                    HOUR_HEIGHT_PX,
+                                                height: HOUR_HEIGHT_PX,
+                                            }}
+                                            onClick={() =>
+                                                onCellClick?.(
+                                                    professional.id,
+                                                    hour,
+                                                )
+                                            }
+                                        />
+                                    ) : (
+                                        <div
+                                            key={hour}
+                                            className="absolute left-0 w-full border-t"
+                                            style={{
+                                                top:
+                                                    (hour - START_HOUR) *
+                                                    HOUR_HEIGHT_PX,
+                                                height: HOUR_HEIGHT_PX,
+                                            }}
+                                        />
+                                    ),
+                                )}
 
                                 {dayAppointments.map((appointment) => {
                                     const top = offsetPx(appointment.start_at);

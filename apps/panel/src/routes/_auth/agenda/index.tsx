@@ -109,11 +109,12 @@ function AgendaPage() {
     const { date: dateParam, view = 'day' } = Route.useSearch();
     const navigate = Route.useNavigate();
     const { professionals, appointments } = Route.useLoaderData();
-    const { canUpdate } = useAppointmentPermissions();
+    const { canCreate, canUpdate } = useAppointmentPermissions();
     const [formState, setFormState] = useState<FormState>(CLOSED_FORM);
 
     const date = dateParam ? fromDateInputValue(dateParam) : new Date();
     const { start: rangeStart } = rangeFor(date, view);
+    const creatableProfessionals = professionals.filter(canCreate);
 
     function updateDate(next: Date) {
         void navigate({
@@ -150,7 +151,9 @@ function AgendaPage() {
                         Turnos agendados por profesional.
                     </p>
                 </div>
-                <Button onClick={handleNewAppointment}>Nuevo turno</Button>
+                {creatableProfessionals.length > 0 && (
+                    <Button onClick={handleNewAppointment}>Nuevo turno</Button>
+                )}
             </div>
 
             <AgendaToolbar
@@ -175,6 +178,7 @@ function AgendaPage() {
                         professionals={professionals}
                         appointments={appointments}
                         canUpdate={canUpdate}
+                        canCreate={canCreate}
                         onCellClick={handleCellClick}
                     />
                 ) : (
@@ -191,7 +195,7 @@ function AgendaPage() {
                 onOpenChange={(open) =>
                     setFormState((previous) => ({ ...previous, open }))
                 }
-                professionals={professionals}
+                professionals={creatableProfessionals}
                 prefill={formState.prefill}
             />
         </div>
