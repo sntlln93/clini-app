@@ -23,4 +23,7 @@ enum ErrorCode: string
     case MembershipsInvitationInvalidOrExpired = 'memberships.invitation_invalid_or_expired';
     case AuthEmailVerificationInvalidOrExpired = 'auth.email_verification_invalid_or_expired';
     case BookingSlotNotAvailable = 'booking.slot_not_available';
+    case MembershipsSlugInvalidFormat = 'memberships.slug_invalid_format';
+    case MembershipsSlugTaken = 'memberships.slug_taken';
+    case MembershipsSlugNotAllowedForRole = 'memberships.slug_not_allowed_for_role';
 }

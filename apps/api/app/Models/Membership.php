@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['organization_id', 'user_id', 'roles', 'extra_permissions', 'status'])]
+#[Fillable(['organization_id', 'user_id', 'roles', 'extra_permissions', 'status', 'slug'])]
 class Membership extends Model
 {
     /** @use HasFactory<MembershipFactory> */

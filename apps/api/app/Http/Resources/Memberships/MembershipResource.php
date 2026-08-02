@@ -29,6 +29,7 @@ class MembershipResource extends JsonResource
             ],
             'roles' => $membership->roles,
             'status' => $membership->status,
+            'slug' => $membership->slug,
             'deleted_at' => $membership->deleted_at,
             'created_at' => $membership->created_at,
             'updated_at' => $membership->updated_at,

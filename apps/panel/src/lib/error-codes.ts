@@ -16,7 +16,10 @@ export type ErrorCode =
     | 'patients.not_found'
     | 'memberships.invitation_invalid_or_expired'
     | 'auth.email_verification_invalid_or_expired'
-    | 'booking.slot_not_available';
+    | 'booking.slot_not_available'
+    | 'memberships.slug_invalid_format'
+    | 'memberships.slug_taken'
+    | 'memberships.slug_not_allowed_for_role';
 
 /**
  * User-facing Spanish copy for each business-rule code. The backend's own
@@ -47,6 +50,11 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'El enlace de verificación no es válido o ya venció.',
     'booking.slot_not_available':
         'Ese horario ya no está disponible. Elegí otro turno.',
+    'memberships.slug_invalid_format':
+        'El link debe tener entre 3 y 50 caracteres, usando solo minúsculas, números y guiones, sin empezar, terminar ni repetir guiones.',
+    'memberships.slug_taken': 'Ese link ya está en uso. Probá con otro.',
+    'memberships.slug_not_allowed_for_role':
+        'Solo los profesionales pueden tener un link público.',
 };
 
 /**
