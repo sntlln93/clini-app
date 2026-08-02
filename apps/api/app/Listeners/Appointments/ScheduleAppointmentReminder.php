@@ -8,6 +8,7 @@ use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Events\Appointments\AppointmentBooked;
 use App\Models\Reminder;
+use Illuminate\Support\Carbon;
 
 /**
  * Synchronous by design (no ShouldQueue, no queue worker in this app): a
@@ -30,7 +31,9 @@ final readonly class ScheduleAppointmentReminder
             return;
         }
 
-        $scheduledAt = $appointment->start_at->clone()->subHours(self::HOURS_BEFORE);
+        /** @var Carbon $startAt */
+        $startAt = $appointment->start_at;
+        $scheduledAt = $startAt->clone()->subHours(self::HOURS_BEFORE);
 
         if ($scheduledAt->lessThanOrEqualTo(now())) {
             return;
