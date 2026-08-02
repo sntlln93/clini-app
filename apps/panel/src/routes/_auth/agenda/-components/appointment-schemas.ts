@@ -61,3 +61,11 @@ export const rescheduleSchema = z.object({
 });
 
 export type RescheduleFormValues = z.infer<typeof rescheduleSchema>;
+
+export const cancelSchema = z.object({
+    cancellation_reason: z
+        .string()
+        .max(255, 'El motivo no puede superar los 255 caracteres.'),
+});
+
+export type CancelFormValues = z.infer<typeof cancelSchema>;

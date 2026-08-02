@@ -99,7 +99,7 @@ describe('AppointmentCard', () => {
         expect(screen.getByText('Juan Pérez')).toBeTruthy();
     });
 
-    it('clicking Cancelar opens a confirmation and only cancels once confirmed', async () => {
+    it('clicking Cancelar opens the cancellation dialog and only cancels once confirmed', async () => {
         vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
         renderCard(buildAppointment({ id: 42, status: 'scheduled' }));
 
@@ -111,7 +111,7 @@ describe('AppointmentCard', () => {
         expect(api.patch).not.toHaveBeenCalled();
 
         fireEvent.click(
-            await screen.findByRole('button', { name: 'Confirmar' }),
+            await screen.findByRole('button', { name: 'Cancelar turno' }),
         );
 
         await waitFor(() =>
