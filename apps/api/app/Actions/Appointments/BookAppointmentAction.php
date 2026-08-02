@@ -8,6 +8,7 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Appointments\AppointmentBookingData;
 use App\Enums\AppointmentStatus;
+use App\Events\Appointments\AppointmentBooked;
 use App\Exceptions\Appointments\ServiceNotActiveForProfessionalException;
 use App\Exceptions\Appointments\SlotTakenException;
 use App\Models\Appointment;
@@ -33,7 +34,7 @@ class BookAppointmentAction implements Action
      */
     public function handle(Data $dto): Appointment
     {
-        return DB::transaction(function () use ($dto): Appointment {
+        $appointment = DB::transaction(function () use ($dto): Appointment {
             $membership = Membership::withoutGlobalScope('organization')->findOrFail($dto->membershipId);
             $userId = $membership->user_id;
 
@@ -84,5 +85,9 @@ class BookAppointmentAction implements Action
                 'rescheduled_from_id' => $dto->rescheduledFromId,
             ]);
         });
+
+        AppointmentBooked::dispatch($appointment);
+
+        return $appointment;
     }
 }
