@@ -1,4 +1,3 @@
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
@@ -9,10 +8,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { useState } from 'react';
-import {
-    useCancelAppointment,
-    useUpdateAppointmentStatus,
-} from '../-hooks/use-appointments';
+import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
+import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
 
 /**
@@ -86,10 +83,8 @@ export function AppointmentCard({
     canUpdate,
 }: AppointmentCardProps) {
     const [showReschedule, setShowReschedule] = useState(false);
-    const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+    const [showCancel, setShowCancel] = useState(false);
     const { mutate } = useUpdateAppointmentStatus();
-    const { mutate: cancelAppointment, isPending: isCancelling } =
-        useCancelAppointment();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
@@ -155,7 +150,7 @@ export function AppointmentCard({
                     {canCancel && (
                         <DropdownMenuItem
                             variant="destructive"
-                            onClick={() => setShowCancelConfirm(true)}
+                            onClick={() => setShowCancel(true)}
                         >
                             Cancelar
                         </DropdownMenuItem>
@@ -169,18 +164,10 @@ export function AppointmentCard({
                 appointment={appointment}
             />
 
-            <ConfirmDialog
-                open={showCancelConfirm}
-                onOpenChange={setShowCancelConfirm}
-                title="Cancelar turno"
-                description="¿Cancelar este turno? Esta acción no se puede deshacer."
-                onConfirm={() =>
-                    cancelAppointment({
-                        appointmentId: appointment.id,
-                        cancellationReason: null,
-                    })
-                }
-                isPending={isCancelling}
+            <CancelAppointmentDialog
+                open={showCancel}
+                onOpenChange={setShowCancel}
+                appointment={appointment}
             />
         </>
     );
