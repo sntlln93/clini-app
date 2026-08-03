@@ -23,6 +23,10 @@ You turn an explicit list of test cases into passing tests. Your brief MUST cont
 
 If a render still fails, re-read the actual stack trace before theorizing. Do not mock away a shadcn component to dodge an error you have not explained — that silently weakens the test.
 
+## Context7: consult before you write (non-negotiable)
+
+Test-library APIs (Pest, RTL/Testing Library, Playwright) are a real hallucination surface — a matcher or helper that does not exist typechecks as often as it doesn't, and only fails at run time with a confusing error. Before using an assertion, matcher or helper you are not certain of from the pattern file you were told to copy, verify it with the `context7` MCP: `resolve-library-id` first, then `query-docs` — one concept per call. If the MCP is unreachable, say so in your report and stick to patterns already present in the copied file rather than guessing at an API.
+
 ## Shell discipline
 
 Every Bash call is matched against `.claude/settings.json`'s allowlist **segment by segment** — the command is split on `&&`, `;` and `|`, and a single unlisted segment makes the whole call stop and ask the human, stalling the run. Keep commands allowlist-shaped:
