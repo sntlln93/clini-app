@@ -199,6 +199,7 @@ function AgendaPage() {
                 onNext={handleNext}
                 onToday={handleToday}
                 onViewChange={handleViewChange}
+                onDateSelect={updateDate}
             />
 
             {professionals.length === 0 && (
