@@ -16,6 +16,7 @@ import {
     AppointmentFormDialog,
     type AppointmentPrefill,
 } from './-components/AppointmentFormDialog';
+import { isProfessionalFilterEmpty } from './-components/professional-filter';
 import { useAppointmentPermissions } from './-hooks/use-appointment-permissions';
 import { appointmentsQueryOptions } from './-hooks/use-appointments';
 
@@ -126,10 +127,11 @@ function AgendaPage() {
               selectedProfessionalIds.includes(professional.id),
           )
         : professionals;
-    const noneVisibleFromFilter =
-        professionals.length > 0 &&
-        visibleProfessionals.length === 0 &&
-        (selectedProfessionalIds?.length ?? 0) > 0;
+    const noneVisibleFromFilter = isProfessionalFilterEmpty(
+        professionals.length,
+        visibleProfessionals.length,
+        selectedProfessionalIds,
+    );
 
     function updateDate(next: Date) {
         void navigate({

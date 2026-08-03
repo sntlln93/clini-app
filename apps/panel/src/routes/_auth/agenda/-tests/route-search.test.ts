@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { isProfessionalFilterEmpty } from '../-components/professional-filter';
 import { Route } from '../index';
 
 type AgendaSearch = {
@@ -64,5 +65,19 @@ describe('/agenda validateSearch + loaderDeps', () => {
         const deps = loaderDeps({ search: parsed });
 
         expect(Object.keys(deps).sort()).toEqual(['date', 'view']);
+    });
+});
+
+describe('isProfessionalFilterEmpty', () => {
+    it('is false when professionals is absent from the querystring (all selected)', () => {
+        expect(isProfessionalFilterEmpty(3, 3, undefined)).toBe(false);
+    });
+
+    it('is true when the filter is an empty array (last professional deselected)', () => {
+        expect(isProfessionalFilterEmpty(3, 0, [])).toBe(true);
+    });
+
+    it('is false when the filter selects a non-empty subset', () => {
+        expect(isProfessionalFilterEmpty(2, 1, [2])).toBe(false);
     });
 });
