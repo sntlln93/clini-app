@@ -1,7 +1,7 @@
 ---
 name: stenographer
 description: Turns an enumerated list of test cases into passing Pest/Vitest/Playwright tests on the current feature branch. Requires the case list in its brief — it does not decide what to test.
-tools: Bash, Read, Edit, Write, Grep, Glob, Skill
+tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 ---
 

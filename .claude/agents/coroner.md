@@ -1,7 +1,7 @@
 ---
 name: coroner
 description: Diagnoses the root cause of a reported bug before any fix is planned. Read-only on app code — produces a root-cause report with evidence and a repro, never a fix.
-tools: Bash, Read, Grep, Glob, Write, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_audit_checklist
+tools: Bash, Read, Grep, Glob, Write, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_audit_checklist, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 ---
 

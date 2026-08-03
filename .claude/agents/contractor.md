@@ -1,7 +1,7 @@
 ---
 name: contractor
 description: Executes the implementation handoff for a GitHub issue — writes the code, validates each step, commits and pushes to the feature branch. Requires .claude/handoffs/<N>.md to exist.
-tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist
+tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 ---
 
