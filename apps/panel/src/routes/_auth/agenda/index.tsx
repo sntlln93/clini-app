@@ -6,6 +6,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
 import { AgendaDayView } from './-components/AgendaDayView';
+import { AgendaProfessionalFilter } from './-components/AgendaProfessionalFilter';
 import {
     AgendaToolbar,
     type AgendaViewMode,
@@ -15,12 +16,14 @@ import {
     AppointmentFormDialog,
     type AppointmentPrefill,
 } from './-components/AppointmentFormDialog';
+import { isProfessionalFilterEmpty } from './-components/professional-filter';
 import { useAppointmentPermissions } from './-hooks/use-appointment-permissions';
 import { appointmentsQueryOptions } from './-hooks/use-appointments';
 
 const agendaSearchSchema = z.object({
     date: z.string().optional(),
     view: z.enum(['day', 'week']).optional(),
+    professionals: z.array(z.number()).optional(),
 });
 
 function startOfDay(date: Date): Date {
@@ -106,7 +109,11 @@ type FormState = {
 const CLOSED_FORM: FormState = { open: false };
 
 function AgendaPage() {
-    const { date: dateParam, view = 'day' } = Route.useSearch();
+    const {
+        date: dateParam,
+        view = 'day',
+        professionals: selectedProfessionalIds,
+    } = Route.useSearch();
     const navigate = Route.useNavigate();
     const { professionals, appointments } = Route.useLoaderData();
     const { canCreate, canUpdate } = useAppointmentPermissions();
@@ -115,12 +122,32 @@ function AgendaPage() {
     const date = dateParam ? fromDateInputValue(dateParam) : new Date();
     const { start: rangeStart } = rangeFor(date, view);
     const creatableProfessionals = professionals.filter(canCreate);
+    const visibleProfessionals = selectedProfessionalIds
+        ? professionals.filter((professional) =>
+              selectedProfessionalIds.includes(professional.id),
+          )
+        : professionals;
+    const noneVisibleFromFilter = isProfessionalFilterEmpty(
+        professionals.length,
+        visibleProfessionals.length,
+        selectedProfessionalIds,
+    );
 
     function updateDate(next: Date) {
         void navigate({
             search: (prev) => ({ ...prev, date: toDateInputValue(next) }),
         });
     }
+
+    const handleProfessionalsChange = (ids: number[]) => {
+        void navigate({
+            search: (prev) => ({
+                ...prev,
+                professionals:
+                    ids.length === professionals.length ? undefined : ids,
+            }),
+        });
+    };
 
     const handlePrev = () =>
         updateDate(addDays(date, view === 'day' ? -1 : -7));
@@ -156,6 +183,17 @@ function AgendaPage() {
                 )}
             </div>
 
+            {professionals.length > 0 && (
+                <AgendaProfessionalFilter
+                    professionals={professionals}
+                    selectedIds={
+                        selectedProfessionalIds ??
+                        professionals.map((professional) => professional.id)
+                    }
+                    onChange={handleProfessionalsChange}
+                />
+            )}
+
             <AgendaToolbar
                 date={date}
                 view={view}
@@ -163,6 +201,7 @@ function AgendaPage() {
                 onNext={handleNext}
                 onToday={handleToday}
                 onViewChange={handleViewChange}
+                onDateSelect={updateDate}
             />
 
             {professionals.length === 0 && (
@@ -171,11 +210,17 @@ function AgendaPage() {
                 </p>
             )}
 
-            {professionals.length > 0 &&
+            {noneVisibleFromFilter && (
+                <p className="text-sm text-muted-foreground">
+                    No hay profesionales seleccionados en el filtro.
+                </p>
+            )}
+
+            {visibleProfessionals.length > 0 &&
                 (view === 'day' ? (
                     <AgendaDayView
                         date={date}
-                        professionals={professionals}
+                        professionals={visibleProfessionals}
                         appointments={appointments}
                         canUpdate={canUpdate}
                         canCreate={canCreate}
@@ -184,7 +229,7 @@ function AgendaPage() {
                 ) : (
                     <AgendaWeekView
                         weekStart={rangeStart}
-                        professionals={professionals}
+                        professionals={visibleProfessionals}
                         appointments={appointments}
                         canUpdate={canUpdate}
                     />

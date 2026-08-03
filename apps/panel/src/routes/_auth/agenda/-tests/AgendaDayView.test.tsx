@@ -67,13 +67,13 @@ function renderDayView(props: Partial<AgendaDayViewProps> = {}) {
     };
     const merged = { ...defaults, ...props };
 
-    render(
+    const { container } = render(
         <QueryClientProvider client={queryClient}>
             <AgendaDayView {...merged} />
         </QueryClientProvider>,
     );
 
-    return merged;
+    return { ...merged, container };
 }
 
 describe('AgendaDayView', () => {
@@ -141,5 +141,52 @@ describe('AgendaDayView', () => {
 
         expect(screen.getByText('Dra. Ana López')).toBeTruthy();
         expect(screen.getByText('Juan Pérez')).toBeTruthy();
+    });
+
+    it('renders a column only for the professionals it receives, not every professional that exists', () => {
+        const professionals = [
+            buildMembership({ id: 1 }),
+            buildMembership({ id: 2 }),
+        ];
+        const { container } = renderDayView({
+            professionals: [professionals[0]],
+        });
+
+        expect(container.querySelectorAll('.h-10.border-b.px-2')).toHaveLength(
+            1,
+        );
+    });
+
+    it('positions a 30-minute appointment block at its start offset with at least the compact-card minimum height', () => {
+        const professional = buildMembership({ id: 1 });
+        renderDayView({
+            professionals: [professional],
+            appointments: [buildAppointment({ membership_id: 1 })], // 10:00–10:30
+        });
+
+        let block: HTMLElement | null = screen.getByText('Juan Pérez');
+        while (block && !block.style.top) {
+            block = block.parentElement;
+        }
+        expect(block).not.toBeNull();
+
+        // START_HOUR=8, HOUR_HEIGHT_PX=96 → 1.6px/min; 10:00 is 120min after
+        // 8:00 → 192px.
+        expect(block?.style.top).toBe('192px');
+        expect(parseFloat(block?.style.height ?? '0')).toBeGreaterThanOrEqual(
+            48,
+        );
+    });
+
+    it('lets professional columns share the available width instead of a fixed 48-unit column', () => {
+        const professional = buildMembership({ id: 1 });
+        const { container } = renderDayView({ professionals: [professional] });
+
+        const row = container.querySelector('.overflow-auto > div');
+        expect(row?.className).not.toMatch(/\bmin-w-max\b/);
+
+        const column = screen.getByText('Dra. Ana López').closest('.border-r');
+        expect(column?.className).not.toMatch(/\bw-48\b/);
+        expect(column?.className).not.toMatch(/\bshrink-0\b/);
     });
 });

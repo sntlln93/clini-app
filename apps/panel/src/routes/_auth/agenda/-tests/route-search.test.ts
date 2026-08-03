@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { isProfessionalFilterEmpty } from '../-components/professional-filter';
 import { Route } from '../index';
 
-type AgendaSearch = { date?: string; view?: 'day' | 'week' };
+type AgendaSearch = {
+    date?: string;
+    view?: 'day' | 'week';
+    professionals?: number[];
+};
 
 // `validateSearch`/`loaderDeps` are typed as a union that also allows a
 // schema-object shape (not directly callable), even though this route
@@ -36,5 +41,43 @@ describe('/agenda validateSearch + loaderDeps', () => {
         expect(deps.view).toBe('day');
         expect(deps.date).toEqual(expect.any(String));
         expect(deps.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('validateSearch accepts a professionals array and returns the ids as numbers', () => {
+        const parsed = validateSearch({ professionals: [1, 2] });
+
+        expect(parsed.professionals).toEqual([1, 2]);
+        parsed.professionals?.forEach((id) => expect(typeof id).toBe('number'));
+    });
+
+    it('validateSearch rejects a professionals value that is not an array of numbers', () => {
+        expect(() => validateSearch({ professionals: ['a'] })).toThrow();
+    });
+
+    it('validateSearch accepts a search object with no professionals key (absent means "all selected")', () => {
+        const parsed = validateSearch({});
+
+        expect(parsed).not.toHaveProperty('professionals');
+    });
+
+    it('loaderDeps does not expose professionals, so the filter never re-triggers the loader', () => {
+        const parsed = validateSearch({ professionals: [1, 2] });
+        const deps = loaderDeps({ search: parsed });
+
+        expect(Object.keys(deps).sort()).toEqual(['date', 'view']);
+    });
+});
+
+describe('isProfessionalFilterEmpty', () => {
+    it('is false when professionals is absent from the querystring (all selected)', () => {
+        expect(isProfessionalFilterEmpty(3, 3, undefined)).toBe(false);
+    });
+
+    it('is true when the filter is an empty array (last professional deselected)', () => {
+        expect(isProfessionalFilterEmpty(3, 0, [])).toBe(true);
+    });
+
+    it('is false when the filter selects a non-empty subset', () => {
+        expect(isProfessionalFilterEmpty(2, 1, [2])).toBe(false);
     });
 });
