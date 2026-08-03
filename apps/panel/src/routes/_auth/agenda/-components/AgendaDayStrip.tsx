@@ -42,8 +42,7 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
         addDays(weekStart, index),
     );
 
-    const shiftWeek = (weeks: number) =>
-        onDateSelect(addDays(date, weeks * 7));
+    const shiftWeek = (weeks: number) => onDateSelect(addDays(date, weeks * 7));
 
     return (
         <div className="flex min-w-0 items-center gap-1">

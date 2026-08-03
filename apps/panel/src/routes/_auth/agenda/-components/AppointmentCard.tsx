@@ -6,6 +6,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { useState } from 'react';
 import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
@@ -66,8 +67,34 @@ const STATUS_VARIANTS: Record<
     rescheduled: 'outline',
 };
 
-function formatTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('es-AR', {
+/**
+ * Solid per-status surface used only by the `day` variant — the `default`
+ * variant (week view) keeps its single translucent `bg-primary/10` look
+ * unchanged. Built exclusively from semantic tokens already used elsewhere
+ * in this file (see `badgeVariants` in `components/ui/badge.tsx`).
+ */
+const STATUS_DAY_STYLES: Record<AppointmentStatus, string> = {
+    scheduled: 'border-border bg-background text-foreground',
+    confirmed: 'border-transparent bg-secondary text-secondary-foreground',
+    arrived: 'border-transparent bg-accent text-accent-foreground',
+    completed: 'border-transparent bg-primary text-primary-foreground',
+    no_show: 'border-transparent bg-destructive/15 text-destructive',
+    cancelled: 'border-transparent bg-destructive/15 text-destructive',
+    rescheduled: 'border-border bg-background text-foreground',
+};
+
+type AppointmentCardVariant = 'default' | 'day';
+
+function formatTime(iso: string, variant: AppointmentCardVariant): string {
+    const date = new Date(iso);
+
+    if (variant === 'day') {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${hours}:${minutes}`;
+    }
+
+    return date.toLocaleTimeString('es-AR', {
         hour: '2-digit',
         minute: '2-digit',
     });
@@ -76,11 +103,17 @@ function formatTime(iso: string): string {
 type AppointmentCardProps = {
     appointment: Appointment;
     canUpdate: boolean;
+    /** @default 'default' — reproduces the original render used by the week view. */
+    variant?: AppointmentCardVariant;
+    /** Day view only: hides the service line when the block is too short for three lines. */
+    compact?: boolean;
 };
 
 export function AppointmentCard({
     appointment,
     canUpdate,
+    variant = 'default',
+    compact = false,
 }: AppointmentCardProps) {
     const [showReschedule, setShowReschedule] = useState(false);
     const [showCancel, setShowCancel] = useState(false);
@@ -88,28 +121,49 @@ export function AppointmentCard({
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
+    const timeLabel = `${formatTime(appointment.start_at, variant)}–${formatTime(appointment.end_at, variant)}`;
+    const patientLabel =
+        appointment.patient_name ?? `Paciente #${appointment.patient_id}`;
+    const serviceLabel =
+        appointment.service_name ?? `Servicio #${appointment.service_id}`;
 
-    const content = (
-        <div className="flex h-full flex-col gap-0.5 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-1.5 text-left text-xs">
-            <div className="flex items-center justify-between gap-1">
-                <span className="font-medium">
-                    {formatTime(appointment.start_at)}–
-                    {formatTime(appointment.end_at)}
-                </span>
-                <Badge variant={STATUS_VARIANTS[appointment.status]}>
-                    {STATUS_LABELS[appointment.status]}
-                </Badge>
+    const content =
+        variant === 'day' ? (
+            <div
+                className={cn(
+                    'flex h-full flex-col gap-0.5 overflow-hidden rounded-md border p-1.5 text-left text-xs',
+                    STATUS_DAY_STYLES[appointment.status],
+                )}
+            >
+                <div className="flex items-center justify-between gap-1">
+                    <span className="font-semibold whitespace-nowrap">
+                        {timeLabel}
+                    </span>
+                    <Badge variant={STATUS_VARIANTS[appointment.status]}>
+                        {STATUS_LABELS[appointment.status]}
+                    </Badge>
+                </div>
+                <span className="truncate font-medium">{patientLabel}</span>
+                {!compact && (
+                    <span className="truncate text-[11px] opacity-80">
+                        {serviceLabel}
+                    </span>
+                )}
             </div>
-            <span className="truncate font-medium">
-                {appointment.patient_name ??
-                    `Paciente #${appointment.patient_id}`}
-            </span>
-            <span className="truncate text-muted-foreground">
-                {appointment.service_name ??
-                    `Servicio #${appointment.service_id}`}
-            </span>
-        </div>
-    );
+        ) : (
+            <div className="flex h-full flex-col gap-0.5 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-1.5 text-left text-xs">
+                <div className="flex items-center justify-between gap-1">
+                    <span className="font-medium">{timeLabel}</span>
+                    <Badge variant={STATUS_VARIANTS[appointment.status]}>
+                        {STATUS_LABELS[appointment.status]}
+                    </Badge>
+                </div>
+                <span className="truncate font-medium">{patientLabel}</span>
+                <span className="truncate text-muted-foreground">
+                    {serviceLabel}
+                </span>
+            </div>
+        );
 
     const hasActions =
         canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);

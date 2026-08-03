@@ -4,9 +4,14 @@ import { AppointmentCard } from './AppointmentCard';
 
 const START_HOUR = 8;
 const END_HOUR = 20;
-const HOUR_HEIGHT_PX = 64;
+const HOUR_HEIGHT_PX = 96;
 const PX_PER_MINUTE = HOUR_HEIGHT_PX / 60;
-const MIN_CARD_HEIGHT_PX = 20;
+// Floor so even a very short appointment still fits the compact (hour +
+// patient + badge) card layout below.
+const MIN_CARD_HEIGHT_PX = 48;
+// Below this, a card switches to the compact layout — three lines (hour,
+// patient, service) don't fit a block this short.
+const COMPACT_CARD_HEIGHT_PX = 64;
 
 function isSameDay(iso: string, date: Date): boolean {
     const time = new Date(iso);
@@ -54,7 +59,7 @@ export function AgendaDayView({
 
     return (
         <div className="overflow-auto rounded-lg border">
-            <div className="flex min-w-max">
+            <div className="flex w-full">
                 <div className="w-14 shrink-0 border-r">
                     <div className="h-10 border-b" />
                     {hours.map((hour) => (
@@ -79,7 +84,7 @@ export function AgendaDayView({
                     return (
                         <div
                             key={professional.id}
-                            className="w-48 shrink-0 border-r last:border-r-0"
+                            className="min-w-0 flex-1 basis-0 border-r last:border-r-0"
                         >
                             <div className="flex h-10 items-center border-b px-2 text-sm font-medium">
                                 {professional.user.name ?? 'Sin nombre'}
@@ -140,6 +145,11 @@ export function AgendaDayView({
                                                 canUpdate={canUpdate(
                                                     professional,
                                                 )}
+                                                variant="day"
+                                                compact={
+                                                    height <
+                                                    COMPACT_CARD_HEIGHT_PX
+                                                }
                                             />
                                         </div>
                                     );
