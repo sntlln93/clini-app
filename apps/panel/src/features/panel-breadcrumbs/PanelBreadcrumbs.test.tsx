@@ -71,4 +71,59 @@ describe('PanelBreadcrumbs', () => {
         expect(homeLink.tagName).toBe('A');
         expect(homeLink.getAttribute('href')).toBe('/');
     });
+
+    describe('DOM structure', () => {
+        it('no anida un `<li>` dentro de otro `<li>`', async () => {
+            renderBreadcrumbsAt('/pacientes/nuevo');
+
+            const nav = await screen.findByRole('navigation', {
+                name: 'Miga de pan',
+            });
+            const items = nav.querySelectorAll('li');
+
+            expect(items.length).toBeGreaterThan(0);
+            items.forEach((li) => {
+                expect(li.querySelector('li')).toBeNull();
+            });
+        });
+
+        it('renderiza los separadores como hermanos de los items dentro del `<ol>`', async () => {
+            renderBreadcrumbsAt('/pacientes/nuevo');
+
+            const nav = await screen.findByRole('navigation', {
+                name: 'Miga de pan',
+            });
+            const list = nav.querySelector('[data-slot="breadcrumb-list"]');
+
+            expect(list).not.toBeNull();
+            expect(list?.tagName).toBe('OL');
+
+            const slots = Array.from(list?.children ?? []).map((child) =>
+                child.getAttribute('data-slot'),
+            );
+            expect(slots).toEqual([
+                'breadcrumb-item',
+                'breadcrumb-separator',
+                'breadcrumb-item',
+                'breadcrumb-separator',
+                'breadcrumb-item',
+            ]);
+        });
+
+        it('no renderiza separador cuando hay una sola miga', async () => {
+            renderBreadcrumbsAt('/');
+
+            const nav = await screen.findByRole('navigation', {
+                name: 'Miga de pan',
+            });
+
+            expect(
+                nav.querySelectorAll('[data-slot="breadcrumb-item"]').length,
+            ).toBe(1);
+            expect(
+                nav.querySelectorAll('[data-slot="breadcrumb-separator"]')
+                    .length,
+            ).toBe(0);
+        });
+    });
 });
