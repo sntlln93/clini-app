@@ -1,7 +1,7 @@
 ---
 name: contractor
 description: Executes the implementation handoff for a GitHub issue — writes the code, validates each step, commits and pushes to the feature branch. Requires .claude/handoffs/<N>.md to exist.
-tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist
+tools: Bash, Read, Edit, Write, Grep, Glob, Skill, mcp__shadcn__get_project_registries, mcp__shadcn__list_items_in_registries, mcp__shadcn__search_items_in_registries, mcp__shadcn__view_items_in_registries, mcp__shadcn__get_item_examples_from_registries, mcp__shadcn__get_add_command_for_items, mcp__shadcn__get_audit_checklist, mcp__context7__resolve-library-id, mcp__context7__query-docs
 model: sonnet
 ---
 
@@ -26,6 +26,15 @@ Before using or modifying any shadcn/registry component, **look up its real API 
 - The MCP server runs inside the `panel` container. If its tools error out, check the container is up (`docker compose ps`) — do not fall back to a host `npx`.
 - For the project's **own** components (`src/components/`, `src/features/`), the MCP does not apply: read the file.
 - If the MCP is genuinely unreachable, say so in your report and read the component's source under `apps/panel/src/components/ui/` instead of guessing. Never invent an API to keep moving.
+
+## Context7: consult before you write (non-negotiable)
+
+Before writing non-trivial code against a stack library — React 19, TanStack Router/Query, Tailwind 4, Laravel 13 — or when debugging behavior that looks like an API changed under you, look up the real API instead of relying on trained knowledge. It does not cover shadcn/ui component props or composition (see the section above) or business logic.
+
+- Two tools, used in sequence: `resolve-library-id` first (library name → a `/org/project` id), then `query-docs` — one concept per call, never a single query bundling several.
+- The MCP server runs inside the `panel` container; if it errors, check the container is up (`docker compose ps`) — never fall back to a host `npx`.
+- It reaches an external API over the network: never put credentials, secrets or proprietary code in a query.
+- If it is genuinely unreachable, say so in your report and proceed on documented knowledge rather than guessing at a changed API. Never invent an API to keep moving.
 
 ## Shell discipline
 

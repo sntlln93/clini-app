@@ -181,6 +181,19 @@ Two independent aids, both consumed through the container — see the mandatory-
   - Available tools: `get_project_registries`, `list_items_in_registries`, `search_items_in_registries`, `view_items_in_registries`, `get_item_examples_from_registries`, `get_add_command_for_items`, `get_audit_checklist`. They are declared one by one in the `tools:` frontmatter of the `contractor`, `judge` and `coroner` agents — a subagent's `tools:` is an explicit allowlist, so an `mcp__shadcn__*` wildcard is not relied on there; adding a tool means adding its full name. `coroner` gets all of them except `get_add_command_for_items`, whose only purpose is producing an install command it is barred from acting on.
   - **`deny` and `allow` here are complementary, not alternatives.** `.claude/settings.json` allows the container form (`Bash(docker compose exec --workdir /workspace/apps/panel panel npx shadcn@latest *)`) so it runs unprompted, *and* denies bare `npm`/`npx`/`pnpm`/`bunx`. The deny is the part that matters: the vendored skill's frontmatter carries `allowed-tools: Bash(npx shadcn@latest *)`, and only a `deny` rule outranks that grant — allowing the container form does not revoke it. The two do not collide: permission matching is prefix-based per command segment, so a segment starting with `docker` never matches `npx *` (verified: `npx --version` is denied while the `docker compose exec … npx …` form runs).
 
+### Context7 MCP (library documentation)
+
+`context7` (`.mcp.json`, project scope, versioned) gives agents current documentation for the stack libraries (React 19, TanStack Router/Query, Tailwind 4, Laravel 13) instead of relying on trained knowledge — a hallucination guard for *library* APIs. It runs as `docker compose exec -T panel npx -y @upstash/context7-mcp`; unlike shadcn MCP it needs no `--workdir`, and it works anonymously — no API key.
+
+Consult it before writing non-trivial code against a stack library, and when debugging behavior that looks like an API changed under us. It does not overlap with shadcn MCP: **shadcn/ui component props and composition stay with the shadcn sources documented above** (the installed `src/components/ui/<name>.tsx` file for props, the shadcn MCP for composition); Context7 covers everything else in the stack. It is not for business logic, code review, or general programming concepts.
+
+Two tools, used in sequence: `resolve-library-id` first (library name → a `/org/project` id), then `query-docs` (one concept per query — separate calls for separate concepts, never a single query bundling several).
+
+Known limitations:
+- Requires the `panel` container up (`docker compose up -d`) — same as shadcn MCP; with it down every call fails, and the fix is to start it, never to fall back to a host `npx`.
+- The package is unpinned, and **tool names have changed across majors** (`get-library-docs` → `query-docs` in v3). If calls start failing after an upstream bump, re-check the real names with a `tools/list` handshake and update both the agents' frontmatter and `permissions.allow` — the allowlist is version-coupled.
+- It reaches an external API over the network: never put credentials, secrets or proprietary code in a query (the tool schemas warn about this explicitly).
+
 ### E2E suite
 
 `e2e/smoke.spec.ts` hits both servers directly (`api` on :8080, `panel` on :5174, its API check against `/api/v1/ping`) — no auth or seeded demo data involved yet. `playwright.config.ts`'s `webServer` array boots both (`php artisan serve` + `vite dev`) itself whenever `CI` is set — true in real CI, and also true for the local `e2e` compose service (see Tests above), which sets it deliberately so the whole run stays in one process/network namespace instead of depending on the persistent dev-loop `laravel.test`/`panel` containers (whose baked `VITE_API_URL` only resolves correctly from a browser on the same host/network as that specific container).

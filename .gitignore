@@ -11,6 +11,7 @@ e2e/.auth/
 .claude/transcripts/
 .claude/handoffs/
 .claude/session-report/
+.claude/settings.local.json
 
 mocks/
 
