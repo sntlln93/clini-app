@@ -37,11 +37,21 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     };
 }
 
-function renderCard(appointment: Appointment, canUpdate: boolean = true) {
+function renderCard(
+    appointment: Appointment,
+    canUpdate: boolean = true,
+    variant: 'default' | 'day' = 'default',
+    compact: boolean = false,
+) {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
-            <AppointmentCard appointment={appointment} canUpdate={canUpdate} />
+            <AppointmentCard
+                appointment={appointment}
+                canUpdate={canUpdate}
+                variant={variant}
+                compact={compact}
+            />
         </QueryClientProvider>,
     );
 }
@@ -120,5 +130,44 @@ describe('AppointmentCard', () => {
             }),
         );
         await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    });
+
+    it('renders the time in the original long es-AR format for the default variant (week view)', () => {
+        const appointment = buildAppointment();
+        renderCard(appointment);
+
+        const expectedStart = new Date(appointment.start_at).toLocaleTimeString(
+            'es-AR',
+            { hour: '2-digit', minute: '2-digit' },
+        );
+        const expectedEnd = new Date(appointment.end_at).toLocaleTimeString(
+            'es-AR',
+            { hour: '2-digit', minute: '2-digit' },
+        );
+
+        expect(
+            screen.getByText(`${expectedStart}–${expectedEnd}`),
+        ).toBeTruthy();
+    });
+
+    it('renders the time in short 24-hour form in a single element for the day variant', () => {
+        renderCard(buildAppointment(), true, 'day');
+
+        expect(screen.getByText('10:00–10:30')).toBeTruthy();
+    });
+
+    it('hides the service line in compact day mode but keeps time, patient and status', () => {
+        renderCard(buildAppointment(), true, 'day', true);
+
+        expect(screen.getByText('10:00–10:30')).toBeTruthy();
+        expect(screen.getByText('Juan Pérez')).toBeTruthy();
+        expect(screen.getByText('Agendado')).toBeTruthy();
+        expect(screen.queryByText('Consulta general')).toBeNull();
+    });
+
+    it('shows the service line in non-compact day mode', () => {
+        renderCard(buildAppointment(), true, 'day', false);
+
+        expect(screen.getByText('Consulta general')).toBeTruthy();
     });
 });
