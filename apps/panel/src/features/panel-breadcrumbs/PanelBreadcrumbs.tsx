@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/breadcrumb';
 import { buildBreadcrumbs } from '@/lib/breadcrumbs';
 import { Link, useRouterState } from '@tanstack/react-router';
+import { Fragment } from 'react';
 
 export function PanelBreadcrumbs() {
     const pathname = useRouterState({
@@ -22,18 +23,22 @@ export function PanelBreadcrumbs() {
                     const isLast = index === crumbs.length - 1;
 
                     return (
-                        <BreadcrumbItem key={`${crumb.label}-${index}`}>
-                            {isLast ? (
-                                <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                            ) : (
-                                <BreadcrumbLink
-                                    render={<Link to={crumb.href} />}
-                                >
-                                    {crumb.label}
-                                </BreadcrumbLink>
-                            )}
+                        <Fragment key={`${crumb.label}-${index}`}>
+                            <BreadcrumbItem>
+                                {isLast ? (
+                                    <BreadcrumbPage>
+                                        {crumb.label}
+                                    </BreadcrumbPage>
+                                ) : (
+                                    <BreadcrumbLink
+                                        render={<Link to={crumb.href} />}
+                                    >
+                                        {crumb.label}
+                                    </BreadcrumbLink>
+                                )}
+                            </BreadcrumbItem>
                             {!isLast && <BreadcrumbSeparator />}
-                        </BreadcrumbItem>
+                        </Fragment>
                     );
                 })}
             </BreadcrumbList>
