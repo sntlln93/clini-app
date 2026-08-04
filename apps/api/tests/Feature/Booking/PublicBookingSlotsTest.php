@@ -320,6 +320,7 @@ test('missing or nonexistent membership_id or service_id returns 422', function 
 });
 
 test('a membership_id from another organization returns 404', function () {
+    $this->travelTo('2026-07-20 00:00:00');
     [$organization, , $service] = createSlotsFixture(30);
     $otherOrganization = Organization::factory()->create();
     $otherMembership = Membership::factory()->create(['organization_id' => $otherOrganization->id]);
