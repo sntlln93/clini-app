@@ -93,7 +93,11 @@ export function RegisterForm() {
                     ¿Ya tenés cuenta?{' '}
                     <Link
                         to="/login"
-                        className="font-medium text-foreground underline underline-offset-4"
+                        // Inline text link within a sentence — exempt from
+                        // the coarse-pointer 44px touch-target floor per
+                        // WCAG 2.5.8's own inline exception (see
+                        // `index.css`'s `.touch-target-exempt` rule).
+                        className="touch-target-exempt font-medium text-foreground underline underline-offset-4"
                     >
                         Iniciá sesión
                     </Link>
