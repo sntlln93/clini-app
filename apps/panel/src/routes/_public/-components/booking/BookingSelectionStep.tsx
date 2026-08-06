@@ -7,6 +7,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import type { BookingProfessional, BookingSpecialty } from '@/types/booking';
+import type { ComponentProps } from 'react';
 import { useId, useMemo } from 'react';
 
 type SelectionValues = {
@@ -14,6 +15,87 @@ type SelectionValues = {
     professional?: number;
     service?: number;
 };
+
+type SelectableItem = { value: string; label: string };
+
+function selectValueLabel(
+    items: SelectableItem[],
+    value: string | null,
+    placeholder: string,
+): string {
+    if (!value) {
+        return placeholder;
+    }
+    return items.find((item) => item.value === value)?.label ?? placeholder;
+}
+
+/**
+ * `SelectTrigger` forces `*:data-[slot=select-value]:flex` on its
+ * `SelectValue` child, and `text-overflow: ellipsis` never takes effect on
+ * an element whose own computed `display` is `flex`. Rendering the label
+ * inside a nested `<span>` sidesteps that: as the sole child of a flex
+ * container, the span is blockified by the CSS Display spec regardless of
+ * its own `display` value, so `truncate` (overflow/ellipsis/nowrap) applies
+ * to it correctly. See issue #154 — the primitive itself is out of scope
+ * (tracked as its own follow-up), this only fixes the three booking call
+ * sites.
+ */
+function TruncatedSelectValue({
+    items,
+    placeholder,
+}: {
+    items: SelectableItem[];
+    placeholder: string;
+}) {
+    return (
+        <SelectValue placeholder={placeholder} className="min-w-0">
+            {(value: string | null) => (
+                <span className="block w-full min-w-0 truncate">
+                    {selectValueLabel(items, value, placeholder)}
+                </span>
+            )}
+        </SelectValue>
+    );
+}
+
+type BookingSelectFieldProps = {
+    id: string;
+    label: string;
+    items: SelectableItem[];
+    value?: string;
+    placeholder: string;
+    onValueChange: NonNullable<ComponentProps<typeof Select>['onValueChange']>;
+};
+
+function BookingSelectField({
+    id,
+    label,
+    items,
+    value,
+    placeholder,
+    onValueChange,
+}: BookingSelectFieldProps) {
+    return (
+        <div className="space-y-1.5">
+            <Label htmlFor={id}>{label}</Label>
+            <Select items={items} value={value} onValueChange={onValueChange}>
+                <SelectTrigger id={id} className="w-full">
+                    <TruncatedSelectValue
+                        items={items}
+                        placeholder={placeholder}
+                    />
+                </SelectTrigger>
+                <SelectContent>
+                    {items.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+}
 
 type BookingSelectionStepProps = {
     professionals: BookingProfessional[];
@@ -93,99 +175,60 @@ export function BookingSelectionStep({
             </div>
 
             {specialties.length > 0 && (
-                <div className="space-y-1.5">
-                    <Label htmlFor={specialtyTriggerId}>Especialidad</Label>
-                    <Select
-                        items={specialtyItems}
-                        value={
-                            selection.specialty
-                                ? String(selection.specialty)
-                                : undefined
-                        }
-                        onValueChange={(value) =>
-                            onChange({
-                                specialty: Number(value),
-                                professional: undefined,
-                                service: undefined,
-                            })
-                        }
-                    >
-                        <SelectTrigger
-                            id={specialtyTriggerId}
-                            className="w-full"
-                        >
-                            <SelectValue placeholder="Todas las especialidades" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {specialtyItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
-            )}
-
-            <div className="space-y-1.5">
-                <Label htmlFor={professionalTriggerId}>Profesional</Label>
-                <Select
-                    items={professionalItems}
+                <BookingSelectField
+                    id={specialtyTriggerId}
+                    label="Especialidad"
+                    items={specialtyItems}
                     value={
-                        selection.professional
-                            ? String(selection.professional)
+                        selection.specialty
+                            ? String(selection.specialty)
                             : undefined
                     }
+                    placeholder="Todas las especialidades"
                     onValueChange={(value) =>
                         onChange({
-                            ...selection,
-                            professional: Number(value),
+                            specialty: Number(value),
+                            professional: undefined,
                             service: undefined,
                         })
                     }
-                >
-                    <SelectTrigger
-                        id={professionalTriggerId}
-                        className="w-full"
-                    >
-                        <SelectValue placeholder="Seleccioná un profesional" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {professionalItems.map((item) => (
-                            <SelectItem key={item.value} value={item.value}>
-                                {item.label}
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
+                />
+            )}
+
+            <BookingSelectField
+                id={professionalTriggerId}
+                label="Profesional"
+                items={professionalItems}
+                value={
+                    selection.professional
+                        ? String(selection.professional)
+                        : undefined
+                }
+                placeholder="Seleccioná un profesional"
+                onValueChange={(value) =>
+                    onChange({
+                        ...selection,
+                        professional: Number(value),
+                        service: undefined,
+                    })
+                }
+            />
 
             {selectedProfessional && (
-                <div className="space-y-1.5">
-                    <Label htmlFor={serviceTriggerId}>Prestación</Label>
-                    <Select
-                        items={serviceItems}
-                        value={
-                            selection.service
-                                ? String(selection.service)
-                                : undefined
-                        }
-                        onValueChange={(value) =>
-                            onChange({ ...selection, service: Number(value) })
-                        }
-                    >
-                        <SelectTrigger id={serviceTriggerId} className="w-full">
-                            <SelectValue placeholder="Seleccioná una prestación" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {serviceItems.map((item) => (
-                                <SelectItem key={item.value} value={item.value}>
-                                    {item.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </div>
+                <BookingSelectField
+                    id={serviceTriggerId}
+                    label="Prestación"
+                    items={serviceItems}
+                    value={
+                        selection.service
+                            ? String(selection.service)
+                            : undefined
+                    }
+                    placeholder="Seleccioná una prestación"
+                    onValueChange={(value) =>
+                        onChange({ ...selection, service: Number(value) })
+                    }
+                />
             )}
         </div>
     );
