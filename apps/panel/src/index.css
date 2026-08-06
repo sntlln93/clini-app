@@ -184,3 +184,22 @@
         min-width: 44px;
     }
 }
+
+/*
+ * Respect prefers-reduced-motion by collapsing every animation/transition to
+ * an imperceptible duration instead of 0s/none: base-ui/shadcn primitives
+ * rely on transitionend/animationend to unmount (e.g. closing a dialog), and
+ * a true zero duration can suppress those events, leaving them mounted.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        animation-delay: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
