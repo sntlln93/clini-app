@@ -145,7 +145,7 @@ export function AppointmentCard({
                 </div>
                 <span className="truncate font-medium">{patientLabel}</span>
                 {!compact && (
-                    <span className="truncate text-[11px] opacity-80">
+                    <span className="truncate text-[0.6875rem] opacity-80">
                         {serviceLabel}
                     </span>
                 )}

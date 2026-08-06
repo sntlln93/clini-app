@@ -141,6 +141,51 @@
 }
 
 /*
+ * Coarse-pointer (touch) minimum touch targets, ~44x44px.
+ *
+ * The vendored primitives are deliberately compact for a mouse (button
+ * default `h-8`, `icon`/`select-trigger` `h-8`, sidebar menu `h-8`, …).
+ * `min-height`/`min-width` always win over a smaller `height`/`width`
+ * (Tailwind's `size-*`/`h-*` utilities) regardless of selector
+ * specificity — CSS clamps the used size to at least the min — so this
+ * floor never has to touch the `cva` size variants in `components/ui/*`,
+ * which would also change desktop (`pointer: fine`) density.
+ *
+ * Elements naturally wider/taller than 44px (buttons with text,
+ * full-width inputs, menu rows) are unaffected: this only raises a
+ * floor. A control that visibly regresses on a narrow touch viewport can
+ * opt out with `.touch-target-exempt` instead of dropping this rule.
+ *
+ * Native `<button>`/`<a>` cover most primitives already (dialog/sheet
+ * close, alert-dialog action/cancel, pagination links, the sidebar
+ * trigger/menu buttons, select's own trigger, …) since a `data-slot`
+ * rename doesn't change the rendered tag. The remaining primitives
+ * render as `<span>`/`<div>`/`<input>` and need their own `data-slot`
+ * selector (checkbox, radio, switch are base-ui `<span>`s; select items
+ * and dropdown-menu items/entries are `<div>`s).
+ */
+@media (pointer: coarse) {
+    #root button:not(.touch-target-exempt),
+    #root a:not(.touch-target-exempt),
+    #root input:not(.touch-target-exempt),
+    [data-slot='select-trigger']:not(.touch-target-exempt),
+    [data-slot='select-item']:not(.touch-target-exempt),
+    [data-slot='checkbox']:not(.touch-target-exempt),
+    [data-slot='radio-group-item']:not(.touch-target-exempt),
+    [data-slot='switch']:not(.touch-target-exempt),
+    [data-slot='dropdown-menu-item']:not(.touch-target-exempt),
+    [data-slot='dropdown-menu-checkbox-item']:not(.touch-target-exempt),
+    [data-slot='dropdown-menu-radio-item']:not(.touch-target-exempt),
+    [data-slot='dropdown-menu-sub-trigger']:not(.touch-target-exempt),
+    [data-slot='sidebar-menu-button']:not(.touch-target-exempt),
+    [data-slot='sidebar-menu-sub-button']:not(.touch-target-exempt),
+    [data-slot='pagination-link']:not(.touch-target-exempt) {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/*
  * Respect prefers-reduced-motion by collapsing every animation/transition to
  * an imperceptible duration instead of 0s/none: base-ui/shadcn primitives
  * rely on transitionend/animationend to unmount (e.g. closing a dialog), and
