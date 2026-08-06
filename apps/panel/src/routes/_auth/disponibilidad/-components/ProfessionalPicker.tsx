@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -25,6 +26,7 @@ export function ProfessionalPicker({
     selectedId,
     onSelect,
 }: ProfessionalPickerProps) {
+    const triggerId = useId();
     const professionalItems = useMemo(
         () =>
             professionals.map((membership) => ({
@@ -35,21 +37,24 @@ export function ProfessionalPicker({
     );
 
     return (
-        <Select
-            items={professionalItems}
-            value={selectedId !== null ? String(selectedId) : undefined}
-            onValueChange={(value) => onSelect(Number(value))}
-        >
-            <SelectTrigger className="w-full sm:w-64">
-                <SelectValue placeholder="Seleccioná un profesional" />
-            </SelectTrigger>
-            <SelectContent>
-                {professionalItems.map((item) => (
-                    <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                    </SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
+        <div className="space-y-1">
+            <Label htmlFor={triggerId}>Profesional</Label>
+            <Select
+                items={professionalItems}
+                value={selectedId !== null ? String(selectedId) : undefined}
+                onValueChange={(value) => onSelect(Number(value))}
+            >
+                <SelectTrigger id={triggerId} className="w-full sm:w-64">
+                    <SelectValue placeholder="Seleccioná un profesional" />
+                </SelectTrigger>
+                <SelectContent>
+                    {professionalItems.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+        </div>
     );
 }
