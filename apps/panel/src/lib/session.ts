@@ -18,6 +18,10 @@ export const sessionQueryOptions = queryOptions({
         api.get<SessionUser>('/me').then((response) => response.data),
     retry: false,
     staleTime: 5 * 60 * 1000,
+    // Marks this query's 401 as an expected answer (an anonymous session
+    // probe), not a failure — read by `queryClient`'s `QueryCache.onError`
+    // to skip logging it. See that file for the full condition.
+    meta: { expectedUnauthorized: true },
 });
 
 export function useSession() {
