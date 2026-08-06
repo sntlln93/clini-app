@@ -8,6 +8,13 @@ test.describe('panel redirects an unauthenticated visitor to login', () => {
       // (query-client's `onError` skips it for the session query's expected
       // 401, see `apps/panel/src/lib/query-client.ts`).
       responses: [{ url: /\/api\/v1\/me$/, status: 401 }],
+      // Chromium itself still logs the failed 401 resource load at the
+      // browser level — that is not emitted by app code (the app's own
+      // "Query failed" log is the thing the fix above suppresses) and
+      // cannot be removed from app code.
+      console: [
+        /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
+      ],
     },
   })
 
