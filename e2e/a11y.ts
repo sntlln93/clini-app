@@ -90,10 +90,14 @@ export async function runA11yScan(page: Page, view: string): Promise<void> {
       const unexpectedNodes = violation.nodes.filter((node) => {
         const selector = node.target.join(', ')
         const whitelisted = relevantWhitelist.find((entry) => entry.selector === selector)
-        if (!whitelisted) {
+        // A whitelist entry tolerates exactly one node per view — once its
+        // selector has already matched a node, a second, unrelated node
+        // sharing that same selector is still unexpected instead of being
+        // silently absorbed by the same entry.
+        if (!whitelisted || matchedSelectors.has(selector)) {
           return true
         }
-        matchedSelectors.add(whitelisted.selector)
+        matchedSelectors.add(selector)
         return false
       })
 

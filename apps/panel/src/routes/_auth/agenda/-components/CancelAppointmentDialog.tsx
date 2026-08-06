@@ -112,12 +112,12 @@ export function CancelAppointmentDialog({
 
                         <div className="flex flex-wrap gap-2">
                             {QUICK_REASONS.map((reason) => (
+                                // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions -- `render` swaps in a real <button> (see badge.tsx's useRender), which the static analyzer cannot see through the `Badge: 'span'` mapping; it reads this as a plain non-interactive span with an onClick.
                                 <Badge
                                     key={reason}
                                     variant="outline"
-                                    role="button"
-                                    tabIndex={0}
                                     className="cursor-pointer"
+                                    render={<button type="button" />}
                                     onClick={() =>
                                         form.setValue(
                                             'cancellation_reason',
@@ -125,19 +125,6 @@ export function CancelAppointmentDialog({
                                             { shouldValidate: true },
                                         )
                                     }
-                                    onKeyDown={(event) => {
-                                        if (
-                                            event.key === 'Enter' ||
-                                            event.key === ' '
-                                        ) {
-                                            event.preventDefault();
-                                            form.setValue(
-                                                'cancellation_reason',
-                                                reason,
-                                                { shouldValidate: true },
-                                            );
-                                        }
-                                    }}
                                 >
                                     {reason}
                                 </Badge>

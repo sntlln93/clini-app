@@ -64,8 +64,13 @@ export default tseslint.config(
                     Badge: 'span',
                     Input: 'input',
                     Label: 'label',
-                    Checkbox: 'input',
-                    Switch: 'input',
+                    // Checkbox/Switch are base-ui `useButton` consumers
+                    // (@base-ui/react/checkbox/root/CheckboxRoot.js,
+                    // switch/root/SwitchRoot.js): they render a native
+                    // <button> with role="checkbox"/"switch" overridden on
+                    // top, not an <input>.
+                    Checkbox: 'button',
+                    Switch: 'button',
                 },
             },
         },
