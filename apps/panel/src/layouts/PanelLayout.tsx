@@ -5,10 +5,13 @@ import { PanelFooter } from '@/features/panel-footer/PanelFooter';
 import { PanelHeader } from '@/features/panel-header/PanelHeader';
 import { PanelSidebar } from '@/features/panel-sidebar/PanelSidebar';
 import { usePersistedState } from '@/hooks/use-persisted-state';
-import type { ReactNode } from 'react';
+import { useRouteFocus } from '@/hooks/use-route-focus';
+import { useRef, type ReactNode } from 'react';
 
 export function PanelLayout({ children }: { children: ReactNode }) {
     const [open, setOpen] = usePersistedState('sidebar:open', true);
+    const mainRef = useRef<HTMLElement>(null);
+    useRouteFocus(mainRef);
 
     return (
         <TooltipProvider>
@@ -24,6 +27,8 @@ export function PanelLayout({ children }: { children: ReactNode }) {
                     <PanelHeader />
                     <main
                         id="main-content"
+                        ref={mainRef}
+                        tabIndex={-1}
                         className="min-w-0 flex-1 overflow-auto p-4 md:p-6"
                     >
                         <PanelBreadcrumbs />

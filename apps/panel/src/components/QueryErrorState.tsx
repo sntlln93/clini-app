@@ -4,6 +4,7 @@ import { messageForAppError } from '@/lib/error-codes';
 import { cn } from '@/lib/utils';
 import { useRouter } from '@tanstack/react-router';
 import { ArrowLeft, House, RotateCcw } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 
 type QueryErrorStateProps = {
     error: unknown;
@@ -30,9 +31,16 @@ export function QueryErrorState({
 }: QueryErrorStateProps) {
     const router = useRouter();
     const message = messageForAppError(mapToAppError(error));
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        containerRef.current?.focus({ preventScroll: true });
+    }, []);
 
     return (
         <div
+            ref={containerRef}
+            tabIndex={-1}
             className={cn(
                 'flex flex-col items-center gap-4 rounded-md border border-dashed p-10 text-center',
                 className,
