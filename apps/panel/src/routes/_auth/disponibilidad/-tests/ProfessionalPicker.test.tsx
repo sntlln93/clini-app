@@ -43,4 +43,12 @@ describe('ProfessionalPicker', () => {
             'Seleccioná un profesional',
         );
     });
+
+    it("exposes the select trigger with accessible name 'Profesional'", () => {
+        renderForm({ professionals: [PROFESSIONAL], selectedId: null });
+
+        expect(
+            screen.getByRole('combobox', { name: 'Profesional' }),
+        ).not.toBeNull();
+    });
 });

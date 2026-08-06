@@ -44,6 +44,24 @@ describe('MyPublicLinkSection', () => {
         invalidate.mockReset();
     });
 
+    it("exposes the slug input with accessible name 'Link'", () => {
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        expect(screen.getByRole('textbox', { name: 'Link' })).not.toBeNull();
+    });
+
+    it('typing into the field found by its label updates the value', () => {
+        renderSection(membershipWithSlug(null));
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: 'nuevo-slug' },
+        });
+
+        expect((screen.getByLabelText('Link') as HTMLInputElement).value).toBe(
+            'nuevo-slug',
+        );
+    });
+
     it('renders the input prefilled with the current slug and a link preview', () => {
         renderSection(membershipWithSlug('dra-lopez'));
 
