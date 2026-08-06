@@ -1,11 +1,12 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { Membership } from '@/types/membership';
 import type {
     ProfessionalSpecialty,
     UserSpecialty,
 } from '@/types/professional';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useToggleProfessionalSpecialty } from '../-hooks/use-professional-specialties';
 
 type ProfessionalSpecialtyRowProps = {
@@ -21,6 +22,7 @@ export function ProfessionalSpecialtyRow({
     credentials,
     assigned,
 }: ProfessionalSpecialtyRowProps) {
+    const checkboxIdPrefix = useId();
     const { assign, remove } = useToggleProfessionalSpecialty(membership.id);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
@@ -53,28 +55,34 @@ export function ProfessionalSpecialtyRow({
 
             {credentials.length > 0 && (
                 <div className="space-y-1.5">
-                    {credentials.map((credential) => (
-                        <label
-                            key={credential.specialty_id}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                disabled={!canManage}
-                                checked={assigned.some(
-                                    (item) =>
-                                        item.specialty_id ===
-                                        credential.specialty_id,
-                                )}
-                                onCheckedChange={(checked) =>
-                                    toggle(
-                                        credential.specialty_id,
-                                        checked === true,
-                                    )
-                                }
-                            />
-                            {credential.specialty_name}
-                        </label>
-                    ))}
+                    {credentials.map((credential) => {
+                        const checkboxId = `${checkboxIdPrefix}-${credential.specialty_id}`;
+                        return (
+                            <div
+                                key={credential.specialty_id}
+                                className="flex items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    id={checkboxId}
+                                    disabled={!canManage}
+                                    checked={assigned.some(
+                                        (item) =>
+                                            item.specialty_id ===
+                                            credential.specialty_id,
+                                    )}
+                                    onCheckedChange={(checked) =>
+                                        toggle(
+                                            credential.specialty_id,
+                                            checked === true,
+                                        )
+                                    }
+                                />
+                                <Label htmlFor={checkboxId}>
+                                    {credential.specialty_name}
+                                </Label>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

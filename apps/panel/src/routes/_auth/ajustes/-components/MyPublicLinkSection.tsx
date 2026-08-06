@@ -1,7 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import type { Membership } from '@/types/membership';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
 
 type MyPublicLinkSectionProps = {
@@ -9,6 +10,7 @@ type MyPublicLinkSectionProps = {
 };
 
 export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
+    const slugInputId = useId();
     const [appliedId, setAppliedId] = useState<number | null>(null);
     const [slug, setSlug] = useState(membership.slug ?? '');
 
@@ -41,15 +43,21 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
             </div>
 
             <div className="flex flex-wrap items-end gap-3">
-                <label className="min-w-48 flex-1 space-y-1 text-xs text-muted-foreground">
-                    Link
+                <div className="min-w-48 flex-1 space-y-1">
+                    <Label
+                        htmlFor={slugInputId}
+                        className="text-xs text-muted-foreground"
+                    >
+                        Link
+                    </Label>
                     <Input
+                        id={slugInputId}
                         value={slug}
                         onChange={(event) => setSlug(event.target.value)}
                         placeholder="tu-nombre"
                         maxLength={50}
                     />
-                </label>
+                </div>
                 <Button
                     type="button"
                     size="sm"
