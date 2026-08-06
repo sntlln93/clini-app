@@ -123,7 +123,7 @@ describe('VerifyEmailCard', () => {
         renderVerifyEmailCard();
 
         await screen.findByText(
-            'El enlace de verificación no es válido o ya venció.',
+            'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
         );
         expect(screen.queryByRole('button')).toBeNull();
     });
