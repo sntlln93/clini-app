@@ -186,6 +186,16 @@ describe('BookingWizard selection cascade', () => {
         ).toBeNull();
     });
 
+    it("exposes the specialty select with accessible name 'Especialidad'", async () => {
+        renderWizard();
+
+        await screen.findAllByRole('combobox');
+
+        expect(
+            screen.getByRole('combobox', { name: 'Especialidad' }),
+        ).not.toBeNull();
+    });
+
     it("exposes the professional select with accessible name 'Profesional'", async () => {
         renderWizard();
 

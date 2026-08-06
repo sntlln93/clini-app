@@ -30,7 +30,7 @@ export type ErrorCode =
  */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'appointments.service_not_active_for_professional':
-        'El profesional no tiene este servicio activo. Elegí otro servicio, o activalo para este profesional desde Ajustes.',
+        'El profesional no tiene este servicio activo. Elegí otro servicio o comunicate con el consultorio.',
     'appointments.slot_taken':
         'El profesional ya tiene un turno en ese horario.',
     'appointments.not_cancellable_from_status':
