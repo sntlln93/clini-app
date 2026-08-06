@@ -131,6 +131,17 @@ async function findServiceCombobox() {
     });
 }
 
+/**
+ * Asserts the page exposes exactly one heading, that it is level 1 with the
+ * expected Spanish text, and — by there being no other heading at all — that
+ * no lower-level heading could ever appear above it in the document.
+ */
+function expectTopmostH1(name: string) {
+    const headings = screen.getAllByRole('heading');
+    expect(headings).toHaveLength(1);
+    expect(headings[0]).toBe(screen.getByRole('heading', { level: 1, name }));
+}
+
 describe('BookingWizard selection cascade', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
@@ -219,5 +230,21 @@ describe('BookingWizard selection cascade', () => {
         expect(
             screen.getByRole('combobox', { name: 'Prestación' }),
         ).not.toBeNull();
+    });
+
+    it('shows the selection step with a single topmost h1 "Reservar turno"', async () => {
+        renderWizard();
+
+        await screen.findAllByRole('combobox');
+
+        expectTopmostH1('Reservar turno');
+    });
+
+    it('shows the slot-picker step with a single topmost h1 "Elegí día y horario"', async () => {
+        renderWizard({ professional: 10, service: 100 });
+
+        await screen.findByRole('heading', { name: 'Elegí día y horario' });
+
+        expectTopmostH1('Elegí día y horario');
     });
 });

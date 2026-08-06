@@ -128,6 +128,17 @@ async function goToPatientForm() {
     await screen.findByRole('heading', { name: 'Tus datos' });
 }
 
+/**
+ * Asserts the page exposes exactly one heading, that it is level 1 with the
+ * expected Spanish text, and — by there being no other heading at all — that
+ * no lower-level heading could ever appear above it in the document.
+ */
+function expectTopmostH1(name: string) {
+    const headings = screen.getAllByRole('heading');
+    expect(headings).toHaveLength(1);
+    expect(headings[0]).toBe(screen.getByRole('heading', { level: 1, name }));
+}
+
 function fillValidPatientData() {
     fireEvent.change(screen.getByLabelText('Nombre'), {
         target: { value: 'Juan Pérez' },
@@ -235,5 +246,34 @@ describe('BookingPatientForm validation and submission', () => {
             screen.queryByRole('button', { name: 'Confirmar turno' }),
         ).toBeNull();
         expect(api.post).toHaveBeenCalledTimes(1);
+    });
+
+    it('shows the patient-form step with a single topmost h1 "Tus datos"', async () => {
+        await goToPatientForm();
+
+        expectTopmostH1('Tus datos');
+    });
+
+    it('shows the confirmation step with a single topmost h1 naming the organization', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: {
+                data: {
+                    start_at: SLOT.start_at,
+                    end_at: SLOT.end_at,
+                    professional_name: 'Dr. Uno',
+                    service_name: 'Consulta cardiológica',
+                    organization_name: ORGANIZATION.name,
+                },
+            },
+        });
+        await goToPatientForm();
+        fillValidPatientData();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        await screen.findByText('Turno confirmado');
+
+        expectTopmostH1(ORGANIZATION.name);
     });
 });
