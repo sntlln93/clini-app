@@ -88,6 +88,41 @@ describe('AgendaDayView', () => {
         expect(screen.getAllByRole('button')).toHaveLength(12);
     });
 
+    it('gives every slot button in a creatable column an accessible name naming its own hour and the professional', () => {
+        const professional = buildMembership({
+            user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
+        });
+        renderDayView({ professionals: [professional], canCreate: () => true });
+
+        const names = screen
+            .getAllByRole('button')
+            .map((button) => button.getAttribute('aria-label'));
+        const expectedNames = Array.from({ length: 12 }, (_, index) => {
+            const hour = String(8 + index).padStart(2, '0');
+            return `Crear turno a las ${hour}:00 para Dra. Ana López`;
+        });
+
+        expect(names).toEqual(expectedNames);
+    });
+
+    it('falls back to "profesional sin nombre" in every slot label when the membership has no user name', () => {
+        const professional = buildMembership({
+            user: { id: 10, name: null, email: 'ana@example.com' },
+        });
+        renderDayView({ professionals: [professional], canCreate: () => true });
+
+        const names = screen
+            .getAllByRole('button')
+            .map((button) => button.getAttribute('aria-label'));
+
+        expect(names.length).toBe(12);
+        expect(
+            names.every((name) =>
+                name?.endsWith('para profesional sin nombre'),
+            ),
+        ).toBe(true);
+    });
+
     it('reports the right professional and hour when an hour slot is clicked', () => {
         const onCellClick = vi.fn();
         const professional = buildMembership({ id: 1 });
