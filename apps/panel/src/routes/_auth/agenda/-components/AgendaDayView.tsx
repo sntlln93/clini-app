@@ -99,6 +99,7 @@ export function AgendaDayView({
                                         <button
                                             key={hour}
                                             type="button"
+                                            aria-label={`Crear turno a las ${formatHour(hour)} para ${professional.user.name ?? 'profesional sin nombre'}`}
                                             className="absolute left-0 w-full cursor-pointer border-t hover:bg-muted/50"
                                             style={{
                                                 top:
