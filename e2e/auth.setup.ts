@@ -4,10 +4,16 @@ export const STORAGE_STATE = 'e2e/.auth/panel.json'
 
 // `/login` runs `redirectIfAuthenticated`, which probes the session before
 // the user is authenticated — same 401 the anonymous-visit test in
-// `smoke.spec.ts` already declares.
+// `smoke.spec.ts` already declares. Expected console noise from that same
+// unauthenticated session check: the browser logs the failed 401 resource
+// load, and query-client's onError logs the resulting failed query.
 setup.use({
   expectedIssues: {
     responses: [{ url: /\/api\/v1\/me$/, status: 401 }],
+    console: [
+      /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,
+      /Query failed: UnauthorizedError: Unauthorized/,
+    ],
   },
 })
 
