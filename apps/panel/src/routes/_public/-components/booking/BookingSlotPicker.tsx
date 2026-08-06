@@ -54,7 +54,7 @@ export function BookingSlotPicker({
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-                <h2 className="text-lg font-semibold">Elegí día y horario</h2>
+                <h1 className="text-lg font-semibold">Elegí día y horario</h1>
                 <Button variant="ghost" size="sm" onClick={onBack}>
                     Volver
                 </Button>

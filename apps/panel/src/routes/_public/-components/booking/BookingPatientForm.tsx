@@ -75,7 +75,7 @@ export function BookingPatientForm({
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-lg font-semibold">Tus datos</h2>
+                    <h1 className="text-lg font-semibold">Tus datos</h1>
                     <Button
                         type="button"
                         variant="ghost"

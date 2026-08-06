@@ -1,23 +1,7 @@
 import { Skeleton } from '@/components/ui/skeleton';
-import { useRouteFocus } from '@/hooks/use-route-focus';
+import { PublicLayout } from '@/layouts/PublicLayout';
 import { redirectIfAuthenticated } from '@/lib/auth-guards';
-import { createFileRoute, Outlet } from '@tanstack/react-router';
-import { useRef } from 'react';
-
-function PublicLayout() {
-    const containerRef = useRef<HTMLDivElement>(null);
-    useRouteFocus(containerRef);
-
-    return (
-        <div
-            ref={containerRef}
-            tabIndex={-1}
-            className="flex min-h-svh w-full items-center justify-center bg-background p-4"
-        >
-            <Outlet />
-        </div>
-    );
-}
+import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_public')({
     beforeLoad: ({ context }) => redirectIfAuthenticated(context),

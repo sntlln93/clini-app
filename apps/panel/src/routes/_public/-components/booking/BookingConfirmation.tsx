@@ -28,9 +28,9 @@ export function BookingConfirmation({
         <div className="space-y-4">
             <div className="space-y-1">
                 <Badge variant="secondary">Turno confirmado</Badge>
-                <h2 className="text-lg font-semibold">
+                <h1 className="text-lg font-semibold">
                     {confirmation.organization_name}
-                </h2>
+                </h1>
             </div>
 
             <Separator />
