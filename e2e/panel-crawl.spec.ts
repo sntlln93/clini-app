@@ -1,5 +1,5 @@
-import { STORAGE_STATE } from './auth.setup'
 import { expect, test } from './fixtures'
+import { STORAGE_STATE } from './storage-state'
 
 test.use({ storageState: STORAGE_STATE })
 

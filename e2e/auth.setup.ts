@@ -1,6 +1,5 @@
 import { expect, test as setup } from './fixtures'
-
-export const STORAGE_STATE = 'e2e/.auth/panel.json'
+import { STORAGE_STATE } from './storage-state'
 
 // `/login` runs `redirectIfAuthenticated`, which probes the session before
 // the user is authenticated — same 401 the anonymous-visit test in
