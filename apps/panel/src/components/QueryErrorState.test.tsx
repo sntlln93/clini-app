@@ -155,4 +155,17 @@ describe('QueryErrorState', () => {
 
         expect(await screen.findByText('Inicio')).not.toBeNull();
     });
+
+    it('focuses the error container on mount and marks it as a focus target', async () => {
+        renderQueryErrorState({ error: new Error('boom') });
+
+        const container = (
+            await screen.findByText(
+                'Ocurrió un error inesperado. Intentá nuevamente.',
+            )
+        ).parentElement;
+
+        expect(document.activeElement).toBe(container);
+        expect(container?.getAttribute('tabindex')).toBe('-1');
+    });
 });
