@@ -24,7 +24,9 @@ setup('authenticate as ana.duena@test.com', async ({ page }) => {
   await page.getByRole('button', { name: 'Ingresar' }).click()
 
   await expect(page).not.toHaveURL(/\/login$/)
-  await expect(page.getByRole('link', { name: 'Agenda' })).toBeVisible()
+  await expect(
+    page.getByLabel('Navegación principal').getByRole('link', { name: 'Agenda' }),
+  ).toBeVisible()
 
   await page.context().storageState({ path: STORAGE_STATE })
 })
