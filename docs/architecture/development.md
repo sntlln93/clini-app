@@ -33,12 +33,12 @@ Esto levanta cuatro servicios en la red `sail`:
 |---------------|-------------------------|-------------------------------------|
 | `laravel.test`| http://localhost:8080   | API Laravel                         |
 | `panel`       | http://localhost:5174   | SPA React (Vite dev server)         |
-| `pgsql`       | localhost:5432          | PostgreSQL                          |
+| `pgsql`       | localhost:55432         | PostgreSQL                          |
 | `mailpit`     | http://localhost:8025   | UI de Mailpit (transporte de correo de dev) |
 
 Detrás del profile `e2e` (no arranca con `docker compose up` normal) hay dos servicios más: `pgsql-e2e` (Postgres efímero, aislado del `pgsql` de dev) y `e2e` (Playwright, imagen `sail-8.5/app` reutilizada — ya trae PHP 8.5 + Node 24 + deps de sistema de Playwright). Se levantan con `docker compose --profile e2e up --abort-on-container-exit e2e`; ver CLAUDE.md § Tests para el detalle de por qué `e2e` levanta sus propios `php artisan serve` + `vite dev` en vez de apuntar a `laravel.test`/`panel`.
 
-El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`.
+El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`. Por el mismo motivo, `pgsql` expone `55432` en el host (no el `5432` estándar) — cualquier otro proyecto Postgres/Sail local que sí use `5432` (Sail lo trae como default) puede pisar el puerto y hacer fallar el contenedor. `DB_PORT` (dentro de `apps/api/.env`) sigue siendo `5432`: es el puerto interno en la red `sail`, no se toca. Configurable vía `FORWARD_DB_PORT`.
 
 El servicio `panel` monta la raíz del repo (necesita ver el workspace de npm) y corre `npm install && npm run dev --workspace=apps/panel` al arrancar el contenedor.
 
