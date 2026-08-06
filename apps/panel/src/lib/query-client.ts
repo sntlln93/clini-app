@@ -14,9 +14,26 @@ export const queryClient = new QueryClient({
         // Centralized query-error logging: `useQuery` itself has no `onError`
         // in TanStack Query v5 (`QueryObserverOptions` doesn't declare one),
         // so this is the one place that observes every query failure.
-        onError: (error) => {
+        //
+        // One exception: a query marked `meta: { expectedUnauthorized: true }`
+        // (the session probe in `session.ts`) whose failure is a 401 is an
+        // expected answer for an anonymous visitor, not a real failure — the
+        // guards already handle it by rendering/redirecting to `/login`, so
+        // logging it is just noise. Anything else — a different failure kind
+        // on that same query (e.g. a mid-session 419 expiry), or a 401 on any
+        // query without the flag — still logs.
+        onError: (error, query) => {
+            const appError = mapToAppError(error);
+            const isExpectedUnauthorized =
+                query.meta?.expectedUnauthorized === true &&
+                appError.kind === 'unauthorized';
+
+            if (isExpectedUnauthorized) {
+                return;
+            }
+
             // eslint-disable-next-line no-console -- the one sanctioned sink for query failures, see rule above
-            console.error('Query failed:', mapToAppError(error));
+            console.error('Query failed:', appError);
         },
     }),
     defaultOptions: {

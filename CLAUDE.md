@@ -207,7 +207,9 @@ test.describe('panel redirects an unauthenticated visitor to login', () => {
 })
 ```
 
-Conventions for real specs (DB reset strategy, auth storageState, spec isolation) aren't defined yet — write them into this section once they exist.
+Both e2e environments run `php artisan db:seed --force` right after migrating (the deterministic `DatabaseSeeder`, no factories), so specs can log in as a known seeded user instead of creating their own fixtures. `e2e/auth.setup.ts` runs as a Playwright `setup` project that `chromium` depends on: it drives a real UI login as `ana.duena@test.com` / `password` and persists the session to `e2e/.auth/panel.json` (gitignored). `storageState` is deliberately **not** set globally in `playwright.config.ts`'s `use` block — `e2e/smoke.spec.ts` needs an anonymous session — so an authenticated spec opts in explicitly instead, e.g. `e2e/panel-crawl.spec.ts` with `test.use({ storageState: STORAGE_STATE })` imported from `./auth.setup`.
+
+Conventions for real specs (DB reset strategy, spec isolation) aren't defined yet — write them into this section once they exist.
 
 ## ADRs
 
