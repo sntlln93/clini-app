@@ -100,6 +100,7 @@ function ProfesionalesPage() {
                 value={q}
                 onSearch={handleSearch}
                 placeholder="Buscar por nombre o email…"
+                label="Buscar profesionales"
                 className="max-w-sm"
             />
 
