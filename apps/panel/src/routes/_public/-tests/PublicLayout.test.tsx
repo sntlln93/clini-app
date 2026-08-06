@@ -1,3 +1,4 @@
+import { PublicLayout } from '@/layouts/PublicLayout';
 import {
     createMemoryHistory,
     createRootRoute,
@@ -7,7 +8,6 @@ import {
 } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { PublicLayout } from '../../_public';
 
 // Mirrors `use-route-focus.test.tsx`'s harness: `PublicLayout` reads its
 // container ref via `useRouteFocus`, which needs real router context, so it

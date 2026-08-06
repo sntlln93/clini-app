@@ -5,7 +5,7 @@ export const Route = createFileRoute('/verificar-email/$token')({
     component: VerifyEmailPage,
 });
 
-export function VerifyEmailPage() {
+function VerifyEmailPage() {
     const { token } = Route.useParams();
 
     return (
