@@ -115,7 +115,9 @@ export function CancelAppointmentDialog({
                                 <Badge
                                     key={reason}
                                     variant="outline"
-                                    render={<button type="button" />}
+                                    role="button"
+                                    tabIndex={0}
+                                    className="cursor-pointer"
                                     onClick={() =>
                                         form.setValue(
                                             'cancellation_reason',
@@ -123,6 +125,19 @@ export function CancelAppointmentDialog({
                                             { shouldValidate: true },
                                         )
                                     }
+                                    onKeyDown={(event) => {
+                                        if (
+                                            event.key === 'Enter' ||
+                                            event.key === ' '
+                                        ) {
+                                            event.preventDefault();
+                                            form.setValue(
+                                                'cancellation_reason',
+                                                reason,
+                                                { shouldValidate: true },
+                                            );
+                                        }
+                                    }}
                                 >
                                     {reason}
                                 </Badge>
