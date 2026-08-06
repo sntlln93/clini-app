@@ -1,5 +1,6 @@
 import { Input } from '@/components/ui/input';
-import { useEffect, useRef, useState } from 'react';
+import { Label } from '@/components/ui/label';
+import { useEffect, useId, useRef, useState } from 'react';
 
 // Typing writes `q` to the URL, which re-runs the loader on every
 // keystroke. The global `defaultPendingMs: 0` (`src/main.tsx`, do not
@@ -14,6 +15,7 @@ type SearchbarProps = {
     onSearch: (value: string) => void;
     placeholder?: string;
     className?: string;
+    label?: string;
 };
 
 export function Searchbar({
@@ -21,7 +23,9 @@ export function Searchbar({
     onSearch,
     placeholder,
     className,
+    label,
 }: SearchbarProps) {
+    const inputId = useId();
     // Local echo of `value` for the Input's display value: it follows every
     // keystroke immediately, while `value` (the URL, the source of truth)
     // only updates once the debounce settles. Adjust-during-render sync (not
@@ -59,11 +63,17 @@ export function Searchbar({
     }
 
     return (
-        <Input
-            placeholder={placeholder}
-            value={searchValue}
-            onChange={(event) => handleChange(event.target.value)}
-            className={className}
-        />
+        <>
+            <Label htmlFor={inputId} className="sr-only">
+                {label ?? placeholder ?? 'Buscar'}
+            </Label>
+            <Input
+                id={inputId}
+                placeholder={placeholder}
+                value={searchValue}
+                onChange={(event) => handleChange(event.target.value)}
+                className={className}
+            />
+        </>
     );
 }

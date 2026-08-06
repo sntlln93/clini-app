@@ -185,4 +185,39 @@ describe('BookingWizard selection cascade', () => {
             screen.queryByRole('option', { name: 'Consulta cardiológica' }),
         ).toBeNull();
     });
+
+    it("exposes the specialty select with accessible name 'Especialidad'", async () => {
+        renderWizard();
+
+        await screen.findAllByRole('combobox');
+
+        expect(
+            screen.getByRole('combobox', { name: 'Especialidad' }),
+        ).not.toBeNull();
+    });
+
+    it("exposes the professional select with accessible name 'Profesional'", async () => {
+        renderWizard();
+
+        await screen.findAllByRole('combobox');
+
+        expect(
+            screen.getByRole('combobox', { name: 'Profesional' }),
+        ).not.toBeNull();
+    });
+
+    it("exposes the service select with accessible name 'Prestación' once a professional is chosen", async () => {
+        renderWizard();
+
+        const professionalCombobox = (
+            await screen.findAllByRole('combobox')
+        )[1];
+        await selectComboboxOption(professionalCombobox, 'Dra. Dos');
+
+        await findServiceCombobox();
+
+        expect(
+            screen.getByRole('combobox', { name: 'Prestación' }),
+        ).not.toBeNull();
+    });
 });

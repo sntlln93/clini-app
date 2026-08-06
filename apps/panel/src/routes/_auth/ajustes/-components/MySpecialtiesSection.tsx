@@ -1,7 +1,8 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import type { CatalogSpecialty, UserSpecialty } from '@/types/professional';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useToggleUserSpecialty } from '../-hooks/use-user-specialties';
 
 type MySpecialtiesSectionProps = {
@@ -15,6 +16,7 @@ export function MySpecialtiesSection({
     specialties,
     mySpecialties,
 }: MySpecialtiesSectionProps) {
+    const checkboxIdPrefix = useId();
     const { assign, remove } = useToggleUserSpecialty(userId);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
 
@@ -49,23 +51,29 @@ export function MySpecialtiesSection({
 
             {specialties.length > 0 && (
                 <div className="space-y-1.5">
-                    {specialties.map((specialty) => (
-                        <label
-                            key={specialty.id}
-                            className="flex items-center gap-2 text-sm"
-                        >
-                            <Checkbox
-                                checked={mySpecialties.some(
-                                    (mine) =>
-                                        mine.specialty_id === specialty.id,
-                                )}
-                                onCheckedChange={(checked) =>
-                                    toggle(specialty.id, checked === true)
-                                }
-                            />
-                            {specialty.name}
-                        </label>
-                    ))}
+                    {specialties.map((specialty) => {
+                        const checkboxId = `${checkboxIdPrefix}-${specialty.id}`;
+                        return (
+                            <div
+                                key={specialty.id}
+                                className="flex items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    id={checkboxId}
+                                    checked={mySpecialties.some(
+                                        (mine) =>
+                                            mine.specialty_id === specialty.id,
+                                    )}
+                                    onCheckedChange={(checked) =>
+                                        toggle(specialty.id, checked === true)
+                                    }
+                                />
+                                <Label htmlFor={checkboxId}>
+                                    {specialty.name}
+                                </Label>
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 

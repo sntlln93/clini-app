@@ -7,7 +7,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import type { BookingProfessional, BookingSpecialty } from '@/types/booking';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 
 type SelectionValues = {
     specialty?: number;
@@ -44,6 +44,9 @@ export function BookingSelectionStep({
     selection,
     onChange,
 }: BookingSelectionStepProps) {
+    const specialtyTriggerId = useId();
+    const professionalTriggerId = useId();
+    const serviceTriggerId = useId();
     const specialties = useMemo(
         () => uniqueSpecialties(professionals),
         [professionals],
@@ -91,7 +94,7 @@ export function BookingSelectionStep({
 
             {specialties.length > 0 && (
                 <div className="space-y-1.5">
-                    <Label>Especialidad</Label>
+                    <Label htmlFor={specialtyTriggerId}>Especialidad</Label>
                     <Select
                         items={specialtyItems}
                         value={
@@ -107,7 +110,10 @@ export function BookingSelectionStep({
                             })
                         }
                     >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger
+                            id={specialtyTriggerId}
+                            className="w-full"
+                        >
                             <SelectValue placeholder="Todas las especialidades" />
                         </SelectTrigger>
                         <SelectContent>
@@ -122,7 +128,7 @@ export function BookingSelectionStep({
             )}
 
             <div className="space-y-1.5">
-                <Label>Profesional</Label>
+                <Label htmlFor={professionalTriggerId}>Profesional</Label>
                 <Select
                     items={professionalItems}
                     value={
@@ -138,7 +144,10 @@ export function BookingSelectionStep({
                         })
                     }
                 >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger
+                        id={professionalTriggerId}
+                        className="w-full"
+                    >
                         <SelectValue placeholder="Seleccioná un profesional" />
                     </SelectTrigger>
                     <SelectContent>
@@ -153,7 +162,7 @@ export function BookingSelectionStep({
 
             {selectedProfessional && (
                 <div className="space-y-1.5">
-                    <Label>Prestación</Label>
+                    <Label htmlFor={serviceTriggerId}>Prestación</Label>
                     <Select
                         items={serviceItems}
                         value={
@@ -165,7 +174,7 @@ export function BookingSelectionStep({
                             onChange({ ...selection, service: Number(value) })
                         }
                     >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger id={serviceTriggerId} className="w-full">
                             <SelectValue placeholder="Seleccioná una prestación" />
                         </SelectTrigger>
                         <SelectContent>

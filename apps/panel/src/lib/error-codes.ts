@@ -30,24 +30,25 @@ export type ErrorCode =
  */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'appointments.service_not_active_for_professional':
-        'El profesional no tiene este servicio activo.',
+        'El profesional no tiene este servicio activo. Elegí otro servicio o comunicate con el consultorio.',
     'appointments.slot_taken':
         'El profesional ya tiene un turno en ese horario.',
     'appointments.not_cancellable_from_status':
-        'Este turno no puede cancelarse desde su estado actual.',
+        'Este turno no se puede cancelar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
     'appointments.not_reschedulable_from_status':
-        'Este turno no puede reprogramarse desde su estado actual.',
+        'Este turno no se puede reprogramar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
     'appointments.status_transition_not_allowed':
-        'Esa transición de estado no está permitida.',
+        'El turno no puede pasar a ese estado. Actualizá la página para ver las acciones disponibles según su estado actual.',
     'memberships.last_active_admin':
         'La organización debe mantener al menos un miembro activo con rol de propietario o administrador.',
     'organizations.no_active_membership':
         'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
-    'patients.not_found': 'No encontramos un paciente con ese documento.',
+    'patients.not_found':
+        'No encontramos un paciente con ese documento. Revisá que esté bien escrito o creá un paciente nuevo si todavía no está registrado.',
     'memberships.invitation_invalid_or_expired':
         'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
     'auth.email_verification_invalid_or_expired':
-        'El enlace de verificación no es válido o ya venció.',
+        'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
     'booking.slot_not_available':
         'Ese horario ya no está disponible. Elegí otro turno.',
     'memberships.slug_invalid_format':

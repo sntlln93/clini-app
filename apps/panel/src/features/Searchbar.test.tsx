@@ -73,4 +73,60 @@ describe('Searchbar', () => {
 
         expect(onSearch).not.toHaveBeenCalled();
     });
+
+    it("uses the label as the input's accessible name when provided", () => {
+        const onSearch = vi.fn();
+        render(
+            <Searchbar
+                value=""
+                onSearch={onSearch}
+                label="Buscar pacientes"
+                placeholder="Buscar por nombre o documento…"
+            />,
+        );
+
+        expect(
+            screen.getByRole('textbox', { name: 'Buscar pacientes' }),
+        ).not.toBeNull();
+    });
+
+    it('falls back to the placeholder as the accessible name when no label is passed', () => {
+        const onSearch = vi.fn();
+        render(
+            <Searchbar
+                value=""
+                onSearch={onSearch}
+                placeholder="Buscar por nombre o email…"
+            />,
+        );
+
+        expect(
+            screen.getByRole('textbox', {
+                name: 'Buscar por nombre o email…',
+            }),
+        ).not.toBeNull();
+    });
+
+    it("falls back to 'Buscar' as the accessible name when neither label nor placeholder is passed", () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="" onSearch={onSearch} />);
+
+        expect(screen.getByRole('textbox', { name: 'Buscar' })).not.toBeNull();
+    });
+
+    it('renders two Searchbars on the same page with independent inputs', () => {
+        const onSearch = vi.fn();
+        render(
+            <>
+                <Searchbar value="" onSearch={onSearch} label="Buscar A" />
+                <Searchbar value="" onSearch={onSearch} label="Buscar B" />
+            </>,
+        );
+
+        const inputA = screen.getByLabelText('Buscar A');
+        const inputB = screen.getByLabelText('Buscar B');
+
+        expect(inputA).not.toBe(inputB);
+        expect(inputA.id).not.toBe(inputB.id);
+    });
 });

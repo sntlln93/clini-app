@@ -41,6 +41,14 @@ describe('MySpecialtiesSection', () => {
         invalidate.mockReset();
     });
 
+    it('exposes each specialty checkbox by its specialty name', async () => {
+        renderSection();
+
+        expect(
+            await screen.findByRole('checkbox', { name: 'Cardiología' }),
+        ).not.toBeNull();
+    });
+
     it('requires confirmation before removing one of the user own specialties', async () => {
         vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
         renderSection();

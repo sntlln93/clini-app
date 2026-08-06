@@ -2,9 +2,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { CatalogService, ProfessionalService } from '@/types/professional';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import {
     useAssignProfessionalService,
     useRemoveProfessionalService,
@@ -26,6 +27,7 @@ export function ProfessionalServiceItem({
     assignment,
     canManage,
 }: ProfessionalServiceItemProps) {
+    const assignedCheckboxId = useId();
     const [durationMinutes, setDurationMinutes] = useState(
         assignment?.duration_minutes ?? DEFAULT_DURATION_MINUTES,
     );
@@ -78,77 +80,37 @@ export function ProfessionalServiceItem({
 
     return (
         <div className="space-y-2 rounded-md border p-2">
-            <label className="flex items-center gap-2 text-sm font-medium">
+            <div className="flex items-center gap-2">
                 <Checkbox
+                    id={assignedCheckboxId}
                     disabled={!canManage}
                     checked={assignment !== null}
                     onCheckedChange={(checked) =>
                         handleToggleAssigned(checked === true)
                     }
                 />
-                {service.name}
-            </label>
+                <Label
+                    htmlFor={assignedCheckboxId}
+                    className="text-sm font-medium"
+                >
+                    {service.name}
+                </Label>
+            </div>
 
             {message && <p className="text-sm text-destructive">{message}</p>}
 
             {assignment && (
-                <div className="flex flex-wrap items-end gap-3">
-                    <label className="space-y-1 text-xs text-muted-foreground">
-                        Duración (min)
-                        <Input
-                            type="number"
-                            min={1}
-                            disabled={!canManage}
-                            className="w-24"
-                            value={durationMinutes}
-                            onChange={(event) =>
-                                setDurationMinutes(Number(event.target.value))
-                            }
-                        />
-                    </label>
-                    <label className="space-y-1 text-xs text-muted-foreground">
-                        Precio (centavos)
-                        <Input
-                            type="number"
-                            min={0}
-                            disabled={!canManage}
-                            className="w-32"
-                            value={priceCents ?? ''}
-                            onChange={(event) =>
-                                setPriceCents(
-                                    event.target.value
-                                        ? Number(event.target.value)
-                                        : null,
-                                )
-                            }
-                        />
-                    </label>
-                    <div className="space-y-1 text-xs text-muted-foreground">
-                        Moneda
-                        <p className="flex h-9 items-center text-sm text-foreground">
-                            ARS
-                        </p>
-                    </div>
-                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
-                        Activo
-                        <Switch
-                            disabled={!canManage}
-                            checked={active}
-                            onCheckedChange={setActive}
-                        />
-                    </label>
-                    {canManage && (
-                        <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            disabled={update.isPending}
-                            onClick={handleSave}
-                        >
-                            Guardar
-                        </Button>
-                    )}
-                </div>
+                <ServiceAssignmentFields
+                    durationMinutes={durationMinutes}
+                    priceCents={priceCents}
+                    active={active}
+                    canManage={canManage}
+                    isSaving={update.isPending}
+                    onDurationChange={setDurationMinutes}
+                    onPriceChange={setPriceCents}
+                    onActiveChange={setActive}
+                    onSave={handleSave}
+                />
             )}
 
             <ConfirmDialog
@@ -159,6 +121,112 @@ export function ProfessionalServiceItem({
                 onConfirm={handleConfirmRemove}
                 isPending={remove.isPending}
             />
+        </div>
+    );
+}
+
+type ServiceAssignmentFieldsProps = {
+    durationMinutes: number;
+    priceCents: number | null;
+    active: boolean;
+    canManage: boolean;
+    isSaving: boolean;
+    onDurationChange: (value: number) => void;
+    onPriceChange: (value: number | null) => void;
+    onActiveChange: (value: boolean) => void;
+    onSave: () => void;
+};
+
+function ServiceAssignmentFields({
+    durationMinutes,
+    priceCents,
+    active,
+    canManage,
+    isSaving,
+    onDurationChange,
+    onPriceChange,
+    onActiveChange,
+    onSave,
+}: ServiceAssignmentFieldsProps) {
+    const durationInputId = useId();
+    const priceInputId = useId();
+    const activeSwitchId = useId();
+
+    return (
+        <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-1">
+                <Label
+                    htmlFor={durationInputId}
+                    className="text-xs text-muted-foreground"
+                >
+                    Duración (min)
+                </Label>
+                <Input
+                    id={durationInputId}
+                    type="number"
+                    min={1}
+                    disabled={!canManage}
+                    className="w-24"
+                    value={durationMinutes}
+                    onChange={(event) =>
+                        onDurationChange(Number(event.target.value))
+                    }
+                />
+            </div>
+            <div className="space-y-1">
+                <Label
+                    htmlFor={priceInputId}
+                    className="text-xs text-muted-foreground"
+                >
+                    Precio (centavos)
+                </Label>
+                <Input
+                    id={priceInputId}
+                    type="number"
+                    min={0}
+                    disabled={!canManage}
+                    className="w-32"
+                    value={priceCents ?? ''}
+                    onChange={(event) =>
+                        onPriceChange(
+                            event.target.value
+                                ? Number(event.target.value)
+                                : null,
+                        )
+                    }
+                />
+            </div>
+            <div className="space-y-1 text-xs text-muted-foreground">
+                Moneda
+                <p className="flex h-9 items-center text-sm text-foreground">
+                    ARS
+                </p>
+            </div>
+            <div className="flex items-center gap-2">
+                <Label
+                    htmlFor={activeSwitchId}
+                    className="text-xs text-muted-foreground"
+                >
+                    Activo
+                </Label>
+                <Switch
+                    id={activeSwitchId}
+                    disabled={!canManage}
+                    checked={active}
+                    onCheckedChange={onActiveChange}
+                />
+            </div>
+            {canManage && (
+                <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    disabled={isSaving}
+                    onClick={onSave}
+                >
+                    Guardar
+                </Button>
+            )}
         </div>
     );
 }

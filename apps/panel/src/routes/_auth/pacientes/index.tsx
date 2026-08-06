@@ -100,6 +100,7 @@ function PacientesPage() {
                 value={q}
                 onSearch={handleSearch}
                 placeholder="Buscar por nombre o documento…"
+                label="Buscar pacientes"
                 className="max-w-sm"
             />
 

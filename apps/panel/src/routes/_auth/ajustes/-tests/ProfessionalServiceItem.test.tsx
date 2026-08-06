@@ -17,6 +17,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 });
 
 const SERVICE: CatalogService = { id: 1, name: 'Consulta general' };
+const OTHER_SERVICE: CatalogService = { id: 2, name: 'Consulta clínica' };
 
 const ASSIGNMENT: ProfessionalService = {
     id: 10,
@@ -42,8 +43,29 @@ function renderItem(assignment: ProfessionalService | null) {
     );
 }
 
+function renderTwoItems() {
+    const queryClient = new QueryClient();
+    render(
+        <QueryClientProvider client={queryClient}>
+            <ProfessionalServiceItem
+                membershipId={3}
+                service={SERVICE}
+                assignment={null}
+                canManage
+            />
+            <ProfessionalServiceItem
+                membershipId={3}
+                service={OTHER_SERVICE}
+                assignment={null}
+                canManage
+            />
+        </QueryClientProvider>,
+    );
+}
+
 describe('ProfessionalServiceItem', () => {
     beforeEach(() => {
+        vi.mocked(api.post).mockReset();
         vi.mocked(api.patch).mockReset();
         vi.mocked(api.delete).mockReset();
         invalidate.mockReset();
@@ -108,5 +130,45 @@ describe('ProfessionalServiceItem', () => {
                 '/memberships/3/services/1',
             ),
         );
+    });
+
+    it('clicking the service label toggles the assignment checkbox', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderItem(null);
+
+        fireEvent.click(screen.getByText('Consulta general'));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/memberships/3/services', {
+                service_id: 1,
+                duration_minutes: 30,
+                price_cents: null,
+                active: true,
+            }),
+        );
+    });
+
+    it('exposes the duration and price fields with their labels', () => {
+        renderItem(ASSIGNMENT);
+
+        expect(
+            screen.getByRole('spinbutton', { name: /Duración/ }),
+        ).not.toBeNull();
+        expect(
+            screen.getByRole('spinbutton', { name: /Precio/ }),
+        ).not.toBeNull();
+    });
+
+    it('keeps distinct field ids across two rows, so each label maps to its own checkbox', () => {
+        renderTwoItems();
+
+        const consultaGeneral = screen.getByRole('checkbox', {
+            name: 'Consulta general',
+        });
+        const consultaClinica = screen.getByRole('checkbox', {
+            name: 'Consulta clínica',
+        });
+
+        expect(consultaGeneral).not.toBe(consultaClinica);
     });
 });
