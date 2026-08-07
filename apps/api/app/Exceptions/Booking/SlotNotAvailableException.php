@@ -9,10 +9,9 @@ use App\Exceptions\DomainException;
 use Carbon\CarbonImmutable;
 
 /**
- * Thrown when a public booking request targets a time that isn't among the
- * slots ListAvailableSlotsAction currently publishes for that day — the
- * professional's published availability changed (or the slot was taken)
- * between the client fetching the grid and submitting the booking.
+ * Thrown when a public booking request targets a time no longer among the
+ * slots ListAvailableSlotsAction publishes for that day — the schedule
+ * changed, or the slot was taken, between fetch and submit.
  */
 final class SlotNotAvailableException extends DomainException
 {

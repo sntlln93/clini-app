@@ -9,9 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Public-facing shape of an organization for the online booking page: name,
- * slug and timezone only — no address, no internal identifiers beyond what
- * the panel's own booking types need.
+ * Public-facing shape of an organization: name, slug and timezone only —
+ * no address or other internal identifiers.
  *
  * @mixin Organization
  */

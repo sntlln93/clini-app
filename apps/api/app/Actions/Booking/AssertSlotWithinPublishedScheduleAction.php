@@ -12,13 +12,11 @@ use App\Exceptions\Booking\SlotNotAvailableException;
 use App\Models\Organization;
 
 /**
- * Guards the online booking flow's own pre-check: the requested start time
- * must fall within the professional's *published* schedule for that day —
- * availabilities plus `extra` exceptions, minus `blocked` exceptions —
- * without excluding time already taken by busy appointments. This action
- * must stay independent from BookAppointmentAction's overlap check: it only
- * rejects times outside the published schedule, never times that are merely
- * taken (that 409, appointments.slot_taken, is BookAppointmentAction's alone).
+ * Guards the online booking pre-check: the requested start time must fall
+ * within the professional's *published* schedule, independently from
+ * BookAppointmentAction's overlap check — this only rejects times outside
+ * the published schedule, never times that are merely taken (that 409,
+ * appointments.slot_taken, is BookAppointmentAction's alone).
  *
  * @implements Action<SlotAvailabilityCheckData>
  */
@@ -31,11 +29,10 @@ class AssertSlotWithinPublishedScheduleAction implements Action
     /**
      * @param  SlotAvailabilityCheckData  $dto
      *
-     * Returns null rather than declaring `void`: the Action contract
-     * declares `handle(Data $dto): mixed`, and PHP rejects `void` as a
-     * non-covariant override of `mixed` (a class-load-time Fatal, not one
-     * PHPStan catches) — no Action in this codebase declares `void` for
-     * that reason.
+     * Returns null, not void: the Action contract declares
+     * `handle(Data $dto): mixed`, and PHP rejects `void` as a
+     * non-covariant override of `mixed` (a class-load-time Fatal) — no
+     * Action in this codebase declares `void` for that reason.
      */
     public function handle(Data $dto): mixed
     {

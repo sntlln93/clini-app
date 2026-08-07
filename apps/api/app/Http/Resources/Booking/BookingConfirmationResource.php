@@ -9,9 +9,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Minimal confirmation shape for an anonymous booking consumer — never
+ * Minimal confirmation shape for an anonymous consumer — never
  * AppointmentResource, which would leak internal patient/appointment
- * identifiers and state to the public.
+ * data to the public.
  *
  * @mixin Appointment
  */

@@ -15,9 +15,8 @@ use App\Models\ProfessionalService;
 use App\Models\Service;
 
 /**
- * Organization timezone is fixed to UTC so every plain (no offset) date/time
- * string below refers unambiguously to the same instant everywhere: the
- * request payload, the weekly availability and any pre-existing appointment.
+ * UTC timezone keeps every plain (no offset) date/time string below
+ * unambiguous across the payload, weekly availability and appointments.
  *
  * @return array{0: Organization, 1: Membership, 2: Service, 3: ProfessionalService}
  */
@@ -123,8 +122,7 @@ test('store with a start_at outside the published schedule returns 409 booking.s
     $this->travelTo('2026-07-20 00:00:00');
     [$organization, $membership, $service] = createOnlineBookingFixture();
 
-    // The fixture's only availability is Monday 09:00-17:00; 20:00 falls
-    // outside it entirely (not merely taken).
+    // Monday's only availability is 09:00-17:00; 20:00 falls outside it entirely (not merely taken).
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
@@ -179,10 +177,7 @@ test('store with a start_at beyond the 60-day booking window returns 422', funct
     $this->travelTo('2026-07-20 00:00:00');
     [$organization, $membership, $service] = createOnlineBookingFixture();
 
-    // 2026-10-19 is a Monday (matches the fixture's weekly availability) 91
-    // days after "now" — well past ListAvailableSlotsAction::BOOKING_WINDOW_DAYS
-    // (60), and not otherwise taken, so the only thing that could reject it
-    // is a booking-window check on the store endpoint itself.
+    // 2026-10-19 is a Monday (matches the availability) 91 days out — past BOOKING_WINDOW_DAYS (60) and not otherwise taken, so only the booking-window check can reject it.
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,

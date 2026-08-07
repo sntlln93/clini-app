@@ -16,13 +16,11 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection as SupportCollection;
 
 /**
- * Computes a single calendar day's *published* schedule for a membership:
- * weekly `availabilities` for that day-of-week, plus `extra` exceptions,
- * minus `blocked` exceptions. Never excludes time already taken by busy
- * appointments — that is each caller's own concern (ListAvailableSlotsAction
- * subtracts busy appointments per slot; AssertSlotWithinPublishedScheduleAction
- * never does). `day` must already be anchored to the organization's own
- * timezone by the caller.
+ * A day's *published* schedule: weekly `availabilities` plus `extra`
+ * exceptions, minus `blocked` exceptions — never excluding time already
+ * taken by busy appointments, which stays each caller's own concern.
+ * `day` must already be anchored to the organization's own timezone by
+ * the caller.
  *
  * @implements Action<PublishedDayIntervalsData>
  */

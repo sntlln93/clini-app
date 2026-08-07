@@ -12,16 +12,14 @@ use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Support\Collection;
 
 /**
- * Public-facing shape of a professional for the online booking wizard's
- * specialty → professional → service cascade. Deliberately excludes email,
- * user_id and anything else that would leak contact/internal data to an
+ * Public-facing shape of a professional; deliberately excludes email,
+ * user_id and anything else that would leak internal data to an
  * anonymous consumer.
  *
- * Wraps a plain array rather than the Membership model directly: the
- * pivot-carried service attributes (duration_minutes, price_cents,
- * currency) come from a separately-queried ProfessionalService collection
- * (see PublicBookingController::show()), not from Membership's own
- * belongsToMany pivot.
+ * Wraps a plain array, not the Membership model directly: the
+ * pivot-carried service attributes come from a separately-queried
+ * ProfessionalService collection (see PublicBookingController::show()),
+ * not from Membership's own belongsToMany pivot.
  */
 class PublicProfessionalResource extends JsonResource
 {
