@@ -24,8 +24,7 @@ class StorePatientRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'document_type' => ['required', Rule::enum(DocumentType::class)],
-            // Not unique: an existing (document_type, document_number) pair is
-            // reused by find-or-create, never rejected here.
+            // Not unique: an existing pair is reused by find-or-create, never rejected here.
             'document_number' => ['required', 'string', 'max:50'],
             'email' => ['nullable', 'email', 'max:255'],
             'phone' => ['nullable', 'string', 'max:50'],

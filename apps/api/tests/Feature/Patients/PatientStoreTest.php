@@ -12,21 +12,8 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-// A row inserted through a genuinely separate Postgres session (see the
-// concurrency race test near the bottom of this file) is committed
-// independently of RefreshDatabase's per-test transaction, so that
-// transaction's rollback can never remove it — and deleting it
-// immediately, from inside the still-open test transaction, would
-// deadlock: the app's own FK insert into organization_patient holds a
-// lock on that row until the test's transaction ends. Pest's afterAll()
-// (tearDownAfterClass) runs once this whole file's tests are done, i.e.
-// strictly after every one of their transactions has already been rolled
-// back, so the cleanup below never contends a lock — and since the race
-// test is the last one declared in this file, no other test here ever
-// observes the extra row. The registry keeps the *already-open* PDO
-// connection alongside the id: by the time afterAll() runs, the Laravel
-// container is torn down, so config()/app() are no longer available —
-// but a plain PDO object has no such dependency.
+// A row inserted through a genuinely separate Postgres session is committed independently of RefreshDatabase's per-test transaction, so deleting it inline would deadlock on the FK lock held until that transaction ends.
+// Cleanup runs in afterAll(), once every test's transaction has already rolled back, using the still-open PDO connection captured here since Laravel's container (config()/app()) is torn down by then.
 function &raceCleanupTasks(): array
 {
     static $tasks = [];
@@ -215,20 +202,11 @@ test('storing the pair of a soft-deleted patient restores and reuses it', functi
     expect($existing->fresh()->trashed())->toBeFalse();
 });
 
-// Declared last in this file on purpose: the racing patient row it plants
-// through a second, genuinely separate database session survives this
-// test's own transaction rollback (see the afterAll() cleanup above), so
-// every test declared before this one must run — and finish rolling back
-// its own transaction — before this row ever exists.
+// Declared last on purpose: the racing row it plants survives rollback (see the afterAll() cleanup above), so it must not exist while earlier tests run.
 test('store reuses the patient a concurrent request just created for the same document pair instead of returning a 500', function () {
     $membership = Membership::factory()->create();
 
-    // A genuinely separate database session (its own PDO connection, own
-    // Postgres backend), not this test's RefreshDatabase transaction. Only
-    // a second real session commits independently of the SAVEPOINT rollback
-    // that the unique-constraint violation below forces on this test's
-    // connection — exactly like a real concurrent request's already
-    // -committed row would behave.
+    // Genuinely separate database session (own PDO connection), not this test's RefreshDatabase transaction — commits independently of the SAVEPOINT rollback below.
     $config = config('database.connections.pgsql');
     $race = new PDO(
         sprintf('pgsql:host=%s;port=%s;dbname=%s', $config['host'], $config['port'], $config['database']),
@@ -243,10 +221,7 @@ test('store reuses the patient a concurrent request just created for the same do
             return;
         }
 
-        // Fires after this action already read the table and found
-        // nothing, but before its own insert lands — the racing session
-        // inserts and commits the same document pair right here, so the
-        // insert below then collides on unique(document_type, document_number).
+        // Fires after the action's own read found nothing but before its insert lands, so the insert below collides on the unique constraint.
         $racingPatientId = (int) $race->query(
             'INSERT INTO patients (name, document_type, document_number, created_at, updated_at) '.
             "VALUES ('Ganador de la carrera', 'dni', '10101010', now(), now()) RETURNING id"
