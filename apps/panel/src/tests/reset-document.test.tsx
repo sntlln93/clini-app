@@ -101,6 +101,21 @@ describe('resetDocument', () => {
         expect(
             document.documentElement.getAttribute('data-base-ui-scroll-locked'),
         ).toBeNull();
+
+        // `cleanup()` above also made Base UI's scroll-lock singleton schedule
+        // its own deferred (setTimeout 0) release/unlock. Drain it here
+        // instead of leaving it pending: unhandled, it fires after this test
+        // ends and can write to <body>/<html> again in the middle of
+        // whichever test runs next under `--no-isolate`.
+        await new Promise((resolve) => setTimeout(resolve, 0));
+
+        resetDocument();
+
+        expect(document.body.getAttribute('style')).toBeNull();
+        expect(document.documentElement.getAttribute('style')).toBeNull();
+        expect(
+            document.documentElement.getAttribute('data-base-ui-scroll-locked'),
+        ).toBeNull();
     });
 
     it('is safe on an already-pristine document', () => {
