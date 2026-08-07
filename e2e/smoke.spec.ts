@@ -33,3 +33,27 @@ test('api responds to /api/v1/ping', async ({ request }) => {
   expect(response.ok()).toBeTruthy()
   expect(await response.json()).toEqual({ status: 'ok' })
 })
+
+test('panel serves a robots.txt that blocks indexing', async ({ request }) => {
+  const response = await request.get('/robots.txt')
+
+  expect(response.ok()).toBeTruthy()
+
+  const body = await response.text()
+
+  expect(body.toLowerCase()).not.toContain('<!doctype html')
+  expect(body).toMatch(/User-agent:\s*\*/)
+  expect(body).toMatch(/Disallow:\s*\//)
+})
+
+test('panel index.html declares a meta description', async ({ request }) => {
+  const response = await request.get('/')
+
+  expect(response.ok()).toBeTruthy()
+
+  const body = await response.text()
+
+  expect(body).toMatch(
+    /<meta(?=[^>]*name=["']description["'])(?=[^>]*content=["'][^"']+["'])[^>]*>/is,
+  )
+})
