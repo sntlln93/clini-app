@@ -81,7 +81,7 @@ class PatientController extends Controller
         return new PatientResource($patient);
     }
 
-    // Deliberate, narrow exception to organization scoping: resolves a patient by document pair globally so the create form can be prefilled before it is linked to this organization.
+    // Deliberate, narrow exception to organization scoping: resolves a patient by document pair globally so the create form can be prefilled before it is linked to this organization. Requires the same permission as create(), since it exists to support it.
     public function lookup(LookupPatientRequest $request): PatientResource
     {
         Gate::authorize('create', Patient::class);

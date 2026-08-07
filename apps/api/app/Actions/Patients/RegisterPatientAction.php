@@ -26,7 +26,7 @@ class RegisterPatientAction implements Action
         try {
             return $this->registerOrReuse($dto);
         } catch (UniqueConstraintViolationException) {
-            // Lost a race against a concurrent insert of the same document pair; bounded to a single retry, a second collision is not swallowed.
+            // Lost a race against a concurrent insert of the same document pair: the transaction above is already rolled back by Postgres, so a fresh transaction re-reads and reuses the row the winner just created. Bounded to a single retry, a second collision is not swallowed.
             return $this->reuseExisting($dto);
         }
     }

@@ -12,8 +12,7 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-// A row inserted through a genuinely separate Postgres session is committed independently of RefreshDatabase's per-test transaction, so deleting it inline would deadlock on the FK lock held until that transaction ends.
-// Cleanup runs in afterAll(), once every test's transaction has already rolled back, using the still-open PDO connection captured here since Laravel's container (config()/app()) is torn down by then.
+// A row inserted through a genuinely separate Postgres session is committed independently of RefreshDatabase's per-test transaction, so deleting it inline would deadlock on the FK lock held until that transaction ends; cleanup runs in afterAll(), once every test's transaction has already rolled back, using the still-open PDO connection captured here since Laravel's container (config()/app()) is torn down by then.
 function &raceCleanupTasks(): array
 {
     static $tasks = [];
