@@ -15,9 +15,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Fully public: no auth:sanctum. Every failure path returns the same
- * generic Spanish message regardless of whether the token is malformed,
- * expired, already used, or simply never existed.
+ * Fully public (no auth:sanctum); every failure path returns the same
+ * generic message regardless of cause.
  */
 class EmailVerificationController extends Controller
 {

@@ -10,9 +10,8 @@ use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\Route;
 
 beforeEach(function () {
-    // Registered per test, against that test's own Application instance —
-    // a top-level registration would only bind to the app created while
-    // this file is first loaded, not the fresh app each test boots.
+    // Registered per test, against that test's own Application instance — a
+    // top-level registration would bind to the wrong (stale) app instance.
     Route::middleware(['auth:sanctum', 'organization'])->get('/api/v1/_test/org', function () {
         return response()->json(['organization_id' => app(CurrentOrganization::class)->get()]);
     });
@@ -90,9 +89,8 @@ test('/me responds 200 and /logout responds 204 for a user without any membershi
     $meResponse = $this->actingAs($user)->getJson('/api/v1/me');
     $meResponse->assertOk();
 
-    // Sanctum only boots the session for requests it recognizes as coming
-    // from the SPA (Origin/Referer matching SANCTUM_STATEFUL_DOMAINS) —
-    // see tests/Feature/SanctumSpaAuthTest.php.
+    // Sanctum only boots the session for SPA-recognized requests (Referer
+    // matching SANCTUM_STATEFUL_DOMAINS) — see SanctumSpaAuthTest.php.
     $logoutResponse = $this->actingAs($user)
         ->withHeader('Referer', 'http://localhost:5174')
         ->postJson('/api/v1/logout');
