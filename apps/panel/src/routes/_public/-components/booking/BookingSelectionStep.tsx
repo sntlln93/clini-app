@@ -18,46 +18,6 @@ type SelectionValues = {
 
 type SelectableItem = { value: string; label: string };
 
-function selectValueLabel(
-    items: SelectableItem[],
-    value: string | null,
-    placeholder: string,
-): string {
-    if (!value) {
-        return placeholder;
-    }
-    return items.find((item) => item.value === value)?.label ?? placeholder;
-}
-
-/**
- * `SelectTrigger` forces `*:data-[slot=select-value]:flex` on its
- * `SelectValue` child, and `text-overflow: ellipsis` never takes effect on
- * an element whose own computed `display` is `flex`. Rendering the label
- * inside a nested `<span>` sidesteps that: as the sole child of a flex
- * container, the span is blockified by the CSS Display spec regardless of
- * its own `display` value, so `truncate` (overflow/ellipsis/nowrap) applies
- * to it correctly. See issue #154 — the primitive itself is out of scope
- * (tracked as its own follow-up), this only fixes the three booking call
- * sites.
- */
-function TruncatedSelectValue({
-    items,
-    placeholder,
-}: {
-    items: SelectableItem[];
-    placeholder: string;
-}) {
-    return (
-        <SelectValue placeholder={placeholder} className="min-w-0">
-            {(value: string | null) => (
-                <span className="block w-full min-w-0 truncate">
-                    {selectValueLabel(items, value, placeholder)}
-                </span>
-            )}
-        </SelectValue>
-    );
-}
-
 type BookingSelectFieldProps = {
     id: string;
     label: string;
@@ -80,10 +40,7 @@ function BookingSelectField({
             <Label htmlFor={id}>{label}</Label>
             <Select items={items} value={value} onValueChange={onValueChange}>
                 <SelectTrigger id={id} className="w-full">
-                    <TruncatedSelectValue
-                        items={items}
-                        placeholder={placeholder}
-                    />
+                    <SelectValue placeholder={placeholder} />
                 </SelectTrigger>
                 <SelectContent>
                     {items.map((item) => (
