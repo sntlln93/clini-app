@@ -204,7 +204,7 @@ test.describe('booking select truncation at scaled font', () => {
     await expect(specialtyTrigger).toBeVisible()
 
     const truncation = await specialtyTrigger.evaluate((trigger) => {
-      const valueSpan = trigger.querySelector('[data-slot="select-value"] span')
+      const valueSpan = trigger.querySelector('[data-slot="select-value"]')
       if (!valueSpan) {
         return null
       }
@@ -220,7 +220,7 @@ test.describe('booking select truncation at scaled font', () => {
 
     expect(
       truncation,
-      'expected the specialty select trigger to render a truncatable value span',
+      'expected the specialty select trigger to render a truncatable value element',
     ).not.toBeNull()
     expect(truncation?.textOverflow).toBe('ellipsis')
     expect(truncation?.display).toBe('block')

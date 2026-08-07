@@ -51,4 +51,15 @@ describe('ProfessionalPicker', () => {
             screen.getByRole('combobox', { name: 'Profesional' }),
         ).not.toBeNull();
     });
+
+    it('inherits truncation on the select-value slot without any local workaround', () => {
+        renderForm({ professionals: [PROFESSIONAL], selectedId: 3 });
+
+        const trigger = screen.getByRole('combobox');
+        const valueSlot = trigger.querySelector('[data-slot="select-value"]');
+
+        expect(valueSlot).not.toBeNull();
+        expect(valueSlot?.classList.contains('truncate')).toBe(true);
+        expect(valueSlot?.classList.contains('flex')).toBe(false);
+    });
 });
