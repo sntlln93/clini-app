@@ -1,12 +1,14 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
+import { resetDocument } from '@/tests/reset-document';
+
 afterEach(() => {
     cleanup();
     vi.restoreAllMocks();
     vi.clearAllMocks();
 
-    document.body.innerHTML = '';
+    resetDocument();
     localStorage.clear();
     sessionStorage.clear();
 });
