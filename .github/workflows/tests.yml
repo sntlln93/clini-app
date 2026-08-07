@@ -123,6 +123,15 @@ jobs:
         with:
           scope: workspace-root
 
+      # Static checks over e2e/**/*.ts + playwright.config.ts (same scope as
+      # e2e/tsconfig.json). They run before the browser install so a style-only
+      # failure doesn't pay for Playwright's download.
+      - name: 🎨 Prettier
+        run: npm run format:check
+
+      - name: 🔍 ESLint
+        run: npm run lint:check
+
       - name: ⚡ Setup panel env
         run: cp apps/panel/.env.example apps/panel/.env
 

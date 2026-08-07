@@ -1,16 +1,16 @@
-import AxeBuilder from '@axe-core/playwright'
-import type { Page } from '@playwright/test'
-import type { Result } from 'axe-core'
-import { expect } from './fixtures'
+import AxeBuilder from '@axe-core/playwright';
+import type { Page } from '@playwright/test';
+import type { Result } from 'axe-core';
+import { expect } from './fixtures';
 
 type ColorContrastFinding = {
-  /** The route this finding was recorded against, e.g. '/agenda'. */
-  view: string
-  /** The exact `node.target.join(', ')` axe reports for the offending element. */
-  selector: string
-  /** Why this is tolerated instead of fixed here — always points at the tracking issue. */
-  reason: string
-}
+    /** The route this finding was recorded against, e.g. '/agenda'. */
+    view: string;
+    /** The exact `node.target.join(', ')` axe reports for the offending element. */
+    selector: string;
+    /** Why this is tolerated instead of fixed here — always points at the tracking issue. */
+    reason: string;
+};
 
 // `color-contrast` stays enabled (never `.disableRules('color-contrast')`,
 // see runA11yScan below) so a *new* contrast regression still fails the
@@ -27,31 +27,58 @@ type ColorContrastFinding = {
 // in #75 (design-token contrast pass), not fixed here per this issue's
 // scope (no palette changes).
 const AVATAR_FALLBACK_CONTRAST_REASON =
-  'ProfileMenu avatar-fallback initials: text-muted-foreground on bg-muted measures 4.34:1 (needs 4.5:1) — tracked in #75, out of scope here'
+    'ProfileMenu avatar-fallback initials: text-muted-foreground on bg-muted measures 4.34:1 (needs 4.5:1) — tracked in #75, out of scope here';
 
 const COLOR_CONTRAST_WHITELIST: ColorContrastFinding[] = [
-  { view: '/', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-  { view: '/agenda', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-  {
-    view: '/agenda#nuevo-turno',
-    selector: '.bg-muted',
-    reason: AVATAR_FALLBACK_CONTRAST_REASON,
-  },
-  { view: '/pacientes', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-  { view: '/profesionales', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-  { view: '/disponibilidad', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-  { view: '/ajustes', selector: '.bg-muted', reason: AVATAR_FALLBACK_CONTRAST_REASON },
-]
+    {
+        view: '/',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/agenda',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/agenda#nuevo-turno',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/pacientes',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/profesionales',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/disponibilidad',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+    {
+        view: '/ajustes',
+        selector: '.bg-muted',
+        reason: AVATAR_FALLBACK_CONTRAST_REASON,
+    },
+];
 
 function formatViolations(violations: Result[]) {
-  return violations
-    .map((violation) => {
-      const nodes = violation.nodes
-        .map((node) => `  - ${node.target.join(', ')}\n    ${node.failureSummary ?? ''}`)
-        .join('\n')
-      return `${violation.id}: ${violation.help} (${violation.helpUrl})\n${nodes}`
-    })
-    .join('\n\n')
+    return violations
+        .map((violation) => {
+            const nodes = violation.nodes
+                .map(
+                    (node) =>
+                        `  - ${node.target.join(', ')}\n    ${node.failureSummary ?? ''}`,
+                )
+                .join('\n');
+            return `${violation.id}: ${violation.help} (${violation.helpUrl})\n${nodes}`;
+        })
+        .join('\n\n');
 }
 
 /**
@@ -62,56 +89,70 @@ function formatViolations(violations: Result[]) {
  * starts.
  */
 export async function runA11yScan(page: Page, view: string): Promise<void> {
-  // Both real CI and this containerized profile run the panel via `vite
-  // dev` (see compose.yaml's comment on the `e2e` service), which mounts
-  // `<TanStackRouterDevtools>` — gated behind `import.meta.env.DEV`
-  // (routes/__root.tsx) and never present in a production build. It renders
-  // its own `<footer>`, which axe's page-level landmark rules (duplicate
-  // contentinfo, in particular) evaluate against the whole `document`
-  // regardless of `AxeBuilder#exclude()`'s analysis scope — `.exclude()`
-  // was tried first and confirmed not to suppress it. Removing the node
-  // outright before scanning is what a production build already does by
-  // never rendering it in the first place.
-  await page.evaluate(() => {
-    document.querySelector('.TanStackRouterDevtools')?.remove()
-  })
+    // Both real CI and this containerized profile run the panel via `vite
+    // dev` (see compose.yaml's comment on the `e2e` service), which mounts
+    // `<TanStackRouterDevtools>` — gated behind `import.meta.env.DEV`
+    // (routes/__root.tsx) and never present in a production build. It renders
+    // its own `<footer>`, which axe's page-level landmark rules (duplicate
+    // contentinfo, in particular) evaluate against the whole `document`
+    // regardless of `AxeBuilder#exclude()`'s analysis scope — `.exclude()`
+    // was tried first and confirmed not to suppress it. Removing the node
+    // outright before scanning is what a production build already does by
+    // never rendering it in the first place.
+    await page.evaluate(() => {
+        document.querySelector('.TanStackRouterDevtools')?.remove();
+    });
 
-  const results = await new AxeBuilder({ page }).analyze()
+    const results = await new AxeBuilder({ page }).analyze();
 
-  const relevantWhitelist = COLOR_CONTRAST_WHITELIST.filter((entry) => entry.view === view)
-  const matchedSelectors = new Set<string>()
+    const relevantWhitelist = COLOR_CONTRAST_WHITELIST.filter(
+        (entry) => entry.view === view,
+    );
+    const matchedSelectors = new Set<string>();
 
-  const unexpectedViolations = results.violations
-    .map((violation) => {
-      if (violation.id !== 'color-contrast') {
-        return violation
-      }
+    const unexpectedViolations = results.violations
+        .map((violation) => {
+            if (violation.id !== 'color-contrast') {
+                return violation;
+            }
 
-      const unexpectedNodes = violation.nodes.filter((node) => {
-        const selector = node.target.join(', ')
-        const whitelisted = relevantWhitelist.find((entry) => entry.selector === selector)
-        // A whitelist entry tolerates exactly one node per view — once its
-        // selector has already matched a node, a second, unrelated node
-        // sharing that same selector is still unexpected instead of being
-        // silently absorbed by the same entry.
-        if (!whitelisted || matchedSelectors.has(selector)) {
-          return true
-        }
-        matchedSelectors.add(selector)
-        return false
-      })
+            const unexpectedNodes = violation.nodes.filter((node) => {
+                const selector = node.target.join(', ');
+                const whitelisted = relevantWhitelist.find(
+                    (entry) => entry.selector === selector,
+                );
+                // A whitelist entry tolerates exactly one node per view — once its
+                // selector has already matched a node, a second, unrelated node
+                // sharing that same selector is still unexpected instead of being
+                // silently absorbed by the same entry.
+                if (!whitelisted || matchedSelectors.has(selector)) {
+                    return true;
+                }
+                matchedSelectors.add(selector);
+                return false;
+            });
 
-      return unexpectedNodes.length > 0 ? { ...violation, nodes: unexpectedNodes } : null
-    })
-    .filter((violation): violation is NonNullable<typeof violation> => violation !== null)
+            return unexpectedNodes.length > 0
+                ? { ...violation, nodes: unexpectedNodes }
+                : null;
+        })
+        .filter(
+            (violation): violation is NonNullable<typeof violation> =>
+                violation !== null,
+        );
 
-  expect(unexpectedViolations, formatViolations(unexpectedViolations)).toEqual([])
+    expect(
+        unexpectedViolations,
+        formatViolations(unexpectedViolations),
+    ).toEqual([]);
 
-  const staleEntries = relevantWhitelist.filter((entry) => !matchedSelectors.has(entry.selector))
-  expect(
-    staleEntries,
-    `Stale color-contrast whitelist entries for ${view} (no longer reproduce — remove them from e2e/a11y.ts):\n${staleEntries
-      .map((entry) => `${entry.selector}: ${entry.reason}`)
-      .join('\n')}`,
-  ).toEqual([])
+    const staleEntries = relevantWhitelist.filter(
+        (entry) => !matchedSelectors.has(entry.selector),
+    );
+    expect(
+        staleEntries,
+        `Stale color-contrast whitelist entries for ${view} (no longer reproduce — remove them from e2e/a11y.ts):\n${staleEntries
+            .map((entry) => `${entry.selector}: ${entry.reason}`)
+            .join('\n')}`,
+    ).toEqual([]);
 }

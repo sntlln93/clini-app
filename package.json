@@ -4,11 +4,22 @@
   "type": "module",
   "workspaces": ["apps/panel"],
   "scripts": {
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "lint": "eslint e2e playwright.config.ts --fix",
+    "lint:check": "eslint e2e playwright.config.ts --max-warnings=0",
+    "format": "prettier --write \"e2e/**/*.ts\" playwright.config.ts",
+    "format:check": "prettier --check \"e2e/**/*.ts\" playwright.config.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
+    "@eslint/js": "^9.39.5",
     "@playwright/test": "^1.61.1",
-    "typescript": "~6.0.2"
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.6",
+    "globals": "^17.7.0",
+    "prettier": "^3.9.5",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.64.0"
   }
 }
