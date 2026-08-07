@@ -14,10 +14,8 @@ use App\Models\Appointment;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Cancellation is not modeled through
- * `AppointmentStatus::allowedTransitions()` (Cancelled is terminal there),
- * so this action validates its own allowed source statuses instead of using
- * `canTransitionTo()`.
+ * Cancelled is terminal in `AppointmentStatus::allowedTransitions()`, so this
+ * validates its own allowed source statuses instead of using `canTransitionTo()`.
  *
  * @implements Action<AppointmentCancellationData>
  */
