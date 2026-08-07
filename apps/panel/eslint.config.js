@@ -1,4 +1,5 @@
 import js from '@eslint/js';
+import jsxA11y from 'eslint-plugin-jsx-a11y';
 import prettierRecommended from 'eslint-plugin-prettier/recommended';
 import react from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
@@ -30,6 +31,13 @@ export default tseslint.config(
     ...tseslint.configs.recommended,
     react.configs.flat.recommended,
     reactHooks.configs.flat.recommended,
+    // `strict` (not `recommended`) so every enabled rule is `error`, never
+    // `warn` — the plugin's own `strict` preset already keeps
+    // `control-has-associated-label` and `label-has-for` off (superseded by
+    // `label-has-associated-control`) and doesn't turn on
+    // `anchor-ambiguous-text`, matching this project's decision to leave
+    // `control-has-associated-label` off unless a concrete case justifies it.
+    jsxA11y.flatConfigs.strict,
     prettierRecommended,
     {
         languageOptions: {
@@ -41,6 +49,29 @@ export default tseslint.config(
         settings: {
             react: {
                 version: 'detect',
+            },
+            // jsx-a11y's static checks only understand native HTML tags, so
+            // without this mapping it can't see through this project's own
+            // wrapper components at all (e.g. `<Button>` looks like an
+            // unknown custom element, not a `<button>`). Values are each
+            // wrapper's actual rendered tag (verified in the component's own
+            // source under src/components/ui/), not a guess.
+            'jsx-a11y': {
+                components: {
+                    Button: 'button',
+                    DropdownMenuTrigger: 'button',
+                    SidebarMenuButton: 'button',
+                    Badge: 'span',
+                    Input: 'input',
+                    Label: 'label',
+                    // Checkbox/Switch are base-ui `useButton` consumers
+                    // (@base-ui/react/checkbox/root/CheckboxRoot.js,
+                    // switch/root/SwitchRoot.js): they render a native
+                    // <button> with role="checkbox"/"switch" overridden on
+                    // top, not an <input>.
+                    Checkbox: 'button',
+                    Switch: 'button',
+                },
             },
         },
         rules: {

@@ -23,8 +23,19 @@ export function PanelSidebar() {
         (item) => !item.permission || permissions.includes(item.permission),
     );
 
+    // `role`/`aria-label` land on Sidebar's `sidebar-container` div (it
+    // spreads `...props` there — see components/ui/sidebar.tsx), which
+    // wraps the header logo and footer ProfileMenu too, not just the
+    // `<nav>` below. Without this, axe's `region` rule flags that logo and
+    // ProfileMenu content as sitting outside any landmark — only the inner
+    // menu list was covered. A distinct label keeps this landmark unique
+    // from the nested "Navegación principal" one.
     return (
-        <Sidebar collapsible="icon">
+        <Sidebar
+            collapsible="icon"
+            role="navigation"
+            aria-label="Barra lateral"
+        >
             <SidebarHeader>
                 <div className="flex items-center gap-2 px-2 py-1.5">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
