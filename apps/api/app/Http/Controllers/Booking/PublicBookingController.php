@@ -29,7 +29,7 @@ use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
  * Fully public: no auth:sanctum, no `organization` middleware. The tenant
- * is resolved by `ResolvePublicOrganization` from the {slug} route
+ * is resolved by `public-organization` (`ResolvePublicOrganization`) from the {slug} route
  * parameter (an organization slug or a professional's own public slug),
  * so every query below is scoped through the models' own global scope.
  * Read via CurrentOrganization rather than re-queried by {slug} — a
