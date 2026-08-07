@@ -8,9 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when a membership slug does not match the public link format rule
- * (lowercase letters, digits and hyphens; alphanumeric start/end; no
- * consecutive hyphens; 3–50 chars) — SetMembershipSlugAction.
+ * Format: lowercase letters/digits/hyphens, alphanumeric start/end, no consecutive hyphens, 3–50 chars — SetMembershipSlugAction.
  */
 final class MembershipSlugInvalidFormatException extends DomainException
 {

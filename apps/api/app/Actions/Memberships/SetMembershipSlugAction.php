@@ -16,12 +16,7 @@ use App\Models\Organization;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Owns the whole public-slug rule for a membership: only a `professional`
- * membership may have one, the format is validated here (never by a
- * FormRequest regex, per the issue's decision), and uniqueness is checked
- * across the flat namespace shared with organizations.slug and every other
- * membership's slug — never with a Postgres UNIQUE constraint (ADR 0004).
- * A null/empty slug clears the link and skips the format/uniqueness checks.
+ * Owns the membership public-slug rule: professional-only, format validated here (not in a FormRequest), uniqueness checked in-app rather than via a Postgres UNIQUE constraint (ADR 0004); a null/empty slug just clears it.
  *
  * @implements Action<MembershipSlugData>
  */
@@ -62,10 +57,7 @@ class SetMembershipSlugAction implements Action
                 throw new MembershipSlugInvalidFormatException($membership->id, $slug);
             }
 
-            // Serialises concurrent requests for the same slug (ADR 0004):
-            // released automatically at transaction end, never unlocked
-            // manually. Must run before isTaken(), whose lookups are
-            // otherwise unlocked and would race under READ COMMITTED.
+            // Serialises concurrent requests for this slug (ADR 0004); must run before isTaken(), whose unlocked lookups would otherwise race under READ COMMITTED.
             DB::statement('select pg_advisory_xact_lock(hashtext(?))', [$slug]);
 
             if ($this->isTaken($membership, $slug)) {

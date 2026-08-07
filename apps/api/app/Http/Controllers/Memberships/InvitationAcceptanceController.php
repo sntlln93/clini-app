@@ -16,10 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 /**
- * Fully public: no auth:sanctum, no organization middleware. Every failure
- * path returns the same generic Spanish message regardless of whether the
- * token is malformed, expired, already used, or simply never existed —
- * never revealing whether the underlying email is registered.
+ * Fully public: no auth:sanctum, no organization middleware — every failure path returns the same generic message so a caller can never infer whether the email is registered.
  */
 class InvitationAcceptanceController extends Controller
 {

@@ -14,13 +14,9 @@ use App\Models\Membership;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Deactivation is a status change plus a soft delete — never forceDelete,
- * and the membership's appointments are left untouched.
+ * Deactivation is a soft delete (never forceDelete) — appointments are left untouched.
  *
- * The CU-04/CU-05 "organization keeps at least one active owner/admin"
- * invariant is checked and written inside a single transaction, with a row
- * lock over the candidate memberships, so two concurrent deactivations can
- * never both pass the check and leave the organization without one.
+ * The CU-04/CU-05 "keep at least one active owner/admin" invariant is checked and written inside a single row-locked transaction so two concurrent deactivations can't both pass and leave none.
  *
  * @implements Action<MembershipUpdateData>
  */

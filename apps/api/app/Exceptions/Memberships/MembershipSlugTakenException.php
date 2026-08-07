@@ -8,9 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when a membership slug is already used, in the flat namespace
- * shared with organizations.slug and every other membership's slug —
- * SetMembershipSlugAction.
+ * The slug namespace is shared flat with organizations.slug and every other membership's slug — SetMembershipSlugAction.
  */
 final class MembershipSlugTakenException extends DomainException
 {

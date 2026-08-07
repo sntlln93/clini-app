@@ -31,11 +31,7 @@ class UpdateMembershipRequest extends FormRequest
     }
 
     /**
-     * CU-04/CU-05 guard: nobody may suspend themselves or drop their own
-     * owner/admin roles. The organization-wide "keeps at least one active
-     * owner/admin" guard is race-sensitive (two concurrent updates could
-     * both pass it), so it is checked and enforced transactionally, under a
-     * row lock, inside UpdateMembershipAction instead.
+     * Only guards self-suspension/self-demotion here; the race-sensitive org-wide "keep one active owner/admin" invariant is enforced transactionally in UpdateMembershipAction.
      */
     public function withValidator(Validator $validator): void
     {

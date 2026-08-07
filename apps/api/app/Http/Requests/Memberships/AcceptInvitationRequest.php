@@ -10,9 +10,7 @@ use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Public endpoint: authorize() is always true, and every failure message
- * stays generic — an invalid, expired or already-used token must never
- * let a caller infer whether the underlying email is registered.
+ * Public endpoint: failure messages stay generic so a caller can never infer whether the underlying email is registered.
  */
 class AcceptInvitationRequest extends FormRequest
 {
