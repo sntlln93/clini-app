@@ -10,9 +10,6 @@ use App\Data\Availability\AvailabilitySlotData;
 use App\Models\Availability;
 
 /**
- * Creates a new slot when no id is given, otherwise updates the existing
- * one in place.
- *
  * @implements Action<AvailabilitySlotData>
  */
 class SaveAvailabilitySlotAction implements Action

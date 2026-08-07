@@ -10,9 +10,6 @@ use App\Data\Availability\AvailabilityExceptionData;
 use App\Models\AvailabilityException;
 
 /**
- * Creates a new exception when no id is given, otherwise updates the
- * existing one in place.
- *
  * @implements Action<AvailabilityExceptionData>
  */
 class SaveAvailabilityExceptionAction implements Action
