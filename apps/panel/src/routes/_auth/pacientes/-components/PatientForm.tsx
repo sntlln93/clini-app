@@ -33,9 +33,7 @@ function initialValues(patient?: Patient): PatientPayload {
     };
 }
 
-// Values sourced from an existing patient found by document lookup, merged
-// into the form via `form.reset(..., { keepDirtyValues: true })` so fields
-// the user already typed stay untouched while the rest gets filled in.
+// `keepDirtyValues` leaves fields the user already typed untouched while filling in the rest.
 function valuesFromFoundPatient(found: Patient): PatientPayload {
     return {
         name: found.name,
@@ -65,20 +63,14 @@ export function PatientForm({ patient, insuranceProviders }: PatientFormProps) {
         control: form.control,
         name: 'document_number',
     });
-    // Create mode only: an edit form must never fight the user editing
-    // their own patient's document, so lookup stays disabled there.
+    // Create mode only: an edit form must not fight a user editing their own patient's document.
     const { data: foundPatient } = usePatientLookup(
         patient ? '' : documentType,
         patient ? '' : documentNumber,
     );
 
-    // Syncing an async query result into RHF's own (uncontrolled, ref-based)
-    // form state is a documented `reset()`-in-an-effect case, not the
-    // plain-state prefill the "adjust state during render" convention
-    // targets: `form.reset()` notifies Controller-subscribed child
-    // components synchronously, so calling it directly in this render body
-    // (rather than in an effect) would update those components' state while
-    // this component is still rendering.
+    // Not the "adjust state during render" prefill case: `form.reset()` notifies
+    // Controller-subscribed children synchronously, so calling it in the render body would update other components' state mid-render.
     useEffect(() => {
         if (foundPatient) {
             form.reset(valuesFromFoundPatient(foundPatient), {
