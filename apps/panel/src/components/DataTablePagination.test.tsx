@@ -2,12 +2,8 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { DataTablePagination } from './DataTablePagination';
 
-// The page window renders numbers via `PaginationLink` and gaps via
-// `PaginationEllipsis` (an `aria-hidden` icon + a `sr-only` "Más páginas"
-// span, no literal "…" text) — so counting/ordering the window means
-// walking the DOM by `data-slot`, not `getByText('…')`. `PaginationPrevious`
-// and `PaginationNext` share the `pagination-link` slot with the numbers,
-// so they're excluded here by their `aria-label` (numbers have none).
+// `PaginationEllipsis` renders no literal "…" text (just an `aria-hidden` icon + `sr-only` span), so the window is walked by `data-slot`, not `getByText('…')`.
+// `PaginationPrevious`/`PaginationNext` share the `pagination-link` slot with the numbers and are excluded by their `aria-label`, which the numbers don't have.
 function pageWindowSequence(container: HTMLElement): string[] {
     const nodes = Array.from(
         container.querySelectorAll(
@@ -190,7 +186,6 @@ describe('DataTablePagination', () => {
         const sequence = pageWindowSequence(container);
         expect(sequence).toEqual(['1', '…', '9', '10', '11', '…', '20']);
         expect(sequence.filter((item) => item === '…')).toHaveLength(2);
-        // Widest case: exactly 7 number/ellipsis items.
         expect(sequence).toHaveLength(7);
     });
 
