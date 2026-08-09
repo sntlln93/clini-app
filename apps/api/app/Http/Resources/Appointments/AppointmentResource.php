@@ -25,9 +25,7 @@ class AppointmentResource extends JsonResource
             'membership_id' => $appointment->membership_id,
             'patient_id' => $appointment->patient_id,
             'service_id' => $appointment->service_id,
-            // Backed enums and Carbon instances both serialize to their
-            // scalar/ISO 8601 string form natively on json_encode(), so
-            // these are returned as-is rather than via ->value/->format().
+            // Backed enums and Carbon instances serialize natively on json_encode(), so these are returned as-is.
             'status' => $appointment->status,
             'origin' => $appointment->origin,
             'start_at' => $appointment->start_at,

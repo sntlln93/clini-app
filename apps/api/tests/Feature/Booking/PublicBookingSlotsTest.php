@@ -19,11 +19,9 @@ afterEach(function () {
 });
 
 /**
- * Organization timezone is fixed to UTC across this file so the published
- * schedule's clock times and every plain (no offset) date/time string below
- * refer to the exact same instant — the timezone-conversion behavior itself
- * is exercised by ListAvailableSlotsAction/ComputePublishedDayIntervalsAction
- * regardless of which timezone the organization carries.
+ * UTC timezone keeps clock times and every plain date/time string below
+ * unambiguous — timezone-conversion itself is exercised elsewhere
+ * (ListAvailableSlotsAction/ComputePublishedDayIntervalsAction).
  *
  * @return array{0: Organization, 1: Membership, 2: Service}
  */

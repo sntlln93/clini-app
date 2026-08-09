@@ -205,8 +205,7 @@ describe('AgendaDayView', () => {
         }
         expect(block).not.toBeNull();
 
-        // START_HOUR=8, HOUR_HEIGHT_PX=96 → 1.6px/min; 10:00 is 120min after
-        // 8:00 → 192px.
+        // START_HOUR=8, HOUR_HEIGHT_PX=96 → 1.6px/min; 10:00 is 120min after 8:00 → 192px.
         expect(block?.style.top).toBe('192px');
         expect(parseFloat(block?.style.height ?? '0')).toBeGreaterThanOrEqual(
             48,

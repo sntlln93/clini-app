@@ -8,10 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when a global patient lookup by document finds no match
- * (`PatientController::lookup`). Patients are global entities, not
- * per-organization, so no patient identifier exists to leak here — the
- * lookup simply found nothing.
+ * Patients are global entities, not per-organization, so no patient identifier exists to leak here.
  */
 final class PatientNotFoundException extends DomainException
 {

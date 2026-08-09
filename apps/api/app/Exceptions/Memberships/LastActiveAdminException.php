@@ -8,10 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when a membership update or deactivation would leave an
- * organization without an active owner/admin (CU-04/CU-05 invariant).
- * Reused as-is by both `DeactivateMembershipAction` and
- * `UpdateMembershipAction` — same rule, same class.
+ * CU-04/CU-05 invariant; reused as-is by both DeactivateMembershipAction and UpdateMembershipAction.
  */
 final class LastActiveAdminException extends DomainException
 {

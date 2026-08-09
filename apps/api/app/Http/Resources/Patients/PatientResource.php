@@ -21,9 +21,7 @@ class PatientResource extends JsonResource
     {
         $patient = $this->patient();
 
-        // PHPStan/Larastan can't infer attribute types from Patient::casts()
-        // (a Laravel 11+ method-based cast declaration; parseModelCastsMethod
-        // is off) — same limitation Membership::permissions() works around.
+        // PHPStan/Larastan can't infer attribute types from Patient::casts() (parseModelCastsMethod is off) — same limitation Membership::permissions() works around.
         /** @var Carbon|null $birthDate */
         $birthDate = $patient->birth_date;
 

@@ -6,11 +6,9 @@ const START_HOUR = 8;
 const END_HOUR = 20;
 const HOUR_HEIGHT_PX = 96;
 const PX_PER_MINUTE = HOUR_HEIGHT_PX / 60;
-// Floor so even a very short appointment still fits the compact (hour +
-// patient + badge) card layout below.
+// Floor so even a very short appointment fits the compact (hour + patient + badge) layout.
 const MIN_CARD_HEIGHT_PX = 48;
-// Below this, a card switches to the compact layout — three lines (hour,
-// patient, service) don't fit a block this short.
+// Below this, a card switches to compact: three lines don't fit a block this short.
 const COMPACT_CARD_HEIGHT_PX = 64;
 
 function isSameDay(iso: string, date: Date): boolean {

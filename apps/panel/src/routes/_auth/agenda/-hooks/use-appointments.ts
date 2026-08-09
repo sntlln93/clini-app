@@ -24,10 +24,7 @@ type CreateAppointmentPayload = {
     notes: string | null;
 };
 
-// Per-form código → campo maps: the panel showed these business rules
-// inline on a field back when they were 422s (ValidationException), and the
-// move to 409 domain errors preserves that display instead of degrading it
-// to a toast.
+// Preserves the inline field display these rules had back when they were 422s, instead of degrading to a toast.
 const CREATE_APPOINTMENT_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.service_not_active_for_professional': 'service_id',
     'appointments.slot_taken': 'start_at',

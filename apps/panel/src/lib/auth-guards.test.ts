@@ -61,10 +61,7 @@ describe('redirectIfAuthenticated', () => {
     });
 });
 
-// A bare `new QueryClient()` (as used above) has no `onError` sink, so a
-// `console.error` spy against it would pass vacuously. These cases run
-// against the real `queryClient` (the one carrying `QueryCache.onError`,
-// see `query-client.ts`) to prove the expected-401 probe stays silent.
+// A bare `new QueryClient()` has no `onError` sink (would pass vacuously); these cases use the real `queryClient` instead.
 describe('guards against the app queryClient (console.error sink)', () => {
     let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 

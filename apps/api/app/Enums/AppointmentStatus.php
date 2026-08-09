@@ -15,9 +15,7 @@ enum AppointmentStatus: string
     case Rescheduled = 'rescheduled';
 
     /**
-     * The statuses this status may transition to. Anything not listed here
-     * (including Cancelled/Rescheduled, which are terminal for this map)
-     * has no allowed transitions.
+     * Statuses absent from this map are terminal (including Cancelled/Rescheduled): no allowed transitions.
      *
      * @return array<int, self>
      */

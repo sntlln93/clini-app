@@ -5,8 +5,7 @@ export type NavItem = {
     label: string;
     to: string;
     icon: ComponentType<{ className?: string }>;
-    // Absent = always visible. When present, the session must have this
-    // permission for the item to render — see `PanelSidebar`'s filter.
+    /** Absent = always visible; when set, the item renders only if the session holds that permission. */
     permission?: string;
 };
 

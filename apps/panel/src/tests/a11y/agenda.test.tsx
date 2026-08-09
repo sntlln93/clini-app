@@ -8,9 +8,8 @@ import { describe, it, vi } from 'vitest';
 import { AgendaDayView } from '@/routes/_auth/agenda/-components/AgendaDayView';
 import { expectNoA11yViolations } from '../a11y';
 
-// Mirrors ../../routes/_auth/agenda/-tests/AgendaDayView.test.tsx's own
-// mocks/fixtures — AgendaDayView renders AppointmentCard, which needs the
-// mutation hook's api client mocked to avoid a real network call on mount.
+// AgendaDayView renders AppointmentCard, whose mutation hook would make a
+// real network call on mount, so api is mocked.
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));

@@ -9,11 +9,7 @@ use App\Http\Resources\Catalog\SpecialtyResource;
 use App\Models\Specialty;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
-/**
- * Global, read-only reference data: no authorization beyond the route's
- * auth:sanctum + organization middleware, and no create/update/delete
- * endpoints.
- */
+/** Global read-only reference data: no authorization beyond the route middleware, no write endpoints. */
 class SpecialtyController extends Controller
 {
     public function index(): AnonymousResourceCollection

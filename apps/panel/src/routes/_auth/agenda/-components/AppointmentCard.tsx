@@ -13,10 +13,7 @@ import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
 
-/**
- * Mirrors `AppointmentStatus::allowedTransitions()` in the backend enum
- * (`app/Enums/AppointmentStatus.php`) — keep both in sync.
- */
+// Mirrors `AppointmentStatus::allowedTransitions()` in `app/Enums/AppointmentStatus.php` — keep in sync.
 const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
     scheduled: ['confirmed', 'no_show'],
     confirmed: ['arrived', 'no_show'],
@@ -27,21 +24,14 @@ const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
     rescheduled: [],
 };
 
-/**
- * Mirrors `CancelAppointmentAction::CANCELLABLE_STATUSES` in the backend
- * (`app/Actions/Appointments/CancelAppointmentAction.php`) — keep in sync.
- */
+// Mirrors `CancelAppointmentAction::CANCELLABLE_STATUSES` — keep in sync.
 const CANCELLABLE_STATUSES: AppointmentStatus[] = [
     'scheduled',
     'confirmed',
     'arrived',
 ];
 
-/**
- * Mirrors `RescheduleAppointmentAction::RESCHEDULABLE_STATUSES` in the
- * backend (`app/Actions/Appointments/RescheduleAppointmentAction.php`) —
- * keep in sync.
- */
+// Mirrors `RescheduleAppointmentAction::RESCHEDULABLE_STATUSES` — keep in sync.
 const RESCHEDULABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed'];
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -67,12 +57,7 @@ const STATUS_VARIANTS: Record<
     rescheduled: 'outline',
 };
 
-/**
- * Solid per-status surface used only by the `day` variant — the `default`
- * variant (week view) keeps its single translucent `bg-primary/10` look
- * unchanged. Built exclusively from semantic tokens already used elsewhere
- * in this file (see `badgeVariants` in `components/ui/badge.tsx`).
- */
+// Solid per-status surface for the `day` variant only; `default` (week view) keeps its translucent look unchanged.
 const STATUS_DAY_STYLES: Record<AppointmentStatus, string> = {
     scheduled: 'border-border bg-background text-foreground',
     confirmed: 'border-transparent bg-secondary text-secondary-foreground',

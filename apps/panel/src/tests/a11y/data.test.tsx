@@ -78,10 +78,10 @@ describe('data a11y', () => {
     });
 
     it('pagination: a full Pagination composition with an ellipsis has no violations', async () => {
-        // This project only ever consumes these primitives as buttons that
-        // drive client-side page state (see DataTablePagination.tsx), never
-        // as real `href` links — matched here instead of inventing an
-        // anchor-based usage that doesn't exist in the codebase.
+        // This project consumes Pagination as onClick buttons driving
+        // client-side page state (see DataTablePagination.tsx), never as
+        // href links, so this matches real usage instead of an invented
+        // anchor-based one.
         const { container } = render(
             <Pagination>
                 <PaginationContent>

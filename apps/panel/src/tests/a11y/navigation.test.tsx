@@ -21,10 +21,8 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
 }));
 
-// Mirrors PanelSidebar.test.tsx's / PanelBreadcrumbs.test.tsx's own render
-// helpers: both need a real router context, and the sidebar additionally
-// needs a session in the query cache (it renders ProfileMenu, which reads
-// the signed-in user) plus Sidebar/Tooltip providers.
+// PanelSidebar renders ProfileMenu, which reads the signed-in user, so the
+// session must be pre-seeded into the query cache.
 function renderPanelChrome(path: string) {
     const queryClient = new QueryClient();
     queryClient.setQueryData(sessionQueryOptions.queryKey, {

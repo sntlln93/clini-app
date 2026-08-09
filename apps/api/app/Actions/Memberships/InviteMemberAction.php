@@ -13,10 +13,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
- * Invalidates any pending (unaccepted) invitation for the same org+email
- * before issuing a new one, so resending never leaves two valid tokens
- * alive. The plaintext token only ever exists here and in the outgoing
- * email — the row itself stores just its hash.
+ * Invalidates any pending invitation for the same org+email before issuing a new one, so resending never leaves two valid tokens; the row stores only the token's hash, never the plaintext.
  *
  * @implements Action<MembershipInvitationData>
  */

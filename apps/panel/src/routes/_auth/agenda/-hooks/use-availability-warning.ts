@@ -2,13 +2,7 @@ import { api } from '@/lib/api';
 import type { Availability, AvailabilityException } from '@/types/availability';
 import { useQuery } from '@tanstack/react-query';
 
-/**
- * Pure helper: whether `dateTime` falls outside the professional's declared
- * availability, combining the recurring weekly slots with exceptions —
- * `blocked` exceptions remove availability, `extra` exceptions add it.
- * `day_of_week` and `Date#getDay()` share the same 0 = Sunday convention
- * (see `disponibilidad`'s `WeeklyAvailabilitySection`).
- */
+// blocked exceptions remove availability, extra add it; day_of_week/Date#getDay() share disponibilidad's WeeklyAvailabilitySection 0=Sunday convention.
 export function isOutsideAvailability(
     dateTime: Date,
     availabilities: Availability[],
@@ -55,10 +49,6 @@ function toTimeString(dateTime: Date): string {
     return dateTime.toTimeString().slice(0, 8);
 }
 
-/**
- * Fetches the recurring slots and exceptions for `membershipId` and exposes
- * `isOutside(dateTime)` to check a candidate booking time against them.
- */
 export function useAvailabilityWarning(membershipId: number | null) {
     const availabilitiesQuery = useQuery({
         queryKey: ['availabilities', membershipId],

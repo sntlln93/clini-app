@@ -219,11 +219,8 @@ test('creating a patient with a duplicate document identity throws a query excep
     ]))->toThrow(QueryException::class);
 });
 
-// Since issue #21, specialties/services are a global catalog: a Specialty
-// held as a user_specialties credential can no longer be deleted outright
-// (user_specialties.specialty_id is restrictOnDelete) — it must first be
-// unassigned from every user, which is what actually cascades to
-// professional_specialties (below).
+// Since #21, Specialty is global catalog data; restrictOnDelete blocks a direct delete until every
+// user_specialties link is removed, which cascades to professional_specialties.
 test('deleting a Specialty held as a user credential is blocked at the database level', function () {
     $userSpecialty = UserSpecialty::factory()->create();
 

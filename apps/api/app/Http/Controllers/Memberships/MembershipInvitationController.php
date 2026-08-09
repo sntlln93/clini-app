@@ -47,10 +47,7 @@ class MembershipInvitationController extends Controller
     }
 
     /**
-     * The `organization` middleware (ResolveCurrentOrganization) always
-     * sets an active organization before a request reaches this
-     * controller — it aborts 403 otherwise — so this narrows the nullable
-     * getter to a definite int for callers.
+     * The `organization` middleware (ResolveCurrentOrganization) always sets an active organization before reaching here (aborts 403 otherwise), so this narrows the nullable getter to a definite int.
      */
     private function currentOrganizationId(): int
     {

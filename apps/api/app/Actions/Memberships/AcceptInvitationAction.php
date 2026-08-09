@@ -16,10 +16,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * The invitation's validity (existence, expiry, single use) is already
- * enforced by AcceptInvitationRequest before this runs — this action only
- * creates the user (when needed) and the resulting membership, and marks
- * the invitation as accepted so the token can never be reused.
+ * Invitation validity is already enforced by AcceptInvitationRequest — this only creates the user/membership and marks the invitation accepted so its token can't be reused.
  *
  * @implements Action<InvitationAcceptanceData>
  */

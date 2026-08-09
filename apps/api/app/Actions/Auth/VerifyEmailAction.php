@@ -13,10 +13,8 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Consumes the token: sets `email_verified_at` and nulls out both
- * verification columns so it can never be replayed. Looks the user up
- * under `lockForUpdate()` inside its own transaction so two concurrent
- * POSTs with the same token can't both succeed.
+ * Nulls out both verification columns so the token can never be replayed;
+ * looks the user up under `lockForUpdate()` so concurrent POSTs can't both succeed.
  *
  * @implements Action<EmailVerificationData>
  */

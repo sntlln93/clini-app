@@ -27,10 +27,9 @@ type BookingWizardProps = {
 };
 
 /**
- * Orchestrates the specialty → professional → service → day/time → patient
- * data → confirmation flow. Presentational only: the current step is fully
- * derived from the URL-owned `search` plus two pieces of local, non-request
- * UI state (`selectedSlot`, `confirmation` — neither parametrizes a read).
+ * Presentational only: the current step derives from the URL-owned
+ * `search`, plus `selectedSlot`/`confirmation`, which stay local because
+ * neither parametrizes a read.
  */
 export function BookingWizard({
     slug,

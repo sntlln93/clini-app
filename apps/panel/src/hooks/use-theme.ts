@@ -18,11 +18,6 @@ function applyTheme(isDark: boolean): void {
     document.documentElement.classList.toggle('dark', isDark);
 }
 
-/**
- * Reads/writes the persisted theme preference and applies the resolved
- * `.dark` class to `<html>`. When the preference is `system`, it follows
- * live `prefers-color-scheme` changes.
- */
 export function useTheme() {
     const [theme, setTheme] = usePersistedState<Theme>(
         THEME_STORAGE_KEY,

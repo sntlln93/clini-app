@@ -18,12 +18,9 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-// See the test declared last in this file for why the racing appointment
-// row it plants through a second, genuinely separate database session
-// survives this file's per-test rollback and needs this cleanup. Named
-// distinctly from PatientStoreTest's own raceCleanupTasks() helper since
-// Pest loads every test file's top-level functions into the same global
-// namespace.
+// See the last test in this file for why this cleanup is needed. Named
+// distinctly from PatientStoreTest's own raceCleanupTasks() since Pest
+// loads every test file's top-level functions into the same global namespace.
 function &appointmentRaceCleanupTasks(): array
 {
     static $tasks = [];
@@ -226,10 +223,9 @@ test('store returns 409 when the same physical professional in a different organ
     $organizationA = Organization::factory()->create();
     $organizationB = Organization::factory()->create();
 
-    // The most recently created active membership wins as the acting
-    // organization (App\Http\Middleware\ResolveCurrentOrganization), so
-    // membership A is backdated to guarantee membership B is the one
-    // resolved for this request, in organization B.
+    // The most recently created active membership wins as the acting organization
+    // (App\Http\Middleware\ResolveCurrentOrganization), so membership A is
+    // backdated to guarantee membership B resolves for this request.
     $membershipA = Membership::factory()->create([
         'organization_id' => $organizationA->id,
         'user_id' => $user->id,
@@ -364,17 +360,13 @@ test('a guest gets 401 on store', function () {
     ])->assertStatus(401);
 });
 
-// Declared last in this file on purpose: the racing appointment row it
-// plants through a second, genuinely separate database session survives
-// this test's own transaction rollback (see raceCleanupTasks()/afterAll()
-// above), so every test declared before this one must run — and finish
-// rolling back its own transaction — before this row ever exists.
+// Declared last on purpose: the racing row it plants via a separate database
+// session survives this test's own rollback (see raceCleanupTasks()/afterAll()
+// above), so every earlier test must finish rolling back before it exists.
 test('two concurrent requests booking the identical slot: only one appointment is created and the loser gets 409, not a 500', function () {
-    // A genuinely separate database session (its own PDO connection, own
-    // Postgres backend). Every row it creates below is committed
-    // immediately (no explicit transaction), so it's visible to this
-    // test's own connection under READ COMMITTED even though this test's
-    // own RefreshDatabase transaction never commits.
+    // A genuinely separate database session (its own PDO connection, own Postgres
+    // backend). Rows it creates commit immediately, so they're visible to this
+    // test's connection under READ COMMITTED despite RefreshDatabase never committing.
     $config = config('database.connections.pgsql');
     $race = new PDO(
         sprintf('pgsql:host=%s;port=%s;dbname=%s', $config['host'], $config['port'], $config['database']),
@@ -407,9 +399,8 @@ test('two concurrent requests booking the identical slot: only one appointment i
         "('Racer Patient', 'dni', '".random_int(10000000, 99999999)."', now(), now()) RETURNING id"
     )->fetchColumn();
 
-    // Visible to this test's own connection (committed by $race above),
-    // so ordinary Eloquent factories/queries on the main connection can
-    // reference these ids from here on.
+    // Visible to this test's own connection (committed by $race above), so ordinary
+    // Eloquent factories/queries on the main connection can reference these ids.
     ProfessionalService::factory()->create([
         'organization_id' => $organizationId,
         'membership_id' => $membershipId,
@@ -421,10 +412,9 @@ test('two concurrent requests booking the identical slot: only one appointment i
 
     $winnerAppointmentId = null;
 
-    // Fires right after BookAppointmentAction has taken the advisory lock
-    // and read the professional_services row, but before its own overlap
-    // check — the racing session inserts and commits a competing
-    // appointment for the same membership and slot right here, exactly
+    // Fires right after BookAppointmentAction takes the advisory lock and reads the
+    // professional_services row, but before its own overlap check — the racing
+    // session inserts and commits a competing appointment right here, exactly
     // like a real concurrent request that already won the race would.
     ProfessionalService::retrieved(function (ProfessionalService $retrieved) use (
         &$winnerAppointmentId,

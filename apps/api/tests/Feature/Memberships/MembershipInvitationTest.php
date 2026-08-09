@@ -19,9 +19,7 @@ afterEach(function () {
 });
 
 /**
- * Extracts the plaintext acceptance token from the URL carried by the
- * mailable — the only place, besides the request that created it, where
- * the raw value ever exists.
+ * Extracts the plaintext acceptance token from the URL carried by the mailable — the only other place, besides the request that created it, where the raw value ever exists.
  */
 function tokenFromAcceptanceUrl(string $acceptanceUrl): string
 {

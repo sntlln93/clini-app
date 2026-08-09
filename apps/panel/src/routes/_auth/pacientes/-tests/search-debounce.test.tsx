@@ -17,20 +17,12 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },
 }));
 
-// Builds a minimal router carrying the real `/pacientes` route (its loader,
-// `pendingMs`, `validateSearch` and component all untouched) as the only
-// child of a bare root — the auth-guarded `_auth` layout is irrelevant to
-// this behaviour and would only add an unrelated session mock. `.update()`
-// is the same mechanism the generated `routeTree.gen.ts` uses to wire this
-// route's real `id`/`path`/parent; it is not test-only plumbing.
+// Wraps `/pacientes` under a bare root (`_auth` is irrelevant here and would only add an unrelated session mock);
+// `.update()` is the same mechanism the generated `routeTree.gen.ts` uses to wire a route's real `id`/`path`/parent.
 function renderPacientesRoute(initialUrl: string) {
     const rootRoute = createRootRouteWithContext<{
         queryClient: QueryClient;
     }>()({ component: () => <Outlet /> });
-    // Cast to `any`, same as the generated `routeTree.gen.ts` does for every
-    // route's own `.update()` call — `UpdatableRouteOptions` doesn't type
-    // `id`/`path`/`getParentRoute` as settable post-construction, even
-    // though this is exactly how the file-based router wires each route.
     const route = PacientesRoute.update({
         id: '/pacientes/',
         path: '/pacientes/',
@@ -128,10 +120,7 @@ describe('/pacientes search debounce', () => {
         const { router } = renderPacientesRoute('/pacientes/?q=ana');
         await screen.findByDisplayValue('ana');
 
-        // Cast to `any`: the app's global `Register` (declared in
-        // `main.tsx`) types every router's `navigate()` against the real
-        // route tree, which this test's standalone router deliberately
-        // does not match.
+        // The global `Register` from `main.tsx` types `navigate()` against the real route tree, which this standalone router deliberately does not match.
         await router.navigate({
             to: '/pacientes/',
             search: { q: '', page: 1 },

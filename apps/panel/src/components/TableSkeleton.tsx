@@ -7,11 +7,7 @@ type TableSkeletonProps = {
     className?: string;
 };
 
-/**
- * Loading placeholder that occupies the same bordered box a real table
- * would, for use in place of the whole `overflow-auto rounded-md border`
- * table wrapper while a query is pending.
- */
+/** Stands in for the entire `overflow-auto rounded-md border` table wrapper, not just the rows. */
 export function TableSkeleton({
     rows = 5,
     columns = 4,

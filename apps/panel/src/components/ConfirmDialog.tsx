@@ -26,11 +26,7 @@ type ConfirmDialogProps = {
     isPending?: boolean;
 };
 
-/**
- * Shared confirmation dialog for destructive/irreversible actions.
- * Supports an uncontrolled `trigger` (rendered inline) or fully controlled
- * `open`/`onOpenChange` for triggers that unmount (e.g. dropdown items).
- */
+/** Controlled `open`/`onOpenChange` mode is for triggers that unmount (e.g. dropdown items). */
 export function ConfirmDialog({
     trigger,
     open,

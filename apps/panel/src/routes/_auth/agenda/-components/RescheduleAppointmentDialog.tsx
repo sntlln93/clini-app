@@ -37,10 +37,7 @@ type RescheduleAppointmentDialogProps = {
 
 const EMPTY_VALUES: RescheduleFormValues = { date: '', time: '' };
 
-// Only `slot_taken` has a field to land on here — `date`/`time` are the only
-// inputs this dialog has. `not_reschedulable_from_status` has no matching
-// field in this form, so it deliberately falls through to the general
-// message instead: an unmapped code is never silently dropped.
+// Only `slot_taken` maps to a field; `not_reschedulable_from_status` deliberately falls through to the general message.
 const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.slot_taken': 'start_at',
 };
@@ -53,11 +50,7 @@ function toTimeInput(iso: string): string {
     return new Date(iso).toTimeString().slice(0, 5);
 }
 
-/**
- * Lets the user pick a new `start_at` for an existing appointment and
- * submits it to `POST /appointments/{id}/reschedule`; the backend creates a
- * new appointment row and marks the original as `rescheduled`.
- */
+// Submits to `POST /appointments/{id}/reschedule`; the backend creates a new row and marks the original as `rescheduled`.
 export function RescheduleAppointmentDialog({
     open,
     onOpenChange,
@@ -68,9 +61,7 @@ export function RescheduleAppointmentDialog({
         defaultValues: EMPTY_VALUES,
     });
 
-    // `form.reset()` notifies Controller-subscribed children synchronously,
-    // so prefilling from the appointment being rescheduled has to happen in
-    // an effect rather than during render.
+    // `form.reset()` notifies Controller children synchronously, so this must run in an effect, not during render.
     useEffect(() => {
         if (open && appointment) {
             form.reset({

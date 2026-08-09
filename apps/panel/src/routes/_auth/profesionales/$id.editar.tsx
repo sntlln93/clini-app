@@ -9,10 +9,7 @@ export const Route = createFileRoute('/_auth/profesionales/$id/editar')({
         parse: (rawParams) => ({ id: Number(rawParams.id) }),
     },
     loader: ({ context }) =>
-        // Stopgap: resolves the membership by id from a single, capped-size
-        // page instead of a dedicated show endpoint. 100 is
-        // IndexMembershipRequest's validated maximum. Follow-up: a real
-        // GET /api/v1/memberships/{membership} endpoint (filed separately).
+        // Stopgap: no dedicated show endpoint yet, so resolve by id from a capped page (100 = IndexMembershipRequest's validated maximum).
         context.queryClient.ensureQueryData(
             membershipsQueryOptions({ q: '', page: 1, per_page: 100 }),
         ),

@@ -119,10 +119,7 @@ export function LoginForm() {
                     ¿No tenés cuenta?{' '}
                     <Link
                         to="/registro"
-                        // Inline text link within a sentence — exempt from
-                        // the coarse-pointer 44px touch-target floor per
-                        // WCAG 2.5.8's own inline exception (see
-                        // `index.css`'s `.touch-target-exempt` rule).
+                        // Inline link is exempt from the 44px coarse-pointer touch target per WCAG 2.5.8's inline exception (see `.touch-target-exempt` in index.css).
                         className="touch-target-exempt font-medium text-foreground underline underline-offset-4"
                     >
                         Registrate

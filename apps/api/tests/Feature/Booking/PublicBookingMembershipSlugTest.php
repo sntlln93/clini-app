@@ -56,8 +56,7 @@ test('a membership slug whose membership is soft-deleted returns 404', function 
 
 test('a membership slug on a membership that does not hold the professional role returns 404', function () {
     $organization = Organization::factory()->create();
-    // Slug set directly in the DB: SetMembershipSlugAction refuses to
-    // create this state through the endpoint, so it's built here instead.
+    // Slug set directly in the DB — SetMembershipSlugAction refuses to create this state via the endpoint.
     Membership::factory()->staff()->create([
         'organization_id' => $organization->id,
         'slug' => 'no-profesional',

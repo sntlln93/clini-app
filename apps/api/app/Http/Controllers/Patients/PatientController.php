@@ -81,13 +81,7 @@ class PatientController extends Controller
         return new PatientResource($patient);
     }
 
-    /**
-     * Deliberate, narrow exception to organization scoping: resolves a
-     * patient by document pair globally (not just within the active
-     * organization) so the create form can be prefilled before the
-     * patient is linked to this organization. Requires the same
-     * permission as create(), since it exists to support it.
-     */
+    // Deliberate, narrow exception to organization scoping: resolves a patient by document pair globally so the create form can be prefilled before it is linked to this organization. Requires the same permission as create(), since it exists to support it.
     public function lookup(LookupPatientRequest $request): PatientResource
     {
         Gate::authorize('create', Patient::class);
@@ -107,12 +101,7 @@ class PatientController extends Controller
         return new PatientResource($patient);
     }
 
-    /**
-     * The `organization` middleware (ResolveCurrentOrganization) always
-     * sets an active organization before a request reaches this
-     * controller — it aborts 403 otherwise — so this narrows the nullable
-     * getter to a definite int for callers.
-     */
+    // The `organization` middleware always sets an active organization before a request reaches here (it aborts 403 otherwise), so this narrows the nullable getter to a definite int.
     private function currentOrganizationId(): int
     {
         $organizationId = app(CurrentOrganization::class)->get();

@@ -35,9 +35,7 @@ dataset('domain_exceptions', fn () => [
 ]);
 
 beforeEach(function () {
-    // Registered per test, against that test's own Application instance —
-    // a top-level registration would only bind to the app created while
-    // this file is first loaded, not the fresh app each test boots.
+    // Registered per test, against that test's own Application instance — a top-level registration would only bind to the app created when this file first loads.
     Route::any('/api/v1/_test/throw-domain-error', function () {
         throw app('test.domain-error.instance');
     });
@@ -86,10 +84,7 @@ test('no logContext()-only key or value leaks into the raw response body', funct
     $leaked = array_diff_key($exception->logContext(), $exception->publicContext());
 
     foreach ($leaked as $key => $value) {
-        // Checked as a quoted JSON key (`"status":`), not a bare substring:
-        // a bare "status" would false-positive against unrelated content
-        // that merely contains the word, e.g. the (intentionally public)
-        // error code `appointments.not_cancellable_from_status`.
+        // Checked as a quoted JSON key (`"status":`), not a bare substring, to avoid a false positive on unrelated content like the public error code `appointments.not_cancellable_from_status`.
         expect($body)->not->toContain('"'.$key.'":');
         expect($body)->not->toContain((string) $value);
     }
@@ -131,12 +126,7 @@ test('abort(500) with no message returns the same generic shape as any other une
     $response = $this->getJson('/api/v1/_test/abort-500');
     $body = $response->getContent();
 
-    // abort(500) throws an HttpException, which the bootstrap deliberately
-    // leaves to Laravel's own default rendering (see the `withExceptions`
-    // comment in bootstrap/app.php) rather than routing it through this
-    // app's generic 500 body — so the assertion here is on shape (same
-    // single `message` key, no debug internals, no leaked Spanish string),
-    // not on matching case 5's exact string content.
+    // abort(500) throws an HttpException, which the bootstrap deliberately leaves to Laravel's own default rendering (see `withExceptions` in bootstrap/app.php); hence asserting on shape only, not exact content.
     $response->assertStatus(500);
     expect(array_keys($response->json()))->toBe(['message']);
     expect($body)->not->toContain('No se pudo autenticar al usuario invitado.');

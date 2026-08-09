@@ -73,10 +73,8 @@ function uniqueSpecialties(
 }
 
 /**
- * Specialty → professional → service cascade. Not a form: every choice is
- * request state that lives in the URL (owned by the parent route), so
- * changing one select resets the ones downstream of it instead of leaving a
- * stale, no-longer-valid selection in place.
+ * Choosing one select resets the ones downstream, so no stale,
+ * no-longer-valid selection survives.
  */
 export function BookingSelectionStep({
     professionals,

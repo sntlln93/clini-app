@@ -6,10 +6,6 @@ type ListSkeletonProps = {
     className?: string;
 };
 
-/**
- * Loading placeholder for section/card/form contexts that are not a table
- * — stacked full-width bars standing in for whatever content will load.
- */
 export function ListSkeleton({ rows = 3, className }: ListSkeletonProps) {
     return (
         <div

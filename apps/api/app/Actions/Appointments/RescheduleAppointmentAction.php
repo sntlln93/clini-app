@@ -16,13 +16,10 @@ use App\Models\Appointment;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Reuses `BookAppointmentAction` for the new appointment. Critical order:
- * the original is marked `rescheduled` before `BookAppointmentAction` runs
- * — otherwise, if the new time overlaps the old one, the original's own row
- * would trip the overlap check inside `BookAppointmentAction`. Both writes
- * happen inside a single transaction, so a domain exception from
- * `BookAppointmentAction` (overlap / inactive service) rolls back the
- * original's status change too.
+ * Reuses `BookAppointmentAction`. Critical order: the original is marked
+ * `rescheduled` before booking the new one, otherwise its own row would trip
+ * the overlap check. Both writes share one transaction, so a domain
+ * exception from `BookAppointmentAction` rolls back the status change too.
  *
  * @implements Action<AppointmentReschedulingData>
  */

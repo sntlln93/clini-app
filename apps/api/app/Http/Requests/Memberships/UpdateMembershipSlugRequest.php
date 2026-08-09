@@ -7,9 +7,7 @@ namespace App\Http\Requests\Memberships;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * Validates only type/presence/length — the format regex and cross-table
- * uniqueness are cross-table business logic, checked by
- * SetMembershipSlugAction instead (issue #32's decision).
+ * Validates only type/presence/length — format and cross-table uniqueness are business logic checked by SetMembershipSlugAction instead (issue #32).
  */
 class UpdateMembershipSlugRequest extends FormRequest
 {

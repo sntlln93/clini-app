@@ -8,11 +8,8 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when an email-verification token is malformed, unknown, already
- * used, or expired (`EmailVerificationController`). The raw token is never
- * carried here — only its hash, which is what the lookup itself keys
- * on — since the raw token is a bearer credential and shouldn't be
- * duplicated into logs.
+ * Carries only the token hash, never the raw bearer credential, so it never
+ * ends up duplicated into logs.
  */
 final class EmailVerificationInvalidOrExpiredException extends DomainException
 {

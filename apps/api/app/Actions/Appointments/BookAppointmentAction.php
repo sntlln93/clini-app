@@ -17,11 +17,8 @@ use App\Models\ProfessionalService;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The single write path for appointments (ADR 0004): derives the duration
- * from the professional's service configuration, takes an advisory lock on
- * the physical professional (not the membership, so the check is correct
- * across organizations), checks for overlap and creates the row — all
- * inside one transaction.
+ * Single write path for appointments (ADR 0004): locks the physical
+ * professional, not the membership, so the check is correct across organizations.
  *
  * @implements Action<AppointmentBookingData>
  */
@@ -38,8 +35,7 @@ class BookAppointmentAction implements Action
             $membership = Membership::withoutGlobalScope('organization')->findOrFail($dto->membershipId);
             $userId = $membership->user_id;
 
-            // Must run before any read: serialises concurrent bookings for
-            // the same physical professional, across organizations.
+            // Must run before any read: serialises concurrent bookings for the same physical professional, across organizations.
             DB::statement('select pg_advisory_xact_lock(?, ?)', [self::LOCK_NAMESPACE, $userId]);
 
             $professionalService = ProfessionalService::withoutGlobalScope('organization')

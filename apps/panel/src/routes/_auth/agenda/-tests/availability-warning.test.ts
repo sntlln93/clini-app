@@ -169,9 +169,7 @@ describe('isOutsideAvailability', () => {
 
             const result = isOutsideAvailability(
                 dateTime,
-                // recurring slot still covers 09:00-12:00, so once the
-                // blocked exception no longer applies, the time is available
-                // again — isolating exactly what the exception boundary does.
+                // Recurring slot still covers 09:00-12:00, isolating exactly what the exception boundary does.
                 [availability({ day_of_week: dayOfWeek })],
                 [
                     exception({

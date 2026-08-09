@@ -23,9 +23,9 @@ function subscribe(callback: () => void) {
 }
 
 /**
- * Persists a JSON-serializable value in `localStorage` and keeps every consumer
- * in sync: cross-tab via the native `storage` event and in-tab via a custom
- * event dispatched on write. Components never touch `localStorage` directly.
+ * Persists a JSON-serializable value in `localStorage`, kept in sync via
+ * both the native `storage` event and an in-tab custom event — the native
+ * event never fires in the tab that performed the write.
  */
 export function usePersistedState<T>(
     key: string,

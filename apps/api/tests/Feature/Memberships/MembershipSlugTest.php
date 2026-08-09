@@ -157,23 +157,12 @@ test('a slug longer than 50 characters returns 422', function () {
 test('two concurrent claims for the same slug are serialized by the advisory lock: the second fails with 409, exactly one membership keeps it', function () {
     $organization = Organization::factory()->create();
     $membershipA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
-    // Same organization as membershipA: the CurrentOrganization singleton
-    // set by ResolveCurrentOrganization for the first request is not reset
-    // between two actingAs()->patchJson() calls made within the same test
-    // (it only resets in afterEach, once the whole test is done), so a
-    // second membership from a *different* organization would spuriously
-    // 403 with organizations.no_active_membership here — a global-scope
-    // artefact of this test issuing two requests in one test, not
-    // something the race itself needs to exercise.
+    // Same organization as membershipA: the CurrentOrganization singleton isn't reset between the two actingAs() calls in this test, so a different-organization membership would spuriously 403 here — a test-setup artefact, not something the race itself needs.
     $membershipB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
 
     $slug = 'dra-concurrente';
 
-    // A genuinely separate database session (its own PDO connection, own
-    // Postgres backend) — not this test's RefreshDatabase transaction —
-    // so its lock probe below observes the real lock state held by the
-    // main request's still-open transaction, not just this connection
-    // talking to itself.
+    // A genuinely separate database session (own PDO/Postgres backend, not this test's RefreshDatabase transaction) so its lock probe below observes the real lock held by the main request's still-open transaction.
     $config = config('database.connections.pgsql');
     $race = new PDO(
         sprintf('pgsql:host=%s;port=%s;dbname=%s', $config['host'], $config['port'], $config['database']),
@@ -188,16 +177,7 @@ test('two concurrent claims for the same slug are serialized by the advisory loc
             return;
         }
 
-        // Fires while this request's own transaction still holds
-        // pg_advisory_xact_lock(hashtext($slug)) — acquired right before
-        // isTaken() in SetMembershipSlugAction, and released only at
-        // COMMIT. pg_try_advisory_xact_lock is non-blocking: on a
-        // genuinely separate session it returns immediately, so this can
-        // never deadlock against the main transaction that is still
-        // running (deep in this very event callback). It must fail here:
-        // that failure is the whole point of the advisory lock. Without
-        // it, this transaction would hold nothing and the probe below
-        // would succeed instead.
+        // Fires while this request's transaction still holds pg_advisory_xact_lock(hashtext($slug)) (acquired before isTaken(), released at COMMIT); pg_try_advisory_xact_lock is non-blocking so this can't deadlock, and it must fail here — that failure is the whole point of the advisory lock.
         $acquired = (bool) $race->query(
             'SELECT pg_try_advisory_xact_lock(hashtext('.$race->quote($slug).'))'
         )->fetchColumn();

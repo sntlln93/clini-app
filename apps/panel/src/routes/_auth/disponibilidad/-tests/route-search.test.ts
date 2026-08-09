@@ -51,9 +51,7 @@ function mockApiGet() {
     });
 }
 
-// `loader` is typed as a union that also allows a pre-built loader-object
-// shape (not directly callable), even though this route always passes a
-// plain async function — narrow it back to that for the test.
+// Narrowed from the loader union to a plain callable, since this route always passes a plain async function.
 const loader = Route.options.loader as (opts: {
     context: { queryClient: QueryClient };
     deps: { membershipId: number | undefined };

@@ -13,10 +13,8 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
- * Mints the one-time email-verification token, persists only its hash plus
- * a 48h expiry on the user row, and queues the confirmation mail. The
- * plaintext token only ever exists here and in the outgoing (queued) mail
- * payload — never on the user row.
+ * Mints the token, persists only its hash + 48h expiry, and queues the mail.
+ * The plaintext token only ever exists here and in the queued mail payload.
  *
  * @implements Action<EmailVerificationIssuanceData>
  */

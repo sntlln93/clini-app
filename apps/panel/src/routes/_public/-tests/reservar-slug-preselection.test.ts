@@ -15,9 +15,7 @@ type BookingSearch = {
     date?: string;
 };
 
-// `beforeLoad` is typed as a union that also allows a pre-built loader
-// -object shape (not directly callable), even though this route always
-// passes a plain async function — narrow it back to that for the test.
+// Cast needed: `beforeLoad`'s type is a union that also allows a non-callable object shape, though this route always passes a plain async function.
 const beforeLoad = Route.options.beforeLoad as (opts: {
     context: { queryClient: QueryClient };
     params: { slug: string };

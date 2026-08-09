@@ -9,18 +9,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
-// Sanctum only boots the session for requests it recognizes as coming from
-// the SPA (Origin/Referer matching SANCTUM_STATEFUL_DOMAINS) — a real
-// browser always sends this cross-origin, so tests simulate it explicitly.
+// Sanctum only boots the session for SPA-recognized requests (Referer
+// matching SANCTUM_STATEFUL_DOMAINS), so tests simulate it explicitly.
 function registerFromSpaForVerification()
 {
     return test()->withHeader('Referer', 'http://localhost:5174');
 }
 
 /**
- * Extracts the plaintext verification token from the URL carried by the
- * mailable — the only place, besides the user row's hash, where the raw
- * value ever exists.
+ * Extracts the plaintext token from the mailable's URL — the only place,
+ * besides the user row's hash, where the raw value exists.
  */
 function tokenFromVerificationUrl(string $verificationUrl): string
 {
@@ -172,10 +170,8 @@ test('confirming with a valid token authenticates the user', function () {
 
     $this->postJson('/api/v1/email-verification/'.$rawToken)->assertOk();
 
-    // Within a single Pest test, the app container (and therefore the auth
-    // guard) persists across chained HTTP calls, unlike two real requests
-    // hitting a fresh process each. Forget the guard so /api/v1/me re-resolves
-    // the user from the session by id, mirroring RegisterTest.php.
+    // The app container (and auth guard) persists across chained HTTP calls
+    // within one test; forget it so /me re-resolves from the session, mirroring RegisterTest.php.
     Auth::forgetGuards();
 
     $me = $this->getJson('/api/v1/me');

@@ -128,11 +128,7 @@ async function goToPatientForm() {
     await screen.findByRole('heading', { name: 'Tus datos' });
 }
 
-/**
- * Asserts the page exposes exactly one heading, that it is level 1 with the
- * expected Spanish text, and — by there being no other heading at all — that
- * no lower-level heading could ever appear above it in the document.
- */
+/** Asserts the document's only heading is the expected h1 — with no other heading present, none can outrank it. */
 function expectTopmostH1(name: string) {
     const headings = screen.getAllByRole('heading');
     expect(headings).toHaveLength(1);

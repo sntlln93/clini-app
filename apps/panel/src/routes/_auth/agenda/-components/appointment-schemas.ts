@@ -1,11 +1,6 @@
 import { z } from 'zod';
 
-// Each selection field keeps its `number | null` shape both before and
-// after validation (the null-check gate is expressed via `superRefine`
-// rather than `.refine()` on the individual field, which would otherwise
-// narrow the field's inferred output type away from `null` and desync it
-// from the `null`-friendly shape RHF's `Control`/`useWatch` need while the
-// user hasn't picked a value yet).
+// `superRefine` (not per-field `.refine()`) keeps each selection field's inferred type `number | null`, matching RHF's `Control`/`useWatch` shape.
 export const appointmentSchema = z
     .object({
         membershipId: z.number().nullable(),

@@ -13,10 +13,7 @@ use App\Models\Membership;
 use App\Models\User;
 
 /**
- * Self-service only: no membership id in the URL, the caller's own active
- * membership in the current organization is resolved from the session
- * (`organization` middleware already guarantees one exists, per
- * ResolveCurrentOrganization / NoActiveMembershipException).
+ * Self-service only: no membership id in the URL — the caller's active membership is resolved from the session (`organization` middleware guarantees one exists, per ResolveCurrentOrganization / NoActiveMembershipException).
  */
 class MembershipSlugController extends Controller
 {

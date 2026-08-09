@@ -28,14 +28,12 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Fully public: no auth:sanctum, no `organization` middleware. The tenant is
- * resolved by `public-organization` (App\Http\Middleware\ResolvePublicOrganization`)
- * from the {slug} route parameter — either an organization slug or a
- * professional membership's own public slug (#32) — so every query below
- * runs scoped to that organization through the models' own global scope.
- * The organization itself is read from CurrentOrganization rather than
- * re-queried by {slug}: a membership slug would 404 against
- * `organizations.slug`.
+ * Fully public: no auth:sanctum, no `organization` middleware. The tenant
+ * is resolved by `public-organization` (`ResolvePublicOrganization`) from the {slug} route
+ * parameter (an organization slug or a professional's own public slug),
+ * so every query below is scoped through the models' own global scope.
+ * Read via CurrentOrganization rather than re-queried by {slug} — a
+ * membership slug would 404 against `organizations.slug`.
  */
 class PublicBookingController extends Controller
 {
@@ -120,10 +118,9 @@ class PublicBookingController extends Controller
     }
 
     /**
-     * `ResolvePublicOrganization` always sets a current organization before
-     * a request reaches this controller (it 404s beforehand otherwise), so
-     * the nullable getter is safely narrowed with a cast, same as
-     * AvailabilityExceptionController::store().
+     * ResolvePublicOrganization always sets a current organization before
+     * reaching here (404s otherwise), so the nullable getter is safely
+     * narrowed with a cast, as in AvailabilityExceptionController::store().
      */
     private function currentOrganization(): Organization
     {

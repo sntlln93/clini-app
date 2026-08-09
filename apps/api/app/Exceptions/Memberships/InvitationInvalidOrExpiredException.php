@@ -8,11 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when an invitation token is malformed, unknown, already used, or
- * expired (`InvitationAcceptanceController`). The raw token is never
- * carried here — only its hash, which is what the lookup itself keys
- * on — since the raw token is a bearer credential and shouldn't be
- * duplicated into logs.
+ * Only the token hash is kept here (never the raw bearer token) so it never leaks into logs — InvitationAcceptanceController.
  */
 final class InvitationInvalidOrExpiredException extends DomainException
 {

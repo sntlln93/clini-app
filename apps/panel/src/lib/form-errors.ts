@@ -7,14 +7,10 @@ type FormErrors = {
 };
 
 /**
- * Extracts form-friendly `{ message, errors }` from any error a mutation can
- * throw, over the typed `AppError` union (never axios directly).
- *
- * `fieldMap` is a per-form `código → campo` map: it lets a 409 business
- * error keep the same inline-on-field display the panel had when these
- * rules were still 422s. A code with no entry in the map — or no map at
- * all, for backward compatibility with existing call sites — falls back to
- * a general form message; it is never silently dropped.
+ * Extracts `{ message, errors }` from any error a mutation can throw.
+ * `fieldMap` maps code → field so a 409 keeps the inline-on-field display
+ * these rules had as 422s; a code absent from the map (or no map at all)
+ * falls back to a general message — never silently dropped.
  */
 export function extractFormErrors(
     error: unknown,

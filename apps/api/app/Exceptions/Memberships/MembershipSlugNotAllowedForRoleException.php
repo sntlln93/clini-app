@@ -8,9 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Thrown when a public slug is set on a membership that does not hold the
- * `professional` role — only professional memberships may have a public
- * booking link (SetMembershipSlugAction).
+ * Only professional memberships may have a public booking link — SetMembershipSlugAction.
  */
 final class MembershipSlugNotAllowedForRoleException extends DomainException
 {

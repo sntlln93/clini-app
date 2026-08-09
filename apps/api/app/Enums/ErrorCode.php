@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * Public contract: each case is `<module>.<rule>`, snake_case. Renaming a
- * case is a breaking change for the panel's mirrored catalog
- * (`apps/panel/src/lib/error-codes.ts`) — the enum-parity test enforces
- * that both stay in sync.
+ * Each case is `<module>.<rule>`; renaming one breaks the panel's mirrored catalog (`apps/panel/src/lib/error-codes.ts`) — an enum-parity test enforces they stay in sync.
  */
 enum ErrorCode: string
 {

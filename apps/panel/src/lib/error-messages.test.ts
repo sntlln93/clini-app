@@ -1,10 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ERROR_CODE_MESSAGES } from './error-codes';
 
-// Regression guard for the UI copy in `ERROR_CODE_MESSAGES`. Every message
-// is shown verbatim to end users (see the comment on `ERROR_CODE_MESSAGES`),
-// so it must read like a finished sentence and never leak backend/developer
-// vocabulary.
+// Regression guard: every message here is shown verbatim to end users, so it must read like a finished sentence with no backend jargon.
 const JARGON_DENYLIST = [
     'transición de estado',
     'null',

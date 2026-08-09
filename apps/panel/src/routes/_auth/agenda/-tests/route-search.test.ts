@@ -8,9 +8,7 @@ type AgendaSearch = {
     professionals?: number[];
 };
 
-// `validateSearch`/`loaderDeps` are typed as a union that also allows a
-// schema-object shape (not directly callable), even though this route
-// always passes a plain function — narrow it back to that for the test.
+// Their type also allows a non-callable schema-object shape; narrow it back to the plain function this route always passes.
 const validateSearch = Route.options.validateSearch as (
     search: Record<string, unknown>,
 ) => AgendaSearch;

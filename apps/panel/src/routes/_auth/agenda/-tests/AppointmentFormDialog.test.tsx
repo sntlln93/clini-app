@@ -111,13 +111,7 @@ function renderDialog(
     );
 }
 
-/**
- * Same as `mockApiGet`, except `/availabilities` and `/availability-exceptions`
- * resolve to promises the caller controls (never auto-resolved), while
- * `/services` and `/patients` behave normally so the form can still be filled.
- * Used to reproduce a submit fired while both availability queries are
- * still in flight (issue #136).
- */
+// Like `mockApiGet`, but availability/exceptions stay unresolved on purpose — reproduces a submit fired mid-flight (issue #136).
 function mockApiGetWithPendingAvailability() {
     let resolveAvailabilities!: (value: { data: { data: unknown[] } }) => void;
     let resolveExceptions!: (value: { data: { data: unknown[] } }) => void;
@@ -170,21 +164,12 @@ function mockApiGetWithPendingAvailability() {
 async function selectComboboxOption(combobox: HTMLElement, optionText: string) {
     fireEvent.click(combobox);
     const option = await screen.findByRole('option', { name: optionText });
-    // A single option that hasn't been keyboard/pointer-highlighted yet
-    // isn't part of the roving-tabindex group base-ui uses for selection —
-    // a bare `click` doesn't register in jsdom, it needs the full pointer
-    // sequence a real browser would generate (same reasoning as the status
-    // select workaround in MemberEditDialog's tests).
+    // base-ui's roving-tabindex needs a real pointer sequence in jsdom; a bare `click` doesn't register.
     fireEvent.pointerDown(option);
     fireEvent.pointerUp(option);
     fireEvent.click(option);
 }
 
-/**
- * Fills every field required for `submit()` to proceed beyond the
- * prefilled professional/date/time: the service select (labelled "Servicio")
- * and the patient select (labelled "Paciente").
- */
 async function fillPatientAndService() {
     await selectComboboxOption(
         screen.getByRole('combobox', { name: 'Servicio' }),
@@ -213,9 +198,7 @@ describe('AppointmentFormDialog', () => {
             '10:00',
         );
 
-        // The trigger shows the raw value until the popup has mounted once
-        // (base-ui only resolves the item's display label from its
-        // registered options), so open it to assert the pre-selected item.
+        // base-ui only resolves the item's display label once the popup has mounted, so open it to assert the pre-selected item.
         fireEvent.click(screen.getByRole('combobox', { name: 'Profesional' }));
         const option = await screen.findByRole('option', {
             name: 'Dra. Ana López',
@@ -326,9 +309,7 @@ describe('AppointmentFormDialog', () => {
             '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
         );
 
-        // Both the appointment dialog and the nested availability warning
-        // have their own "Cancelar" action, so scope the click to the alert
-        // dialog to cancel the warning specifically, not the whole form.
+        // Both dialogs have their own "Cancelar" action, so scope the click to the alert dialog specifically.
         const warningDialog = screen.getByRole('alertdialog');
         fireEvent.click(
             within(warningDialog).getByRole('button', { name: 'Cancelar' }),
@@ -376,12 +357,7 @@ describe('AppointmentFormDialog', () => {
 
         await screen.findByText('Elegí un servicio.');
         expect(api.post).not.toHaveBeenCalled();
-        // A successful submit calls `onOpenChange(false)` to close the
-        // dialog (see `submit()` in AppointmentFormDialog.tsx), so this
-        // failing to be called with `false` is what actually fixes the
-        // "modal stays open" acceptance criterion — `renderDialog`'s
-        // `onOpenChange` is a real no-op prop, not a hardcoded `open`, so
-        // the Dialog would in fact close if validation were broken.
+        // renderDialog's onOpenChange is a real no-op prop (not hardcoded open), so this assertion would fail if validation broke — not a tautology.
         expect(onOpenChange).not.toHaveBeenCalledWith(false);
     });
 
@@ -407,8 +383,6 @@ describe('AppointmentFormDialog', () => {
             ),
         ).toBeNull();
 
-        // Let both availability queries settle with empty data — the queries
-        // this test kept in flight until now.
         resolveAvailabilities();
         resolveExceptions();
 
@@ -418,9 +392,7 @@ describe('AppointmentFormDialog', () => {
 
         fireEvent.click(submitButton);
 
-        // Core regression assertion: once the queries have settled, the same
-        // click now evaluates `isOutside` against real (empty) data and the
-        // warning shows, instead of having been silently skipped earlier.
+        // Regression check: once settled, the same click evaluates `isOutside` against real data instead of skipping it.
         await screen.findByText(
             '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
         );
@@ -438,15 +410,11 @@ describe('AppointmentFormDialog', () => {
 
         await fillPatientAndService();
 
-        // DialogContent renders through a portal appended straight to
-        // `document.body` (the render's `baseElement`), not inside
-        // `render()`'s own `container` — look up the form there instead.
+        // DialogContent portals to `document.body` (`baseElement`), not `render()`'s own `container` — look up the form there.
         const form = baseElement.querySelector('form');
         expect(form).not.toBeNull();
 
-        // Submit the form node directly instead of clicking the button, to
-        // exercise `onValid`'s early-return guard independently of the
-        // button's `disabled` attribute.
+        // Submits the form node directly to exercise `onValid`'s early-return guard independently of the button's `disabled` attribute.
         fireEvent.submit(form as HTMLFormElement);
 
         await waitFor(() => {

@@ -16,9 +16,8 @@ function formatDateTime(isoInstant: string, timeZone: string): string {
 }
 
 /**
- * Terminal step: rendered once the mutation succeeds and never replaced by
- * the form again (the wizard has no path back to `patient` from here), so
- * the booking can't be resubmitted.
+ * Terminal step: the wizard has no path back from here, so the booking
+ * can't be resubmitted.
  */
 export function BookingConfirmation({
     confirmation,

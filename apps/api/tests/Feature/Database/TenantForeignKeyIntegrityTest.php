@@ -24,9 +24,7 @@ test('a direct insert into appointments with a membership from a different organ
         ->toThrow(QueryException::class);
 });
 
-// service_id is a simple FK since issue #21 (services is now a global,
-// non-tenant catalog): a nonexistent id still fails, but "belongs to
-// another organization" is no longer a concept the schema enforces here.
+// service_id is a simple FK since issue #21 (services is now a global, non-tenant catalog): "belongs to another organization" isn't enforced here anymore.
 test('a direct insert into appointments with a non-existent service_id fails at the database level', function () {
     $base = Appointment::factory()->create();
 
@@ -48,9 +46,7 @@ test('a direct insert into appointments with a rescheduled_from_id pointing at a
         ->toThrow(QueryException::class);
 });
 
-// service_id is a simple FK since issue #21: a nonexistent id still fails,
-// but a service used by another organization is no longer rejected — see
-// the "succeeds" test below, which documents that inversion deliberately.
+// service_id is a simple FK since issue #21: a service used by another organization is no longer rejected — see the "succeeds" test below.
 test('a direct insert into professional_services with a non-existent service_id fails at the database level', function () {
     $base = ProfessionalService::factory()->create();
 

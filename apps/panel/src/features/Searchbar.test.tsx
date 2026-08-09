@@ -65,8 +65,7 @@ describe('Searchbar', () => {
         fireEvent.change(input, { target: { value: 'ana' } });
         await vi.advanceTimersByTimeAsync(100);
 
-        // An external `value` change (e.g. browser back) arrives before the
-        // pending debounce settles.
+        // Arrives before the pending debounce settles.
         rerender(<Searchbar value="other" onSearch={onSearch} />);
 
         await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);

@@ -14,10 +14,8 @@ import { useRouteFocus } from './use-route-focus';
 
 const searchSchema = z.object({ foo: z.string().optional() });
 
-// Mirrors the real usage in `PanelLayout`/`_public.tsx`: the ref-bearing
-// container lives on the persistent root layout, wrapping an `Outlet` whose
-// content swaps per route, so the hook's own component instance survives a
-// navigation instead of being remounted alongside it.
+// The ref-bearing container lives on the persistent root layout (mirroring
+// `PanelLayout`/`_public.tsx`), so the hook's instance survives navigation instead of remounting.
 function TestLayout() {
     const ref = useRef<HTMLDivElement>(null);
     useRouteFocus(ref);
@@ -69,8 +67,7 @@ describe('useRouteFocus', () => {
         const router = renderRouteFocusHarness('/a');
         const target = await screen.findByTestId('target');
 
-        // Cast to `any`: this standalone router isn't the app's registered
-        // one, same as `search-debounce.test.tsx`'s own `router.navigate` calls.
+        // Cast to `any`: this standalone test router isn't the app's registered one.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see comment above
         await router.navigate({ to: '/b' } as any);
 
@@ -106,8 +103,7 @@ describe('useRouteFocus', () => {
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see comment above
         await router.navigate({ to: '/b' } as any);
-        // Same pathname, different search — a re-render with no pathname
-        // change must not add a second focus call.
+        // Same pathname, different search must not produce a second focus call.
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- see comment above
         await router.navigate({ to: '/b', search: { foo: 'baz' } } as any);
 

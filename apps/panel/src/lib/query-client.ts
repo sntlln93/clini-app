@@ -1,33 +1,20 @@
 import { QueryCache, QueryClient } from '@tanstack/react-query';
 import { mapToAppError } from './api-errors';
 
-/**
- * Kinds worth a retry: transient failures where trying again might succeed.
- * Everything else (business rules, validation, auth/session, rate limiting)
- * is deterministic — retrying just repeats the same rejection.
- */
+/** Only transient kinds retry — everything else (business/validation/auth/rate-limit) is deterministic, so retrying just repeats the same rejection. */
 const RETRYABLE_KINDS = new Set(['network', 'unexpected']);
 const MAX_RETRIES = 2;
 
 export const queryClient = new QueryClient({
     queryCache: new QueryCache({
-        // Centralized query-error logging: `useQuery` itself has no `onError`
-        // in TanStack Query v5 (`QueryObserverOptions` doesn't declare one),
-        // so this is the one place that observes every query failure.
-        //
-        // One exception: a query marked `meta: { expectedUnauthorized: true }`
-        // (the session probe in `session.ts`) whose failure is a 401 is an
-        // expected answer for an anonymous visitor, not a real failure — the
-        // guards already handle it by rendering/redirecting to `/login`, so
-        // logging it is just noise. Anything else — a different failure kind
-        // on that same query (e.g. a mid-session 419 expiry), or a 401 on any
-        // query without the flag — still logs.
+        // useQuery has no `onError` in TanStack Query v5 — this is the one sink for every query failure.
         onError: (error, query) => {
             const appError = mapToAppError(error);
             const isExpectedUnauthorized =
                 query.meta?.expectedUnauthorized === true &&
                 appError.kind === 'unauthorized';
 
+            // A 401 on a query marked `meta.expectedUnauthorized` (the session probe) is skipped as an expected anonymous-visitor answer; anything else still logs.
             if (isExpectedUnauthorized) {
                 return;
             }

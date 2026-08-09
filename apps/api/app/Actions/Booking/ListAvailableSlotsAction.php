@@ -18,14 +18,13 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Computes the grid of bookable slots for a membership+service pair over a
- * date range: the professional's *published* schedule per day (delegated to
- * ComputePublishedDayIntervalsAction — weekly `availabilities` plus `extra`
- * exceptions, minus `blocked` exceptions), minus any overlapping active
- * appointment of the same physical professional (across organizations, same
+ * The grid of bookable slots for a membership+service pair over a date
+ * range: the professional's *published* schedule per day (delegated to
+ * ComputePublishedDayIntervalsAction), minus any overlapping active
+ * appointment of the same physical professional across organizations (same
  * rule as BookAppointmentAction). Holidays are deliberately never subtracted
- * (owner decision, see the handoff). Everything runs in the organization's
- * own timezone (`organizations.timezone`); the app itself runs in UTC.
+ * (owner decision, see the handoff). Runs in the organization's own
+ * timezone (`organizations.timezone`); the app itself runs in UTC.
  *
  * @implements Action<SlotSearchData>
  */
@@ -59,10 +58,7 @@ class ListAvailableSlotsAction implements Action
 
         $durationMinutes = $professionalService->duration_minutes;
 
-        // Calendar-day boundaries in the organization's own timezone — not
-        // $dto->from/$dto->to directly, which are date-only instants at UTC
-        // midnight and would miss same-day exceptions/appointments that
-        // fall later in the local day.
+        // Local calendar-day boundaries, not $dto->from/to directly — those are UTC-midnight instants and would miss same-day items later in the local day.
         $cursor = CarbonImmutable::parse($dto->from->toDateString(), $timezone)->startOfDay();
         $lastDay = CarbonImmutable::parse($dto->to->toDateString(), $timezone)->startOfDay();
         $rangeEnd = $lastDay->addDay();

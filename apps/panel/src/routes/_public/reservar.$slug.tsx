@@ -17,10 +17,7 @@ const bookingSearchSchema = z.object({
 
 export const Route = createFileRoute('/_public/reservar/$slug')({
     validateSearch: (search) => bookingSearchSchema.parse(search),
-    // A membership slug reports the professional to preselect via
-    // `preselected_membership_id` (#32). Request state stays in the URL
-    // (ADR: request state lives in the URL), so it is resolved with a
-    // redirect into `search.professional` here, not local state.
+    // `preselected_membership_id` resolves via a redirect into `search.professional`, not local state, since request state lives in the URL.
     beforeLoad: async ({ context, params, search }) => {
         const organization = await context.queryClient.ensureQueryData(
             bookingOrganizationQueryOptions(params.slug),

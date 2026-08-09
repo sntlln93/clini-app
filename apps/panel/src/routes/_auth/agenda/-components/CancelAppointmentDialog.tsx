@@ -41,10 +41,7 @@ const QUICK_REASONS = [
     'Motivo administrativo',
 ];
 
-/**
- * Dedicated cancellation dialog with an optional reason and quick-pick
- * responses, submitted to `PATCH /appointments/{id}/cancel`.
- */
+// Cancellation dialog with an optional reason and quick-pick responses, submitted to `PATCH /appointments/{id}/cancel`.
 export function CancelAppointmentDialog({
     open,
     onOpenChange,
@@ -55,9 +52,7 @@ export function CancelAppointmentDialog({
         defaultValues: EMPTY_VALUES,
     });
 
-    // `form.reset()` notifies Controller-subscribed children synchronously,
-    // so clearing a discarded reason has to happen in an effect rather than
-    // during render.
+    // `form.reset()` notifies Controller children synchronously, so this must run in an effect, not during render.
     useEffect(() => {
         if (open) {
             form.reset(EMPTY_VALUES);
