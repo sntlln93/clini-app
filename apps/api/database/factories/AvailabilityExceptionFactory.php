@@ -35,4 +35,15 @@ class AvailabilityExceptionFactory extends Factory
             'reason' => fake()->sentence(),
         ];
     }
+
+    /**
+     * Org-wide exception: overrides the default closure outright, since a
+     * merged state would still resolve a Membership via that closure.
+     */
+    public function organizationWide(): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'membership_id' => null,
+        ]);
+    }
 }
