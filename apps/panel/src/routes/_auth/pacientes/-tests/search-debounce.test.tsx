@@ -17,8 +17,8 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },
 }));
 
-// Wraps the real `/pacientes` route under a bare root (no `_auth` layout needed); `.update()` is
-// the same mechanism the generated `routeTree.gen.ts` uses to wire a route's real `id`/`path`/parent.
+// Wraps `/pacientes` under a bare root (`_auth` is irrelevant here and would only add an unrelated session mock);
+// `.update()` is the same mechanism the generated `routeTree.gen.ts` uses to wire a route's real `id`/`path`/parent.
 function renderPacientesRoute(initialUrl: string) {
     const rootRoute = createRootRouteWithContext<{
         queryClient: QueryClient;
