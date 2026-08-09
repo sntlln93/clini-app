@@ -31,11 +31,9 @@ type BookingSlotPickerProps = {
 };
 
 /**
- * Day picker (native `<input type="date">`, no `calendar` primitive
- * installed in this project) plus the grid of available slots for that day.
- * The date is request state owned by the parent route's search params —
- * changing it re-runs the route loader, which is what actually fetches the
- * slots (ADR 0007); this component only reports the new date upward.
+ * Uses a native `<input type="date">` since no `calendar` primitive is
+ * installed. The parent route's loader does the fetching; this component
+ * only reports the date upward.
  */
 export function BookingSlotPicker({
     timezone,

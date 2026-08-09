@@ -7,12 +7,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 
 /**
- * Confirms the public booking. The user stays on `/reservar/$slug` after a
- * successful submit (the wizard swaps to its confirmation step instead of
- * navigating away), so this still follows the loader-read convention: the
- * day's slots came from a loader-backed read, and a slot just got taken, so
- * both `invalidateQueries` and `router.invalidate()` run on success (ADR
- * 0007's "leaves the user on the page" case).
+ * The user stays on the page after submit, so `router.invalidate()` runs
+ * alongside `invalidateQueries` (ADR 0007).
  */
 export function useConfirmBooking(slug: string) {
     const queryClient = useQueryClient();

@@ -109,19 +109,19 @@ function renderWizard(initialSearch: Search = {}) {
 async function selectComboboxOption(combobox: HTMLElement, optionText: string) {
     fireEvent.click(combobox);
     const option = await screen.findByRole('option', { name: optionText });
-    // A single option that hasn't been keyboard/pointer-highlighted yet isn't
-    // part of the roving-tabindex group base-ui uses for selection — a bare
-    // `click` doesn't register in jsdom, it needs the full pointer sequence a
-    // real browser would generate.
+    /**
+     * A bare `click` doesn't register in jsdom for an option that hasn't been
+     * keyboard/pointer-highlighted in base-ui's roving-tabindex selection
+     * group — the full pointer sequence is required.
+     */
     fireEvent.pointerDown(option);
     fireEvent.pointerUp(option);
     fireEvent.click(option);
 }
 
 /**
- * The service select only mounts once a professional is chosen — waits for
- * the third combobox to actually appear instead of assuming the state update
- * from the previous selection has already flushed synchronously.
+ * The service select only mounts after a professional is chosen, so this
+ * waits for it instead of assuming the previous update flushed synchronously.
  */
 async function findServiceCombobox() {
     return waitFor(() => {
@@ -131,11 +131,7 @@ async function findServiceCombobox() {
     });
 }
 
-/**
- * Asserts the page exposes exactly one heading, that it is level 1 with the
- * expected Spanish text, and — by there being no other heading at all — that
- * no lower-level heading could ever appear above it in the document.
- */
+/** Asserts there is exactly one heading, and it's the expected h1. */
 function expectTopmostH1(name: string) {
     const headings = screen.getAllByRole('heading');
     expect(headings).toHaveLength(1);
@@ -156,7 +152,6 @@ describe('BookingWizard selection cascade', () => {
 
         await selectComboboxOption(specialtyCombobox, 'Cardiología');
 
-        // Only Dr. Uno (Cardiología) remains selectable as professional.
         fireEvent.click(professionalCombobox);
         expect(
             await screen.findByRole('option', { name: 'Dr. Uno' }),
@@ -166,7 +161,6 @@ describe('BookingWizard selection cascade', () => {
 
         await selectComboboxOption(professionalCombobox, 'Dr. Uno');
 
-        // The service select now only shows Dr. Uno's own service.
         const serviceCombobox = await findServiceCombobox();
         fireEvent.click(serviceCombobox);
         expect(

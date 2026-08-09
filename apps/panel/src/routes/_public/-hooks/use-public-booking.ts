@@ -5,11 +5,7 @@ import type {
 } from '@/types/booking';
 import { queryOptions } from '@tanstack/react-query';
 
-/**
- * The public booking page's two page reads — both consumed through the
- * route's loader via `ensureQueryData` (ADR 0007), never a component-level
- * `useQuery`. Fully public endpoints: no session, no auth headers.
- */
+/** Fully public endpoints: no session, no auth headers. */
 export function bookingOrganizationQueryOptions(slug: string) {
     return queryOptions({
         queryKey: ['booking', slug, 'organization'],

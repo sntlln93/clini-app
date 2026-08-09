@@ -9,10 +9,7 @@ import {
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 
-// Mirrors `use-route-focus.test.tsx`'s harness: `PublicLayout` reads its
-// container ref via `useRouteFocus`, which needs real router context, so it
-// is mounted as a route component (via `Outlet`) rather than rendered
-// standalone.
+// Mounted as a route component (via `Outlet`) because `useRouteFocus` needs real router context.
 function renderPublicLayout() {
     const rootRoute = createRootRoute({ component: PublicLayout });
     const childRoute = createRoute({
