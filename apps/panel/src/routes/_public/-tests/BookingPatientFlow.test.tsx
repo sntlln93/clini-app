@@ -128,7 +128,7 @@ async function goToPatientForm() {
     await screen.findByRole('heading', { name: 'Tus datos' });
 }
 
-/** Asserts there is exactly one heading, and it's the expected h1. */
+/** Asserts the document's only heading is the expected h1 — with no other heading present, none can outrank it. */
 function expectTopmostH1(name: string) {
     const headings = screen.getAllByRole('heading');
     expect(headings).toHaveLength(1);
