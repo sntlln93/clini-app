@@ -2,11 +2,9 @@ import axios from 'axios';
 import type { ErrorCode } from './error-codes';
 
 /**
- * A business rule rejected the request. Carries the backend's
- * `ErrorCode` (public contract) and its own developer-facing `message`
- * (English) — never rendered to the user; UI copy is resolved by `code`
- * through `error-codes.ts`. `context` is whatever the backend's
- * `publicContext()` chose to expose (empty by default).
+ * A business rule rejected the request. `message` is English and
+ * developer-facing — never rendered to the user; UI copy resolves by
+ * `code` through `error-codes.ts`.
  */
 export class BusinessError extends Error {
     readonly kind = 'business' as const;
@@ -25,19 +23,11 @@ export class BusinessError extends Error {
     }
 }
 
-/**
- * Laravel's native FormRequest input-validation shape (422), untouched by
- * the domain envelope — see ADR 0009. `fields` carries the first message
- * per field, same as the panel already showed before this module existed.
- */
+/** Laravel's native FormRequest 422 shape, untouched by the domain envelope — see ADR 0009. */
 export class ValidationError extends Error {
     readonly kind = 'validation' as const;
     readonly fields: Record<string, string>;
-    /**
-     * The backend's own `message`, verbatim, or `null` when the response
-     * carried none — distinct from `Error.message` (which can't be `null`)
-     * so callers can tell "no message" apart from a placeholder string.
-     */
+    /** The backend's own message, verbatim; nullable (unlike `Error.message`) so callers can tell "no message" apart from a placeholder. */
     readonly serverMessage: string | null;
 
     constructor(message: string | null, fields: Record<string, string>) {
@@ -68,14 +58,7 @@ export class SessionExpiredError extends Error {
     }
 }
 
-/**
- * 403 with no domain envelope: the session is authenticated but lacks the
- * permission the endpoint requires (e.g. `Gate::authorize` failing with
- * Laravel's native `AuthorizationException`, which carries no `error.code`).
- * A 403 that *does* carry an envelope (e.g.
- * `organizations.no_active_membership`) is a `BusinessError` instead — see
- * `mapToAppError`.
- */
+/** 403 with no domain envelope (session lacks permission); a 403 that does carry one is a `BusinessError` instead. */
 export class ForbiddenError extends Error {
     readonly kind = 'forbidden' as const;
 
@@ -138,11 +121,7 @@ type ValidationErrorBody = {
     errors?: Record<string, string[]>;
 };
 
-/**
- * The only function in the panel allowed to call `axios.isAxiosError` or
- * read `error.response` — enforced by an ESLint rule. Every consumer works
- * with the typed `AppError` union instead, never with axios directly.
- */
+/** The only function allowed to touch `axios.isAxiosError`/`error.response` — enforced by an ESLint rule. */
 export function mapToAppError(error: unknown): AppError {
     if (!axios.isAxiosError(error)) {
         return new UnexpectedError();
@@ -154,9 +133,7 @@ export function mapToAppError(error: unknown): AppError {
 
     const { status, data } = error.response;
 
-    // `data` can be `null`/`undefined` (an empty response body), so every
-    // read below goes through optional chaining — a bare `data.error` would
-    // throw instead of falling through to the generic cases.
+    // `data` can be null/undefined, so reads below use optional chaining — a bare `data.error` would throw instead of falling through.
     const envelope = data as DomainErrorBody | null | undefined;
     const code = envelope?.error?.code;
     if (typeof code === 'string') {

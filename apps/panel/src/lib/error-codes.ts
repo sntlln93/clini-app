@@ -1,10 +1,6 @@
 import type { AppError } from './api-errors';
 
-/**
- * Public contract mirrored from `apps/api/app/Enums/ErrorCode.php`. Kept in
- * sync by the parity test in `src/lib/-tests/error-code-parity.test.ts` —
- * renaming a code requires updating both sides in the same change.
- */
+/** Public contract mirrored from `apps/api/app/Enums/ErrorCode.php`; kept in sync by `src/lib/error-code-parity.test.ts`. */
 export type ErrorCode =
     | 'appointments.service_not_active_for_professional'
     | 'appointments.slot_taken'
@@ -21,13 +17,7 @@ export type ErrorCode =
     | 'memberships.slug_taken'
     | 'memberships.slug_not_allowed_for_role';
 
-/**
- * User-facing Spanish copy for each business-rule code. The backend's own
- * `message` is English and developer-facing (log/stack only) — never
- * rendered — so this catalog is the only source of UI copy for a
- * `BusinessError`. Includes the 7 messages that used to be hardcoded in the
- * backend Actions before issue #87.
- */
+/** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'appointments.service_not_active_for_professional':
         'El profesional no tiene este servicio activo. Elegí otro servicio o comunicate con el consultorio.',
@@ -58,13 +48,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Solo los profesionales pueden tener un link público.',
 };
 
-/**
- * Generic Spanish copy for every `AppError` kind that isn't `'business'`
- * (which resolves through `ERROR_CODE_MESSAGES` above). `validation`'s own
- * per-field messages come straight from the backend's native 422 shape —
- * this entry is only the fallback for the rare case that shape carries no
- * top-level message at all.
- */
+/** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */
 const GENERIC_MESSAGES: Record<
     Exclude<AppError['kind'], 'business'>,
     string
@@ -80,11 +64,7 @@ const GENERIC_MESSAGES: Record<
     unexpected: 'Ocurrió un error inesperado. Intentá nuevamente.',
 };
 
-/**
- * The single place that turns any `AppError` into Spanish UI copy: by
- * `ErrorCode` for a `BusinessError`, and a generic message per kind
- * otherwise. Never surfaces the backend's own `message`.
- */
+/** Turns any `AppError` into Spanish UI copy — by `ErrorCode` for a `BusinessError`, generic otherwise. */
 export function messageForAppError(error: AppError): string {
     if (error.kind === 'business') {
         return ERROR_CODE_MESSAGES[error.code];

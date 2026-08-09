@@ -12,12 +12,7 @@ function networkError() {
 
 let queryKeySeq = 0;
 
-/**
- * Runs a failing query through the real `queryClient`'s cache so its
- * `QueryCache.onError` sink (the thing under test) actually fires — a bare
- * `new QueryClient()` has no such sink, see `auth-guards.test.ts`. Each call
- * uses a fresh key so per-test cache state never leaks into the next test.
- */
+/** Runs a query through the real `queryClient` (a bare `new QueryClient()` has no `onError` sink); a fresh key each call keeps cache state from leaking between tests. */
 async function runFailingQuery(error: unknown, meta?: Record<string, unknown>) {
     queryKeySeq += 1;
     await queryClient

@@ -5,12 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { ERROR_CODE_MESSAGES } from './error-codes';
 import { parsePhpStringEnumCases } from './parse-php-enum';
 
-// Only reachable when the whole monorepo is checked out next to this file
-// (real CI, or a host-side run) — the `panel` dev container mounts only
-// `apps/panel` (see #113), so `apps/api` doesn't exist inside it. That's a
-// dev-container limitation, not a reason to skip where it actually matters:
-// `tests_frontend` runs natively on the CI runner with a full checkout, so
-// this fails loudly there instead of silently passing.
+// The `panel` dev container mounts only apps/panel (#113), so apps/api is absent there — this only resolves in CI/host, where it fails loudly instead of being skipped.
 const PHP_ENUM_PATH = path.resolve(
     __dirname,
     '../../../api/app/Enums/ErrorCode.php',
@@ -26,17 +21,14 @@ describe('panel/backend ErrorCode parity', () => {
                 );
             }
 
-            // Not CI: most likely the `panel` dev container, which mounts
-            // only apps/panel — see apps/panel/compose.yaml and issue #113.
+            // Not CI — see the mount-limitation note above.
             return;
         }
 
         const phpSource = readFileSync(PHP_ENUM_PATH, 'utf-8');
         const backendCodes = parsePhpStringEnumCases(phpSource);
 
-        // Guards against a regex that silently stopped matching anything —
-        // without this, an empty `backendCodes` would make the assertion
-        // below pass vacuously.
+        // Guards against a regex that stopped matching — an empty backendCodes would make the assertion below pass vacuously.
         expect(backendCodes.length).toBeGreaterThan(0);
 
         const panelCodes = Object.keys(ERROR_CODE_MESSAGES);
