@@ -38,9 +38,7 @@ class Membership extends Model
     }
 
     /**
-     * Effective permissions: the union of every role's preset plus
-     * extra_permissions, without duplicates. Computed at runtime, never
-     * persisted.
+     * Union of each role's preset plus extra_permissions, deduplicated; computed at runtime, never persisted.
      *
      * @return array<int, Permission>
      */
@@ -61,10 +59,7 @@ class Membership extends Model
             ->all();
     }
 
-    /**
-     * Whether the membership has $permission, either directly or — for a
-     * `.own` permission — through its org-wide counterpart.
-     */
+    /** Whether the membership has $permission, either directly or — for a `.own` permission — through its org-wide counterpart. */
     public function hasPermission(Permission $permission): bool
     {
         $effective = $this->permissions();

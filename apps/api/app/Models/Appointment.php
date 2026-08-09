@@ -116,8 +116,7 @@ class Appointment extends Model
     }
 
     /**
-     * Narrows to the acting membership's own appointments when it lacks
-     * org-wide view permission; a no-op otherwise.
+     * Narrows to the acting membership's own appointments when it lacks org-wide view permission; a no-op otherwise.
      *
      * @param  Builder<Appointment>  $query
      * @return Builder<Appointment>

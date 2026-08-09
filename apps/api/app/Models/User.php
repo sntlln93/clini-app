@@ -28,8 +28,6 @@ class User extends Authenticatable
     private bool $currentMembershipResolved = false;
 
     /**
-     * Get the attributes that should be cast.
-     *
      * @return array<string, string>
      */
     protected function casts(): array
@@ -50,8 +48,7 @@ class User extends Authenticatable
     }
 
     /**
-     * The user's global credential: specialties they are qualified to
-     * practise, independent of any organization.
+     * The user's global credential: specialties they are qualified to practise, independent of any organization.
      *
      * @return BelongsToMany<Specialty, $this>
      */
@@ -60,10 +57,7 @@ class User extends Authenticatable
         return $this->belongsToMany(Specialty::class, 'user_specialties');
     }
 
-    /**
-     * The user's active membership in the currently active organization
-     * (App\Support\CurrentOrganization), memoized per request.
-     */
+    /** The user's active membership in the currently active organization (App\Support\CurrentOrganization), memoized per request. */
     public function currentMembership(): ?Membership
     {
         if ($this->currentMembershipResolved) {
