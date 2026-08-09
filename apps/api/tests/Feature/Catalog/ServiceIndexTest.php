@@ -30,11 +30,7 @@ test('the index is global: a service created once is visible to users acting fro
 
     $responseA = $this->actingAs($membershipA->user)->getJson('/api/v1/services');
 
-    // Requests within the same test share the CurrentOrganization
-    // singleton (unlike production, where each request is a fresh
-    // process): without resetting it here, membershipB's own lookup in
-    // ResolveCurrentOrganization would be scoped by membershipA's
-    // leftover organization and find nothing.
+    // Tests share the CurrentOrganization singleton across requests (unlike production); without resetting it, membershipB's lookup would stay scoped to membershipA's leftover organization and find nothing.
     app(CurrentOrganization::class)->set(null);
     $responseB = $this->actingAs($membershipB->user)->getJson('/api/v1/services');
 
