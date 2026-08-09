@@ -3,11 +3,7 @@ import { notifyError, notifySuccess } from '@/lib/toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 
-/**
- * Self-service only: the backend resolves the caller's own active
- * membership in the current organization from the session, so no
- * membership id is sent — see MembershipSlugController.
- */
+/** Self-service only: backend resolves the caller's own membership from the session, so no membership id is sent — see MembershipSlugController. */
 export function useUpdateMyPublicLink() {
     const queryClient = useQueryClient();
     const router = useRouter();

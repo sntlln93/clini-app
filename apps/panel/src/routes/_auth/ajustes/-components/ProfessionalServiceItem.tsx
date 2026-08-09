@@ -38,8 +38,7 @@ export function ProfessionalServiceItem({
     const [appliedId, setAppliedId] = useState<number | null>(null);
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
-    // Adjust state during render instead of an Effect: sync local fields
-    // whenever this item's assignment (re)loads or changes remotely.
+    // Adjust state during render (react-hooks/set-state-in-effect), not an Effect.
     if (assignment && assignment.id !== appliedId) {
         setAppliedId(assignment.id);
         setDurationMinutes(assignment.duration_minutes);

@@ -14,8 +14,7 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
     const [appliedId, setAppliedId] = useState<number | null>(null);
     const [slug, setSlug] = useState(membership.slug ?? '');
 
-    // Adjust state during render instead of an Effect: sync the local field
-    // whenever this membership (re)loads or changes remotely.
+    // Adjust state during render (react-hooks/set-state-in-effect), not an Effect.
     if (membership.id !== appliedId) {
         setAppliedId(membership.id);
         setSlug(membership.slug ?? '');
