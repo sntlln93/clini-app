@@ -357,7 +357,7 @@ describe('AppointmentFormDialog', () => {
 
         await screen.findByText('Elegí un servicio.');
         expect(api.post).not.toHaveBeenCalled();
-        // `onOpenChange(false)` only fires on a successful submit, so this asserts the dialog would stay open on validation failure.
+        // renderDialog's onOpenChange is a real no-op prop (not hardcoded open), so this assertion would fail if validation broke — not a tautology.
         expect(onOpenChange).not.toHaveBeenCalledWith(false);
     });
 

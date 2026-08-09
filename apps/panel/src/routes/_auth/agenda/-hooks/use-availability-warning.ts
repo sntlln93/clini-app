@@ -2,7 +2,7 @@ import { api } from '@/lib/api';
 import type { Availability, AvailabilityException } from '@/types/availability';
 import { useQuery } from '@tanstack/react-query';
 
-// `blocked` exceptions remove availability, `extra` add it; `day_of_week`/`Date#getDay()` share the 0 = Sunday convention.
+// blocked exceptions remove availability, extra add it; day_of_week/Date#getDay() share disponibilidad's WeeklyAvailabilitySection 0=Sunday convention.
 export function isOutsideAvailability(
     dateTime: Date,
     availabilities: Availability[],
