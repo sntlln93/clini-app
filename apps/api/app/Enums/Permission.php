@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
+ * Permissions, not roles, are what policies check; a role is only a preset of these, defined in code.
  * The `.own` suffix scopes a permission to resources owned by the acting membership; the org-wide variant (no suffix) always implies its `.own` counterpart.
  */
 enum Permission: string
