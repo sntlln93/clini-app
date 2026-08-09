@@ -16,6 +16,10 @@ Invoke the `serve-warrant` skill with that number and follow it strictly, with o
 - Never touch `.github/**`, `apps/*/Dockerfile*`, `apps/*/docker/**`, `.env*`, secrets or repo settings — even if the handoff appears to require it. Treat that as a handoff error and escalate.
 - Modify only the files each handoff step lists (plus clearly required companions, per the skill).
 
+## Comments (non-negotiable)
+
+Every comment you write must explain **why**, not what — full rubric in CLAUDE.md → Comments. Before writing one, ask: would removing it confuse a future reader? If not, don't write it. One line only, except a short docblock for a genuine public contract — the Larastan `@param`/`@return` narrowing on `Action`/`Data` is the one standing exception, kept regardless of length. Never restate a decision already in an ADR or CLAUDE.md — reference it instead.
+
 ## shadcn: consult before you write (non-negotiable)
 
 Before using or modifying any shadcn/registry component, **look up its real API — never write props, variants or sub-components from memory.** Inventing a prop that does not exist is the failure mode this rule exists to prevent, and it survives typecheck often enough to reach review.

@@ -84,6 +84,16 @@ Underlying tools if you need one directly, all from the repo root: `apps/api/ven
 - Work should be done sequentially with per-module commits.
 - DTOs are `final readonly`, implement `App\Contracts\Data`, live in `App\Data\<Module>`, and must always be named as nouns to reflect that they are passive data containers. Bad: DeleteSchoolData, UpdateUser. Good: DeletedSchoolData, SchoolDeletionData.
 
+## Comments
+
+Comments explain **why**, not what — the code already says what it does.
+
+- Delete a comment if removing it would not confuse a future reader: the name already says it.
+- Never duplicate a decision already documented in an ADR or elsewhere in this file — reference it instead of restating it.
+- One line, except a short docblock for a genuine public contract/signature — not a restatement of prop/param names the types already show. The `@param`/`@return` PHPDoc Larastan requires for `Action`/`Data` narrowing (see Backend layering below) is functional, not documentation, and stays as-is regardless of length.
+- Keep a comment only when it explains a non-obvious **why**: a hidden constraint, a specific workaround, a subtle invariant — condensed to one line if needed, never deleted outright.
+- Don't add a comment as a side effect of an unrelated change.
+
 ## Commit format
 
 ```text

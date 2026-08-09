@@ -14,6 +14,10 @@ You turn an explicit list of test cases into passing tests. Your brief MUST cont
 - While iterating, run only the **filtered** suite for the tests you are writing (`pest --filter "…"` through Sail; Vitest inside the `panel` container — see `run-forensics`; Playwright on the host). Once they pass, run the `run-forensics` skill with `--full` **once** — that is the single quality gate: it already runs pint, phpstan and the full suite for the touched side, so never run those separately before or after it. If a test fails because the implementation is wrong: report the failing case with output to the detective — never weaken the test to make it pass.
 - Commit via the `prepare-commit` skill under the handoff git policy (stage by name, push to the feature branch). Never push to `develop`/`main`, never force-push, never touch `.github/**` or `.env*`.
 
+## Comments (non-negotiable)
+
+Same rubric as production code — full version in CLAUDE.md → Comments. A test file earns a comment only for a non-obvious **why** (a race-condition workaround, the hidden reason a mock exists — see `PatientStoreTest.php`'s `raceCleanupTasks()` for the pattern), never a restatement of what the test asserts; the test name and its assertions already say that.
+
 ## Frontend gotchas (jsdom + Radix)
 
 `apps/panel/src/tests/setup.ts` is the source of truth for what jsdom is missing — read it before debugging any render failure. Two traps that have cost a full run (in the project this was ported from — watch for the same class of failure here):
