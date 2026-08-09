@@ -33,19 +33,17 @@ import {
 } from '@/components/ui/tooltip';
 import { expectNoA11yViolations } from '../a11y';
 
-// All these primitives render their open content through a React portal into
-// `document.body`, not into the RTL `container` — auditing `document.body`
-// (reset per test by `afterEach`'s `document.body.innerHTML = ''` in
-// src/tests/setup.ts) is what actually reaches the portaled markup.
+// These primitives portal their open content into `document.body`, not the
+// RTL `container`, so the audit targets `document.body`, which
+// src/tests/setup.ts's `afterEach` resets per test.
 
-// axe-core's `region` rule expects all page content to sit inside a
-// landmark (`<main>`, `<nav>`, etc.). It's a whole-page check: on a real
-// page the dropdown/tooltip trigger lives inside PanelLayout's `<main>`, so
-// it never fires there. Here the component is mounted in isolation with no
-// surrounding page shell, so the rule has nothing to evaluate against and
-// flags a false positive — unlike `role="dialog"`/`"alertdialog"`, which
-// axe already treats as an exempt top-level container, `role="menu"` and a
-// bare tooltip portal aren't.
+// axe's `region` rule is a whole-page check expecting content inside a
+// landmark; it's a false positive here since the component is mounted in
+// isolation with no page shell (on a real page the trigger sits inside
+// PanelLayout's `<main>`).
+// axe already exempts `role="dialog"`/`"alertdialog"` as top-level
+// containers, but `role="menu"` and a bare tooltip portal aren't, hence the
+// skip is needed only for those.
 const SKIP_REGION_OUTSIDE_PAGE_SHELL = [
     {
         id: 'region',
