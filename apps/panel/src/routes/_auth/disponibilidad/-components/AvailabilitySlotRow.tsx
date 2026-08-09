@@ -46,9 +46,7 @@ export function AvailabilitySlotRow({
             : DEFAULT_VALUES,
     });
 
-    // `form.reset()` notifies Controller-subscribed children synchronously,
-    // so syncing this row's slot whenever it (re)loads or changes remotely
-    // has to happen in an effect rather than during render.
+    // Effect (not render) because `form.reset()` notifies Controller-subscribed children synchronously.
     useEffect(() => {
         if (slot) {
             form.reset({

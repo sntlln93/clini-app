@@ -1,11 +1,7 @@
 import { useSession } from '@/lib/session';
 import type { Membership } from '@/types/membership';
 
-/**
- * Whether the signed-in user may manage availability: `availability.manage`
- * (owner/admin/staff) covers every professional, while
- * `availability.manage.own` only covers the professional's own membership.
- */
+/** Whether the signed-in user may manage availability: `availability.manage` covers every professional, `availability.manage.own` only their own membership. */
 export function useAvailabilityPermissions() {
     const { data: session } = useSession();
     const permissions = session?.permissions ?? [];

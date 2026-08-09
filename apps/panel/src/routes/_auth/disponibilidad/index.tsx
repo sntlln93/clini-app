@@ -16,11 +16,7 @@ const disponibilidadSearchSchema = z.object({
     membershipId: z.coerce.number().optional(),
 });
 
-/**
- * Mirrors `useAvailabilityPermissions`' own-vs-org-wide rule so the default
- * selection matches what the acting user is allowed to manage, without
- * pulling a hook into the loader (loaders run outside React).
- */
+/** Duplicates `useAvailabilityPermissions`' own-vs-org-wide rule because loaders run outside React and can't use the hook directly. */
 function defaultMembershipId(
     professionals: Membership[],
     session: SessionUser | undefined,

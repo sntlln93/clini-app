@@ -16,11 +16,7 @@ type ProfessionalPickerProps = {
     onSelect: (membershipId: number) => void;
 };
 
-/**
- * Only rendered by the page when the acting user holds availability.manage
- * (org-wide) — a holder of only availability.manage.own never sees this,
- * their own membership is selected implicitly instead.
- */
+/** Only rendered for org-wide `availability.manage`; an `.own`-scoped user gets their own membership selected implicitly instead. */
 export function ProfessionalPicker({
     professionals,
     selectedId,
