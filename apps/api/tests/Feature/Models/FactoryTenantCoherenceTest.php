@@ -11,7 +11,7 @@ use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
 
 /**
- * Factory-owned relations per class, fixed in 8e2bd2b (fix/9-factory-tenant-coherence).
+ * Organization-owned relations to check per factory class, fixed in 8e2bd2b (fix/9-factory-tenant-coherence).
  * `service`/`specialty` are excluded: since #21 they're a global catalog without organization_id.
  */
 dataset('tenantOwnedFactories', [
