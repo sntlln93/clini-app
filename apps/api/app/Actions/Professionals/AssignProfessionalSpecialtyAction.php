@@ -10,9 +10,7 @@ use App\Data\Professionals\ProfessionalSpecialtyAssignmentData;
 use App\Models\ProfessionalSpecialty;
 
 /**
- * Idempotent: assigning the same specialty to a membership twice never
- * duplicates or errors. Persists the denormalized user_id the composite
- * FK to user_specialties depends on.
+ * Persists the denormalized user_id the composite FK to user_specialties depends on.
  *
  * @implements Action<ProfessionalSpecialtyAssignmentData>
  */

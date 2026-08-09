@@ -10,10 +10,7 @@ use App\Data\Professionals\ProfessionalServiceAssignmentData;
 use App\Models\ProfessionalService;
 
 /**
- * updateOrCreate on (membership_id, service_id): re-assigning the same
- * service updates duration_minutes/price_cents instead of duplicating
- * the row. currency is never accepted here — it stays whatever the
- * column default (ARS) set at creation.
+ * currency is never accepted here — it stays whatever the column default (ARS) set at creation.
  *
  * @implements Action<ProfessionalServiceAssignmentData>
  */
