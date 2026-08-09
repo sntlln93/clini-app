@@ -8,11 +8,7 @@ const CREATE_APPOINTMENT_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.slot_taken': 'start_at',
 };
 
-/**
- * Maps a create-appointment mutation error onto `AppointmentFormDialog`'s
- * form fields, preserving the inline display these business rules had back
- * when they were 422s.
- */
+// Maps a create-appointment error onto form fields, preserving the inline display these business rules had back when they were 422s.
 export function applyAppointmentServerErrors(
     form: UseFormReturn<AppointmentFormValues>,
     error: unknown,

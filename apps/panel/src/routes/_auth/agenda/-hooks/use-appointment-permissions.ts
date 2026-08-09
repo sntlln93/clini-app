@@ -1,11 +1,7 @@
 import { useSession } from '@/lib/session';
 import type { Membership } from '@/types/membership';
 
-/**
- * Whether the signed-in user may view/create/update appointments:
- * the org-wide permission (owner/admin/staff) covers every professional,
- * while the `.own` variant only covers the professional's own membership.
- */
+// Org-wide permission covers every professional; the `.own` variant only covers the user's own membership.
 export function useAppointmentPermissions() {
     const { data: session } = useSession();
     const permissions = session?.permissions ?? [];

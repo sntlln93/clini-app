@@ -8,8 +8,7 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },
 }));
 
-// Mirrors the route file's own date-range math so the test's expectation is
-// derived independently of the loader under test, not copy-pasted from it.
+// Mirrors the route's date-range math independently, so the expectation isn't copy-pasted from the loader under test.
 function startOfDay(date: Date): Date {
     const result = new Date(date);
     result.setHours(0, 0, 0, 0);
@@ -38,9 +37,7 @@ function endOfWeek(date: Date): Date {
     return endOfDay(addDays(startOfWeek(date), 6));
 }
 
-// `loader` is typed as a union that also allows a pre-built loader-object
-// shape (not directly callable), even though this route always passes a
-// plain async function — narrow it back to that for the test.
+// `loader`'s type also allows a non-callable pre-built shape; narrow it back to the plain function this route always passes.
 const loader = Route.options.loader as (opts: {
     context: { queryClient: QueryClient };
     deps: { date: string; view: 'day' | 'week' };

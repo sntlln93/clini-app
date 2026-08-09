@@ -61,12 +61,7 @@ function valuesFromPrefill(
     };
 }
 
-/**
- * Manual entry and quick-create-from-free-cell both funnel through this
- * dialog: `prefill` is empty for the former and carries the clicked cell's
- * professional/date/time for the latter — the resulting appointment is
- * identical either way (`origin: manual`, decided by the backend).
- */
+// Manual entry and quick-create-from-free-cell both funnel through this dialog; the result is identical either way (`origin: manual`).
 export function AppointmentFormDialog({
     open,
     onOpenChange,
@@ -79,9 +74,7 @@ export function AppointmentFormDialog({
 
     const openKey = open ? JSON.stringify(prefill ?? {}) : null;
 
-    // Adjust state during render instead of an Effect for this plain local
-    // state: reset the patient search box and the warning flag every time
-    // the dialog (re)opens, applying the clicked cell's prefill, if any.
+    // Adjust state during render (not an Effect) to reset on each (re)open.
     if (open && openKey !== appliedKey) {
         setAppliedKey(openKey);
         setPatientQuery('');
@@ -93,9 +86,7 @@ export function AppointmentFormDialog({
         defaultValues: EMPTY_VALUES,
     });
 
-    // `form.reset()` notifies Controller-subscribed children synchronously,
-    // so applying the prefill has to happen in an effect rather than during
-    // render, gated by the same open/prefill key as above.
+    // `form.reset()` notifies Controller children synchronously, so this must run in an effect, not during render.
     useEffect(() => {
         if (open) {
             form.reset(valuesFromPrefill(prefill));
@@ -150,8 +141,7 @@ export function AppointmentFormDialog({
     }
 
     function onValid(values: AppointmentFormValues) {
-        // Deciding on partial data would silently report "available", so
-        // wait for the availability queries to settle before checking.
+        // Wait for availability queries to settle; partial data would silently report "available".
         if (isAvailabilityLoading) {
             return;
         }

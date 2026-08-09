@@ -15,11 +15,7 @@ type AvailabilityWarningDialogProps = {
     onConfirm: () => void;
 };
 
-/**
- * Availability is a client-side UX warning only — the backend never rejects
- * a booking outside declared availability. Confirming here just resubmits;
- * cancelling aborts and creates nothing.
- */
+// Client-side UX warning only — the backend never rejects a booking outside declared availability.
 export function AvailabilityWarningDialog({
     open,
     onOpenChange,
