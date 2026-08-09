@@ -131,8 +131,7 @@ describe('MemberInviteForm', () => {
     it('renders the Cancelar action as a link to /profesionales', async () => {
         renderMemberInviteForm();
 
-        // The Button is composed with a Link (`render={<Link ... />}`), so
-        // it renders as an `<a>` carrying `role="button"`, not `role="link"`.
+        // Button is composed with a Link (render={<Link ... />}), so it renders as an <a> carrying role="button", not role="link".
         const link = await screen.findByRole('button', { name: 'Cancelar' });
         expect(link.getAttribute('href')).toBe('/profesionales');
     });

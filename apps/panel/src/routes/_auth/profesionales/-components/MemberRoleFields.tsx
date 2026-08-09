@@ -17,10 +17,7 @@ type MemberFieldProps<TFieldValues extends FieldValues> = {
     name: FieldPath<TFieldValues>;
 };
 
-// `roles` is multi-selection (a membership can hold several roles at once,
-// e.g. owner + admin), so it stays a Checkbox group regardless of the
-// <5-options RadioGroup rule — that rule only applies to single-choice
-// fields.
+// `roles` is multi-selection, so it stays a Checkbox group despite the <5-options RadioGroup rule (that rule applies only to single-choice fields).
 export function MemberRoleFields<TFieldValues extends FieldValues>({
     control,
     name,
@@ -72,8 +69,7 @@ export function MemberRoleFields<TFieldValues extends FieldValues>({
     );
 }
 
-// `Estado` (MembershipStatus) is single-choice with 3 options, so it follows
-// the <5-options rule and uses RadioGroup instead of Select.
+// `Estado` is single-choice with 3 options, so it follows the <5-options RadioGroup rule.
 export function MemberStatusField<TFieldValues extends FieldValues>({
     control,
     name,

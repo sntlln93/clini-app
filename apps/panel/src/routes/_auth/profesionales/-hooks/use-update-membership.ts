@@ -13,10 +13,7 @@ type UpdateMembershipPayload = {
     status: MembershipStatus;
 };
 
-// `memberships.last_active_admin` lands on `roles` in this form (the field
-// the user would change to fix it); the deactivation flow below has no
-// dedicated field for it, so it deliberately has no map at all — an
-// unmapped code becomes a general message instead, never silently dropped.
+// `memberships.last_active_admin` maps to `roles`, the field the user would change to fix it.
 const UPDATE_MEMBERSHIP_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'memberships.last_active_admin': 'roles',
 };
@@ -55,9 +52,7 @@ export function useDeactivateMembership() {
         },
     });
 
-    // No field map: this flow has no dedicated field for
-    // `memberships.last_active_admin` to land on, so it always surfaces as
-    // the general message.
+    // No field map here on purpose: this flow has no field for `memberships.last_active_admin` to land on, so it surfaces as the general message instead of being silently dropped.
     const { message } = mutation.error
         ? extractFormErrors(mutation.error)
         : { message: null };

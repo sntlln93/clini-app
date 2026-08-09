@@ -4,9 +4,7 @@ import { Route } from '../index';
 
 type ProfessionalsSearch = { q?: string; page?: number };
 
-// `validateSearch`/`loaderDeps` are typed as a union that also allows a
-// schema-object shape (not directly callable), even though this route
-// always passes a plain function — narrow it back to that for the test.
+// Cast narrows the union type (which also permits a non-callable schema-object shape) back to the plain function this route always passes.
 const validateSearch = Route.options.validateSearch as (
     search: Record<string, unknown>,
 ) => ProfessionalsSearch;
@@ -29,8 +27,7 @@ describe('/profesionales validateSearch + loaderDeps', () => {
     });
 
     it('validateSearch turns a "page=2" URL string into a numeric page', () => {
-        // The router decodes the raw query string (defaultParseSearch) before
-        // handing it to validateSearch, JSON-parsing values that look numeric.
+        // The router JSON-parses numeric-looking values via defaultParseSearch before validateSearch ever sees them.
         const decoded = defaultParseSearch('?page=2') as Record<
             string,
             unknown

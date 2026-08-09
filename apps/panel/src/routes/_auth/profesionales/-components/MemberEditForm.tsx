@@ -26,10 +26,7 @@ const UPDATE_MEMBERSHIP_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
 export function MemberEditForm({ membership }: MemberEditFormProps) {
     const navigate = useNavigate();
 
-    // The page mounts this form only once its membership has loaded, and it
-    // never swaps to a different one in place, so the prop can seed
-    // `defaultValues` directly — no `form.reset()` in an effect needed, unlike
-    // the dialog this replaced.
+    // Mounted only once the membership has loaded and never swaps to a different one in place, so the prop can safely seed `defaultValues` directly (no `form.reset()` effect needed).
     const form = useForm<MemberEditFormValues>({
         resolver: zodResolver(memberEditSchema),
         defaultValues: {
