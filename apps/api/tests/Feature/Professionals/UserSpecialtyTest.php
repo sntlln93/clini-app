@@ -29,7 +29,10 @@ test('index returns the user own credential specialties', function () {
     expect(collect($response->json('data'))->pluck('specialty_id'))->toContain($specialty->id);
 });
 
-// A real HTTP round trip can never reach the controller with CurrentOrganization actually null (ResolveCurrentOrganization aborts 403 first) — see CurrentOrganizationMiddlewareTest.php, so this asserts the policy directly.
+// A real HTTP round trip can never reach the controller with CurrentOrganization actually null: the 'organization'
+// route middleware (ResolveCurrentOrganization) aborts 403 first for any user without an active membership,
+// and resolves one otherwise (see CurrentOrganizationMiddlewareTest.php), so this asserts the policy directly,
+// the same way the identity check is meant to work regardless of organization context.
 test('viewAny allows self-read with no organization in scope', function () {
     $user = User::factory()->create();
     $specialty = Specialty::factory()->create();
