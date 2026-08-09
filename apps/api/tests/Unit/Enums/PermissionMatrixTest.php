@@ -6,10 +6,7 @@ use App\Enums\MembershipRole;
 use App\Enums\Permission;
 
 /**
- * Permission grants per role, transcribed by hand from the product matrix
- * (issue #19) — never derived from MembershipRole::permissions(), so this
- * dataset stays an independent check on that method rather than a
- * tautology.
+ * Transcribed by hand from the product matrix (issue #19), never derived from MembershipRole::permissions() — keeps this dataset an independent check, not a tautology.
  */
 dataset('permissionMatrix', function (): Generator {
     $grantedByRole = [

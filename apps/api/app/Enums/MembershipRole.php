@@ -12,9 +12,7 @@ enum MembershipRole: string
     case Staff = 'staff';
 
     /**
-     * The permission preset for this role. Effective permissions are
-     * computed at runtime as the union of these presets across a
-     * membership's roles plus its extra_permissions — never persisted.
+     * Effective permissions are the runtime union of role presets plus extra_permissions — never persisted.
      *
      * @return array<int, Permission>
      */
