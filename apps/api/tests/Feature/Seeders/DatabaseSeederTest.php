@@ -33,8 +33,7 @@ test('re-seeding leaves every fixture table with identical row counts', function
         'organization_patient' => DB::table('organization_patient')->count(),
         'availabilities' => Availability::count(),
         'availability_exceptions' => AvailabilityException::count(),
-        // Appointment soft-deletes: an earlier bug in this branch made
-        // re-seeding accumulate soft-deleted rows instead of clearing them.
+        // withTrashed(): an earlier bug in this branch made re-seeding accumulate soft-deleted rows instead of clearing them.
         'appointments' => Appointment::withTrashed()->count(),
         'reminders' => Reminder::count(),
     ];

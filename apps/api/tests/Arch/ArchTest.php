@@ -12,21 +12,7 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\ValidationException;
 
-/*
- |-----------------------------------------------------------------------------
- | Architecture tests
- |-----------------------------------------------------------------------------
- |
- | These encode the code-quality rules from CLAUDE.md so they are enforced
- | automatically. Rules are enforced STRICTLY, with no baseline. A failing
- | arch test points at exactly what regressed. Fix it by refactoring, never
- | by adding an exception.
- |
- | Some sections (App\Services, App\Http\Resources) currently match zero
- | classes — nothing lives there yet — so they pass vacuously. They exist so
- | the very first class added under those namespaces is already held to the
- | convention, instead of drifting first and getting a rule retrofitted later.
- */
+// Some sections (App\Services, App\Http\Resources) currently match zero classes; they exist so the first class added there is already held to the convention.
 
 /**
  * Recursively lists the fully-qualified class names for the PHP files under
@@ -59,8 +45,6 @@ function classesInNamespace(string $namespace, string $directory): array
     return $classes;
 }
 
-// --- Whole-app hygiene ------------------------------------------------------
-
 arch('code declares strict types')
     ->expect('App')
     ->toUseStrictTypes();
@@ -73,8 +57,6 @@ arch('no insecure primitives')
     ->preset()
     ->security();
 
-// --- Controllers: thin, conventional ----------------------------------------
-
 arch('controllers are suffixed')
     ->expect('App\Http\Controllers')
     ->toHaveSuffix('Controller');
@@ -84,16 +66,11 @@ arch('controllers extend the base controller')
     ->toExtend(Controller::class)
     ->ignoring([Controller::class]); // the base cannot extend itself
 
-// Thin controllers own no persistence: the DB facade (transactions, raw
-// queries) belongs in the Domain/Application layer.
 arch('controllers do not touch the database facade')
     ->expect('App\Http\Controllers')
     ->not->toUse('Illuminate\Support\Facades\DB');
 
-// "Never $request->validate() in a controller — always inject a FormRequest."
-// Arch expectations can only see imports/types, not method calls on $request,
-// so this is a content scan. No baseline: every offender fails, so the
-// message is the exact list of controllers to move onto FormRequests.
+// Content scan, not an arch() expectation: Arch can only see imports/types, not $request->validate() calls.
 test('controllers do not validate inline', function () {
     $controllersDir = dirname(__DIR__, 2).'/app/Http/Controllers';
     $iterator = new RecursiveIteratorIterator(
@@ -116,33 +93,23 @@ test('controllers do not validate inline', function () {
     expect($offenders)->toBe([], 'These controllers validate inline; inject a FormRequest instead: '.implode(', ', $offenders));
 });
 
-// --- FormRequests -----------------------------------------------------------
-
 arch('form requests are conventional')
     ->expect('App\Http\Requests')
     ->toExtend(FormRequest::class)
     ->toHaveSuffix('Request');
-
-// --- API Resources ----------------------------------------------------------
 
 arch('resources are conventional')
     ->expect('App\Http\Resources')
     ->toExtend(JsonResource::class)
     ->toHaveSuffix('Resource');
 
-// --- Actions: in-app business logic, contract-shaped ------------------------
-
-// The native `handle(Data $dto)` param can't be narrowed (PHP forbids
-// narrowing a parameter type); narrowing is declared via `@implements
-// Action<TData>` on the class and `@param TData $dto` on the method, and
-// verified below.
+// PHP can't narrow handle()'s native param type; narrowing is instead declared via @implements Action<TData>/@param, verified below (see CLAUDE.md).
 arch('actions are suffixed and implement the Action contract')
     ->expect('App\Actions')
     ->toHaveSuffix('Action')
     ->toImplement(Action::class);
 
-// Arch expectations can't inspect method signatures, so "exactly one
-// handle(Data $dto) method" is a reflection scan instead.
+// Reflection scan: Arch expectations can't inspect method signatures.
 test('actions expose exactly one handle(Data $dto) method', function () {
     $offenders = [];
 
@@ -177,13 +144,7 @@ test('actions expose exactly one handle(Data $dto) method', function () {
     expect($offenders)->toBe([], 'These actions do not expose exactly one handle(Data $dto) method: '.implode(', ', $offenders));
 });
 
-// --- Domain errors: consistent contract, no generic exceptions for expected
-//     flows (see CLAUDE.md and issue #87) -------------------------------------
-
-// The abstract base is excluded from all three: it cannot be final, and its
-// own httpStatus() is intentionally left unimplemented. Kept as separate
-// arch() calls — `ignoring()` only reaches the assertion it is chained
-// directly off of, not earlier ones in the same chain.
+// DomainException is excluded (abstract, unimplemented httpStatus()); kept as three separate arch() calls since ignoring() only applies to the assertion it's chained off of.
 arch('domain exceptions are final')
     ->expect('App\Exceptions')
     ->toBeFinal()
@@ -199,20 +160,11 @@ arch('domain exceptions implement the DomainError contract')
     ->toImplement(DomainError::class)
     ->ignoring(DomainException::class);
 
-// Business rules go through a domain exception with an explicit HTTP
-// status; 422 stays reserved for FormRequest input validation.
 arch('actions do not throw Laravel input-validation exceptions')
     ->expect('App\Actions')
     ->not->toUse(ValidationException::class);
 
-// Arch expectations can't see `abort(...)` calls or `throw new <generic>`,
-// so this is a content scan, same approach as "controllers do not validate
-// inline" above. The allow-list below is the exact "Fuera de alcance" set
-// from issue #87: defensive assertions over states `auth:sanctum` and route
-// model binding already make unreachable, not business rules. No baseline
-// for anything outside it: every other offender fails, naming the exact
-// file. The final assertion (more than zero matches) guards against the
-// scan silently matching nothing and passing vacuously.
+// Content scan, same approach as "controllers do not validate inline" above. The allow-list is issue #87's exact "Fuera de alcance" set of defensive assertions over states already made unreachable; the final assertion guards against the scan silently matching nothing.
 test('no generic exceptions or abort() are used outside the allowed defensive sites', function () {
     $appDir = dirname(__DIR__, 2).'/app';
     $iterator = new RecursiveIteratorIterator(
@@ -257,12 +209,7 @@ test('no generic exceptions or abort() are used outside the allowed defensive si
     expect($allowedMatches)->toBeGreaterThan(0);
 });
 
-// --- Services: business logic that talks to third-party APIs/SDKs ----------
-
-// Each Service implements its own domain interface in App\Contracts (e.g.
-// `TwilioService implements SmsGateway`), never a common marker interface —
-// so this is "at least one App\Contracts interface", not a fixed one.
-// Vacuous today: nothing lives in App\Services yet.
+// Vacuous today (nothing lives in App\Services yet); checks "at least one App\Contracts interface" since each Service implements its own, never a shared marker.
 test('services implement at least one App\Contracts interface', function () {
     $offenders = [];
 
@@ -287,21 +234,12 @@ test('services implement at least one App\Contracts interface', function () {
     expect($offenders)->toBe([], 'These services do not implement any App\Contracts interface: '.implode(', ', $offenders));
 });
 
-// --- DTOs: passive data containers ------------------------------------------
-
 arch('data transfer objects are conventional')
     ->expect('App\Data')
     ->toBeFinal()
     ->toBeReadonly()
     ->toImplement(Data::class);
 
-// --- Modularization: per-module subdirectories ------------------------------
-
-// The seven modularized namespaces (Actions, Services, Data, Http\Requests,
-// Http\Resources, Http\Controllers, Exceptions) must group classes under a
-// per-module subdirectory — no class sits directly at the namespace root,
-// except the framework-mandated base Controller and the abstract
-// DomainException base. App\Models and App\Enums stay flat.
 test('the seven modularized namespaces have no flat classes', function () {
     $root = dirname(__DIR__, 2).'/app';
     $namespacedDirs = [
@@ -338,33 +276,20 @@ test('the seven modularized namespaces have no flat classes', function () {
     expect($offenders)->toBe([], 'These files sit directly under a modularized namespace root instead of a per-module subdirectory: '.implode(', ', $offenders));
 });
 
-// --- Models: thin, framework-rooted -----------------------------------------
-
 arch('models extend eloquent')
     ->expect('App\Models')
     ->toExtend(Model::class);
 
-// --- Enums --------------------------------------------------------------
-
 arch('enums are enums')
     ->expect('App\Enums')
     ->toBeEnums();
-
-// --- Layering: dependencies point inward ------------------------------------
 
 // Business logic must not reach back into the HTTP layer — see ADR 0002.
 arch('actions and services do not depend on the http layer')
     ->expect(['App\Actions', 'App\Services'])
     ->not->toUse('App\Http');
 
-// --- Seeders: literal, deterministic, factory-free --------------------------
-
-// Acceptance criterion of issue #106: seeders must be literal and
-// deterministic so they run on the production image (composer install
-// --no-dev, no dev dependencies) and are safely re-runnable. Arch
-// expectations can't see method calls like Model::factory(), so this is a
-// content scan, same approach as "controllers do not validate inline"
-// above. No baseline: every offender fails, naming the exact file.
+// Issue #106: seeders must stay literal/deterministic to run on the production image (composer install --no-dev); content scan since Arch can't see Model::factory() calls.
 test('seeders are literal, deterministic and factory-free', function () {
     $seedersDir = dirname(__DIR__, 2).'/database/seeders';
     $iterator = new RecursiveIteratorIterator(

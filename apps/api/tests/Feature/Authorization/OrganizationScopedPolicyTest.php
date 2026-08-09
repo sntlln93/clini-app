@@ -12,11 +12,7 @@ use App\Policies\OrganizationScopedPolicy;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\Eloquent\Model;
 
-/**
- * Minimal concrete subclass exposing the abstract, protected allows() —
- * OrganizationScopedPolicy has no real policy yet (issue #19 is
- * infrastructure only), so this is the only way to exercise it directly.
- */
+// Exposes the abstract, protected allows(): OrganizationScopedPolicy has no real policy yet (issue #19 is infrastructure only).
 final class ConcreteOrganizationScopedPolicy extends OrganizationScopedPolicy
 {
     public function check(User $user, Permission $permission, ?Model $resource = null): bool
