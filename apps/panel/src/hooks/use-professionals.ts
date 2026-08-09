@@ -2,12 +2,7 @@ import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
 import { queryOptions } from '@tanstack/react-query';
 
-/**
- * Active, non-deleted memberships holding the `professional` role — the
- * only members that catalog assignments (services/specialties) apply to.
- * Consumed via a route loader (`ensureQueryData`); no page renders it with
- * a component-level `useQuery`.
- */
+/** Catalog assignments (services/specialties) apply only to professional-role members. */
 export function professionalsQueryOptions() {
     return queryOptions({
         queryKey: ['memberships', 'professionals'],
