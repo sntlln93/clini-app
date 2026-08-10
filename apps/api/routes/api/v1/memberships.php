@@ -8,6 +8,7 @@ use App\Http\Controllers\Memberships\MembershipSlugController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('memberships', [MembershipController::class, 'index']);
+Route::get('memberships/{membership}', [MembershipController::class, 'show']);
 Route::patch('memberships/me/slug', [MembershipSlugController::class, 'update']);
 Route::patch('memberships/{membership}', [MembershipController::class, 'update']);
 Route::delete('memberships/{membership}', [MembershipController::class, 'destroy']);
