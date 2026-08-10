@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\Auth\FindValidEmailVerificationUserAction;
 use App\Actions\Auth\VerifyEmailAction;
 use App\Data\Auth\EmailVerificationData;
-use App\Exceptions\Auth\EmailVerificationInvalidOrExpiredException;
 use App\Http\Controllers\Controller;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 
 /**
@@ -20,9 +18,13 @@ use Illuminate\Support\Facades\Auth;
  */
 class EmailVerificationController extends Controller
 {
+    public function __construct(
+        private readonly FindValidEmailVerificationUserAction $findValidUser,
+    ) {}
+
     public function show(string $token): JsonResponse
     {
-        $user = $this->findValidUser($token);
+        $user = $this->findValidUser->handle(new EmailVerificationData($token));
 
         return response()->json([
             'email' => $user->email,
@@ -37,27 +39,5 @@ class EmailVerificationController extends Controller
         $request->session()->regenerate();
 
         return response()->json(['message' => 'Correo confirmado.']);
-    }
-
-    private function findValidUser(string $token): User
-    {
-        $tokenHash = hash('sha256', $token);
-
-        $user = User::query()
-            ->where('email_verification_token', $tokenHash)
-            ->first();
-
-        $expiresAt = $user?->email_verification_token_expires_at;
-
-        if ($user === null || $expiresAt === null) {
-            throw new EmailVerificationInvalidOrExpiredException($tokenHash);
-        }
-
-        /** @var Carbon $expiresAt */
-        if ($expiresAt->isPast()) {
-            throw new EmailVerificationInvalidOrExpiredException($tokenHash);
-        }
-
-        return $user;
     }
 }
