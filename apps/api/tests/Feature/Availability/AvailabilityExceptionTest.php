@@ -570,3 +570,152 @@ test('a guest gets 401 on index, store, update and destroy', function () {
     ])->assertStatus(401);
     $this->deleteJson("/api/v1/availability-exceptions/{$exception->id}")->assertStatus(401);
 });
+
+test('update of an exception to a range overlapping another exception of the same membership and type returns 409 merge_required and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    $updated = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+    $other = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 13:00:00',
+        'end_at' => '2026-08-10 15:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 14:00:00',
+        'end_at' => '2026-08-10 16:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_merge_required');
+    expect($response->json('error.context'))->toHaveKeys(['merged', 'absorbed']);
+
+    $updatedRow = DB::table('availability_exceptions')->where('id', $updated->id)->first();
+    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00');
+    expect($updatedRow->end_at)->toBe('2026-08-10 11:00:00');
+    $otherRow = DB::table('availability_exceptions')->where('id', $other->id)->first();
+    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00');
+    expect($otherRow->end_at)->toBe('2026-08-10 15:00:00');
+});
+
+test('update of an exception with merge true collapses it with another same-type exception into one row carrying the new reason', function () {
+    $membership = Membership::factory()->create();
+    $updated = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+        'reason' => 'Original',
+    ]);
+    $other = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 13:00:00',
+        'end_at' => '2026-08-10 15:00:00',
+        'reason' => 'Otro motivo',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 14:00:00',
+        'end_at' => '2026-08-10 16:00:00',
+        'reason' => 'Nuevo motivo',
+        'merge' => true,
+    ]);
+
+    $response->assertOk();
+    $rows = DB::table('availability_exceptions')->where('membership_id', $membership->id)->get();
+    expect($rows)->toHaveCount(1);
+    expect($rows->first()->id)->toBe($updated->id);
+    expect($rows->first()->start_at)->toBe('2026-08-10 13:00:00');
+    expect($rows->first()->end_at)->toBe('2026-08-10 16:00:00');
+    expect($rows->first()->reason)->toBe('Nuevo motivo');
+    expect(DB::table('availability_exceptions')->where('id', $other->id)->exists())->toBeFalse();
+});
+
+test('update of an exception to a range fully contained within another same-type exception returns 409 already_covered and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    $updated = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 10:00:00',
+    ]);
+    $other = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 13:00:00',
+        'end_at' => '2026-08-10 17:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 14:00:00',
+        'end_at' => '2026-08-10 15:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_already_covered');
+
+    $updatedRow = DB::table('availability_exceptions')->where('id', $updated->id)->first();
+    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00');
+    expect($updatedRow->end_at)->toBe('2026-08-10 10:00:00');
+    $otherRow = DB::table('availability_exceptions')->where('id', $other->id)->first();
+    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00');
+    expect($otherRow->end_at)->toBe('2026-08-10 17:00:00');
+});
+
+test('update of an exception to a range overlapping an exception of a different type returns 409 type_conflict and merge true still returns the same conflict', function () {
+    $membership = Membership::factory()->create();
+    $updated = AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 10:00:00',
+    ]);
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 13:00:00',
+        'end_at' => '2026-08-10 15:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 14:00:00',
+        'end_at' => '2026-08-10 16:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_type_conflict');
+    $response->assertJsonPath('error.context.existing_type', 'extra');
+
+    $retry = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 14:00:00',
+        'end_at' => '2026-08-10 16:00:00',
+        'merge' => true,
+    ]);
+
+    $retry->assertStatus(409);
+    $retry->assertJsonPath('error.code', 'availability.exception_type_conflict');
+});
