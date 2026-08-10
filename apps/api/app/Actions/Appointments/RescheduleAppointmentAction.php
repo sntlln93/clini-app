@@ -54,7 +54,7 @@ class RescheduleAppointmentAction implements Action
 
             $original->update(['status' => AppointmentStatus::Rescheduled]);
 
-            $original->reminders()->where('status', ReminderStatus::Pending)->delete();
+            $original->reminders()->whereIn('status', [ReminderStatus::Pending, ReminderStatus::Queued])->delete();
 
             /** @var AppointmentOrigin $originalOrigin */
             $originalOrigin = $original->origin;

@@ -52,7 +52,7 @@ class CancelAppointmentAction implements Action
                 'cancellation_reason' => $dto->cancellationReason,
             ]);
 
-            $appointment->reminders()->where('status', ReminderStatus::Pending)->delete();
+            $appointment->reminders()->whereIn('status', [ReminderStatus::Pending, ReminderStatus::Queued])->delete();
         });
 
         return $appointment;
