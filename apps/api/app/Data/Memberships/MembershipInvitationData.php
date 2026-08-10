@@ -6,6 +6,7 @@ namespace App\Data\Memberships;
 
 use App\Contracts\Data;
 use App\Enums\MembershipRole;
+use App\Http\Requests\Memberships\StoreMembershipInvitationRequest;
 
 final readonly class MembershipInvitationData implements Data
 {
@@ -17,6 +18,18 @@ final readonly class MembershipInvitationData implements Data
         public string $email,
         public array $roles,
     ) {}
+
+    public static function fromRequest(StoreMembershipInvitationRequest $request, int $organizationId): self
+    {
+        /** @var array<int, string> $rawRoles */
+        $rawRoles = $request->validated('roles');
+
+        return new self(
+            organizationId: $organizationId,
+            email: $request->string('email')->toString(),
+            roles: array_map(static fn (string $role): MembershipRole => MembershipRole::from($role), $rawRoles),
+        );
+    }
 
     /**
      * @return array<string, mixed>

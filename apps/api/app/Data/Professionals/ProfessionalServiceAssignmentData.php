@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace App\Data\Professionals;
 
 use App\Contracts\Data;
+use App\Http\Requests\Professionals\StoreProfessionalServiceRequest;
+use App\Http\Requests\Professionals\UpdateProfessionalServiceRequest;
+use App\Models\Membership;
 
 final readonly class ProfessionalServiceAssignmentData implements Data
 {
@@ -16,6 +19,21 @@ final readonly class ProfessionalServiceAssignmentData implements Data
         public ?int $priceCents,
         public bool $active,
     ) {}
+
+    public static function fromRequest(
+        StoreProfessionalServiceRequest|UpdateProfessionalServiceRequest $request,
+        Membership $membership,
+        int $serviceId
+    ): self {
+        return new self(
+            organizationId: $membership->organization_id,
+            membershipId: $membership->id,
+            serviceId: $serviceId,
+            durationMinutes: $request->integer('duration_minutes'),
+            priceCents: $request->integer('price_cents') ?: null,
+            active: $request->boolean('active', true),
+        );
+    }
 
     /**
      * @return array<string, mixed>

@@ -39,7 +39,8 @@ class ProfessionalServiceController extends Controller
     ): JsonResponse {
         Gate::authorize('create', [ProfessionalService::class, $membership]);
 
-        $professionalService = $action->handle($this->dtoFrom($request, $membership, $request->integer('service_id')));
+        $dto = ProfessionalServiceAssignmentData::fromRequest($request, $membership, $request->integer('service_id'));
+        $professionalService = $action->handle($dto);
 
         return (new ProfessionalServiceResource($professionalService->load('service')))
             ->response()
@@ -56,7 +57,8 @@ class ProfessionalServiceController extends Controller
 
         Gate::authorize('update', $professionalService);
 
-        $updated = $action->handle($this->dtoFrom($request, $membership, $service->id));
+        $dto = ProfessionalServiceAssignmentData::fromRequest($request, $membership, $service->id);
+        $updated = $action->handle($dto);
 
         return new ProfessionalServiceResource($updated->load('service'));
     }
@@ -83,20 +85,5 @@ class ProfessionalServiceController extends Controller
                 'organization_id' => $membership->organization_id,
                 'membership_id' => $membership->id,
             ]);
-    }
-
-    private function dtoFrom(
-        StoreProfessionalServiceRequest|UpdateProfessionalServiceRequest $request,
-        Membership $membership,
-        int $serviceId
-    ): ProfessionalServiceAssignmentData {
-        return new ProfessionalServiceAssignmentData(
-            organizationId: $membership->organization_id,
-            membershipId: $membership->id,
-            serviceId: $serviceId,
-            durationMinutes: $request->integer('duration_minutes'),
-            priceCents: $request->integer('price_cents') ?: null,
-            active: $request->boolean('active', true),
-        );
     }
 }

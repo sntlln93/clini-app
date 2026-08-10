@@ -6,7 +6,6 @@ namespace App\Http\Controllers\Memberships;
 
 use App\Actions\Memberships\InviteMemberAction;
 use App\Data\Memberships\MembershipInvitationData;
-use App\Enums\MembershipRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\StoreMembershipInvitationRequest;
 use App\Models\Membership;
@@ -20,7 +19,8 @@ class MembershipInvitationController extends Controller
     {
         Gate::authorize('create', Membership::class);
 
-        $action->handle($this->dtoFrom($request));
+        $organizationId = app(CurrentOrganization::class)->getOrFail();
+        $action->handle(MembershipInvitationData::fromRequest($request, $organizationId));
 
         return response()->json(['message' => 'Invitación enviada.'], 201);
     }
@@ -29,20 +29,9 @@ class MembershipInvitationController extends Controller
     {
         Gate::authorize('create', Membership::class);
 
-        $action->handle($this->dtoFrom($request));
+        $organizationId = app(CurrentOrganization::class)->getOrFail();
+        $action->handle(MembershipInvitationData::fromRequest($request, $organizationId));
 
         return response()->json(['message' => 'Invitación reenviada.']);
-    }
-
-    private function dtoFrom(StoreMembershipInvitationRequest $request): MembershipInvitationData
-    {
-        /** @var array<int, string> $rawRoles */
-        $rawRoles = $request->validated('roles');
-
-        return new MembershipInvitationData(
-            organizationId: app(CurrentOrganization::class)->getOrFail(),
-            email: $request->string('email')->toString(),
-            roles: array_map(static fn (string $role): MembershipRole => MembershipRole::from($role), $rawRoles),
-        );
     }
 }
