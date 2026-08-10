@@ -10,7 +10,6 @@ use App\Data\Memberships\InvitationAcceptanceData;
 use App\Data\Memberships\InvitationTokenData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\AcceptInvitationRequest;
-use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -43,20 +42,15 @@ class InvitationAcceptanceController extends Controller
             password: $request->string('password')->toString() ?: null,
         ));
 
-        Auth::guard('web')->login($this->authenticatedUser($membership));
-        $request->session()->regenerate();
-
-        return response()->json(['message' => 'Invitación aceptada.']);
-    }
-
-    private function authenticatedUser(Membership $membership): User
-    {
         $user = $membership->user;
 
         if ($user === null) {
             abort(500);
         }
 
-        return $user;
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
+
+        return response()->json(['message' => 'Invitación aceptada.']);
     }
 }
