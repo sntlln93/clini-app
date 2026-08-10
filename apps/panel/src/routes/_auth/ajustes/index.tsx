@@ -84,9 +84,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
                     Promise.all(
                         professionals.map((membership) =>
                             context.queryClient.ensureQueryData(
-                                professionalServicesQueryOptions(
-                                    membership.id,
-                                ),
+                                professionalServicesQueryOptions(membership.id),
                             ),
                         ),
                     ),
