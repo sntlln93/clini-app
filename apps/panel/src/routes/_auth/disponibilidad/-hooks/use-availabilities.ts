@@ -9,6 +9,7 @@ type AvailabilitySlotPayload = {
     dayOfWeek: number;
     startTime: string;
     endTime: string;
+    merge?: boolean;
 };
 
 function queryKey(membershipId: number) {
@@ -20,6 +21,7 @@ function toRequestBody(payload: AvailabilitySlotPayload) {
         day_of_week: payload.dayOfWeek,
         start_time: payload.startTime,
         end_time: payload.endTime,
+        ...(payload.merge ? { merge: true } : {}),
     };
 }
 

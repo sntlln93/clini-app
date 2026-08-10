@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -11,11 +11,16 @@ import {
     useDeleteAvailability,
     useSaveAvailability,
 } from '../-hooks/use-availabilities';
-import { AvailabilitySlotFields } from './AvailabilitySlotFields';
+import {
+    mergeSlotDescription,
+    readMergeProposal,
+    type MergeProposal,
+} from './availability-merge';
 import {
     availabilitySlotSchema,
     type AvailabilitySlotFormValues,
 } from './availability-schemas';
+import { AvailabilitySlotFields } from './AvailabilitySlotFields';
 
 type AvailabilitySlotRowProps = {
     membershipId: number;
@@ -58,17 +63,34 @@ export function AvailabilitySlotRow({
 
     const save = useSaveAvailability(membershipId);
     const remove = useDeleteAvailability(membershipId);
+    const [pendingMerge, setPendingMerge] = useState<{
+        proposal: MergeProposal;
+        values: AvailabilitySlotFormValues;
+    } | null>(null);
 
-    async function onSubmit(values: AvailabilitySlotFormValues) {
+    async function submit(values: AvailabilitySlotFormValues, merge: boolean) {
         try {
             await save.mutateAsync({
                 id: slot?.id,
                 dayOfWeek,
                 startTime: values.startTime,
                 endTime: values.endTime,
+                merge,
             });
+            setPendingMerge(null);
             onSaved?.();
         } catch (error) {
+            if (!merge) {
+                const proposal = readMergeProposal(
+                    error,
+                    'availability.slot_merge_required',
+                );
+                if (proposal) {
+                    setPendingMerge({ proposal, values });
+                    return;
+                }
+            }
+            setPendingMerge(null);
             applyFormErrors(form, extractFormErrors(error), {
                 start_time: 'startTime',
                 end_time: 'endTime',
@@ -85,7 +107,7 @@ export function AvailabilitySlotRow({
     return (
         <Form {...form}>
             <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit((values) => submit(values, false))}
                 className="flex flex-wrap items-end gap-2"
             >
                 <AvailabilitySlotFields
@@ -117,7 +139,7 @@ export function AvailabilitySlotRow({
                                     </Button>
                                 }
                                 title="Eliminar horario"
-                                description="¿Eliminar este horario? Esta acción no se puede deshacer."
+                                description="Se quita este horario de la agenda semanal del profesional. Los turnos ya agendados no se modifican."
                                 onConfirm={handleDelete}
                                 isPending={remove.isPending}
                             />
@@ -142,6 +164,23 @@ export function AvailabilitySlotRow({
                     </p>
                 )}
             </form>
+
+            <ConfirmDialog
+                open={pendingMerge !== null}
+                onOpenChange={(open) => !open && setPendingMerge(null)}
+                title="Combinar horarios"
+                description={
+                    pendingMerge
+                        ? mergeSlotDescription(pendingMerge.proposal)
+                        : ''
+                }
+                confirmLabel="Combinar"
+                cancelLabel="Cancelar"
+                onConfirm={() =>
+                    pendingMerge && void submit(pendingMerge.values, true)
+                }
+                isPending={save.isPending}
+            />
         </Form>
     );
 }
