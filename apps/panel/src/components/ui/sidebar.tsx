@@ -26,7 +26,6 @@ import { PanelLeftIcon } from 'lucide-react';
 const SIDEBAR_COOKIE_NAME = 'sidebar_state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
 const SIDEBAR_WIDTH = '16rem';
-const SIDEBAR_WIDTH_MOBILE = '18rem';
 const SIDEBAR_WIDTH_ICON = '3rem';
 const SIDEBAR_KEYBOARD_SHORTCUT = 'b';
 
@@ -195,13 +194,8 @@ function Sidebar({
                     data-sidebar="sidebar"
                     data-slot="sidebar"
                     data-mobile="true"
-                    className="w-(--sidebar-width) bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
-                    style={
-                        {
-                            '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-                        } as React.CSSProperties
-                    }
-                    side={side}
+                    className="max-h-[80svh] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+                    side="bottom"
                 >
                     <SheetHeader className="sr-only">
                         <SheetTitle>Sidebar</SheetTitle>
@@ -209,7 +203,8 @@ function Sidebar({
                             Displays the mobile sidebar.
                         </SheetDescription>
                     </SheetHeader>
-                    <div className="flex h-full w-full flex-col">
+                    {/* min-h-0 lets this flex child shrink below its content height so SidebarContent's overflow-auto can scroll within the capped sheet */}
+                    <div className="flex h-full min-h-0 w-full flex-col">
                         {children}
                     </div>
                 </SheetContent>
