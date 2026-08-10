@@ -24,3 +24,13 @@ export function membershipsQueryOptions({
                 .then((response) => response.data),
     });
 }
+
+export function membershipQueryOptions(id: number) {
+    return queryOptions({
+        queryKey: ['memberships', id],
+        queryFn: () =>
+            api
+                .get<{ data: Membership }>(`/memberships/${id}`)
+                .then((response) => response.data.data),
+    });
+}
