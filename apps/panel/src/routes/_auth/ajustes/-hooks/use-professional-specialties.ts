@@ -1,12 +1,8 @@
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { ProfessionalSpecialty } from '@/types/professional';
-import {
-    queryOptions,
-    useMutation,
-    useQueryClient,
-} from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { queryOptions, useMutation } from '@tanstack/react-query';
 
 function queryKey(membershipId: number) {
     return ['professional-specialties', membershipId];
@@ -25,23 +21,17 @@ export function professionalSpecialtiesQueryOptions(membershipId: number) {
 }
 
 export function useToggleProfessionalSpecialty(membershipId: number) {
-    const queryClient = useQueryClient();
-    const router = useRouter();
-
-    const invalidate = () => {
-        queryClient.invalidateQueries({ queryKey: queryKey(membershipId) });
-        void router.invalidate();
-    };
+    const refreshPageData = useRefreshPageData();
 
     const assign = useMutation({
         mutationFn: (specialtyId: number) =>
             api.post(`/memberships/${membershipId}/specialties`, {
                 specialty_id: specialtyId,
             }),
-        onSuccess: () => {
-            invalidate();
-            notifySuccess('Especialidad asignada');
-        },
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Especialidad asignada'),
+            ),
         onError: (error) =>
             notifyError(error, 'No se pudo asignar la especialidad'),
     });
@@ -51,10 +41,10 @@ export function useToggleProfessionalSpecialty(membershipId: number) {
             api.delete(
                 `/memberships/${membershipId}/specialties/${specialtyId}`,
             ),
-        onSuccess: () => {
-            invalidate();
-            notifySuccess('Especialidad quitada');
-        },
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Especialidad quitada'),
+            ),
         onError: (error) =>
             notifyError(error, 'No se pudo quitar la especialidad'),
     });

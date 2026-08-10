@@ -1,12 +1,8 @@
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { ProfessionalService } from '@/types/professional';
-import {
-    queryOptions,
-    useMutation,
-    useQueryClient,
-} from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { queryOptions, useMutation } from '@tanstack/react-query';
 
 type ProfessionalServicePayload = {
     serviceId: number;
@@ -41,8 +37,7 @@ export function professionalServicesQueryOptions(membershipId: number) {
 }
 
 export function useAssignProfessionalService(membershipId: number) {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: (payload: ProfessionalServicePayload) =>
@@ -50,12 +45,7 @@ export function useAssignProfessionalService(membershipId: number) {
                 `/memberships/${membershipId}/services`,
                 toRequestBody(payload),
             ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: queryKey(membershipId),
-            });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(queryKey(membershipId)),
     });
 
     const { message, errors } = mutation.error
@@ -66,8 +56,7 @@ export function useAssignProfessionalService(membershipId: number) {
 }
 
 export function useUpdateProfessionalService(membershipId: number) {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: (payload: ProfessionalServicePayload) =>
@@ -75,12 +64,7 @@ export function useUpdateProfessionalService(membershipId: number) {
                 `/memberships/${membershipId}/services/${payload.serviceId}`,
                 toRequestBody(payload),
             ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: queryKey(membershipId),
-            });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(queryKey(membershipId)),
     });
 
     const { message, errors } = mutation.error
@@ -91,17 +75,11 @@ export function useUpdateProfessionalService(membershipId: number) {
 }
 
 export function useRemoveProfessionalService(membershipId: number) {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     return useMutation({
         mutationFn: (serviceId: number) =>
             api.delete(`/memberships/${membershipId}/services/${serviceId}`),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: queryKey(membershipId),
-            });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(queryKey(membershipId)),
     });
 }

@@ -1,13 +1,9 @@
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import {
-    queryOptions,
-    useMutation,
-    useQueryClient,
-} from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { queryOptions, useMutation } from '@tanstack/react-query';
 
 type AppointmentsRange = {
     from: string;
@@ -64,8 +60,7 @@ export function appointmentsQueryOptions(range: AppointmentsRange) {
 }
 
 export function useCreateAppointment() {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: (payload: CreateAppointmentPayload) =>
@@ -77,10 +72,7 @@ export function useCreateAppointment() {
                 reason: payload.reason,
                 notes: payload.notes,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(['appointments']),
     });
 
     const { message, errors } = mutation.error
@@ -91,8 +83,7 @@ export function useCreateAppointment() {
 }
 
 export function useUpdateAppointmentStatus() {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -102,10 +93,7 @@ export function useUpdateAppointmentStatus() {
             appointmentId: number;
             status: AppointmentStatus;
         }) => api.patch(`/appointments/${appointmentId}/status`, { status }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(['appointments']),
     });
 
     const { message, errors } = mutation.error
@@ -116,8 +104,7 @@ export function useUpdateAppointmentStatus() {
 }
 
 export function useCancelAppointment() {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -130,10 +117,7 @@ export function useCancelAppointment() {
             api.patch(`/appointments/${appointmentId}/cancel`, {
                 cancellation_reason: cancellationReason ?? null,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(['appointments']),
     });
 
     const { message, errors } = mutation.error
@@ -144,8 +128,7 @@ export function useCancelAppointment() {
 }
 
 export function useRescheduleAppointment() {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -164,10 +147,7 @@ export function useRescheduleAppointment() {
                 reason: reason ?? null,
                 notes: notes ?? null,
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['appointments'] });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(['appointments']),
     });
 
     const { message, errors } = mutation.error
