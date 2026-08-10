@@ -7,7 +7,7 @@ namespace App\Exceptions\Availability;
 use App\Enums\AvailabilityExceptionType;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
 
 /**
  * Thrown when an availability exception overlaps or is adjacent to one or

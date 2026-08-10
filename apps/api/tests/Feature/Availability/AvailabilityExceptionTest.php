@@ -107,7 +107,7 @@ test('store with a membership_id from another organization returns 422', functio
     $response->assertJsonValidationErrors('membership_id');
 });
 
-test('store overlapping an existing exception of the same membership returns 422', function () {
+test('store overlapping an existing exception of the same membership and type returns 409 merge_required', function () {
     $membership = Membership::factory()->create();
     AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -117,12 +117,109 @@ test('store overlapping an existing exception of the same membership returns 422
         'end_at' => '2026-08-10 11:00:00',
     ]);
 
-    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
         'start_at' => '2026-08-10 10:00:00',
         'end_at' => '2026-08-10 12:00:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_merge_required');
+    expect(DB::table('availability_exceptions')->where('membership_id', $membership->id)->count())->toBe(1);
+});
+
+test('store overlapping an existing exception of the same membership but a different type returns 409 type_conflict', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'extra',
+        'start_at' => '2026-08-10 10:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_type_conflict');
+    $response->assertJsonPath('error.context.existing_type', 'blocked');
+});
+
+test('store adjacent to an existing exception of the same membership and type returns 409 merge_required', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 11:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_merge_required');
+});
+
+test('store with merge true collapses two same-type conflicting exceptions into one row carrying the new reason', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+        'reason' => 'Original',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 10:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+        'reason' => 'Nuevo motivo',
+        'merge' => true,
+    ]);
+
+    $response->assertCreated();
+    $rows = DB::table('availability_exceptions')->where('membership_id', $membership->id)->get();
+    expect($rows)->toHaveCount(1);
+    expect($rows->first()->start_at)->toBe('2026-08-10 09:00:00');
+    expect($rows->first()->end_at)->toBe('2026-08-10 12:00:00');
+    expect($rows->first()->reason)->toBe('Nuevo motivo');
+});
+
+test('store fully contained within an existing exception of the same membership and type returns 409 already_covered and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 09:00:00',
+        'end_at' => '2026-08-10 12:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10 10:00:00',
+        'end_at' => '2026-08-10 11:00:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_already_covered');
+    expect(DB::table('availability_exceptions')->where('membership_id', $membership->id)->count())->toBe(1);
 });
 
 test('store of an org-wide exception overlapping an existing professional-scoped one succeeds', function () {
@@ -142,7 +239,7 @@ test('store of an org-wide exception overlapping an existing professional-scoped
     ])->assertCreated();
 });
 
-test('store of an org-wide exception overlapping an existing org-wide one returns 422', function () {
+test('store of an org-wide exception overlapping an existing org-wide one returns 409 merge_required', function () {
     $membership = Membership::factory()->owner()->create();
     AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -152,11 +249,14 @@ test('store of an org-wide exception overlapping an existing org-wide one return
         'end_at' => '2026-08-10 11:00:00',
     ]);
 
-    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
         'start_at' => '2026-08-10 10:00:00',
         'end_at' => '2026-08-10 12:00:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('end_at');
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.exception_merge_required');
 });
 
 test('index returns the organization exceptions ordered by start_at and never leaks another organization rows', function () {

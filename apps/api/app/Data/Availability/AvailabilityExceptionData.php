@@ -17,6 +17,7 @@ final readonly class AvailabilityExceptionData implements Data
         public string $startAt,
         public string $endAt,
         public ?string $reason,
+        public bool $merge,
     ) {}
 
     /**
@@ -32,6 +33,7 @@ final readonly class AvailabilityExceptionData implements Data
             'startAt' => $this->startAt,
             'endAt' => $this->endAt,
             'reason' => $this->reason,
+            'merge' => $this->merge,
         ];
     }
 }
