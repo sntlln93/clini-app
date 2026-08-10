@@ -17,15 +17,26 @@ the API side, not the panel.
 ## Throwaway specs in `e2e/verify/`
 
 Write the check as a Playwright spec in `e2e/verify/` (gitignored — it never
-runs in CI):
+runs in CI). Every spec here **must** import `test`/`expect` from
+`../fixtures`, never Playwright's own module directly, to reuse the shared
+console/network guard instead of reimplementing it:
 
 ```ts
-import { expect, test } from '@playwright/test';
+import { expect, test } from '../fixtures';
 
 test('my check', async ({ page }) => {
   await page.goto('/');
   // ...
 });
+```
+
+The fixture fails the spec on any unexpected browser `console.error`/
+`console.warn`, and on any HTTP response with status >= 400. Declare a
+narrowly-scoped exception with a single object-valued option — never two
+array-valued options:
+
+```ts
+test.use({ expectedIssues: { console: [...], responses: [{ url, status }] } });
 ```
 
 ```bash
@@ -43,6 +54,21 @@ test-results/<dir>/trace.zip` after a failure, `npx playwright codegen
 http://localhost:5174` to record interactions as locators.
 
 Delete the spec when done, or leave it locally — the folder stays out of git.
+
+## Mandatory report lines
+
+A verification is not finished until its final summary contains both of
+these lines verbatim:
+
+```text
+errores de consola: 0
+requests fallidos inesperados: 0
+```
+
+A non-zero value on either one means the verification is reported as
+**failed** — even when the screenshot looks correct. When non-zero, each
+line lists what was found instead of just the count: console entries with
+their type and text, failed requests with method, URL and status.
 
 ## Gotchas
 
