@@ -100,4 +100,17 @@ describe('ConfirmDialog', () => {
             ).disabled,
         ).toBe(true);
     });
+
+    it('renders the confirm button with the destructive variant classes', () => {
+        renderUncontrolled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Abrir' }));
+
+        const confirmButton = screen.getByRole('button', {
+            name: 'Confirmar',
+        });
+        expect(confirmButton.className.split(' ')).toContain(
+            'text-destructive',
+        );
+    });
 });
