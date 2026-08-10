@@ -1,7 +1,14 @@
 import { api } from '@/lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mergeExceptionDescription } from '../-components/availability-merge';
 import { AvailabilityExceptionForm } from '../-components/AvailabilityExceptionForm';
 import { useAvailabilityPermissions } from '../-hooks/use-availability-permissions';
 
@@ -30,6 +37,21 @@ function renderForm(props: {
         </QueryClientProvider>,
     );
 }
+
+function businessAxiosError(code: string, context: Record<string, unknown>) {
+    return {
+        isAxiosError: true,
+        response: {
+            status: 409,
+            data: { error: { code, message: 'x', context } },
+        },
+    };
+}
+
+const MERGE_PROPOSAL = {
+    merged: { start: '2026-08-10T09:00', end: '2026-08-10T12:00' },
+    absorbed: [{ start: '2026-08-10T11:00', end: '2026-08-10T12:00' }],
+};
 
 function fillDates() {
     fireEvent.change(screen.getByLabelText(/Desde/), {
@@ -135,5 +157,68 @@ describe('AvailabilityExceptionForm', () => {
             'La fecha de fin debe ser posterior a la de inicio.',
         );
         expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('opens the merge dialog on a 409 exception_merge_required and re-sends the same values with merge: true on confirm', async () => {
+        vi.mocked(api.post)
+            .mockRejectedValueOnce(
+                businessAxiosError(
+                    'availability.exception_merge_required',
+                    MERGE_PROPOSAL,
+                ),
+            )
+            .mockResolvedValueOnce({ data: {} });
+        renderForm({ membershipId: 3, canManageOrgWide: true });
+
+        fillDates();
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText(mergeExceptionDescription(MERGE_PROPOSAL));
+
+        const dialog = screen.getByRole('alertdialog');
+        fireEvent.click(
+            within(dialog).getByRole('button', { name: 'Combinar' }),
+        );
+
+        await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+        expect(api.post).toHaveBeenNthCalledWith(
+            2,
+            '/availability-exceptions',
+            {
+                membership_id: 3,
+                type: 'blocked',
+                start_at: '2026-08-10T09:00',
+                end_at: '2026-08-10T11:00',
+                reason: null,
+                merge: true,
+            },
+        );
+    });
+
+    it('closes the merge dialog and sends no further request when cancelled', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce(
+            businessAxiosError(
+                'availability.exception_merge_required',
+                MERGE_PROPOSAL,
+            ),
+        );
+        renderForm({ membershipId: 3, canManageOrgWide: true });
+
+        fillDates();
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText(mergeExceptionDescription(MERGE_PROPOSAL));
+
+        const dialog = screen.getByRole('alertdialog');
+        fireEvent.click(
+            within(dialog).getByRole('button', { name: 'Cancelar' }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByText(mergeExceptionDescription(MERGE_PROPOSAL)),
+            ).toBeNull(),
+        );
+        expect(api.post).toHaveBeenCalledTimes(1);
     });
 });
