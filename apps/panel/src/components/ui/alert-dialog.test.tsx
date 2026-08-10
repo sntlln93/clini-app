@@ -197,4 +197,42 @@ describe('AlertDialogCancel', () => {
         expect(onOpenChange).toHaveBeenCalled();
         expect(onOpenChange.mock.calls[0]?.[0]).toBe(false);
     });
+
+    it('renders the ghost/sm variant and size classes and not the outline default classes', () => {
+        render(
+            <AlertDialog open>
+                <AlertDialogContent aria-describedby={undefined}>
+                    <AlertDialogCancel variant="ghost" size="sm">
+                        Cancelar
+                    </AlertDialogCancel>
+                </AlertDialogContent>
+            </AlertDialog>,
+        );
+
+        const cancel = document.querySelector(
+            '[data-slot="alert-dialog-cancel"]',
+        );
+        const classes = cancel?.className.split(' ') ?? [];
+        expect(classes).toContain('h-7');
+        expect(classes).not.toContain('border-border');
+    });
+
+    it('merges the caller className with the recipe className instead of replacing it', () => {
+        render(
+            <AlertDialog open>
+                <AlertDialogContent aria-describedby={undefined}>
+                    <AlertDialogCancel className="custom-cancel">
+                        Cancelar
+                    </AlertDialogCancel>
+                </AlertDialogContent>
+            </AlertDialog>,
+        );
+
+        const cancel = document.querySelector(
+            '[data-slot="alert-dialog-cancel"]',
+        );
+        const classes = cancel?.className.split(' ') ?? [];
+        expect(classes).toContain('custom-cancel');
+        expect(classes).toContain('border-border');
+    });
 });
