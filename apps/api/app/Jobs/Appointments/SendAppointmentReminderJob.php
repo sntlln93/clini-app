@@ -10,6 +10,7 @@ use App\Mail\Appointments\AppointmentReminderMail;
 use App\Models\Reminder;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -20,7 +21,7 @@ use Throwable;
  */
 final class SendAppointmentReminderJob implements ShouldQueue
 {
-    use Queueable, SerializesModels;
+    use Dispatchable, Queueable, SerializesModels;
 
     /**
      * Discarded silently if the reminder was already deleted by a cancel/reschedule
@@ -34,7 +35,10 @@ final class SendAppointmentReminderJob implements ShouldQueue
 
     public function handle(): void
     {
-        if ($this->reminder->status === ReminderStatus::Sent) {
+        /** @var ReminderStatus $reminderStatus */
+        $reminderStatus = $this->reminder->status;
+
+        if ($reminderStatus === ReminderStatus::Sent) {
             return;
         }
 
