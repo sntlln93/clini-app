@@ -1,7 +1,8 @@
 import { AlertDialog as AlertDialogPrimitive } from '@base-ui/react/alert-dialog';
+import type { VariantProps } from 'class-variance-authority';
 import * as React from 'react';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 function AlertDialog({ ...props }: AlertDialogPrimitive.Root.Props) {
@@ -146,26 +147,28 @@ function AlertDialogDescription({
 }
 
 function AlertDialogAction({
-    className,
+    variant,
+    size,
     ...props
-}: AlertDialogPrimitive.Close.Props) {
+}: AlertDialogPrimitive.Close.Props & VariantProps<typeof buttonVariants>) {
     return (
         <AlertDialogPrimitive.Close
             data-slot="alert-dialog-action"
-            className={cn(buttonVariants(), className)}
+            render={<Button variant={variant} size={size} />}
             {...props}
         />
     );
 }
 
 function AlertDialogCancel({
-    className,
+    variant = 'outline',
+    size,
     ...props
-}: AlertDialogPrimitive.Close.Props) {
+}: AlertDialogPrimitive.Close.Props & VariantProps<typeof buttonVariants>) {
     return (
         <AlertDialogPrimitive.Close
             data-slot="alert-dialog-cancel"
-            className={cn(buttonVariants({ variant: 'outline' }), className)}
+            render={<Button variant={variant} size={size} />}
             {...props}
         />
     );
