@@ -2,7 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
-import { sessionQueryOptions } from '@/lib/session';
+import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import type {
     ProfessionalService,
     ProfessionalSpecialty,
@@ -24,12 +24,9 @@ import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
 export const Route = createFileRoute('/_auth/ajustes/')({
     loader: async ({ context }) => {
-        const [session, professionals, catalogSpecialties, catalogServices] =
+        const [session, catalogSpecialties, catalogServices] =
             await Promise.all([
                 context.queryClient.ensureQueryData(sessionQueryOptions),
-                context.queryClient.ensureQueryData(
-                    professionalsQueryOptions(),
-                ),
                 context.queryClient.ensureQueryData(
                     catalogSpecialtiesQueryOptions(),
                 ),
@@ -38,34 +35,22 @@ export const Route = createFileRoute('/_auth/ajustes/')({
                 ),
             ]);
 
+        // /memberships is admin-only (memberships.view); without it, a caller
+        // only manages their own specialties/link, never the org-wide catalog.
+        const canManageProfessionals = sessionHasPermission(
+            session,
+            'memberships.view',
+        );
+
+        const professionals = canManageProfessionals
+            ? await context.queryClient.ensureQueryData(
+                  professionalsQueryOptions(),
+              )
+            : [];
+
         const mySpecialties = await context.queryClient.ensureQueryData(
             userSpecialtiesQueryOptions(session.id),
         );
-
-        const [perMembershipSpecialties, perMembershipServices] =
-            await Promise.all([
-                Promise.all(
-                    professionals.map((membership) =>
-                        Promise.all([
-                            context.queryClient.ensureQueryData(
-                                userSpecialtiesQueryOptions(membership.user.id),
-                            ),
-                            context.queryClient.ensureQueryData(
-                                professionalSpecialtiesQueryOptions(
-                                    membership.id,
-                                ),
-                            ),
-                        ]),
-                    ),
-                ),
-                Promise.all(
-                    professionals.map((membership) =>
-                        context.queryClient.ensureQueryData(
-                            professionalServicesQueryOptions(membership.id),
-                        ),
-                    ),
-                ),
-            ]);
 
         const credentialsByMembership: Record<number, UserSpecialty[]> = {};
         const assignedSpecialtiesByMembership: Record<
@@ -77,22 +62,55 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             ProfessionalService[]
         > = {};
 
-        professionals.forEach((membership, index) => {
-            const [credentials, assignedSpecialties] =
-                perMembershipSpecialties[index];
-            credentialsByMembership[membership.user.id] = credentials;
-            assignedSpecialtiesByMembership[membership.id] =
-                assignedSpecialties;
-            assignedServicesByMembership[membership.id] =
-                perMembershipServices[index];
-        });
+        if (canManageProfessionals) {
+            const [perMembershipSpecialties, perMembershipServices] =
+                await Promise.all([
+                    Promise.all(
+                        professionals.map((membership) =>
+                            Promise.all([
+                                context.queryClient.ensureQueryData(
+                                    userSpecialtiesQueryOptions(
+                                        membership.user.id,
+                                    ),
+                                ),
+                                context.queryClient.ensureQueryData(
+                                    professionalSpecialtiesQueryOptions(
+                                        membership.id,
+                                    ),
+                                ),
+                            ]),
+                        ),
+                    ),
+                    Promise.all(
+                        professionals.map((membership) =>
+                            context.queryClient.ensureQueryData(
+                                professionalServicesQueryOptions(
+                                    membership.id,
+                                ),
+                            ),
+                        ),
+                    ),
+                ]);
+
+            professionals.forEach((membership, index) => {
+                const [credentials, assignedSpecialties] =
+                    perMembershipSpecialties[index];
+                credentialsByMembership[membership.user.id] = credentials;
+                assignedSpecialtiesByMembership[membership.id] =
+                    assignedSpecialties;
+                assignedServicesByMembership[membership.id] =
+                    perMembershipServices[index];
+            });
+        }
 
         return {
             userId: session.id,
+            canManageProfessionals,
             catalogSpecialties,
             catalogServices,
             mySpecialties,
             professionals,
+            ownMembership: session.membership ?? null,
             credentialsByMembership,
             assignedSpecialtiesByMembership,
             assignedServicesByMembership,
@@ -106,18 +124,16 @@ export const Route = createFileRoute('/_auth/ajustes/')({
 function AjustesPage() {
     const {
         userId,
+        canManageProfessionals,
         catalogSpecialties,
         catalogServices,
         mySpecialties,
         professionals,
+        ownMembership,
         credentialsByMembership,
         assignedSpecialtiesByMembership,
         assignedServicesByMembership,
     } = Route.useLoaderData();
-
-    const ownMembership = professionals.find(
-        (membership) => membership.user.id === userId,
-    );
 
     return (
         <div className="mx-auto max-w-2xl space-y-8">
@@ -155,21 +171,25 @@ function AjustesPage() {
                 </>
             )}
 
-            <Separator />
+            {canManageProfessionals && (
+                <>
+                    <Separator />
 
-            <ProfessionalSpecialtiesSection
-                professionals={professionals}
-                credentialsByMembership={credentialsByMembership}
-                assignedByMembership={assignedSpecialtiesByMembership}
-            />
+                    <ProfessionalSpecialtiesSection
+                        professionals={professionals}
+                        credentialsByMembership={credentialsByMembership}
+                        assignedByMembership={assignedSpecialtiesByMembership}
+                    />
 
-            <Separator />
+                    <Separator />
 
-            <ProfessionalServicesSection
-                professionals={professionals}
-                services={catalogServices}
-                assignedByMembership={assignedServicesByMembership}
-            />
+                    <ProfessionalServicesSection
+                        professionals={professionals}
+                        services={catalogServices}
+                        assignedByMembership={assignedServicesByMembership}
+                    />
+                </>
+            )}
         </div>
     );
 }

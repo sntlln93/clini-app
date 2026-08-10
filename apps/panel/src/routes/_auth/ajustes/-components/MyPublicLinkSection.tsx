@@ -6,7 +6,7 @@ import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
 
 type MyPublicLinkSectionProps = {
-    membership: Membership;
+    membership: Pick<Membership, 'id' | 'slug'>;
 };
 
 export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
