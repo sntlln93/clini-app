@@ -8,7 +8,7 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Only the token hash is kept here (never the raw bearer token) so it never leaks into logs — InvitationAcceptanceController.
+ * Only the token hash is kept here (never the raw bearer token) so it never leaks into logs.
  */
 final class InvitationInvalidOrExpiredException extends DomainException
 {

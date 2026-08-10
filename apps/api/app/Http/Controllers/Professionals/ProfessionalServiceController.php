@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Professionals;
 
 use App\Actions\Professionals\AssignProfessionalServiceAction;
+use App\Actions\Professionals\FindOrNewProfessionalServiceAction;
 use App\Data\Professionals\ProfessionalServiceAssignmentData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Professionals\StoreProfessionalServiceRequest;
@@ -20,6 +21,10 @@ use Illuminate\Support\Facades\Gate;
 
 class ProfessionalServiceController extends Controller
 {
+    public function __construct(
+        private readonly FindOrNewProfessionalServiceAction $findOrNew,
+    ) {}
+
     public function index(Membership $membership): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', [ProfessionalService::class, $membership]);
@@ -53,11 +58,11 @@ class ProfessionalServiceController extends Controller
         Service $service,
         AssignProfessionalServiceAction $action
     ): ProfessionalServiceResource {
-        $professionalService = $this->findOrNew($membership, $service);
+        $dto = ProfessionalServiceAssignmentData::fromRequest($request, $membership, $service->id);
+        $professionalService = $this->findOrNew->handle($dto);
 
         Gate::authorize('update', $professionalService);
 
-        $dto = ProfessionalServiceAssignmentData::fromRequest($request, $membership, $service->id);
         $updated = $action->handle($dto);
 
         return new ProfessionalServiceResource($updated->load('service'));
@@ -65,7 +70,16 @@ class ProfessionalServiceController extends Controller
 
     public function destroy(Membership $membership, Service $service): Response
     {
-        $professionalService = $this->findOrNew($membership, $service);
+        // duration/price/active are unused by FindOrNewProfessionalServiceAction's lookup; reusing the assignment DTO avoids a lookup-only DTO for a route with no request body.
+        $dto = new ProfessionalServiceAssignmentData(
+            organizationId: $membership->organization_id,
+            membershipId: $membership->id,
+            serviceId: $service->id,
+            durationMinutes: 0,
+            priceCents: null,
+            active: false,
+        );
+        $professionalService = $this->findOrNew->handle($dto);
 
         Gate::authorize('delete', $professionalService);
 
@@ -74,16 +88,5 @@ class ProfessionalServiceController extends Controller
         }
 
         return response()->noContent();
-    }
-
-    private function findOrNew(Membership $membership, Service $service): ProfessionalService
-    {
-        return ProfessionalService::query()
-            ->where('membership_id', $membership->id)
-            ->where('service_id', $service->id)
-            ->first() ?? new ProfessionalService([
-                'organization_id' => $membership->organization_id,
-                'membership_id' => $membership->id,
-            ]);
     }
 }
