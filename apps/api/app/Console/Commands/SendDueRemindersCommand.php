@@ -6,17 +6,14 @@ namespace App\Console\Commands;
 
 use App\Enums\AppointmentStatus;
 use App\Enums\ReminderStatus;
-use App\Mail\Appointments\AppointmentReminderMail;
+use App\Jobs\Appointments\SendAppointmentReminderJob;
 use App\Models\Reminder;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Throwable;
 
 /**
- * No queues: this runs synchronously from the scheduler, once a minute
- * (routes/console.php). Never reprocesses `sent`/`failed` reminders and
- * never retries a failed send automatically — one attempt per reminder.
+ * Runs from the scheduler once a minute (routes/console.php). Only
+ * dispatches the send job — the retry policy lives on the queue worker.
+ * Never reprocesses `queued`/`sent`/`failed` reminders.
  *
  * Doesn't scope to a current organization on purpose: BelongsToOrganization
  * no-ops its global scope when none is set, which is always the case here
@@ -33,7 +30,7 @@ class SendDueRemindersCommand extends Command
         $reminders = Reminder::query()
             ->where('status', ReminderStatus::Pending)
             ->where('scheduled_at', '<=', now())
-            ->with(['appointment.patient', 'appointment.membership.user', 'appointment.service', 'appointment.organization'])
+            ->with('appointment')
             ->get();
 
         foreach ($reminders as $reminder) {
@@ -62,21 +59,10 @@ class SendDueRemindersCommand extends Command
             return;
         }
 
-        try {
-            Mail::to($appointment->patient?->email)->send(new AppointmentReminderMail($appointment));
+        // Mark before dispatch: a fast worker setting Sent first must not be
+        // overwritten by this update running after it.
+        $reminder->update(['status' => ReminderStatus::Queued]);
 
-            $reminder->update([
-                'status' => ReminderStatus::Sent,
-                'sent_at' => now(),
-            ]);
-        } catch (Throwable $exception) {
-            $reminder->update(['status' => ReminderStatus::Failed]);
-
-            Log::error('Failed to send appointment reminder', [
-                'reminder_id' => $reminder->id,
-                'appointment_id' => $appointment->id,
-                'exception' => $exception->getMessage(),
-            ]);
-        }
+        SendAppointmentReminderJob::dispatch($reminder);
     }
 }
