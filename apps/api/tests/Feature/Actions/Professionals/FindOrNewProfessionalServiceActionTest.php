@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 use App\Actions\Professionals\FindOrNewProfessionalServiceAction;
-use App\Data\Professionals\ProfessionalServiceAssignmentData;
+use App\Data\Professionals\ProfessionalServiceLookupData;
 use App\Models\Membership;
 use App\Models\ProfessionalService;
 use App\Models\Service;
@@ -17,13 +17,10 @@ test('returns the existing persisted professional service for that membership an
         'service_id' => $service->id,
     ]);
 
-    $dto = new ProfessionalServiceAssignmentData(
+    $dto = new ProfessionalServiceLookupData(
         organizationId: $membership->organization_id,
         membershipId: $membership->id,
         serviceId: $service->id,
-        durationMinutes: 30,
-        priceCents: 15000,
-        active: true,
     );
 
     $found = app(FindOrNewProfessionalServiceAction::class)->handle($dto);
@@ -36,13 +33,10 @@ test('returns a new unsaved instance when none exists', function () {
     $membership = Membership::factory()->create();
     $service = Service::factory()->create();
 
-    $dto = new ProfessionalServiceAssignmentData(
+    $dto = new ProfessionalServiceLookupData(
         organizationId: $membership->organization_id,
         membershipId: $membership->id,
         serviceId: $service->id,
-        durationMinutes: 30,
-        priceCents: 15000,
-        active: true,
     );
 
     $found = app(FindOrNewProfessionalServiceAction::class)->handle($dto);
@@ -62,13 +56,10 @@ test('does not return a professional service belonging to a different membership
         'service_id' => $service->id,
     ]);
 
-    $dto = new ProfessionalServiceAssignmentData(
+    $dto = new ProfessionalServiceLookupData(
         organizationId: $membership->organization_id,
         membershipId: $membership->id,
         serviceId: $service->id,
-        durationMinutes: 30,
-        priceCents: 15000,
-        active: true,
     );
 
     $found = app(FindOrNewProfessionalServiceAction::class)->handle($dto);

@@ -7,6 +7,7 @@ namespace App\Http\Controllers\Professionals;
 use App\Actions\Professionals\AssignProfessionalServiceAction;
 use App\Actions\Professionals\FindOrNewProfessionalServiceAction;
 use App\Data\Professionals\ProfessionalServiceAssignmentData;
+use App\Data\Professionals\ProfessionalServiceLookupData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Professionals\StoreProfessionalServiceRequest;
 use App\Http\Requests\Professionals\UpdateProfessionalServiceRequest;
@@ -59,7 +60,12 @@ class ProfessionalServiceController extends Controller
         AssignProfessionalServiceAction $action
     ): ProfessionalServiceResource {
         $dto = ProfessionalServiceAssignmentData::fromRequest($request, $membership, $service->id);
-        $professionalService = $this->findOrNew->handle($dto);
+        $lookup = new ProfessionalServiceLookupData(
+            organizationId: $dto->organizationId,
+            membershipId: $dto->membershipId,
+            serviceId: $dto->serviceId,
+        );
+        $professionalService = $this->findOrNew->handle($lookup);
 
         Gate::authorize('update', $professionalService);
 
@@ -70,16 +76,12 @@ class ProfessionalServiceController extends Controller
 
     public function destroy(Membership $membership, Service $service): Response
     {
-        // duration/price/active are unused by FindOrNewProfessionalServiceAction's lookup; reusing the assignment DTO avoids a lookup-only DTO for a route with no request body.
-        $dto = new ProfessionalServiceAssignmentData(
+        $lookup = new ProfessionalServiceLookupData(
             organizationId: $membership->organization_id,
             membershipId: $membership->id,
             serviceId: $service->id,
-            durationMinutes: 0,
-            priceCents: null,
-            active: false,
         );
-        $professionalService = $this->findOrNew->handle($dto);
+        $professionalService = $this->findOrNew->handle($lookup);
 
         Gate::authorize('delete', $professionalService);
 

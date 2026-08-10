@@ -6,16 +6,16 @@ namespace App\Actions\Professionals;
 
 use App\Contracts\Action;
 use App\Contracts\Data;
-use App\Data\Professionals\ProfessionalServiceAssignmentData;
+use App\Data\Professionals\ProfessionalServiceLookupData;
 use App\Models\ProfessionalService;
 
 /**
- * @implements Action<ProfessionalServiceAssignmentData>
+ * @implements Action<ProfessionalServiceLookupData>
  */
 class FindOrNewProfessionalServiceAction implements Action
 {
     /**
-     * @param  ProfessionalServiceAssignmentData  $dto
+     * @param  ProfessionalServiceLookupData  $dto
      */
     public function handle(Data $dto): ProfessionalService
     {
