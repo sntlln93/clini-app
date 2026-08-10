@@ -65,3 +65,15 @@ export function mergeSlotDescription(proposal: MergeProposal): string {
     const lista = absorbed.map(formatRange).join(', ');
     return `Ya tenés ${absorbed.length} horarios ese día (${lista}). Si continuás, quedan combinados en un solo horario de ${mergedRange}.`;
 }
+
+export function mergeExceptionDescription(proposal: MergeProposal): string {
+    const { merged, absorbed } = proposal;
+    const mergedRange = `${merged.start} al ${merged.end}`;
+
+    if (absorbed.length === 1) {
+        const [existing] = absorbed;
+        return `Ya tenés una excepción del mismo tipo del ${existing.start} al ${existing.end}. Si continuás, queda una sola del ${mergedRange}, con el motivo que acabás de ingresar.`;
+    }
+
+    return `Ya tenés ${absorbed.length} excepciones del mismo tipo en ese período. Si continuás, quedan combinadas en una sola del ${mergedRange}, con el motivo que acabás de ingresar.`;
+}

@@ -14,6 +14,7 @@ type AvailabilityExceptionPayload = {
     startAt: string;
     endAt: string;
     reason: string | null;
+    merge?: boolean;
 };
 
 function queryKey(membershipId: number | null) {
@@ -27,6 +28,7 @@ function toRequestBody(payload: AvailabilityExceptionPayload) {
         start_at: payload.startAt,
         end_at: payload.endAt,
         reason: payload.reason,
+        ...(payload.merge ? { merge: true } : {}),
     };
 }
 

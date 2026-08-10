@@ -123,7 +123,7 @@ export function AvailabilityExceptionsSection({
                                                 </Button>
                                             }
                                             title="Eliminar excepción"
-                                            description="¿Eliminar esta excepción? Esta acción no se puede deshacer."
+                                            description="Se quita esta excepción y ese período vuelve a regirse por la disponibilidad semanal habitual."
                                             onConfirm={() =>
                                                 remove.mutate(exception.id)
                                             }
