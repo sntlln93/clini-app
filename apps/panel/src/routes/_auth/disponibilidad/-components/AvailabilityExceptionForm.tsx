@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { AvailabilityException } from '@/types/availability';
 import { useSaveAvailabilityException } from '../-hooks/use-availability-exceptions';
 import { AvailabilityExceptionFields } from './AvailabilityExceptionFields';
@@ -51,17 +51,10 @@ export function AvailabilityExceptionForm({
             });
             onDone();
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
-
-            if (errors.start_at) {
-                form.setError('startAt', { message: errors.start_at });
-            }
-            if (errors.end_at) {
-                form.setError('endAt', { message: errors.end_at });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {
+                start_at: 'startAt',
+                end_at: 'endAt',
+            });
         }
     }
 

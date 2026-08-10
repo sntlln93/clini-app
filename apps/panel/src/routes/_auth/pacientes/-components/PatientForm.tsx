@@ -4,7 +4,7 @@ import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type {
     InsuranceProvider,
     Patient,
@@ -83,18 +83,12 @@ export function PatientForm({ patient, insuranceProviders }: PatientFormProps) {
         try {
             await mutateAsync(values);
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
+            const fields = Object.keys(values) as (keyof PatientPayload)[];
+            const fieldMap = Object.fromEntries(
+                fields.map((field) => [field, field] as const),
+            );
 
-            for (const field of Object.keys(
-                values,
-            ) as (keyof PatientPayload)[]) {
-                if (errors[field]) {
-                    form.setError(field, { message: errors[field] });
-                }
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), fieldMap);
         }
     }
 

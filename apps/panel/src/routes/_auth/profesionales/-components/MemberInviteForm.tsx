@@ -12,7 +12,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { useInviteMember } from '../-hooks/use-invite-member';
 import { MemberRoleFields } from './MemberRoleFields';
 import {
@@ -34,17 +34,10 @@ export function MemberInviteForm() {
         try {
             await mutateAsync(values);
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
-
-            if (errors.email) {
-                form.setError('email', { message: errors.email });
-            }
-            if (errors.roles) {
-                form.setError('roles', { message: errors.roles });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {
+                email: 'email',
+                roles: 'roles',
+            });
         }
     }
 

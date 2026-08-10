@@ -6,7 +6,7 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import type { ErrorCode } from '@/lib/error-codes';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Membership } from '@/types/membership';
 import {
     useDeactivateMembership,
@@ -51,20 +51,11 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
             await mutateAsync(values);
             goToList();
         } catch (error) {
-            const { message, errors } = extractFormErrors(
-                error,
-                UPDATE_MEMBERSHIP_FIELD_MAP,
+            applyFormErrors(
+                form,
+                extractFormErrors(error, UPDATE_MEMBERSHIP_FIELD_MAP),
+                { roles: 'roles', status: 'status' },
             );
-
-            if (errors.roles) {
-                form.setError('roles', { message: errors.roles });
-            }
-            if (errors.status) {
-                form.setError('status', { message: errors.status });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
         }
     }
 

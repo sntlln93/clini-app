@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { AvailableSlot, BookingConfirmation } from '@/types/booking';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
@@ -52,22 +52,13 @@ export function BookingPatientForm({
             });
             onConfirmed(confirmation);
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
-
-            for (const field of [
-                'patient.name',
-                'patient.document_type',
-                'patient.document_number',
-                'patient.email',
-                'patient.phone',
-            ] as const) {
-                if (errors[field]) {
-                    form.setError(field, { message: errors[field] });
-                }
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {
+                'patient.name': 'patient.name',
+                'patient.document_type': 'patient.document_type',
+                'patient.document_number': 'patient.document_number',
+                'patient.email': 'patient.email',
+                'patient.phone': 'patient.phone',
+            });
         }
     }
 

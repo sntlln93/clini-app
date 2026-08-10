@@ -13,7 +13,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { useLogin } from '../-hooks/use-login';
 
 const loginSchema = z.object({
@@ -37,17 +37,10 @@ export function LoginForm() {
         try {
             await mutateAsync(values);
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
-
-            if (errors.email) {
-                form.setError('email', { message: errors.email });
-            }
-            if (errors.password) {
-                form.setError('password', { message: errors.password });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {
+                email: 'email',
+                password: 'password',
+            });
         }
     }
 

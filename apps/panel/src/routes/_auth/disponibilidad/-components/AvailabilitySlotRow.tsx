@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Availability } from '@/types/availability';
 import {
     useDeleteAvailability,
@@ -69,17 +69,10 @@ export function AvailabilitySlotRow({
             });
             onSaved?.();
         } catch (error) {
-            const { message, errors } = extractFormErrors(error);
-
-            if (errors.start_time) {
-                form.setError('startTime', { message: errors.start_time });
-            }
-            if (errors.end_time) {
-                form.setError('endTime', { message: errors.end_time });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {
+                start_time: 'startTime',
+                end_time: 'endTime',
+            });
         }
     }
 
