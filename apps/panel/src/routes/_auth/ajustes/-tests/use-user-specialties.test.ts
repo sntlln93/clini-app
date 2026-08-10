@@ -109,6 +109,7 @@ describe('useToggleUserSpecialty', () => {
 
         expect(invalidateQueries).toHaveBeenCalledWith({
             queryKey: ['user-specialties', USER_ID],
+            refetchType: 'all',
         });
     });
 });

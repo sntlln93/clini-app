@@ -62,6 +62,7 @@ describe('useCreateAppointment', () => {
 
         expect(invalidateQueries).toHaveBeenCalledWith({
             queryKey: ['appointments'],
+            refetchType: 'all',
         });
     });
 
