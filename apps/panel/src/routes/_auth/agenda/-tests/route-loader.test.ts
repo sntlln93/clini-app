@@ -47,6 +47,16 @@ const PROFESSIONALS: Membership[] = [];
 
 function mockApiGet() {
     vi.mocked(api.get).mockImplementation((url: string) => {
+        if (url === '/me') {
+            return Promise.resolve({
+                data: {
+                    id: 1,
+                    name: 'Ana Ejemplo',
+                    email: 'ana@clini.app',
+                    permissions: ['memberships.view'],
+                },
+            });
+        }
         if (url === '/memberships') {
             return Promise.resolve({ data: { data: PROFESSIONALS } });
         }

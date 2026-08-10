@@ -27,7 +27,7 @@ const SESSION = {
     id: 10,
     name: 'Ana Ejemplo',
     email: 'ana@clini.app',
-    permissions: [] as string[],
+    permissions: ['memberships.view'] as string[],
 };
 
 function mockApiGet() {

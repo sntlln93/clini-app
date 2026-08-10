@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { Membership } from '@/types/membership';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 
 export type SessionUser = {
@@ -10,6 +11,9 @@ export type SessionUser = {
     organization?: { id: number; name: string } | null;
     roles?: string[];
     permissions?: string[];
+    // The caller's own membership, same shape as a GET /memberships item.
+    // Absent/null for a user with no active membership.
+    membership?: Membership | null;
 };
 
 export const sessionQueryOptions = queryOptions({
@@ -24,4 +28,11 @@ export const sessionQueryOptions = queryOptions({
 
 export function useSession() {
     return useQuery(sessionQueryOptions);
+}
+
+export function sessionHasPermission(
+    session: SessionUser | undefined,
+    permission: string,
+): boolean {
+    return (session?.permissions ?? []).includes(permission);
 }
