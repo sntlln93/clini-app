@@ -19,7 +19,9 @@ export function professionalsQueryOptions() {
         queryFn: () =>
             api
                 .get<{ data: Membership[] }>('/memberships')
-                .then((response) => response.data.data.filter(isProfessionalMembership)),
+                .then((response) =>
+                    response.data.data.filter(isProfessionalMembership),
+                ),
     });
 }
 
