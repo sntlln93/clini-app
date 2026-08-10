@@ -46,6 +46,7 @@ class AvailabilityController extends Controller
             dayOfWeek: $request->integer('day_of_week'),
             startTime: (string) $request->string('start_time'),
             endTime: (string) $request->string('end_time'),
+            merge: $request->boolean('merge'),
         ));
 
         return (new AvailabilityResource($availability))
@@ -67,6 +68,7 @@ class AvailabilityController extends Controller
             dayOfWeek: $request->integer('day_of_week'),
             startTime: (string) $request->string('start_time'),
             endTime: (string) $request->string('end_time'),
+            merge: $request->boolean('merge'),
         ));
 
         return new AvailabilityResource($updated);
