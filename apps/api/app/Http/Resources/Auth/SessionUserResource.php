@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Auth;
 
 use App\Enums\MembershipStatus;
+use App\Http\Resources\Memberships\MembershipResource;
 use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -39,6 +40,7 @@ class SessionUserResource extends JsonResource
             'permissions' => $membership !== null
                 ? array_map(fn ($permission): string => $permission->value, $membership->permissions())
                 : [],
+            'membership' => $membership !== null ? new MembershipResource($membership) : null,
         ]);
     }
 
@@ -52,10 +54,15 @@ class SessionUserResource extends JsonResource
 
     private function latestActiveMembership(): ?Membership
     {
-        return $this->user()->memberships()
+        $membership = $this->user()->memberships()
             ->where('status', MembershipStatus::Active)
             ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->first();
+
+        // The membership is fetched from the user's own `memberships()` query, so its
+        // inverse `user` relation isn't set — reuse the already-loaded user to avoid a
+        // lazy-loaded query when MembershipResource reads `$membership->user`.
+        return $membership?->setRelation('user', $this->user());
     }
 }

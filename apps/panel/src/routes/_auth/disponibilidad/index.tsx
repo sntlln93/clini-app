@@ -1,6 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
-import { professionalsQueryOptions } from '@/hooks/use-professionals';
+import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import type { Membership } from '@/types/membership';
 import { createFileRoute } from '@tanstack/react-router';
@@ -43,7 +43,7 @@ export const Route = createFileRoute('/_auth/disponibilidad/')({
     loader: async ({ context, deps }) => {
         const [session, professionals] = await Promise.all([
             context.queryClient.ensureQueryData(sessionQueryOptions),
-            context.queryClient.ensureQueryData(professionalsQueryOptions()),
+            ensureScopedProfessionals(context.queryClient),
         ]);
 
         const selectedId =

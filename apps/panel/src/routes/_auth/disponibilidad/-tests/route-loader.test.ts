@@ -21,22 +21,20 @@ function membership(id: number, userId: number): Membership {
     };
 }
 
-const PROFESSIONALS = [membership(1, 10), membership(2, 20)];
+const OWN_MEMBERSHIP = membership(1, 10);
 
-const SESSION = {
-    id: 10,
-    name: 'Ana Ejemplo',
-    email: 'ana@clini.app',
-    permissions: ['memberships.view'] as string[],
-};
-
-function mockApiGet() {
+function mockApiGetWithoutMembershipsView() {
     vi.mocked(api.get).mockImplementation((url: string) => {
         if (url === '/me') {
-            return Promise.resolve({ data: SESSION });
-        }
-        if (url === '/memberships') {
-            return Promise.resolve({ data: { data: PROFESSIONALS } });
+            return Promise.resolve({
+                data: {
+                    id: 10,
+                    name: 'Ana Ejemplo',
+                    email: 'ana@clini.app',
+                    permissions: [],
+                    membership: OWN_MEMBERSHIP,
+                },
+            });
         }
         if (
             url.startsWith('/memberships/') &&
@@ -55,15 +53,18 @@ function mockApiGet() {
 const loader = Route.options.loader as (opts: {
     context: { queryClient: QueryClient };
     deps: { membershipId: number | undefined };
-}) => Promise<{ selectedId: number | undefined }>;
+}) => Promise<{
+    professionals: Membership[];
+    selectedId: number | undefined;
+}>;
 
-describe('/disponibilidad loader defaultMembershipId', () => {
+describe('/disponibilidad loader without memberships.view', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
-        mockApiGet();
+        mockApiGetWithoutMembershipsView();
     });
 
-    it('selects the first professional when the search param is absent', async () => {
+    it("resolves without /memberships and defaults the selected membership to the caller's own", async () => {
         const queryClient = new QueryClient();
 
         const result = await loader({
@@ -71,17 +72,14 @@ describe('/disponibilidad loader defaultMembershipId', () => {
             deps: { membershipId: undefined },
         });
 
-        expect(result).toMatchObject({ selectedId: PROFESSIONALS[0].id });
-    });
-
-    it('respects the search param when it matches an existing professional', async () => {
-        const queryClient = new QueryClient();
-
-        const result = await loader({
-            context: { queryClient },
-            deps: { membershipId: PROFESSIONALS[1].id },
+        expect(
+            vi
+                .mocked(api.get)
+                .mock.calls.some(([url]) => url === '/memberships'),
+        ).toBe(false);
+        expect(result).toMatchObject({
+            professionals: [OWN_MEMBERSHIP],
+            selectedId: OWN_MEMBERSHIP.id,
         });
-
-        expect(result).toMatchObject({ selectedId: PROFESSIONALS[1].id });
     });
 });

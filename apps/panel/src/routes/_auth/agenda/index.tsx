@@ -1,7 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
-import { professionalsQueryOptions } from '@/hooks/use-professionals';
+import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -85,7 +85,7 @@ export const Route = createFileRoute('/_auth/agenda/')({
         );
 
         const [professionals, appointments] = await Promise.all([
-            context.queryClient.ensureQueryData(professionalsQueryOptions()),
+            ensureScopedProfessionals(context.queryClient),
             context.queryClient.ensureQueryData(
                 appointmentsQueryOptions({
                     from: start.toISOString(),
