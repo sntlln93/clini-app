@@ -38,6 +38,16 @@ class MembershipController extends Controller
         return MembershipResource::collection($memberships);
     }
 
+    public function show(string $membership): MembershipResource
+    {
+        // Resolved manually (not implicit-bound) so soft-deleted memberships stay editable.
+        $membership = Membership::withTrashed()->with('user')->findOrFail($membership);
+
+        Gate::authorize('view', $membership);
+
+        return new MembershipResource($membership);
+    }
+
     public function update(
         UpdateMembershipRequest $request,
         Membership $membership,
