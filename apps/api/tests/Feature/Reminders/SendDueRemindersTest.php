@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
 use App\Enums\ReminderStatus;
-use App\Mail\Appointments\AppointmentReminderMail;
+use App\Jobs\Appointments\SendAppointmentReminderJob;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Reminder;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Queue;
 
-test('a due pending reminder sends the reminder mail and is marked sent', function () {
-    Mail::fake();
+test('a due pending reminder is marked queued and dispatches the send job', function () {
+    Queue::fake();
 
     $patient = Patient::factory()->create(['email' => 'patient@example.com']);
     $appointment = Appointment::factory()->create([
@@ -27,15 +27,15 @@ test('a due pending reminder sends the reminder mail and is marked sent', functi
 
     $this->artisan('reminders:send-due')->assertSuccessful();
 
-    Mail::assertSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('patient@example.com'));
+    Queue::assertPushed(SendAppointmentReminderJob::class, fn (SendAppointmentReminderJob $job) => $job->reminder->is($reminder));
 
     $reminder->refresh();
-    expect($reminder->status)->toBe(ReminderStatus::Sent);
-    expect($reminder->sent_at)->not->toBeNull();
+    expect($reminder->status)->toBe(ReminderStatus::Queued);
+    expect($reminder->sent_at)->toBeNull();
 });
 
 test('a pending reminder scheduled in the future is left untouched', function () {
-    Mail::fake();
+    Queue::fake();
 
     $patient = Patient::factory()->create(['email' => 'patient@example.com']);
     $appointment = Appointment::factory()->create([
@@ -51,12 +51,12 @@ test('a pending reminder scheduled in the future is left untouched', function ()
 
     $this->artisan('reminders:send-due')->assertSuccessful();
 
-    Mail::assertNothingSent();
+    Queue::assertNotPushed(SendAppointmentReminderJob::class);
     expect($reminder->fresh()->status)->toBe(ReminderStatus::Pending);
 });
 
-test('a reminder already sent or failed is never reprocessed', function (ReminderStatus $status) {
-    Mail::fake();
+test('a reminder already queued, sent or failed is never reprocessed', function (ReminderStatus $status) {
+    Queue::fake();
 
     $patient = Patient::factory()->create(['email' => 'patient@example.com']);
     $appointment = Appointment::factory()->create([
@@ -74,7 +74,7 @@ test('a reminder already sent or failed is never reprocessed', function (Reminde
 
     $this->artisan('reminders:send-due')->assertSuccessful();
 
-    Mail::assertNothingSent();
+    Queue::assertNotPushed(SendAppointmentReminderJob::class);
     expect($reminder->fresh()->status)->toBe($status);
 
     if ($status === ReminderStatus::Sent) {
@@ -83,12 +83,13 @@ test('a reminder already sent or failed is never reprocessed', function (Reminde
         expect($reminder->fresh()->sent_at)->toBeNull();
     }
 })->with([
+    'queued' => ReminderStatus::Queued,
     'sent' => ReminderStatus::Sent,
     'failed' => ReminderStatus::Failed,
 ]);
 
-test('a due reminder whose appointment is no longer active is deleted without sending mail', function (AppointmentStatus $status) {
-    Mail::fake();
+test('a due reminder whose appointment is no longer active is deleted without dispatching a job', function (AppointmentStatus $status) {
+    Queue::fake();
 
     $patient = Patient::factory()->create(['email' => 'patient@example.com']);
     $appointment = Appointment::factory()->create([
@@ -104,58 +105,15 @@ test('a due reminder whose appointment is no longer active is deleted without se
 
     $this->artisan('reminders:send-due')->assertSuccessful();
 
-    Mail::assertNothingSent();
+    Queue::assertNotPushed(SendAppointmentReminderJob::class);
     expect(Reminder::query()->find($reminder->id))->toBeNull();
 })->with([
     'cancelled' => AppointmentStatus::Cancelled,
     'rescheduled' => AppointmentStatus::Rescheduled,
 ]);
 
-test('a reminder whose send throws is marked failed while the rest of the batch still gets processed', function () {
-    $failingPatient = Patient::factory()->create(['email' => 'failing@example.com']);
-    $okPatient = Patient::factory()->create(['email' => 'ok@example.com']);
-
-    $failingAppointment = Appointment::factory()->create([
-        'patient_id' => $failingPatient->id,
-        'status' => AppointmentStatus::Scheduled,
-    ]);
-    $okAppointment = Appointment::factory()->create([
-        'patient_id' => $okPatient->id,
-        'status' => AppointmentStatus::Scheduled,
-    ]);
-
-    $failingReminder = Reminder::factory()->create([
-        'organization_id' => $failingAppointment->organization_id,
-        'appointment_id' => $failingAppointment->id,
-        'status' => ReminderStatus::Pending,
-        'scheduled_at' => now()->subHour(),
-    ]);
-    $okReminder = Reminder::factory()->create([
-        'organization_id' => $okAppointment->organization_id,
-        'appointment_id' => $okAppointment->id,
-        'status' => ReminderStatus::Pending,
-        'scheduled_at' => now()->subHour(),
-    ]);
-
-    $failingPending = Mockery::mock();
-    $failingPending->shouldReceive('send')->once()->andThrow(new RuntimeException('smtp down'));
-
-    $okPending = Mockery::mock();
-    $okPending->shouldReceive('send')->once()->andReturnNull();
-
-    Mail::shouldReceive('to')->once()->with('failing@example.com')->andReturn($failingPending);
-    Mail::shouldReceive('to')->once()->with('ok@example.com')->andReturn($okPending);
-
-    $this->artisan('reminders:send-due')->assertSuccessful();
-
-    expect($failingReminder->fresh()->status)->toBe(ReminderStatus::Failed);
-    expect($failingReminder->fresh()->sent_at)->toBeNull();
-    expect($okReminder->fresh()->status)->toBe(ReminderStatus::Sent);
-    expect($okReminder->fresh()->sent_at)->not->toBeNull();
-});
-
 test('the command processes due reminders across different organizations in a single run', function () {
-    Mail::fake();
+    Queue::fake();
 
     $patientA = Patient::factory()->create(['email' => 'org-a@example.com']);
     $appointmentA = Appointment::factory()->create([
@@ -185,10 +143,10 @@ test('the command processes due reminders across different organizations in a si
 
     $this->artisan('reminders:send-due')->assertSuccessful();
 
-    Mail::assertSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('org-a@example.com'));
-    Mail::assertSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('org-b@example.com'));
-    Mail::assertSentCount(2);
+    Queue::assertPushed(SendAppointmentReminderJob::class, fn (SendAppointmentReminderJob $job) => $job->reminder->is($reminderA));
+    Queue::assertPushed(SendAppointmentReminderJob::class, fn (SendAppointmentReminderJob $job) => $job->reminder->is($reminderB));
+    Queue::assertPushed(SendAppointmentReminderJob::class, 2);
 
-    expect($reminderA->fresh()->status)->toBe(ReminderStatus::Sent);
-    expect($reminderB->fresh()->status)->toBe(ReminderStatus::Sent);
+    expect($reminderA->fresh()->status)->toBe(ReminderStatus::Queued);
+    expect($reminderB->fresh()->status)->toBe(ReminderStatus::Queued);
 });
