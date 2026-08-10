@@ -1,16 +1,23 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { AvailabilityException } from '@/types/availability';
 import { useSaveAvailabilityException } from '../-hooks/use-availability-exceptions';
-import { AvailabilityExceptionFields } from './AvailabilityExceptionFields';
+import {
+    mergeExceptionDescription,
+    readMergeProposal,
+    type MergeProposal,
+} from './availability-merge';
 import {
     availabilityExceptionSchema,
     type AvailabilityExceptionFormValues,
 } from './availability-schemas';
+import { AvailabilityExceptionFields } from './AvailabilityExceptionFields';
 
 type AvailabilityExceptionFormProps = {
     membershipId: number;
@@ -39,7 +46,15 @@ export function AvailabilityExceptionForm({
         },
     });
 
-    async function onSubmit(values: AvailabilityExceptionFormValues) {
+    const [pendingMerge, setPendingMerge] = useState<{
+        proposal: MergeProposal;
+        values: AvailabilityExceptionFormValues;
+    } | null>(null);
+
+    async function submit(
+        values: AvailabilityExceptionFormValues,
+        merge: boolean,
+    ) {
         try {
             await mutateAsync({
                 id: exception?.id,
@@ -48,9 +63,22 @@ export function AvailabilityExceptionForm({
                 startAt: values.startAt,
                 endAt: values.endAt,
                 reason: values.reason || null,
+                merge,
             });
+            setPendingMerge(null);
             onDone();
         } catch (error) {
+            if (!merge) {
+                const proposal = readMergeProposal(
+                    error,
+                    'availability.exception_merge_required',
+                );
+                if (proposal) {
+                    setPendingMerge({ proposal, values });
+                    return;
+                }
+            }
+            setPendingMerge(null);
             applyFormErrors(form, extractFormErrors(error), {
                 start_at: 'startAt',
                 end_at: 'endAt',
@@ -61,7 +89,7 @@ export function AvailabilityExceptionForm({
     return (
         <Form {...form}>
             <form
-                onSubmit={form.handleSubmit(onSubmit)}
+                onSubmit={form.handleSubmit((values) => submit(values, false))}
                 className="space-y-2 rounded-md border p-3"
             >
                 <AvailabilityExceptionFields
@@ -93,6 +121,23 @@ export function AvailabilityExceptionForm({
                     </Button>
                 </div>
             </form>
+
+            <ConfirmDialog
+                open={pendingMerge !== null}
+                onOpenChange={(open) => !open && setPendingMerge(null)}
+                title="Combinar excepciones"
+                description={
+                    pendingMerge
+                        ? mergeExceptionDescription(pendingMerge.proposal)
+                        : ''
+                }
+                confirmLabel="Combinar"
+                cancelLabel="Cancelar"
+                onConfirm={() =>
+                    pendingMerge && void submit(pendingMerge.values, true)
+                }
+                isPending={isPending}
+            />
         </Form>
     );
 }

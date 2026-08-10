@@ -9,3 +9,10 @@ parameters:
 
     # Level 10 is the highest level
     level: 9
+
+    # Larastan defaults to only reading the legacy `protected $casts` property;
+    # every model here declares casts via the `casts(): array` method (Laravel
+    # 11+ style), so without this flag Larastan can't type attributes like a
+    # `datetime` or backed-enum cast and silently falls back to the raw DB
+    # column type instead.
+    parseModelCastsMethod: true

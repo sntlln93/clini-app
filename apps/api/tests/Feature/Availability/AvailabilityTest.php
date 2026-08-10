@@ -79,7 +79,7 @@ test('store with day_of_week 7 or -1 returns 422', function () {
     ])->assertStatus(422)->assertJsonValidationErrors('day_of_week');
 });
 
-test('store with a slot overlapping an existing slot of the same membership and day returns 422', function () {
+test('store with a slot overlapping an existing slot of the same membership and day returns 409 merge_required', function () {
     $membership = Membership::factory()->create();
     Availability::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -89,14 +89,20 @@ test('store with a slot overlapping an existing slot of the same membership and 
         'end_time' => '12:00:00',
     ]);
 
-    $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
         'day_of_week' => 1,
         'start_time' => '11:00',
         'end_time' => '13:00',
-    ])->assertStatus(422)->assertJsonValidationErrors('end_time');
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.slot_merge_required');
+    $response->assertJsonPath('error.context.merged', ['start' => '09:00', 'end' => '13:00']);
+    $response->assertJsonPath('error.context.absorbed', [['start' => '09:00', 'end' => '12:00']]);
+    expect(DB::table('availabilities')->where('membership_id', $membership->id)->count())->toBe(1);
 });
 
-test('store with a slot only touching an existing one at the boundary succeeds', function () {
+test('store with a slot only touching an existing one at the boundary returns 409 merge_required', function () {
     $membership = Membership::factory()->create();
     Availability::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -106,11 +112,68 @@ test('store with a slot only touching an existing one at the boundary succeeds',
         'end_time' => '12:00:00',
     ]);
 
-    $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
         'day_of_week' => 1,
         'start_time' => '12:00',
         'end_time' => '14:00',
-    ])->assertCreated();
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.slot_merge_required');
+    $response->assertJsonPath('error.context.merged', ['start' => '09:00', 'end' => '14:00']);
+});
+
+test('store with merge true collapses an overlapping and adjacent slot into a single union row', function () {
+    $membership = Membership::factory()->create();
+    Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+    Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '12:00:00',
+        'end_time' => '14:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
+        'day_of_week' => 1,
+        'start_time' => '11:00',
+        'end_time' => '13:00',
+        'merge' => true,
+    ]);
+
+    $response->assertCreated();
+    $rows = DB::table('availabilities')->where('membership_id', $membership->id)->where('day_of_week', 1)->get();
+    expect($rows)->toHaveCount(1);
+    expect($rows->first()->start_time)->toBe('09:00:00');
+    expect($rows->first()->end_time)->toBe('14:00:00');
+});
+
+test('store with a slot fully contained within an existing one returns 409 already_covered and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/availabilities", [
+        'day_of_week' => 1,
+        'start_time' => '10:00',
+        'end_time' => '11:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.slot_already_covered');
+    $response->assertJsonPath('error.context.covering', ['start' => '09:00', 'end' => '12:00']);
+    expect(DB::table('availabilities')->where('membership_id', $membership->id)->count())->toBe(1);
 });
 
 test('store with a slot overlapping in clock time but on a different day_of_week succeeds', function () {
@@ -334,4 +397,108 @@ test('a guest gets 401 on index, store, update and destroy', function () {
         'end_time' => '12:00',
     ])->assertStatus(401);
     $this->deleteJson("/api/v1/availabilities/{$availability->id}")->assertStatus(401);
+});
+
+test('update of a slot to a range overlapping another slot of the same membership and day returns 409 merge_required and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    $updated = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+    $other = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '13:00:00',
+        'end_time' => '15:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availabilities/{$updated->id}", [
+        'day_of_week' => 1,
+        'start_time' => '14:00',
+        'end_time' => '16:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.slot_merge_required');
+    $response->assertJsonPath('error.context.merged', ['start' => '13:00', 'end' => '16:00']);
+    $response->assertJsonPath('error.context.absorbed', [['start' => '13:00', 'end' => '15:00']]);
+
+    $updatedRow = DB::table('availabilities')->where('id', $updated->id)->first();
+    expect($updatedRow->start_time)->toBe('09:00:00');
+    expect($updatedRow->end_time)->toBe('12:00:00');
+    $otherRow = DB::table('availabilities')->where('id', $other->id)->first();
+    expect($otherRow->start_time)->toBe('13:00:00');
+    expect($otherRow->end_time)->toBe('15:00:00');
+});
+
+test('update of a slot with merge true collapses it with another overlapping slot into a single union row', function () {
+    $membership = Membership::factory()->create();
+    $updated = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+    $other = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '13:00:00',
+        'end_time' => '15:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availabilities/{$updated->id}", [
+        'day_of_week' => 1,
+        'start_time' => '14:00',
+        'end_time' => '16:00',
+        'merge' => true,
+    ]);
+
+    $response->assertOk();
+    $rows = DB::table('availabilities')->where('membership_id', $membership->id)->where('day_of_week', 1)->get();
+    expect($rows)->toHaveCount(1);
+    expect($rows->first()->id)->toBe($updated->id);
+    expect($rows->first()->start_time)->toBe('13:00:00');
+    expect($rows->first()->end_time)->toBe('16:00:00');
+    expect(DB::table('availabilities')->where('id', $other->id)->exists())->toBeFalse();
+});
+
+test('update of a slot to a range fully contained within another slot of the same membership and day returns 409 already_covered and changes nothing', function () {
+    $membership = Membership::factory()->create();
+    $updated = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '10:00:00',
+    ]);
+    $other = Availability::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '13:00:00',
+        'end_time' => '17:00:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->patchJson("/api/v1/availabilities/{$updated->id}", [
+        'day_of_week' => 1,
+        'start_time' => '14:00',
+        'end_time' => '15:00',
+    ]);
+
+    $response->assertStatus(409);
+    $response->assertJsonPath('error.code', 'availability.slot_already_covered');
+    $response->assertJsonPath('error.context.covering', ['start' => '13:00', 'end' => '17:00']);
+
+    $updatedRow = DB::table('availabilities')->where('id', $updated->id)->first();
+    expect($updatedRow->start_time)->toBe('09:00:00');
+    expect($updatedRow->end_time)->toBe('10:00:00');
+    $otherRow = DB::table('availabilities')->where('id', $other->id)->first();
+    expect($otherRow->start_time)->toBe('13:00:00');
+    expect($otherRow->end_time)->toBe('17:00:00');
 });

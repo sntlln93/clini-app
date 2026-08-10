@@ -15,6 +15,7 @@ final readonly class AvailabilitySlotData implements Data
         public int $dayOfWeek,
         public string $startTime,
         public string $endTime,
+        public bool $merge,
     ) {}
 
     /**
@@ -29,6 +30,7 @@ final readonly class AvailabilitySlotData implements Data
             'dayOfWeek' => $this->dayOfWeek,
             'startTime' => $this->startTime,
             'endTime' => $this->endTime,
+            'merge' => $this->merge,
         ];
     }
 }

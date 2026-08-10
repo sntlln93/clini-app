@@ -15,7 +15,12 @@ export type ErrorCode =
     | 'booking.slot_not_available'
     | 'memberships.slug_invalid_format'
     | 'memberships.slug_taken'
-    | 'memberships.slug_not_allowed_for_role';
+    | 'memberships.slug_not_allowed_for_role'
+    | 'availability.slot_merge_required'
+    | 'availability.slot_already_covered'
+    | 'availability.exception_merge_required'
+    | 'availability.exception_already_covered'
+    | 'availability.exception_type_conflict';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -46,6 +51,16 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'memberships.slug_taken': 'Ese link ya está en uso. Probá con otro.',
     'memberships.slug_not_allowed_for_role':
         'Solo los profesionales pueden tener un link público.',
+    'availability.slot_merge_required':
+        'Ese horario se combina con otro ya cargado para ese día. Confirmá la combinación para continuar.',
+    'availability.slot_already_covered':
+        'Ese horario ya está incluido en otro que cargaste para ese día. No hace falta agregarlo.',
+    'availability.exception_merge_required':
+        'Esa excepción se combina con otra del mismo tipo. Confirmá la combinación para continuar.',
+    'availability.exception_already_covered':
+        'Ese período ya está incluido en otra excepción del mismo tipo. No hace falta agregarlo.',
+    'availability.exception_type_conflict':
+        'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

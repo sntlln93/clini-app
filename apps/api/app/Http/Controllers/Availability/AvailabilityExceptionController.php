@@ -57,6 +57,7 @@ class AvailabilityExceptionController extends Controller
             startAt: (string) $request->string('start_at'),
             endAt: (string) $request->string('end_at'),
             reason: $request->filled('reason') ? (string) $request->string('reason') : null,
+            merge: $request->boolean('merge'),
         ));
 
         return (new AvailabilityExceptionResource($availabilityException))
@@ -79,6 +80,7 @@ class AvailabilityExceptionController extends Controller
             startAt: (string) $request->string('start_at'),
             endAt: (string) $request->string('end_at'),
             reason: $request->filled('reason') ? (string) $request->string('reason') : null,
+            merge: $request->boolean('merge'),
         ));
 
         return new AvailabilityExceptionResource($updated);

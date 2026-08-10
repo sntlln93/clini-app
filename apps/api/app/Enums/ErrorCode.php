@@ -23,4 +23,9 @@ enum ErrorCode: string
     case MembershipsSlugInvalidFormat = 'memberships.slug_invalid_format';
     case MembershipsSlugTaken = 'memberships.slug_taken';
     case MembershipsSlugNotAllowedForRole = 'memberships.slug_not_allowed_for_role';
+    case AvailabilitySlotMergeRequired = 'availability.slot_merge_required';
+    case AvailabilitySlotAlreadyCovered = 'availability.slot_already_covered';
+    case AvailabilityExceptionMergeRequired = 'availability.exception_merge_required';
+    case AvailabilityExceptionAlreadyCovered = 'availability.exception_already_covered';
+    case AvailabilityExceptionTypeConflict = 'availability.exception_type_conflict';
 }
