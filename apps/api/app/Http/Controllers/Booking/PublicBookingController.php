@@ -39,7 +39,7 @@ class PublicBookingController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $organization = $this->currentOrganization();
+        $organization = Organization::findOrFail((int) app(CurrentOrganization::class)->get());
         $preselectedMembershipId = $request->attributes->has('public_membership_id')
             ? $request->attributes->getInt('public_membership_id')
             : null;
@@ -83,7 +83,7 @@ class PublicBookingController extends Controller
 
     public function slots(SlotSearchRequest $request, ListAvailableSlotsAction $action): AnonymousResourceCollection
     {
-        $organization = $this->currentOrganization();
+        $organization = Organization::findOrFail((int) app(CurrentOrganization::class)->get());
 
         $slots = $action->handle(new SlotSearchData(
             organizationId: $organization->id,
@@ -98,7 +98,7 @@ class PublicBookingController extends Controller
 
     public function store(StoreOnlineBookingRequest $request, BookOnlineAppointmentAction $action): JsonResponse
     {
-        $organization = $this->currentOrganization();
+        $organization = Organization::findOrFail((int) app(CurrentOrganization::class)->get());
 
         $appointment = $action->handle(new OnlineBookingData(
             organizationId: $organization->id,
@@ -115,15 +115,5 @@ class PublicBookingController extends Controller
         return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization'])))
             ->response()
             ->setStatusCode(201);
-    }
-
-    /**
-     * ResolvePublicOrganization always sets a current organization before
-     * reaching here (404s otherwise), so the nullable getter is safely
-     * narrowed with a cast, as in AvailabilityExceptionController::store().
-     */
-    private function currentOrganization(): Organization
-    {
-        return Organization::findOrFail((int) app(CurrentOrganization::class)->get());
     }
 }

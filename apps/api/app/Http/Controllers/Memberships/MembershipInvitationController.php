@@ -40,23 +40,9 @@ class MembershipInvitationController extends Controller
         $rawRoles = $request->validated('roles');
 
         return new MembershipInvitationData(
-            organizationId: $this->currentOrganizationId(),
+            organizationId: app(CurrentOrganization::class)->getOrFail(),
             email: $request->string('email')->toString(),
             roles: array_map(static fn (string $role): MembershipRole => MembershipRole::from($role), $rawRoles),
         );
-    }
-
-    /**
-     * The `organization` middleware (ResolveCurrentOrganization) always sets an active organization before reaching here (aborts 403 otherwise), so this narrows the nullable getter to a definite int.
-     */
-    private function currentOrganizationId(): int
-    {
-        $organizationId = app(CurrentOrganization::class)->get();
-
-        if ($organizationId === null) {
-            abort(403);
-        }
-
-        return $organizationId;
     }
 }

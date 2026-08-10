@@ -173,8 +173,7 @@ test('no generic exceptions or abort() are used outside the allowed defensive si
 
     $allowedAbortSites = [
         'Http/Middleware/ResolveCurrentOrganization.php',
-        'Http/Controllers/Patients/PatientController.php',
-        'Http/Controllers/Memberships/MembershipInvitationController.php',
+        'Support/CurrentOrganization.php',
         'Http/Controllers/Memberships/InvitationAcceptanceController.php',
     ];
 
