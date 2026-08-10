@@ -21,7 +21,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import { useCancelAppointment } from '../-hooks/use-appointments';
 import { cancelSchema, type CancelFormValues } from './appointment-schemas';
@@ -75,11 +75,7 @@ export function CancelAppointmentDialog({
             });
             onOpenChange(false);
         } catch (error) {
-            const { message } = extractFormErrors(error);
-
-            if (message) {
-                form.setError('root', { message });
-            }
+            applyFormErrors(form, extractFormErrors(error), {});
         }
     }
 

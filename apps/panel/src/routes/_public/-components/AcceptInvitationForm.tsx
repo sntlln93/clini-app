@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { mapToAppError } from '@/lib/api-errors';
 import { messageForAppError } from '@/lib/error-codes';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     useAcceptInvitation,
     useInvitationInfo,
@@ -68,18 +68,14 @@ export function AcceptInvitationForm({ token }: AcceptInvitationFormProps) {
         try {
             await mutateAsync(requiresRegistration ? values : {});
         } catch (submitError) {
-            const { message, errors } = extractFormErrors(submitError);
-
-            for (const field of Object.keys(
+            const fields = Object.keys(
                 values,
-            ) as (keyof AcceptInvitationFormValues)[]) {
-                if (errors[field]) {
-                    form.setError(field, { message: errors[field] });
-                }
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
+            ) as (keyof AcceptInvitationFormValues)[];
+            const fieldMap = Object.fromEntries(
+                fields.map((field) => [field, field] as const),
+            );
+
+            applyFormErrors(form, extractFormErrors(submitError), fieldMap);
         }
     }
 

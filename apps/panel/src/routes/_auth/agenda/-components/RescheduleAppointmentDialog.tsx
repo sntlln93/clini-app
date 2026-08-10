@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import type { ErrorCode } from '@/lib/error-codes';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import { useRescheduleAppointment } from '../-hooks/use-appointments';
 import {
@@ -85,17 +85,11 @@ export function RescheduleAppointmentDialog({
             });
             onOpenChange(false);
         } catch (error) {
-            const { message, errors } = extractFormErrors(
-                error,
-                RESCHEDULE_FIELD_MAP,
+            applyFormErrors(
+                form,
+                extractFormErrors(error, RESCHEDULE_FIELD_MAP),
+                { start_at: 'time' },
             );
-
-            if (errors.start_at) {
-                form.setError('time', { message: errors.start_at });
-            }
-            if (message) {
-                form.setError('root', { message });
-            }
         }
     }
 

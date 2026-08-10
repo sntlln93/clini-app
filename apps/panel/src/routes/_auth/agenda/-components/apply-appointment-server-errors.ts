@@ -1,5 +1,5 @@
 import type { ErrorCode } from '@/lib/error-codes';
-import { extractFormErrors } from '@/lib/form-errors';
+import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { UseFormReturn } from 'react-hook-form';
 import type { AppointmentFormValues } from './appointment-schemas';
 
@@ -13,27 +13,15 @@ export function applyAppointmentServerErrors(
     form: UseFormReturn<AppointmentFormValues>,
     error: unknown,
 ) {
-    const { message, errors } = extractFormErrors(
-        error,
-        CREATE_APPOINTMENT_FIELD_MAP,
+    applyFormErrors(
+        form,
+        extractFormErrors(error, CREATE_APPOINTMENT_FIELD_MAP),
+        {
+            membership_id: 'membershipId',
+            service_id: 'serviceId',
+            patient_id: 'patientId',
+            start_at: 'time',
+            reason: 'reason',
+        },
     );
-
-    if (errors.membership_id) {
-        form.setError('membershipId', { message: errors.membership_id });
-    }
-    if (errors.service_id) {
-        form.setError('serviceId', { message: errors.service_id });
-    }
-    if (errors.patient_id) {
-        form.setError('patientId', { message: errors.patient_id });
-    }
-    if (errors.start_at) {
-        form.setError('time', { message: errors.start_at });
-    }
-    if (errors.reason) {
-        form.setError('reason', { message: errors.reason });
-    }
-    if (message) {
-        form.setError('root', { message });
-    }
 }
