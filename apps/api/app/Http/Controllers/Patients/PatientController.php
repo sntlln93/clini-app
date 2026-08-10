@@ -27,7 +27,7 @@ class PatientController extends Controller
     {
         Gate::authorize('viewAny', Patient::class);
 
-        $organizationId = $this->currentOrganizationId();
+        $organizationId = app(CurrentOrganization::class)->getOrFail();
         $perPage = $request->integer('per_page') ?: 15;
 
         $patients = Patient::query()
@@ -45,7 +45,7 @@ class PatientController extends Controller
     {
         Gate::authorize('create', Patient::class);
 
-        $organizationId = $this->currentOrganizationId();
+        $organizationId = app(CurrentOrganization::class)->getOrFail();
 
         $dto = new PatientRegistrationData(
             organizationId: $organizationId,
@@ -99,17 +99,5 @@ class PatientController extends Controller
         }
 
         return new PatientResource($patient);
-    }
-
-    // The `organization` middleware always sets an active organization before a request reaches here (it aborts 403 otherwise), so this narrows the nullable getter to a definite int.
-    private function currentOrganizationId(): int
-    {
-        $organizationId = app(CurrentOrganization::class)->get();
-
-        if ($organizationId === null) {
-            abort(403);
-        }
-
-        return $organizationId;
     }
 }

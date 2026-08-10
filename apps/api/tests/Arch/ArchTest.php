@@ -70,6 +70,10 @@ arch('controllers do not touch the database facade')
     ->expect('App\Http\Controllers')
     ->not->toUse('Illuminate\Support\Facades\DB');
 
+arch('controllers do not have private methods')
+    ->expect('App\Http\Controllers')
+    ->not->toHavePrivateMethods();
+
 // Content scan, not an arch() expectation: Arch can only see imports/types, not $request->validate() calls.
 test('controllers do not validate inline', function () {
     $controllersDir = dirname(__DIR__, 2).'/app/Http/Controllers';
@@ -173,8 +177,7 @@ test('no generic exceptions or abort() are used outside the allowed defensive si
 
     $allowedAbortSites = [
         'Http/Middleware/ResolveCurrentOrganization.php',
-        'Http/Controllers/Patients/PatientController.php',
-        'Http/Controllers/Memberships/MembershipInvitationController.php',
+        'Support/CurrentOrganization.php',
         'Http/Controllers/Memberships/InvitationAcceptanceController.php',
     ];
 

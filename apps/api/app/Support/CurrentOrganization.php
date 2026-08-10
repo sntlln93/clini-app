@@ -28,4 +28,16 @@ class CurrentOrganization
     {
         return $this->id !== null;
     }
+
+    // The `organization` middleware always sets an active organization before a request reaches a guarded route (it aborts 403 otherwise), so this narrows the nullable getter to a definite int.
+    public function getOrFail(): int
+    {
+        $id = $this->get();
+
+        if ($id === null) {
+            abort(403);
+        }
+
+        return $id;
+    }
 }

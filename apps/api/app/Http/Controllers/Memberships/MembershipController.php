@@ -45,7 +45,7 @@ class MembershipController extends Controller
     ): MembershipResource {
         Gate::authorize('update', $membership);
 
-        $updated = $action->handle($this->dtoFrom($request, $membership));
+        $updated = $action->handle(MembershipUpdateData::fromRequest($request, $membership));
 
         return new MembershipResource($updated->load('user'));
     }
@@ -67,20 +67,5 @@ class MembershipController extends Controller
         ));
 
         return response()->noContent();
-    }
-
-    private function dtoFrom(UpdateMembershipRequest $request, Membership $membership): MembershipUpdateData
-    {
-        /** @var array<int, string> $rawRoles */
-        $rawRoles = $request->validated('roles');
-
-        /** @var string $rawStatus */
-        $rawStatus = $request->validated('status');
-
-        return new MembershipUpdateData(
-            membershipId: $membership->id,
-            roles: array_map(static fn (string $role): MembershipRole => MembershipRole::from($role), $rawRoles),
-            status: MembershipStatus::from($rawStatus),
-        );
     }
 }
