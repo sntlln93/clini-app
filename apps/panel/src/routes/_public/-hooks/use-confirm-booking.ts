@@ -1,18 +1,14 @@
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import type {
     BookingConfirmation,
     OnlineBookingPayload,
 } from '@/types/booking';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from '@tanstack/react-router';
+import { useMutation } from '@tanstack/react-query';
 
-/**
- * The user stays on the page after submit, so `router.invalidate()` runs
- * alongside `invalidateQueries` (ADR 0007).
- */
+/** The user stays on the page after submit, so the loader-fed slots list must refresh (ADR 0007). */
 export function useConfirmBooking(slug: string) {
-    const queryClient = useQueryClient();
-    const router = useRouter();
+    const refreshPageData = useRefreshPageData();
 
     return useMutation({
         mutationFn: (payload: OnlineBookingPayload) =>
@@ -33,11 +29,6 @@ export function useConfirmBooking(slug: string) {
                     },
                 )
                 .then((response) => response.data.data),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: ['booking', slug, 'slots'],
-            });
-            void router.invalidate();
-        },
+        onSuccess: () => refreshPageData(['booking', slug, 'slots']),
     });
 }
