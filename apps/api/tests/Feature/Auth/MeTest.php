@@ -61,3 +61,28 @@ test('with two active memberships, /me reflects the same organization the middle
 
     $response->assertOk()->assertJsonPath('organization.id', $newer->organization_id);
 });
+
+test('a professional (without memberships.view) still gets their own membership on /me', function () {
+    $membership = Membership::factory()->professional()->create();
+    $user = $membership->user;
+
+    $response = $this->actingAs($user)->getJson('/api/v1/me');
+
+    $response->assertOk()
+        ->assertJsonPath('membership.id', $membership->id)
+        ->assertJsonPath('membership.slug', $membership->slug)
+        ->assertJsonPath('membership.user.name', $user->name);
+
+    expect($response->json('permissions'))->not->toContain('memberships.view');
+});
+
+test('a user with no active membership gets a null membership on /me', function () {
+    $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->getJson('/api/v1/me');
+
+    $response->assertOk()
+        ->assertJsonPath('membership', null)
+        ->assertJsonPath('roles', [])
+        ->assertJsonPath('permissions', []);
+});

@@ -109,3 +109,61 @@ describe('/agenda loader date range', () => {
         });
     });
 });
+
+function membership(id: number, userId: number): Membership {
+    return {
+        id,
+        user: { id: userId, name: `User ${userId}`, email: null },
+        roles: ['professional'],
+        status: 'active',
+        slug: null,
+        deleted_at: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+    };
+}
+
+const OWN_MEMBERSHIP = membership(1, 10);
+
+function mockApiGetWithoutMembershipsView() {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+        if (url === '/me') {
+            return Promise.resolve({
+                data: {
+                    id: 10,
+                    name: 'Ana Ejemplo',
+                    email: 'ana@clini.app',
+                    permissions: [],
+                    membership: OWN_MEMBERSHIP,
+                },
+            });
+        }
+        if (url === '/appointments') {
+            return Promise.resolve({ data: { data: [] } });
+        }
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+}
+
+describe('/agenda loader without memberships.view', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        mockApiGetWithoutMembershipsView();
+    });
+
+    it("resolves without /memberships and degrades professionals to the caller's own membership", async () => {
+        const queryClient = new QueryClient();
+
+        const result = await loader({
+            context: { queryClient },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+
+        expect(
+            vi
+                .mocked(api.get)
+                .mock.calls.some(([url]) => url === '/memberships'),
+        ).toBe(false);
+        expect(result).toMatchObject({ professionals: [OWN_MEMBERSHIP] });
+    });
+});
