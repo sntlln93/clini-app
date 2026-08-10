@@ -167,3 +167,51 @@ describe('/agenda loader without memberships.view', () => {
         expect(result).toMatchObject({ professionals: [OWN_MEMBERSHIP] });
     });
 });
+
+const STAFF_MEMBERSHIP: Membership = {
+    ...membership(2, 20),
+    roles: ['staff'],
+};
+
+function mockApiGetForStaffWithoutMembershipsView() {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+        if (url === '/me') {
+            return Promise.resolve({
+                data: {
+                    id: 20,
+                    name: 'Elena Staff',
+                    email: 'elena.staff@test.com',
+                    permissions: ['appointments.view', 'availability.manage'],
+                    membership: STAFF_MEMBERSHIP,
+                },
+            });
+        }
+        if (url === '/appointments') {
+            return Promise.resolve({ data: { data: [] } });
+        }
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+}
+
+describe('/agenda loader for a Staff session without memberships.view', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        mockApiGetForStaffWithoutMembershipsView();
+    });
+
+    it('resolves without /memberships and degrades professionals to an empty list', async () => {
+        const queryClient = new QueryClient();
+
+        const result = await loader({
+            context: { queryClient },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+
+        expect(
+            vi
+                .mocked(api.get)
+                .mock.calls.some(([url]) => url === '/memberships'),
+        ).toBe(false);
+        expect(result).toMatchObject({ professionals: [] });
+    });
+});
