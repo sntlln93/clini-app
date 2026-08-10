@@ -5,12 +5,11 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Memberships;
 
 use App\Actions\Memberships\AcceptInvitationAction;
+use App\Actions\Memberships\FindValidInvitationAction;
 use App\Data\Memberships\InvitationAcceptanceData;
-use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
+use App\Data\Memberships\InvitationTokenData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\AcceptInvitationRequest;
-use App\Models\Membership;
-use App\Models\MembershipInvitation;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -20,9 +19,13 @@ use Illuminate\Support\Facades\Auth;
  */
 class InvitationAcceptanceController extends Controller
 {
+    public function __construct(
+        private readonly FindValidInvitationAction $findValidInvitation,
+    ) {}
+
     public function show(string $token): JsonResponse
     {
-        $invitation = $this->findValidInvitation($token);
+        $invitation = $this->findValidInvitation->handle(new InvitationTokenData($token));
 
         return response()->json([
             'email' => $invitation->email,
@@ -39,36 +42,15 @@ class InvitationAcceptanceController extends Controller
             password: $request->string('password')->toString() ?: null,
         ));
 
-        Auth::guard('web')->login($this->authenticatedUser($membership));
-        $request->session()->regenerate();
-
-        return response()->json(['message' => 'Invitación aceptada.']);
-    }
-
-    private function authenticatedUser(Membership $membership): User
-    {
         $user = $membership->user;
 
         if ($user === null) {
             abort(500);
         }
 
-        return $user;
-    }
+        Auth::guard('web')->login($user);
+        $request->session()->regenerate();
 
-    private function findValidInvitation(string $token): MembershipInvitation
-    {
-        $tokenHash = hash('sha256', $token);
-
-        $invitation = MembershipInvitation::query()
-            ->where('token', $tokenHash)
-            ->whereNull('accepted_at')
-            ->first();
-
-        if ($invitation === null || $invitation->isExpired()) {
-            throw new InvitationInvalidOrExpiredException($tokenHash);
-        }
-
-        return $invitation;
+        return response()->json(['message' => 'Invitación aceptada.']);
     }
 }
