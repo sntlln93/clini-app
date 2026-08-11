@@ -1,4 +1,5 @@
 import { api, refreshCsrfCookie } from '@/lib/api';
+import { sessionQueryOptions } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -55,6 +56,8 @@ function renderLoginForm() {
         history: createMemoryHistory({ initialEntries: ['/login'] }),
     });
     render(<RouterProvider router={router} />);
+
+    return queryClient;
 }
 
 describe('LoginForm', () => {
@@ -155,6 +158,35 @@ describe('LoginForm', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
 
         await screen.findByText('Agenda');
+    });
+
+    it('caches the full session payload from the login response, with no further fetch', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: {
+                id: 1,
+                name: 'Ana',
+                email: 'ana@clini.app',
+                organization: { id: 1, name: 'Clínica Norte' },
+                roles: ['staff'],
+                permissions: ['memberships.view'],
+            },
+        });
+        const queryClient = renderLoginForm();
+
+        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+            target: { value: 'ana@clini.app' },
+        });
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'secreta123' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
+
+        await screen.findByText('Agenda');
+
+        expect(api.get).not.toHaveBeenCalled();
+        expect(
+            queryClient.getQueryData(sessionQueryOptions.queryKey),
+        ).toMatchObject({ permissions: ['memberships.view'] });
     });
 
     it('links to /registro', async () => {

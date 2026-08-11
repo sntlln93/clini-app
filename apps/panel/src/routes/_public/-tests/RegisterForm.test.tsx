@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { sessionQueryOptions } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -56,6 +57,8 @@ function renderRegisterForm() {
         history: createMemoryHistory({ initialEntries: ['/registro'] }),
     });
     render(<RouterProvider router={router} />);
+
+    return queryClient;
 }
 
 async function fillForm() {
@@ -142,6 +145,30 @@ describe('RegisterForm', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
         await screen.findByText('Agenda');
+    });
+
+    it('caches the full session payload from the register response, with no further fetch', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: {
+                id: 1,
+                name: 'Ana Ejemplo',
+                email: 'ana@clini.app',
+                organization: { id: 1, name: 'Consultorio Ana' },
+                roles: ['owner'],
+                permissions: ['memberships.view'],
+            },
+        });
+        const queryClient = renderRegisterForm();
+
+        await fillForm();
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await screen.findByText('Agenda');
+
+        expect(api.get).not.toHaveBeenCalled();
+        expect(
+            queryClient.getQueryData(sessionQueryOptions.queryKey),
+        ).toMatchObject({ permissions: ['memberships.view'] });
     });
 
     it('shows an inline message when the password confirmation does not match, and does not call POST /register', async () => {

@@ -27,7 +27,10 @@ class AuthController extends Controller
 
         $request->session()->regenerate();
 
-        return response()->json(Auth::user());
+        /** @var User $user */
+        $user = Auth::user();
+
+        return (new SessionUserResource($user))->response();
     }
 
     public function register(
@@ -50,7 +53,7 @@ class AuthController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
 
-        return response()->json($user, 201);
+        return (new SessionUserResource($user))->response()->setStatusCode(201);
     }
 
     public function logout(Request $request): JsonResponse
