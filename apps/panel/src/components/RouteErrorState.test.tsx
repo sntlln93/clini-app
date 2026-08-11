@@ -19,13 +19,16 @@ function createDeferred() {
     return { promise, resolve };
 }
 
-// Both ordering tests below use a parent/child route pair instead of wiring
-// `RouteErrorState` as an `errorComponent`: the parent renders it directly (with an
-// explicit, spied `reset`) and never renders an `<Outlet />`, so the child route's loader
-// can independently drive `router.state.matches` into and out of `status: 'error'`
-// without TanStack's built-in CatchBoundary ever intercepting a render — that boundary
-// intercepts any match whose own loader fails, regardless of whether `errorComponent` is
-// set, which would otherwise replace the parent's content with its default fallback UI.
+// Both ordering tests below verify `retry()`'s own await/branch contract — that `reset()`
+// waits on `router.invalidate()` and is skipped when the reload leaves the route in error —
+// not the real mount through TanStack's `CatchBoundary`/`resetKey` machinery. They use a
+// parent/child route pair instead of wiring `RouteErrorState` as an `errorComponent`: the
+// parent renders it directly (with an explicit, spied `reset`) and never renders an
+// `<Outlet />`, so the child route's loader can independently drive `router.state.matches`
+// into and out of `status: 'error'` without TanStack's built-in CatchBoundary ever
+// intercepting a render — that boundary intercepts any match whose own loader fails,
+// regardless of whether `errorComponent` is set, which would otherwise replace the parent's
+// content with its default fallback UI.
 function buildOrderingRouter(
     resetSpy: () => void,
     childLoader: () => void | Promise<void>,
