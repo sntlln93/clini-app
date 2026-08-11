@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use App\Enums\Permission;
+use App\Models\Membership;
 use App\Models\User;
 
 // Sanctum only boots the session for requests it recognizes as coming from
@@ -31,6 +33,28 @@ test('a user can log in with valid credentials', function () {
 
     $response->assertOk()->assertJsonPath('email', $user->email);
     $this->assertAuthenticatedAs($user);
+});
+
+test('a successful login exposes organization, roles, permissions and membership with no data envelope', function () {
+    $membership = Membership::factory()->staff()->create();
+    $user = $membership->user;
+
+    $response = fromSpa()->postJson('/api/v1/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('email', $user->email)
+        ->assertJsonPath('organization.id', $membership->organization_id)
+        ->assertJsonMissingPath('data');
+
+    $expectedPermissions = array_map(fn (Permission $permission): string => $permission->value, $membership->permissions());
+
+    expect($response->json('permissions'))->not->toBeEmpty();
+    expect($response->json('permissions'))->toEqualCanonicalizing($expectedPermissions);
+    expect($response->json('roles'))->not->toBeNull();
+    expect($response->json('membership'))->not->toBeNull();
 });
 
 test('login fails with invalid credentials', function () {

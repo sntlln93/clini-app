@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\Permission;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
@@ -77,6 +78,29 @@ test('registering logs the user in', function () {
 
     $me->assertOk();
     $me->assertJsonPath('email', 'ana@example.com');
+});
+
+test('registering exposes the new owner membership permissions, roles and organization', function () {
+    $response = registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+    ]);
+
+    $response->assertCreated();
+
+    $organization = Organization::where('name', 'Clínica Norte')->firstOrFail();
+    $membership = Membership::where('organization_id', $organization->id)->firstOrFail();
+
+    $expectedPermissions = array_map(fn (Permission $permission): string => $permission->value, $membership->permissions());
+
+    $response->assertJsonPath('organization.id', $organization->id);
+    expect($response->json('permissions'))->not->toBeEmpty();
+    expect($response->json('permissions'))->toEqualCanonicalizing($expectedPermissions);
+    expect($response->json('roles'))->toContain(MembershipRole::Owner->value);
 });
 
 test('registering with a duplicate email fails validation and persists nothing', function () {
