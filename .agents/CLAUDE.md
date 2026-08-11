@@ -30,6 +30,8 @@ The repo root is an npm workspace (`apps/panel` is its only member today) — a 
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
 docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install   # once per clone — for editor/type-checking use only; see rule above
 cp apps/api/.env.example apps/api/.env            # once per clone
+# Codex only: mark this repo "trusted" locally (once per machine) so it loads
+# the versioned .codex/config.toml — see the Session docs section below.
 docker compose up -d                              # starts api + panel + pgsql + mailpit, from the repo root
 apps/api/vendor/bin/sail artisan migrate          # first run
 ```
@@ -217,9 +219,13 @@ Conventions for real specs (DB reset strategy, spec isolation) aren't defined ye
 
 ## Session docs (local only)
 
-`.claude/docs/` is gitignored (only `.claude/skills/` is tracked). If `.claude/docs/status.md` exists, **read it at session start** — it is the living record of project status, recent decisions and pending work.
+`.claude/docs/` is gitignored (only `.claude/agents/`, `.claude/skills/` and `.claude/settings.json` are tracked). If `.claude/docs/status.md` exists, **read it at session start** — it is the living record of project status, recent decisions and pending work.
 
-Skills installed via the [`skills`](https://skills.sh) CLI live under `.agents/skills/<name>/` — that's the real content; `.claude/skills/<name>` is a symlink into it (cross-agent sharing: other tools like Cursor/Copilot symlink the same directory). Both `.agents/` and `skills-lock.json` (repo root) are tracked, same as `.claude/skills/`.
+`.agents/` is the canonical home for the project's own AI tooling: instructions (`.agents/CLAUDE.md`), own skills (`.agents/skills/<name>/`) and subagents (`.agents/agents/<name>.md`). `CLAUDE.md`, `AGENTS.md`, `.claude/skills/<name>` and `.claude/agents/<name>.md` are symlinks into it, so Claude Code and Codex read the same files. A new own skill or agent is always created under `.agents/` and symlinked from `.claude/` — never the other way round.
+
+Skills installed via the [`skills`](https://skills.sh) CLI follow the same shape: the real content lives under `.agents/skills/<name>/`, `.claude/skills/<name>` is a symlink into it (cross-agent sharing: other tools like Cursor/Copilot symlink the same directory). Both `.agents/` and `skills-lock.json` (repo root) are tracked, same as `.claude/skills/`. `skills-lock.json` tracks **only** skills installed via that CLI (today just the vendored `shadcn`) — the project's own skills (and its subagents) have no lock entry.
+
+Codex's project config is versioned at `.codex/config.toml` (MCP servers + permission intent), kept in sync by hand with `.mcp.json` and `.claude/settings.json`'s intent.
 
 Installing one still obeys the never-`npx`-on-host rule, and the disposable-container form needs a tweak: the CLI shells out to `git` to clone, which `node:24-bookworm-slim` does not ship, so use the full image for this one command:
 
