@@ -1,0 +1,33 @@
+# Codex project config — versioned, so Claude Code and Codex share the same
+# MCP servers and permission intent. Nothing here is written to ~/.codex/.
+#
+# Codex only loads this file once the repo is marked "trusted" locally — a
+# one-time, per-machine manual step (like `cp .env.example .env`), documented
+# but not automated. See .agents/CLAUDE.md for the setup step.
+
+approval_policy = "on-request"
+sandbox_mode = "workspace-write"
+
+[sandbox_workspace_write]
+network_access = true
+
+# Codex has no per-command allow/deny list like .claude/settings.json, so the
+# intent behind that file's denies is documented here instead — the operator
+# must uphold these manually when approving a command:
+#   - never force-push, never delete a branch
+#   - never `git add .` / `git add -A`
+#   - never `gh pr merge`
+#   - never `gh api --method PUT` / `gh api --method DELETE`
+#   - never `gh secret`, never `gh repo edit`
+#   - never read `.env*` files
+#   - never run bare `npm` / `npx` / `pnpm` / `bunx` on the host (see
+#     CLAUDE.md's containerized-tooling rule — always go through
+#     `docker compose exec ... panel npx ...`)
+
+[mcp_servers.shadcn]
+command = "docker"
+args = ["compose", "exec", "-T", "--workdir", "/workspace/apps/panel", "panel", "npx", "-y", "shadcn@latest", "mcp"]
+
+[mcp_servers.context7]
+command = "docker"
+args = ["compose", "exec", "-T", "panel", "npx", "-y", "@upstash/context7-mcp"]
