@@ -31,6 +31,7 @@ type ClinicalNoteFormProps = {
 const noteSchema = z.object({
     body: z
         .string()
+        .trim()
         .min(1, 'La nota no puede estar vacía.')
         .max(5000, 'La nota no puede superar los 5000 caracteres.'),
 });

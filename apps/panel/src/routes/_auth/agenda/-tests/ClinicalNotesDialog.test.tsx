@@ -122,6 +122,21 @@ describe('ClinicalNotesDialog', () => {
         expect(api.post).not.toHaveBeenCalled();
     });
 
+    it('a whitespace-only body does not trigger the mutation and shows the validation message', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        renderDialog();
+
+        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+
+        fireEvent.change(screen.getByRole('textbox'), {
+            target: { value: '   ' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Agregar nota' }));
+
+        await screen.findByText('La nota no puede estar vacía.');
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
     it('editing an existing note sends a PATCH with the edited body', async () => {
         const note = buildNote({ id: 7, body: 'Nota original.' });
         vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
