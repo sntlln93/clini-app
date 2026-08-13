@@ -11,8 +11,8 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { PanelSidebar } from './PanelSidebar';
 import { isNavItemActive, navItems } from './nav-items';
 
@@ -141,5 +141,80 @@ describe('sidebar collapse toggle', () => {
         expect(localStorage.getItem('sidebar:open')).toBe('false');
         fireEvent.click(trigger);
         expect(localStorage.getItem('sidebar:open')).toBe('true');
+    });
+});
+
+describe('PanelSidebar rail', () => {
+    it('mounts the rail on desktop with the expected accessible name and slot', async () => {
+        renderSidebarAt('/agenda');
+
+        const rail = await screen.findByRole('button', {
+            name: 'Alternar barra lateral',
+        });
+        expect(rail.getAttribute('data-slot')).toBe('sidebar-rail');
+    });
+
+    it('collapses the sidebar when the rail is clicked', async () => {
+        renderSidebarAt('/agenda');
+
+        const rail = await screen.findByRole('button', {
+            name: 'Alternar barra lateral',
+        });
+        const sidebar = document.querySelector(
+            '[data-slot="sidebar"][data-state]',
+        );
+        expect(sidebar?.getAttribute('data-state')).toBe('expanded');
+
+        fireEvent.click(rail);
+        expect(sidebar?.getAttribute('data-state')).toBe('collapsed');
+    });
+
+    it('is not mounted on mobile', async () => {
+        const originalInnerWidth = window.innerWidth;
+        const originalMatchMedia = window.matchMedia;
+        Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: 375,
+        });
+        Object.defineProperty(window, 'matchMedia', {
+            writable: true,
+            configurable: true,
+            value: vi.fn().mockImplementation((query: string) => ({
+                matches: true,
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            })),
+        });
+
+        try {
+            renderSidebarAt('/agenda');
+            await waitFor(() => {
+                expect(
+                    document.querySelector('[data-slot="sidebar-wrapper"]'),
+                ).not.toBeNull();
+            });
+            expect(
+                screen.queryByRole('button', {
+                    name: 'Alternar barra lateral',
+                }),
+            ).toBeNull();
+        } finally {
+            Object.defineProperty(window, 'innerWidth', {
+                writable: true,
+                configurable: true,
+                value: originalInnerWidth,
+            });
+            Object.defineProperty(window, 'matchMedia', {
+                writable: true,
+                configurable: true,
+                value: originalMatchMedia,
+            });
+        }
     });
 });
