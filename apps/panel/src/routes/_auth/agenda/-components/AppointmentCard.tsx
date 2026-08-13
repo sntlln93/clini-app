@@ -6,11 +6,13 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useSession } from '@/lib/session';
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { useState } from 'react';
 import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
+import { ClinicalNotesDialog } from './ClinicalNotesDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
 
 // Mirrors `AppointmentStatus::allowedTransitions()` in `app/Enums/AppointmentStatus.php` — keep in sync.
@@ -102,10 +104,15 @@ export function AppointmentCard({
 }: AppointmentCardProps) {
     const [showReschedule, setShowReschedule] = useState(false);
     const [showCancel, setShowCancel] = useState(false);
+    const [showNotes, setShowNotes] = useState(false);
+    const { data: session } = useSession();
     const { mutate } = useUpdateAppointmentStatus();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
+    // Clinical notes are authored-only (issue #30): visible only to the professional booked on this appointment, independent of `canUpdate`.
+    const isOwnAppointment =
+        session?.membership?.id === appointment.membership_id;
     const timeLabel = `${formatTime(appointment.start_at, variant)}–${formatTime(appointment.end_at, variant)}`;
     const patientLabel =
         appointment.patient_name ?? `Paciente #${appointment.patient_id}`;
@@ -150,8 +157,9 @@ export function AppointmentCard({
             </div>
         );
 
-    const hasActions =
+    const hasUpdateActions =
         canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);
+    const hasActions = hasUpdateActions || isOwnAppointment;
 
     if (!hasActions) {
         return content;
@@ -194,6 +202,14 @@ export function AppointmentCard({
                             Cancelar
                         </DropdownMenuItem>
                     )}
+                    {isOwnAppointment && hasUpdateActions && (
+                        <DropdownMenuSeparator />
+                    )}
+                    {isOwnAppointment && (
+                        <DropdownMenuItem onClick={() => setShowNotes(true)}>
+                            Notas clínicas
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -206,6 +222,12 @@ export function AppointmentCard({
             <CancelAppointmentDialog
                 open={showCancel}
                 onOpenChange={setShowCancel}
+                appointment={appointment}
+            />
+
+            <ClinicalNotesDialog
+                open={showNotes}
+                onOpenChange={setShowNotes}
                 appointment={appointment}
             />
         </>
