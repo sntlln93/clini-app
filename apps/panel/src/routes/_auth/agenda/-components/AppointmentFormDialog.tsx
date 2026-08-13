@@ -13,10 +13,9 @@ import {
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { api } from '@/lib/api';
-import type { Membership } from '@/types/membership';
 import type { Paginated } from '@/types/pagination';
 import type { Patient } from '@/types/patient';
-import type { ProfessionalService } from '@/types/professional';
+import type { Professional, ProfessionalService } from '@/types/professional';
 import { useQuery } from '@tanstack/react-query';
 import { useCreateAppointment } from '../-hooks/use-appointments';
 import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
@@ -37,7 +36,7 @@ export type AppointmentPrefill = {
 type AppointmentFormDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    professionals: Membership[];
+    professionals: Professional[];
     prefill?: AppointmentPrefill;
 };
 

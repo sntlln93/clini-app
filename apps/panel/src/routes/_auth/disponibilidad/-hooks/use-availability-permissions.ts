@@ -1,5 +1,5 @@
 import { useSession } from '@/lib/session';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 
 /** Whether the signed-in user may manage availability: `availability.manage` covers every professional, `availability.manage.own` only their own membership. */
 export function useAvailabilityPermissions() {
@@ -8,7 +8,7 @@ export function useAvailabilityPermissions() {
 
     const canManageOrgWide = permissions.includes('availability.manage');
 
-    const canManage = (membership: Membership): boolean => {
+    const canManage = (membership: Professional): boolean => {
         if (canManageOrgWide) {
             return true;
         }

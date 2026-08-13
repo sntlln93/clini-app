@@ -16,6 +16,19 @@ class MembershipPolicy extends OrganizationScopedPolicy
     }
 
     /**
+     * Backs the agenda/availability professional roster (`GET /professionals`),
+     * a different resource from membership administration, so it
+     * deliberately does not require `memberships.view`.
+     */
+    public function viewProfessionalRoster(User $user): bool
+    {
+        return $this->allows($user, Permission::AppointmentsView)
+            || $this->allows($user, Permission::AppointmentsCreate)
+            || $this->allows($user, Permission::AppointmentsUpdate)
+            || $this->allows($user, Permission::AvailabilityManage);
+    }
+
+    /**
      * Authorizes inviting a new member: there is no persisted Membership
      * yet at invite time, so this only checks the org-wide permission.
      */

@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
+import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
-import type { Membership } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render } from '@testing-library/react';
 import { describe, it, vi } from 'vitest';
@@ -19,20 +19,6 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
         await importOriginal<typeof import('@tanstack/react-router')>();
     return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
 });
-
-function buildMembership(overrides: Partial<Membership> = {}): Membership {
-    return {
-        id: 1,
-        user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
-        roles: ['professional'],
-        status: 'active',
-        slug: null,
-        deleted_at: null,
-        created_at: '2026-01-01T00:00:00',
-        updated_at: '2026-01-01T00:00:00',
-        ...overrides,
-    };
-}
 
 function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     return {
@@ -59,7 +45,7 @@ describe('calendar/agenda a11y', () => {
     it('AgendaDayView: a creatable column with a real appointment card has no violations', async () => {
         vi.mocked(api.get).mockReset();
         const queryClient = new QueryClient();
-        const professional = buildMembership();
+        const professional = buildProfessional();
 
         const { container } = render(
             <QueryClientProvider client={queryClient}>

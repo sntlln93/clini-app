@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route } from '../index';
@@ -8,26 +8,20 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },
 }));
 
-function membership(id: number, userId: number): Membership {
+function professional(id: number, userId: number): Professional {
     return {
         id,
-        user: { id: userId, name: `User ${userId}`, email: null },
-        roles: ['professional'],
-        status: 'active',
-        slug: null,
-        deleted_at: null,
-        created_at: '2026-01-01T00:00:00.000Z',
-        updated_at: '2026-01-01T00:00:00.000Z',
+        user: { id: userId, name: `User ${userId}`, email: '' },
     };
 }
 
-const PROFESSIONALS = [membership(1, 10), membership(2, 20)];
+const PROFESSIONALS = [professional(1, 10), professional(2, 20)];
 
 const SESSION = {
     id: 10,
     name: 'Ana Ejemplo',
     email: 'ana@clini.app',
-    permissions: ['memberships.view'] as string[],
+    permissions: ['availability.manage'] as string[],
 };
 
 function mockApiGet() {
@@ -35,7 +29,7 @@ function mockApiGet() {
         if (url === '/me') {
             return Promise.resolve({ data: SESSION });
         }
-        if (url === '/memberships') {
+        if (url === '/professionals') {
             return Promise.resolve({ data: { data: PROFESSIONALS } });
         }
         if (

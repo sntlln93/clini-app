@@ -15,13 +15,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { Membership } from '@/types/membership';
-import type { ProfessionalService } from '@/types/professional';
+import type { Professional, ProfessionalService } from '@/types/professional';
 import type { AppointmentFormValues } from './appointment-schemas';
 
 type AppointmentProfessionalFieldsProps = {
     control: Control<AppointmentFormValues>;
-    professionals: Membership[];
+    professionals: Professional[];
     services: ProfessionalService[];
 };
 

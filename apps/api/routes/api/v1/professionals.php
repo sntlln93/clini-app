@@ -2,10 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Professionals\ProfessionalController;
 use App\Http\Controllers\Professionals\ProfessionalServiceController;
 use App\Http\Controllers\Professionals\ProfessionalSpecialtyController;
 use App\Http\Controllers\Professionals\UserSpecialtyController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('professionals', [ProfessionalController::class, 'index']);
 
 Route::get('users/{user}/specialties', [UserSpecialtyController::class, 'index']);
 Route::post('users/{user}/specialties', [UserSpecialtyController::class, 'store']);
