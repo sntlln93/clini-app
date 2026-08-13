@@ -39,6 +39,14 @@ class Organization extends Model
     }
 
     /**
+     * @return HasMany<Holiday, $this>
+     */
+    public function holidays(): HasMany
+    {
+        return $this->hasMany(Holiday::class);
+    }
+
+    /**
      * @return HasMany<Specialty, $this>
      */
     public function specialties(): HasMany
