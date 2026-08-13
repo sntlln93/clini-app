@@ -1,5 +1,5 @@
 import { useSession } from '@/lib/session';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 
 // Org-wide permission covers every professional; the `.own` variant only covers the user's own membership.
 export function useAppointmentPermissions() {
@@ -8,10 +8,10 @@ export function useAppointmentPermissions() {
 
     const canViewOrgWide = permissions.includes('appointments.view');
 
-    const isOwn = (membership: Membership): boolean =>
+    const isOwn = (membership: Professional): boolean =>
         membership.user.id === session?.id;
 
-    const canView = (membership: Membership): boolean => {
+    const canView = (membership: Professional): boolean => {
         if (canViewOrgWide) {
             return true;
         }
@@ -21,7 +21,7 @@ export function useAppointmentPermissions() {
         );
     };
 
-    const canCreate = (membership: Membership): boolean => {
+    const canCreate = (membership: Professional): boolean => {
         if (permissions.includes('appointments.create')) {
             return true;
         }
@@ -31,7 +31,7 @@ export function useAppointmentPermissions() {
         );
     };
 
-    const canUpdate = (membership: Membership): boolean => {
+    const canUpdate = (membership: Professional): boolean => {
         if (permissions.includes('appointments.update')) {
             return true;
         }

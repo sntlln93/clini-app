@@ -1,5 +1,5 @@
 import type { Appointment } from '@/types/appointment';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { AppointmentCard } from './AppointmentCard';
 
 const START_HOUR = 8;
@@ -34,10 +34,10 @@ function formatHour(hour: number): string {
 
 export type AgendaDayViewProps = {
     date: Date;
-    professionals: Membership[];
+    professionals: Professional[];
     appointments: Appointment[];
-    canUpdate: (membership: Membership) => boolean;
-    canCreate: (membership: Membership) => boolean;
+    canUpdate: (membership: Professional) => boolean;
+    canCreate: (membership: Professional) => boolean;
     onCellClick?: (membershipId: number, hour: number) => void;
 };
 

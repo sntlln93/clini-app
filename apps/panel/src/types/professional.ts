@@ -1,3 +1,13 @@
+/** Roster item from `GET /professionals` — agenda/availability shape, not the membership-management one (`Membership`). */
+export type Professional = {
+    id: number;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+};
+
 export type CatalogService = {
     id: number;
     name: string;

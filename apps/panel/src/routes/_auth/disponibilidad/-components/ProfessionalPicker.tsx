@@ -8,10 +8,10 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 
 type ProfessionalPickerProps = {
-    professionals: Membership[];
+    professionals: Professional[];
     selectedId: number | null;
     onSelect: (membershipId: number) => void;
 };

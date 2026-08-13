@@ -8,16 +8,15 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { Membership } from '@/types/membership';
 import type { Patient } from '@/types/patient';
-import type { ProfessionalService } from '@/types/professional';
+import type { Professional, ProfessionalService } from '@/types/professional';
 import { AppointmentPatientField } from './AppointmentPatientField';
 import { AppointmentProfessionalFields } from './AppointmentProfessionalFields';
 import type { AppointmentFormValues } from './appointment-schemas';
 
 type AppointmentFormFieldsProps = {
     control: Control<AppointmentFormValues>;
-    professionals: Membership[];
+    professionals: Professional[];
     services: ProfessionalService[];
     patients: Patient[];
     patientQuery: string;
