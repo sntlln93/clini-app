@@ -37,8 +37,4 @@ return [
         ],
     ],
 
-    'holidays' => [
-        'url' => env('HOLIDAYS_API_URL', 'https://calendariosnacionales.com'),
-    ],
-
 ];

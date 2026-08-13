@@ -10,8 +10,6 @@ use App\Data\Booking\PublishedDayIntervalsData;
 use App\Enums\AvailabilityExceptionType;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
-use App\Models\Holiday;
-use App\Models\Membership;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -22,8 +20,7 @@ use Illuminate\Support\Collection as SupportCollection;
  * exceptions, minus `blocked` exceptions — never excluding time already
  * taken by busy appointments, which stays each caller's own concern.
  * `day` must already be anchored to the organization's own timezone by
- * the caller. A day the organization has marked as a holiday (any
- * `source`) publishes no intervals at all, regardless of availability.
+ * the caller.
  *
  * @implements Action<PublishedDayIntervalsData>
  */
@@ -37,10 +34,6 @@ class ComputePublishedDayIntervalsAction implements Action
     {
         $day = $dto->day;
         $dayEnd = $day->addDay();
-
-        if ($this->isHoliday($dto->membershipId, $day)) {
-            return [];
-        }
 
         $availabilitiesByDay = Availability::query()
             ->where('membership_id', $dto->membershipId)
@@ -90,14 +83,6 @@ class ComputePublishedDayIntervalsAction implements Action
             ->all();
 
         return $this->subtractIntervals([...$baseIntervals, ...$extraIntervals], $blockedIntervals);
-    }
-
-    private function isHoliday(int $membershipId, CarbonImmutable $day): bool
-    {
-        return Holiday::query()
-            ->whereIn('organization_id', Membership::whereKey($membershipId)->select('organization_id'))
-            ->whereDate('date', $day)
-            ->exists();
     }
 
     private function isExceptionType(AvailabilityException $exception, AvailabilityExceptionType $type): bool

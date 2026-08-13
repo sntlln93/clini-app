@@ -20,8 +20,7 @@ export type ErrorCode =
     | 'availability.slot_already_covered'
     | 'availability.exception_merge_required'
     | 'availability.exception_already_covered'
-    | 'availability.exception_type_conflict'
-    | 'holidays.provider_unavailable';
+    | 'availability.exception_type_conflict';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -62,8 +61,6 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Ese período ya está incluido en otra excepción del mismo tipo. No hace falta agregarlo.',
     'availability.exception_type_conflict':
         'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
-    'holidays.provider_unavailable':
-        'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */
