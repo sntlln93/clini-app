@@ -33,7 +33,11 @@ class ProfessionalController extends Controller
 
                 return in_array(MembershipRole::Professional, $roles, true);
             })
-            ->sortBy(fn (Membership $membership): string => $membership->user?->name ?? '')
+            ->sortBy(function (Membership $membership): string {
+                $user = $membership->user;
+
+                return $user !== null ? $user->name : '';
+            })
             ->values();
 
         return ProfessionalResource::collection($memberships);
