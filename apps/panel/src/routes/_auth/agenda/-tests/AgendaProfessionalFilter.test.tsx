@@ -1,28 +1,23 @@
-import type { Membership } from '@/types/membership';
+import { buildProfessional } from '@/tests/fixtures/professional';
+import type { Professional } from '@/types/professional';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AgendaProfessionalFilter } from '../-components/AgendaProfessionalFilter';
 
-function buildMembership(id: number): Membership {
-    return {
+function professionalWithId(id: number): Professional {
+    return buildProfessional({
         id,
         user: {
             id: id + 100,
             name: `Profesional ${id}`,
             email: `profesional-${id}@example.com`,
         },
-        roles: ['professional'],
-        status: 'active',
-        slug: null,
-        deleted_at: null,
-        created_at: '2026-01-01T00:00:00',
-        updated_at: '2026-01-01T00:00:00',
-    };
+    });
 }
 
-function buildProfessionals(count: number): Membership[] {
+function buildProfessionals(count: number): Professional[] {
     return Array.from({ length: count }, (_, index) =>
-        buildMembership(index + 1),
+        professionalWithId(index + 1),
     );
 }
 

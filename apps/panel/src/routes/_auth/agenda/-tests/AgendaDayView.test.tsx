@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
+import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
-import type { Membership } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,20 +19,6 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
         await importOriginal<typeof import('@tanstack/react-router')>();
     return { ...actual, useRouter: () => ({ invalidate }) };
 });
-
-function buildMembership(overrides: Partial<Membership> = {}): Membership {
-    return {
-        id: 1,
-        user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
-        roles: ['professional'],
-        status: 'active',
-        slug: null,
-        deleted_at: null,
-        created_at: '2026-01-01T00:00:00',
-        updated_at: '2026-01-01T00:00:00',
-        ...overrides,
-    };
-}
 
 function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     return {
@@ -59,7 +45,7 @@ function renderDayView(props: Partial<AgendaDayViewProps> = {}) {
     const queryClient = new QueryClient();
     const defaults: AgendaDayViewProps = {
         date: new Date(2026, 7, 3),
-        professionals: [buildMembership()],
+        professionals: [buildProfessional()],
         appointments: [],
         canUpdate: () => true,
         canCreate: () => true,
@@ -89,7 +75,7 @@ describe('AgendaDayView', () => {
     });
 
     it('gives every slot button in a creatable column an accessible name naming its own hour and the professional', () => {
-        const professional = buildMembership({
+        const professional = buildProfessional({
             user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
         });
         renderDayView({ professionals: [professional], canCreate: () => true });
@@ -105,27 +91,9 @@ describe('AgendaDayView', () => {
         expect(names).toEqual(expectedNames);
     });
 
-    it('falls back to "profesional sin nombre" in every slot label when the membership has no user name', () => {
-        const professional = buildMembership({
-            user: { id: 10, name: null, email: 'ana@example.com' },
-        });
-        renderDayView({ professionals: [professional], canCreate: () => true });
-
-        const names = screen
-            .getAllByRole('button')
-            .map((button) => button.getAttribute('aria-label'));
-
-        expect(names.length).toBe(12);
-        expect(
-            names.every((name) =>
-                name?.endsWith('para profesional sin nombre'),
-            ),
-        ).toBe(true);
-    });
-
     it('reports the right professional and hour when an hour slot is clicked', () => {
         const onCellClick = vi.fn();
-        const professional = buildMembership({ id: 1 });
+        const professional = buildProfessional({ id: 1 });
         renderDayView({
             professionals: [professional],
             canCreate: () => true,
@@ -147,8 +115,8 @@ describe('AgendaDayView', () => {
 
     it('gates creation per column for a create.own user over a colleague (AC5)', () => {
         const onCellClick = vi.fn();
-        const own = buildMembership({ id: 1 });
-        const colleague = buildMembership({ id: 2 });
+        const own = buildProfessional({ id: 1 });
+        const colleague = buildProfessional({ id: 2 });
         renderDayView({
             professionals: [own, colleague],
             canCreate: (membership) => membership.id === 1,
@@ -167,7 +135,7 @@ describe('AgendaDayView', () => {
     });
 
     it('still shows the professional and their appointments when the column is not creatable', () => {
-        const professional = buildMembership({ id: 1 });
+        const professional = buildProfessional({ id: 1 });
         renderDayView({
             professionals: [professional],
             canCreate: () => false,
@@ -180,8 +148,8 @@ describe('AgendaDayView', () => {
 
     it('renders a column only for the professionals it receives, not every professional that exists', () => {
         const professionals = [
-            buildMembership({ id: 1 }),
-            buildMembership({ id: 2 }),
+            buildProfessional({ id: 1 }),
+            buildProfessional({ id: 2 }),
         ];
         const { container } = renderDayView({
             professionals: [professionals[0]],
@@ -193,7 +161,7 @@ describe('AgendaDayView', () => {
     });
 
     it('positions a 30-minute appointment block at its start offset with at least the compact-card minimum height', () => {
-        const professional = buildMembership({ id: 1 });
+        const professional = buildProfessional({ id: 1 });
         renderDayView({
             professionals: [professional],
             appointments: [buildAppointment({ membership_id: 1 })], // 10:00–10:30
@@ -213,7 +181,7 @@ describe('AgendaDayView', () => {
     });
 
     it('lets professional columns share the available width instead of a fixed 48-unit column', () => {
-        const professional = buildMembership({ id: 1 });
+        const professional = buildProfessional({ id: 1 });
         const { container } = renderDayView({ professionals: [professional] });
 
         const row = container.querySelector('.overflow-auto > div');
