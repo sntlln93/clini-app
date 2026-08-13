@@ -13,14 +13,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('organizations', function (Blueprint $table) {
+        Schema::create('holidays', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
+            $table->date('date');
             $table->string('name');
-            $table->string('slug')->unique();
-            $table->string('timezone');
-            $table->string('province')->nullable();
+            $table->string('source');
             $table->timestamps();
-            $table->softDeletes();
+
+            $table->unique(['organization_id', 'date']);
         });
     }
 
@@ -29,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('organizations');
+        Schema::dropIfExists('holidays');
     }
 };

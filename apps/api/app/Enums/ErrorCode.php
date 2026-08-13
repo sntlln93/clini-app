@@ -28,4 +28,5 @@ enum ErrorCode: string
     case AvailabilityExceptionMergeRequired = 'availability.exception_merge_required';
     case AvailabilityExceptionAlreadyCovered = 'availability.exception_already_covered';
     case AvailabilityExceptionTypeConflict = 'availability.exception_type_conflict';
+    case HolidaysProviderUnavailable = 'holidays.provider_unavailable';
 }
