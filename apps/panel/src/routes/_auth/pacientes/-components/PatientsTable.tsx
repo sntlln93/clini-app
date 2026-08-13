@@ -3,7 +3,7 @@ import { DataTableRowActions } from '@/components/DataTableRowActions';
 import type { Patient } from '@/types/patient';
 import { useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Pencil } from 'lucide-react';
+import { Eye, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 const DOCUMENT_TYPE_LABELS: Record<Patient['document_type'], string> = {
@@ -23,6 +23,15 @@ function PatientRowActions({ patient }: { patient: Patient }) {
     return (
         <DataTableRowActions
             actions={[
+                {
+                    label: 'Ver',
+                    icon: Eye,
+                    onSelect: () =>
+                        navigate({
+                            to: '/pacientes/$id',
+                            params: { id: patient.id },
+                        }),
+                },
                 {
                     label: 'Editar',
                     icon: Pencil,
