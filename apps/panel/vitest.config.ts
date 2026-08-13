@@ -12,7 +12,7 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     env: { TZ: 'America/Argentina/Buenos_Aires' },
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'eslint-rules/**/*.test.ts'],
     setupFiles: ['src/tests/setup.ts'],
     // No components exist yet to test — drop this once the first one lands.
     passWithNoTests: true,

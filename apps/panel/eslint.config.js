@@ -7,6 +7,8 @@ import tailwindCanonical from 'eslint-plugin-tailwind-canonical-classes';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
+import requireNativeButton from './eslint-rules/require-native-button.js';
+
 // Shared by every `no-restricted-imports` block below that needs to keep
 // the axios restriction alongside its own, unrelated `patterns`/`paths` —
 // see the comments at each call site for why this can't just be one more
@@ -125,6 +127,20 @@ export default tseslint.config(
                 ROUTER_INVALIDATE_RESTRICTION,
             ],
         },
+    },
+    // Button-like Base UI wrappers (Button, Checkbox, Switch, the
+    // dropdown-menu trigger/item variants, SelectTrigger/SelectItem, the
+    // dialog/sheet trigger/close, RadioGroupItem) render a native <button>
+    // by default; composing one via `render` with a non-native element
+    // (e.g. <Link>) without an explicit `nativeButton` triggers a Base UI
+    // runtime warning — see #54. No exempt folders, same stance as the
+    // SSR-directive ban above. See #63.
+    {
+        files: ['src/**/*.{ts,tsx}'],
+        plugins: {
+            local: { rules: { 'require-native-button': requireNativeButton } },
+        },
+        rules: { 'local/require-native-button': 'error' },
     },
     // The shared helper, the hook that wraps it, and RouteErrorState's retry
     // are the only places allowed to call router.invalidate() (see issue
