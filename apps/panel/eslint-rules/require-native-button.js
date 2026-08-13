@@ -37,6 +37,23 @@ const BUTTON_LIKE_WRAPPERS = new Set([
     'RadioGroupItem',
 ]);
 
+// Base UI's useButton decides the nativeButton warning from the actual
+// rendered DOM tag, not the JSX identifier passed to `render`. Besides the
+// native lowercase `button`, this project has exactly two components that
+// themselves always default to rendering a native <button> with no override
+// present in this codebase: `Button` (components/ui/button.tsx,
+// ButtonPrimitive's default `nativeButton: true`) and `SidebarMenuButton`
+// (components/ui/sidebar.tsx, useRender({ defaultTagName: 'button' })).
+// Composing a wrapper's render with either is therefore safe and must not be
+// reported. This list is intentionally closed to these two names — adding
+// another one later requires re-verifying that component's own default
+// nativeButton behaviour first, not just assuming it renders a <button>.
+const SAFE_RENDER_TARGET_NAMES = new Set([
+    'button',
+    'Button',
+    'SidebarMenuButton',
+]);
+
 export default {
     meta: {
         type: 'problem',
@@ -98,7 +115,7 @@ export default {
                     renderExpression.openingElement.name;
                 if (
                     renderElementName.type === 'JSXIdentifier' &&
-                    renderElementName.name === 'button'
+                    SAFE_RENDER_TARGET_NAMES.has(renderElementName.name)
                 ) {
                     return;
                 }
