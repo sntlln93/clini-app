@@ -1,8 +1,21 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import {
+    Card,
+    CardAction,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
 import type { ClinicalNote } from '@/types/clinical-note';
+import { useState } from 'react';
+import { AddClinicalNoteForm } from './AddClinicalNoteForm';
 
 type PatientClinicalNotesCardProps = {
+    patientId: number;
     notes: ClinicalNote[];
+    // The acting membership's own appointment for today, or null when it
+    // doesn't have one — drives whether "add note" is offered (issue #217).
+    todaysAppointmentId: number | null;
 };
 
 function formatTimestamp(iso: string): string {
@@ -13,14 +26,37 @@ function formatTimestamp(iso: string): string {
 }
 
 export function PatientClinicalNotesCard({
+    patientId,
     notes,
+    todaysAppointmentId,
 }: PatientClinicalNotesCardProps) {
+    const [showForm, setShowForm] = useState(false);
+
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Notas clínicas</CardTitle>
+                {todaysAppointmentId !== null && (
+                    <CardAction>
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowForm((prev) => !prev)}
+                        >
+                            {showForm ? 'Cancelar' : 'Agregar nota'}
+                        </Button>
+                    </CardAction>
+                )}
             </CardHeader>
             <CardContent className="space-y-3">
+                {todaysAppointmentId !== null && showForm && (
+                    <AddClinicalNoteForm
+                        patientId={patientId}
+                        appointmentId={todaysAppointmentId}
+                        onSaved={() => setShowForm(false)}
+                    />
+                )}
                 {notes.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Todavía no hay notas clínicas para este paciente.

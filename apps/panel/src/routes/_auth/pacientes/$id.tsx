@@ -8,7 +8,10 @@ import { PatientContactCard } from './-components/PatientContactCard';
 import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
 import { patientQueryOptions } from './-hooks/use-patient';
-import { patientAppointmentsQueryOptions } from './-hooks/use-patient-appointments';
+import {
+    findTodaysOwnAppointment,
+    patientAppointmentsQueryOptions,
+} from './-hooks/use-patient-appointments';
 import { patientClinicalNotesQueryOptions } from './-hooks/use-patient-clinical-notes';
 
 export const Route = createFileRoute('/_auth/pacientes/$id')({
@@ -60,7 +63,13 @@ function PacienteDetallePage() {
             </div>
 
             <PatientAppointmentHistoryCard appointments={appointments} />
-            <PatientClinicalNotesCard notes={notes} />
+            <PatientClinicalNotesCard
+                patientId={id}
+                notes={notes}
+                todaysAppointmentId={
+                    findTodaysOwnAppointment(appointments)?.id ?? null
+                }
+            />
         </div>
     );
 }

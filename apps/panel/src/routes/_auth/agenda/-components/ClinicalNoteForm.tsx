@@ -28,7 +28,9 @@ type ClinicalNoteFormProps = {
     onSaved: () => void;
 };
 
-const noteSchema = z.object({
+// Shared with `pacientes/-components/AddClinicalNoteForm.tsx` (issue #217) so
+// both entry points validate a note body identically.
+export const noteSchema = z.object({
     body: z
         .string()
         .trim()
@@ -36,7 +38,7 @@ const noteSchema = z.object({
         .max(5000, 'La nota no puede superar los 5000 caracteres.'),
 });
 
-type NoteFormValues = z.infer<typeof noteSchema>;
+export type NoteFormValues = z.infer<typeof noteSchema>;
 
 const EMPTY_VALUES: NoteFormValues = { body: '' };
 
