@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Support\Concerns\BelongsToOrganization;
 use Database\Factories\ClinicalNoteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -32,5 +33,16 @@ class ClinicalNote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(Membership::class, 'membership_id');
+    }
+
+    /**
+     * Notes of any author whose appointment belongs to the given patient.
+     *
+     * @param  Builder<ClinicalNote>  $query
+     * @return Builder<ClinicalNote>
+     */
+    public function scopeForPatient(Builder $query, int $patientId): Builder
+    {
+        return $query->whereHas('appointment', fn (Builder $query) => $query->where('patient_id', $patientId));
     }
 }
