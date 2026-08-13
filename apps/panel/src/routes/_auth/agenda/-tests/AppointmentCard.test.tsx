@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { sessionQueryOptions } from '@/lib/session';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -37,13 +38,33 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     };
 }
 
+// Undefined leaves the session query unseeded (no active membership resolves),
+// matching the pre-existing behavior every case above this line already relies on.
 function renderCard(
     appointment: Appointment,
     canUpdate: boolean = true,
     variant: 'default' | 'day' = 'default',
     compact: boolean = false,
+    sessionMembershipId?: number,
 ) {
     const queryClient = new QueryClient();
+    if (sessionMembershipId !== undefined) {
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 1,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            membership: {
+                id: sessionMembershipId,
+                user: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+                roles: ['professional'],
+                status: 'active',
+                slug: null,
+                deleted_at: null,
+                created_at: '2026-01-01T00:00:00',
+                updated_at: '2026-01-01T00:00:00',
+            },
+        });
+    }
     render(
         <QueryClientProvider client={queryClient}>
             <AppointmentCard
@@ -59,6 +80,7 @@ function renderCard(
 describe('AppointmentCard', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
+        vi.mocked(api.get).mockReset();
         invalidate.mockReset();
     });
 
@@ -169,5 +191,80 @@ describe('AppointmentCard', () => {
         renderCard(buildAppointment(), true, 'day', false);
 
         expect(screen.getByText('Consulta general')).toBeTruthy();
+    });
+
+    it("shows the Notas clínicas item when the session membership is the appointment's professional", async () => {
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Notas clínicas' }),
+        ).toBeTruthy();
+    });
+
+    it('does not show the Notas clínicas item when the session membership is a different membership', () => {
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+        );
+
+        expect(screen.queryByRole('button')).toBeNull();
+    });
+
+    it('still renders a menu with only Notas clínicas when canUpdate is false and no status transitions apply, for its own professional', async () => {
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            false,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Notas clínicas' }),
+        ).toBeTruthy();
+        expect(screen.queryByRole('menuitem', { name: 'Cancelar' })).toBeNull();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Reprogramar' }),
+        ).toBeNull();
+    });
+
+    it('clicking Notas clínicas opens the clinical notes dialog', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', { name: 'Notas clínicas' }),
+        );
+
+        await waitFor(() =>
+            expect(api.get).toHaveBeenCalledWith(
+                '/appointments/1/clinical-notes',
+            ),
+        );
+        expect(
+            await screen.findByText(
+                'Solo vos podés ver y editar tus notas de este turno.',
+            ),
+        ).toBeTruthy();
     });
 });
