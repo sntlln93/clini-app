@@ -21,6 +21,31 @@ export type Patient = {
     created_at: string;
 };
 
+export type PatientAppointmentStatus =
+    | 'scheduled'
+    | 'confirmed'
+    | 'arrived'
+    | 'completed'
+    | 'no_show'
+    | 'cancelled'
+    | 'rescheduled';
+
+// One item of a patient's appointment history (`GET /patients/{id}/appointments`).
+export type PatientAppointmentHistoryItem = {
+    id: number;
+    membership_id: number;
+    patient_id: number;
+    service_id: number;
+    status: PatientAppointmentStatus;
+    start_at: string;
+    end_at: string;
+    professional_name?: string | null;
+    service_name?: string | null;
+    organization_name: string | null;
+    // Whether the appointment belongs to the membership currently logged in.
+    is_own_membership: boolean;
+};
+
 export type PatientPayload = {
     name: string;
     document_type: DocumentType | '';

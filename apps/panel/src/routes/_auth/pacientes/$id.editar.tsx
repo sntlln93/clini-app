@@ -6,9 +6,10 @@ import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers
 import { patientQueryOptions } from './-hooks/use-patient';
 
 export const Route = createFileRoute('/_auth/pacientes/$id/editar')({
-    params: {
-        parse: (rawParams) => ({ id: Number(rawParams.id) }),
-    },
+    // `$id` is already parsed to a number by the parent route
+    // (`pacientes/$id.tsx`, introduced by issue #217) and inherited here —
+    // no own `params.parse` needed, since this route's own path segment is
+    // just `/editar`.
     loader: async ({ context, params }) => {
         const [patient, insuranceProviders] = await Promise.all([
             context.queryClient.ensureQueryData(patientQueryOptions(params.id)),
