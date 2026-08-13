@@ -8,6 +8,8 @@ import {
     SidebarMenu,
     SidebarMenuButton,
     SidebarMenuItem,
+    SidebarRail,
+    useSidebar,
 } from '@/components/ui/sidebar';
 import { ProfileMenu } from '@/features/profile-menu/ProfileMenu';
 import { useSession } from '@/lib/session';
@@ -17,6 +19,7 @@ import { isNavItemActive, navItems } from './nav-items';
 
 export function PanelSidebar() {
     const { pathname } = useLocation();
+    const { isMobile } = useSidebar();
     const { data: session } = useSession();
     const permissions = session?.permissions ?? [];
     const visibleNavItems = navItems.filter(
@@ -83,6 +86,13 @@ export function PanelSidebar() {
             <SidebarFooter>
                 <ProfileMenu />
             </SidebarFooter>
+            {/* SidebarRail's own breakpoint (sm, 640px) is narrower than useSidebar's isMobile (768px), so it must stay hidden until the mobile Sheet breakpoint too. */}
+            {!isMobile && (
+                <SidebarRail
+                    aria-label="Alternar barra lateral"
+                    title="Alternar barra lateral"
+                />
+            )}
         </Sidebar>
     );
 }
