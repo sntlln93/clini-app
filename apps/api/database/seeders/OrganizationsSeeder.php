@@ -6,6 +6,7 @@ namespace Database\Seeders;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\Province;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
@@ -60,12 +61,12 @@ class OrganizationsSeeder extends Seeder
     {
         $organizationA = Organization::firstOrCreate(
             ['slug' => self::ORGANIZATION_A_SLUG],
-            ['name' => 'Clínica Modelo', 'timezone' => 'America/Argentina/Buenos_Aires'],
+            ['name' => 'Clínica Modelo', 'timezone' => 'America/Argentina/Buenos_Aires', 'province' => Province::CiudadAutonomaDeBuenosAires],
         );
 
         $organizationB = Organization::firstOrCreate(
             ['slug' => self::ORGANIZATION_B_SLUG],
-            ['name' => 'Consultorio Dos', 'timezone' => 'America/Argentina/Cordoba'],
+            ['name' => 'Consultorio Dos', 'timezone' => 'America/Argentina/Cordoba', 'province' => Province::Cordoba],
         );
 
         // Shared across both organizations: the "one user with a

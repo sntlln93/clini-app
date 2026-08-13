@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('timezone');
+            $table->string('province')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });
