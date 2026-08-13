@@ -78,16 +78,16 @@ describe('eslint no-restricted-syntax: router.invalidate()', () => {
         LINT_TIMEOUT,
     );
 
-    it(
-        "the 'use client' SSR-directive ban survives in an exempt file",
-        async () => {
+    it.each(['use client', 'use server'])(
+        "the '%s' SSR-directive ban survives in an exempt file",
+        async (directive) => {
             const messages = await lintRestrictedSyntaxMessages(
                 'src/lib/page-data.ts',
-                "'use client';\nexport const x = 1;\n",
+                `'${directive}';\nexport const x = 1;\n`,
             );
 
             expect(messages).toHaveLength(1);
-            expect(messages[0].message).toContain("'use client'");
+            expect(messages[0].message).toContain(`'${directive}'`);
         },
         LINT_TIMEOUT,
     );
