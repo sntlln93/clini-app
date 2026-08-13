@@ -11,3 +11,5 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('reminders:send-due')->everyMinute()->withoutOverlapping();
+
+Schedule::command('holidays:sync')->monthly()->withoutOverlapping();
