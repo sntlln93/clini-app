@@ -17,7 +17,7 @@ type AgendaProfessionalFilterProps = {
 };
 
 function professionalName(professional: Professional): string {
-    return professional.user.name ?? 'Sin nombre';
+    return professional.user.name;
 }
 
 export function AgendaProfessionalFilter({

@@ -85,7 +85,7 @@ export function AgendaDayView({
                             className="min-w-0 flex-1 basis-0 border-r last:border-r-0"
                         >
                             <div className="flex h-10 items-center border-b px-2 text-sm font-medium">
-                                {professional.user.name ?? 'Sin nombre'}
+                                {professional.user.name}
                             </div>
 
                             <div
@@ -97,7 +97,7 @@ export function AgendaDayView({
                                         <button
                                             key={hour}
                                             type="button"
-                                            aria-label={`Crear turno a las ${formatHour(hour)} para ${professional.user.name ?? 'profesional sin nombre'}`}
+                                            aria-label={`Crear turno a las ${formatHour(hour)} para ${professional.user.name}`}
                                             className="absolute left-0 w-full cursor-pointer border-t hover:bg-muted/50"
                                             style={{
                                                 top:
