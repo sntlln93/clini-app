@@ -170,7 +170,8 @@ describe('/agenda loader without memberships.view', () => {
             vi
                 .mocked(api.get)
                 .mock.calls.some(
-                    ([url]) => url === '/memberships' || url === '/professionals',
+                    ([url]) =>
+                        url === '/memberships' || url === '/professionals',
                 ),
         ).toBe(false);
         expect(result).toMatchObject({ professionals: [OWN_PROFESSIONAL] });
@@ -183,8 +184,14 @@ const STAFF_MEMBERSHIP: Membership = {
 };
 
 const STAFF_ROSTER: Professional[] = [
-    { id: 5, user: { id: 50, name: 'Dra. Roster Uno', email: 'roster1@test.com' } },
-    { id: 6, user: { id: 60, name: 'Dr. Roster Dos', email: 'roster2@test.com' } },
+    {
+        id: 5,
+        user: { id: 50, name: 'Dra. Roster Uno', email: 'roster1@test.com' },
+    },
+    {
+        id: 6,
+        user: { id: 60, name: 'Dr. Roster Dos', email: 'roster2@test.com' },
+    },
 ];
 
 function mockApiGetForStaffWithoutMembershipsView() {
@@ -271,7 +278,8 @@ describe('/agenda loader for a session with none of the roster permissions and a
             vi
                 .mocked(api.get)
                 .mock.calls.some(
-                    ([url]) => url === '/memberships' || url === '/professionals',
+                    ([url]) =>
+                        url === '/memberships' || url === '/professionals',
                 ),
         ).toBe(false);
         expect(result).toMatchObject({ professionals: [] });
