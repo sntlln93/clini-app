@@ -41,7 +41,9 @@ describe('pacientes/$id and pacientes/$id/editar route nesting', () => {
     it('declares the editar route path without the detail route as parent', () => {
         const content = readRouteFile('$id_.editar.tsx');
 
-        expect(content).toContain("createFileRoute('/_auth/pacientes/$id_/editar')");
+        expect(content).toContain(
+            "createFileRoute('/_auth/pacientes/$id_/editar')",
+        );
     });
 
     it('keeps the detail route on its own path', () => {
