@@ -12,10 +12,8 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Dispatched synchronously (no queues) by InviteMemberAction. Carries the
- * one-time plaintext acceptance URL — the invitation itself only ever
- * persists the token's hash, so this is the only place the plaintext value
- * exists outside the request that created it.
+ * Dispatched synchronously (no queues) by InviteMemberAction. Carries the only
+ * plaintext copy of the acceptance URL — the invitation persists just its hash.
  */
 class MembershipInvitationMail extends Mailable
 {
