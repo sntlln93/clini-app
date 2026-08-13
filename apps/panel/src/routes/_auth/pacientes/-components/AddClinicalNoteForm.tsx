@@ -10,11 +10,8 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { noteSchema, type NoteFormValues } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
-import {
-    noteSchema,
-    type NoteFormValues,
-} from '@/routes/_auth/agenda/-components/ClinicalNoteForm';
 import { useCreatePatientClinicalNote } from '../-hooks/use-patient-clinical-notes';
 
 type AddClinicalNoteFormProps = {
@@ -25,9 +22,10 @@ type AddClinicalNoteFormProps = {
 
 const EMPTY_VALUES: NoteFormValues = { body: '' };
 
-// Reuses `ClinicalNoteForm`'s validation (issue #217): this is a create-only
-// entry point (the patient page never edits/deletes notes), submitted
-// against the acting membership's own appointment for today.
+// Reuses the shared `noteSchema` validation (issue #217, also used by
+// `agenda/-components/ClinicalNoteForm.tsx`): this is a create-only entry
+// point (the patient page never edits/deletes notes), submitted against the
+// acting membership's own appointment for today.
 export function AddClinicalNoteForm({
     patientId,
     appointmentId,

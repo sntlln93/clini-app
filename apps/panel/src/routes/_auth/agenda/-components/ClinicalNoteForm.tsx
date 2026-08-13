@@ -1,7 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
@@ -13,6 +12,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { noteSchema, type NoteFormValues } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
@@ -27,18 +27,6 @@ type ClinicalNoteFormProps = {
     onCancelEdit: () => void;
     onSaved: () => void;
 };
-
-// Shared with `pacientes/-components/AddClinicalNoteForm.tsx` (issue #217) so
-// both entry points validate a note body identically.
-export const noteSchema = z.object({
-    body: z
-        .string()
-        .trim()
-        .min(1, 'La nota no puede estar vacía.')
-        .max(5000, 'La nota no puede superar los 5000 caracteres.'),
-});
-
-export type NoteFormValues = z.infer<typeof noteSchema>;
 
 const EMPTY_VALUES: NoteFormValues = { body: '' };
 
