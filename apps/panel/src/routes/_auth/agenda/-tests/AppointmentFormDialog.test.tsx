@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import type { Membership } from '@/types/membership';
+import { buildProfessional } from '@/tests/fixtures/professional';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     fireEvent,
@@ -24,16 +24,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
 });
 
-const PROFESSIONAL: Membership = {
-    id: 1,
-    user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
-    roles: ['professional'],
-    status: 'active',
-    slug: null,
-    deleted_at: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-};
+const PROFESSIONAL = buildProfessional();
 
 const SERVICE = {
     id: 100,

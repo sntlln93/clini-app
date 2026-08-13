@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route } from '../index';
@@ -125,6 +126,12 @@ function membership(id: number, userId: number): Membership {
 
 const OWN_MEMBERSHIP = membership(1, 10);
 
+// Mirrors `membershipToProfessional`'s own-membership degrade path in use-professionals.ts.
+const OWN_PROFESSIONAL: Professional = {
+    id: OWN_MEMBERSHIP.id,
+    user: { id: 10, name: 'User 10', email: '' },
+};
+
 function mockApiGetWithoutMembershipsView() {
     vi.mocked(api.get).mockImplementation((url: string) => {
         if (url === '/me') {
@@ -151,7 +158,7 @@ describe('/agenda loader without memberships.view', () => {
         mockApiGetWithoutMembershipsView();
     });
 
-    it("resolves without /memberships and degrades professionals to the caller's own membership", async () => {
+    it("resolves without /memberships or /professionals and degrades professionals to the caller's own membership", async () => {
         const queryClient = new QueryClient();
 
         const result = await loader({
@@ -162,9 +169,12 @@ describe('/agenda loader without memberships.view', () => {
         expect(
             vi
                 .mocked(api.get)
-                .mock.calls.some(([url]) => url === '/memberships'),
+                .mock.calls.some(
+                    ([url]) =>
+                        url === '/memberships' || url === '/professionals',
+                ),
         ).toBe(false);
-        expect(result).toMatchObject({ professionals: [OWN_MEMBERSHIP] });
+        expect(result).toMatchObject({ professionals: [OWN_PROFESSIONAL] });
     });
 });
 
@@ -172,6 +182,17 @@ const STAFF_MEMBERSHIP: Membership = {
     ...membership(2, 20),
     roles: ['staff'],
 };
+
+const STAFF_ROSTER: Professional[] = [
+    {
+        id: 5,
+        user: { id: 50, name: 'Dra. Roster Uno', email: 'roster1@test.com' },
+    },
+    {
+        id: 6,
+        user: { id: 60, name: 'Dr. Roster Dos', email: 'roster2@test.com' },
+    },
+];
 
 function mockApiGetForStaffWithoutMembershipsView() {
     vi.mocked(api.get).mockImplementation((url: string) => {
@@ -186,6 +207,9 @@ function mockApiGetForStaffWithoutMembershipsView() {
                 },
             });
         }
+        if (url === '/professionals') {
+            return Promise.resolve({ data: { data: STAFF_ROSTER } });
+        }
         if (url === '/appointments') {
             return Promise.resolve({ data: { data: [] } });
         }
@@ -199,7 +223,7 @@ describe('/agenda loader for a Staff session without memberships.view', () => {
         mockApiGetForStaffWithoutMembershipsView();
     });
 
-    it('resolves without /memberships and degrades professionals to an empty list', async () => {
+    it('resolves the roster from GET /professionals and gets a populated list', async () => {
         const queryClient = new QueryClient();
 
         const result = await loader({
@@ -211,6 +235,52 @@ describe('/agenda loader for a Staff session without memberships.view', () => {
             vi
                 .mocked(api.get)
                 .mock.calls.some(([url]) => url === '/memberships'),
+        ).toBe(false);
+        expect(result).toMatchObject({ professionals: STAFF_ROSTER });
+    });
+});
+
+function mockApiGetForNoRosterPermissionsAndNonProfessionalOwnMembership() {
+    vi.mocked(api.get).mockImplementation((url: string) => {
+        if (url === '/me') {
+            return Promise.resolve({
+                data: {
+                    id: 20,
+                    name: 'Elena Staff',
+                    email: 'elena.staff@test.com',
+                    permissions: [],
+                    membership: STAFF_MEMBERSHIP,
+                },
+            });
+        }
+        if (url === '/appointments') {
+            return Promise.resolve({ data: { data: [] } });
+        }
+        return Promise.reject(new Error(`unexpected GET ${url}`));
+    });
+}
+
+describe('/agenda loader for a session with none of the roster permissions and a non-professional own membership', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        mockApiGetForNoRosterPermissionsAndNonProfessionalOwnMembership();
+    });
+
+    it('resolves without /memberships or /professionals and degrades professionals to an empty list', async () => {
+        const queryClient = new QueryClient();
+
+        const result = await loader({
+            context: { queryClient },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+
+        expect(
+            vi
+                .mocked(api.get)
+                .mock.calls.some(
+                    ([url]) =>
+                        url === '/memberships' || url === '/professionals',
+                ),
         ).toBe(false);
         expect(result).toMatchObject({ professionals: [] });
     });

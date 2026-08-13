@@ -1,5 +1,5 @@
 import type { Appointment } from '@/types/appointment';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { AppointmentCard } from './AppointmentCard';
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -21,9 +21,9 @@ function isSameDay(iso: string, date: Date): boolean {
 
 export type AgendaWeekViewProps = {
     weekStart: Date;
-    professionals: Membership[];
+    professionals: Professional[];
     appointments: Appointment[];
-    canUpdate: (membership: Membership) => boolean;
+    canUpdate: (membership: Professional) => boolean;
 };
 
 export function AgendaWeekView({

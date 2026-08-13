@@ -1,5 +1,5 @@
 import { Form } from '@/components/ui/form';
-import type { Membership } from '@/types/membership';
+import { buildProfessional } from '@/tests/fixtures/professional';
 import type { ProfessionalService } from '@/types/professional';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { render, screen } from '@testing-library/react';
@@ -11,16 +11,7 @@ import {
     type AppointmentFormValues,
 } from '../-components/appointment-schemas';
 
-const PROFESSIONAL: Membership = {
-    id: 1,
-    user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
-    roles: ['professional'],
-    status: 'active',
-    slug: null,
-    deleted_at: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-};
+const PROFESSIONAL = buildProfessional();
 
 const SERVICE: ProfessionalService = {
     id: 100,

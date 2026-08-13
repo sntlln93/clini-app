@@ -2,7 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 import { AvailabilityExceptionsSection } from './-components/AvailabilityExceptionsSection';
@@ -18,7 +18,7 @@ const disponibilidadSearchSchema = z.object({
 
 /** Duplicates `useAvailabilityPermissions`' own-vs-org-wide rule because loaders run outside React and can't use the hook directly. */
 function defaultMembershipId(
-    professionals: Membership[],
+    professionals: Professional[],
     session: SessionUser | undefined,
 ): number | undefined {
     if (professionals.length === 0) {

@@ -5,19 +5,19 @@ import {
     DropdownMenuContent,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Membership } from '@/types/membership';
+import type { Professional } from '@/types/professional';
 import { ChevronDownIcon } from 'lucide-react';
 
 const PILLS_THRESHOLD = 4;
 
 type AgendaProfessionalFilterProps = {
-    professionals: Membership[];
+    professionals: Professional[];
     selectedIds: number[];
     onChange: (ids: number[]) => void;
 };
 
-function professionalName(professional: Membership): string {
-    return professional.user.name ?? 'Sin nombre';
+function professionalName(professional: Professional): string {
+    return professional.user.name;
 }
 
 export function AgendaProfessionalFilter({

@@ -1,21 +1,13 @@
-import type { Membership } from '@/types/membership';
+import { buildProfessional } from '@/tests/fixtures/professional';
+import type { Professional } from '@/types/professional';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ProfessionalPicker } from '../-components/ProfessionalPicker';
 
-const PROFESSIONAL: Membership = {
-    id: 3,
-    user: { id: 10, name: 'Dra. Ana López', email: 'ana@example.com' },
-    roles: ['professional'],
-    status: 'active',
-    slug: null,
-    deleted_at: null,
-    created_at: '2026-01-01T00:00:00Z',
-    updated_at: '2026-01-01T00:00:00Z',
-};
+const PROFESSIONAL = buildProfessional({ id: 3 });
 
 function renderForm(props: {
-    professionals: Membership[];
+    professionals: Professional[];
     selectedId: number | null;
 }) {
     render(
