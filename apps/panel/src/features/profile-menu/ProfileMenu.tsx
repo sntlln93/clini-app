@@ -85,7 +85,10 @@ export function ProfileMenu() {
                             </div>
                         </div>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem render={<Link to="/ajustes" />}>
+                        <DropdownMenuItem
+                            render={<Link to="/ajustes" />}
+                            nativeButton={false}
+                        >
                             <Settings className="size-4" />
                             Ajustes
                         </DropdownMenuItem>
