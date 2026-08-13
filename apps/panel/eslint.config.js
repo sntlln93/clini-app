@@ -17,6 +17,36 @@ const AXIOS_IMPORT_RESTRICTION = {
         'Only src/lib/api-errors.ts (and src/lib/api.ts) may import axios directly — use mapToAppError() instead.',
 };
 
+// Shared between the main `no-restricted-syntax` block and the exemption
+// block below for the three files allowed to call router.invalidate()
+// directly — flat config replaces a rule's whole options array per matching
+// file instead of merging, so the exemption block must repeat these or it
+// would silently drop them for those files (see AXIOS_IMPORT_RESTRICTION
+// above for the same pattern).
+const SSR_DIRECTIVE_RESTRICTIONS = [
+    {
+        selector: "ExpressionStatement[directive='use client']",
+        message:
+            "'use client' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
+    },
+    {
+        selector: "ExpressionStatement[directive='use server']",
+        message:
+            "'use server' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
+    },
+];
+
+// Calling router.invalidate() directly doesn't refresh a read that lives
+// only in a route loader (queryClient.ensureQueryData returns the cached
+// value without checking invalidation) — see issue #169. Use
+// useRefreshPageData() instead.
+const ROUTER_INVALIDATE_RESTRICTION = {
+    selector:
+        "CallExpression[callee.type='MemberExpression'][callee.property.name='invalidate']",
+    message:
+        'Do not call router.invalidate() directly: it does not refresh a read that lives only in a route loader (ensureQueryData returns the cached value). Use useRefreshPageData() from @/hooks/use-refresh-page-data in the mutation onSuccess instead — see ADR 0007.',
+};
+
 export default tseslint.config(
     {
         ignores: [
@@ -83,23 +113,32 @@ export default tseslint.config(
     },
     // The panel is a client-rendered SPA with no SSR/RSC (see ADR 0001), so
     // Next.js-style `'use client'`/`'use server'` directives are meaningless
-    // here — ban both, with no exempt folders.
+    // here — ban both, with no exempt folders. Also bans calling
+    // router.invalidate() directly: paired with invalidateQueries it doesn't
+    // refresh a loader-only read, see issue #169.
     {
         files: ['src/**/*.{ts,tsx}'],
         rules: {
             'no-restricted-syntax': [
                 'error',
-                {
-                    selector: "ExpressionStatement[directive='use client']",
-                    message:
-                        "'use client' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
-                },
-                {
-                    selector: "ExpressionStatement[directive='use server']",
-                    message:
-                        "'use server' is meaningless: the panel is a client-rendered SPA with no SSR/RSC.",
-                },
+                ...SSR_DIRECTIVE_RESTRICTIONS,
+                ROUTER_INVALIDATE_RESTRICTION,
             ],
+        },
+    },
+    // The shared helper, the hook that wraps it, and RouteErrorState's retry
+    // are the only places allowed to call router.invalidate() (see issue
+    // #202). The SSR-directive restrictions are repeated here because flat
+    // config replaces a rule's entire options array per matching file
+    // instead of merging.
+    {
+        files: [
+            'src/lib/page-data.ts',
+            'src/hooks/use-refresh-page-data.ts',
+            'src/components/RouteErrorState.tsx',
+        ],
+        rules: {
+            'no-restricted-syntax': ['error', ...SSR_DIRECTIVE_RESTRICTIONS],
         },
     },
     // Structural limits from CLAUDE.md's "Frontend structure": every file
