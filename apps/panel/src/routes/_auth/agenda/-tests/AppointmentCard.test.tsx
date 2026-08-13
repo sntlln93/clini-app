@@ -11,10 +11,11 @@ vi.mock('@/lib/api', () => ({
 }));
 
 const invalidate = vi.fn();
+const navigate = vi.fn();
 vi.mock('@tanstack/react-router', async (importOriginal) => {
     const actual =
         await importOriginal<typeof import('@tanstack/react-router')>();
-    return { ...actual, useRouter: () => ({ invalidate }) };
+    return { ...actual, useRouter: () => ({ invalidate, navigate }) };
 });
 
 function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
@@ -82,6 +83,7 @@ describe('AppointmentCard', () => {
         vi.mocked(api.patch).mockReset();
         vi.mocked(api.get).mockReset();
         invalidate.mockReset();
+        navigate.mockReset();
     });
 
     it('lists Cancelar and Reprogramar alongside the status transitions for a scheduled appointment', async () => {
@@ -207,6 +209,45 @@ describe('AppointmentCard', () => {
         expect(
             await screen.findByRole('menuitem', { name: 'Notas clínicas' }),
         ).toBeTruthy();
+    });
+
+    it("shows the Ver ficha del paciente item, navigating to the patient's detail route, when the session membership is the appointment's professional", async () => {
+        renderCard(
+            buildAppointment({
+                id: 1,
+                status: 'completed',
+                membership_id: 1,
+                patient_id: 50,
+            }),
+            true,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', {
+                name: 'Ver ficha del paciente',
+            }),
+        );
+
+        expect(navigate).toHaveBeenCalledWith({
+            to: '/pacientes/$id',
+            params: { id: 50 },
+        });
+    });
+
+    it('does not show the Ver ficha del paciente item when the session membership is a different membership', () => {
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+        );
+
+        expect(screen.queryByRole('button')).toBeNull();
     });
 
     it('does not show the Notas clínicas item when the session membership is a different membership', () => {
