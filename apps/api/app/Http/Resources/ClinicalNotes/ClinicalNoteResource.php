@@ -27,6 +27,11 @@ class ClinicalNoteResource extends JsonResource
             'body' => $clinicalNote->body,
             'created_at' => $clinicalNote->created_at,
             'updated_at' => $clinicalNote->updated_at,
+            // Only present when the controller eager-loads these relations
+            // (the patient-scoped listing does; the appointment-scoped one
+            // doesn't need them, since every note there shares one author).
+            'author_name' => $this->whenLoaded('author', fn () => $clinicalNote->author?->user?->name),
+            'appointment_date' => $this->whenLoaded('appointment', fn () => $clinicalNote->appointment?->start_at),
         ];
     }
 

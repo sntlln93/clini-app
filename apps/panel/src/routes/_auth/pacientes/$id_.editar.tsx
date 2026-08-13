@@ -5,7 +5,10 @@ import { PatientForm } from './-components/PatientForm';
 import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers';
 import { patientQueryOptions } from './-hooks/use-patient';
 
-export const Route = createFileRoute('/_auth/pacientes/$id/editar')({
+export const Route = createFileRoute('/_auth/pacientes/$id_/editar')({
+    // Non-nested route (trailing underscore on `$id_`): this route is a
+    // sibling of `pacientes/$id.tsx`, not nested under it, so it doesn't
+    // inherit the parent's parsed `id` param and needs its own here.
     params: {
         parse: (rawParams) => ({ id: Number(rawParams.id) }),
     },

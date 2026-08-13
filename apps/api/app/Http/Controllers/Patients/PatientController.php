@@ -14,6 +14,7 @@ use App\Http\Requests\Patients\IndexPatientRequest;
 use App\Http\Requests\Patients\LookupPatientRequest;
 use App\Http\Requests\Patients\StorePatientRequest;
 use App\Http\Requests\Patients\UpdatePatientRequest;
+use App\Http\Resources\Patients\PatientAppointmentResource;
 use App\Http\Resources\Patients\PatientResource;
 use App\Models\Patient;
 use App\Support\CurrentOrganization;
@@ -70,6 +71,21 @@ class PatientController extends Controller
         Gate::authorize('view', $patient);
 
         return new PatientResource($patient->load('insuranceProvider'));
+    }
+
+    public function appointmentHistory(Patient $patient): AnonymousResourceCollection
+    {
+        Gate::authorize('view', $patient);
+
+        // Appointment's own BelongsToOrganization global scope already
+        // restricts this to the active organization (set by the
+        // `organization` route middleware before this controller runs).
+        $appointments = $patient->appointments()
+            ->with(['membership.user', 'service', 'organization'])
+            ->orderBy('start_at', 'desc')
+            ->get();
+
+        return PatientAppointmentResource::collection($appointments);
     }
 
     public function update(UpdatePatientRequest $request, Patient $patient): PatientResource

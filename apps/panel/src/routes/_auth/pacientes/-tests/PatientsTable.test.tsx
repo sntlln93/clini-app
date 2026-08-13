@@ -7,7 +7,7 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PatientsTable } from '../-components/PatientsTable';
 
@@ -44,7 +44,16 @@ function renderPatientsTable(patients: Patient[]) {
         path: '/pacientes/$id/editar',
         component: () => <div>Editar paciente</div>,
     });
-    const routeTree = rootRoute.addChildren([pacientesRoute, editarRoute]);
+    const detalleRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/pacientes/$id',
+        component: () => <div>Ficha del paciente</div>,
+    });
+    const routeTree = rootRoute.addChildren([
+        pacientesRoute,
+        editarRoute,
+        detalleRoute,
+    ]);
     const router = createRouter({
         routeTree,
         history: createMemoryHistory({ initialEntries: ['/pacientes'] }),
@@ -60,6 +69,18 @@ describe('PatientsTable', () => {
         screen.getByText('DNI 12345678');
 
         screen.getByRole('button', { name: 'Editar' });
+    });
+
+    it('renders an icon-only Ver action alongside Editar, linking to the patient detail route', async () => {
+        renderPatientsTable(PATIENTS);
+
+        await screen.findByText('Ana Gomez');
+        const verButton = screen.getByRole('button', { name: 'Ver' });
+        screen.getByRole('button', { name: 'Editar' });
+
+        fireEvent.click(verButton);
+
+        await screen.findByText('Ficha del paciente');
     });
 
     it('renders the empty state for an empty list, with no Eliminar affordance in either state', async () => {

@@ -15,6 +15,7 @@ use App\Http\Resources\ClinicalNotes\ClinicalNoteResource;
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Membership;
+use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,6 +38,19 @@ class ClinicalNoteController extends Controller
         $notes = ClinicalNote::query()
             ->where('appointment_id', $appointment->id)
             ->where('membership_id', $membership->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return ClinicalNoteResource::collection($notes);
+    }
+
+    public function indexForPatient(Patient $patient): AnonymousResourceCollection
+    {
+        Gate::authorize('viewAnyForPatient', [ClinicalNote::class, $patient]);
+
+        $notes = ClinicalNote::query()
+            ->forPatient($patient->id)
+            ->with(['author.user', 'appointment'])
             ->orderBy('created_at', 'desc')
             ->get();
 

@@ -9,6 +9,7 @@ import {
 import { useSession } from '@/lib/session';
 import { cn } from '@/lib/utils';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
@@ -106,6 +107,7 @@ export function AppointmentCard({
     const [showCancel, setShowCancel] = useState(false);
     const [showNotes, setShowNotes] = useState(false);
     const { data: session } = useSession();
+    const router = useRouter();
     const { mutate } = useUpdateAppointmentStatus();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
@@ -118,6 +120,13 @@ export function AppointmentCard({
         appointment.patient_name ?? `Paciente #${appointment.patient_id}`;
     const serviceLabel =
         appointment.service_name ?? `Servicio #${appointment.service_id}`;
+
+    function goToPatient() {
+        void router.navigate({
+            to: '/pacientes/$id',
+            params: { id: appointment.patient_id },
+        });
+    }
 
     const content =
         variant === 'day' ? (
@@ -204,6 +213,11 @@ export function AppointmentCard({
                     )}
                     {isOwnAppointment && hasUpdateActions && (
                         <DropdownMenuSeparator />
+                    )}
+                    {isOwnAppointment && (
+                        <DropdownMenuItem onClick={goToPatient}>
+                            Ver ficha del paciente
+                        </DropdownMenuItem>
                     )}
                     {isOwnAppointment && (
                         <DropdownMenuItem onClick={() => setShowNotes(true)}>
