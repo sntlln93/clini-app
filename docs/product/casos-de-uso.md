@@ -523,6 +523,21 @@ Convenciones:
     una **organización**; no es un dato global del paciente (coherente con CU-07).
   - El schema del MVP no debe imposibilitar esta relación nota↔turno↔profesional↔organización.
 
+### CU-53 · Receta estructurada por visita *(issue #31)*
+
+- **Actor**: profesional que emite una receta durante un turno propio.
+- **Decisión**: receta **estructurada mínima**, sin vademécum ni catálogo de medicamentos:
+  diagnóstico opcional y 1..N ítems con medicamento (texto libre), presentación (opcional),
+  posología y cantidad (entero positivo). **No es una receta electrónica válida**: la firma
+  digital y la plataforma registrada de la Ley 27.553 quedan fuera de alcance; la vista
+  imprimible lleva siempre la leyenda "Documento sin validez como receta electrónica".
+- **Invariantes**:
+  - Igual que la nota clínica (CU-45), la receta cuelga de un **turno**, un **profesional
+    autor** y una **organización**, y además guarda el paciente del turno.
+  - Solo el **profesional autor** la crea, ve, edita e imprime — nunca dueño/admin/staff ni
+    otro profesional de la misma organización, ni siquiera desde la ficha del paciente.
+  - Editarla reemplaza diagnóstico e ítems y conserva la fecha de emisión; no se borra.
+
 ### CU-46 · Métricas por paciente (alcance)
 
 - **Actor**: recepcionista que ve "N visitas · próximo turno" de un paciente.
@@ -652,6 +667,7 @@ cambios a los mocks): la identidad del paciente por **documento con selector de 
 | CU-42 | Presentación del profesional atada a la organización |
 | CU-44 | Slug público único de la organización |
 | CU-45 | Nota clínica ligada a turno↔profesional↔organización |
+| CU-53 | Receta estructurada ligada a turno↔profesional autor↔organización |
 | CU-47, CU-48 | Demografía y obra social del paciente global |
 | CU-49 | Motivo opcional del turno (≠ nota clínica) |
 | CU-50 | Dirección polimórfica, solo organización por ahora |

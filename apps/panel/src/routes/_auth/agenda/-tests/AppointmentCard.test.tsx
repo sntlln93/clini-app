@@ -309,4 +309,48 @@ describe('AppointmentCard', () => {
             ),
         ).toBeTruthy();
     });
+
+    it('does not offer Recetas to a different membership', async () => {
+        renderCard(
+            buildAppointment({ status: 'scheduled', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Cancelar' }),
+        ).toBeTruthy();
+        expect(screen.queryByRole('menuitem', { name: 'Recetas' })).toBeNull();
+    });
+
+    it('clicking Recetas opens the prescriptions dialog', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
+        renderCard(
+            buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', { name: 'Recetas' }),
+        );
+
+        await waitFor(() =>
+            expect(api.get).toHaveBeenCalledWith(
+                '/appointments/1/prescriptions',
+            ),
+        );
+        expect(
+            await screen.findByText(
+                'Todavía no emitiste recetas para este turno.',
+            ),
+        ).toBeTruthy();
+    });
 });

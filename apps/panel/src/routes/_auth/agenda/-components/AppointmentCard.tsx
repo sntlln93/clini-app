@@ -1,4 +1,3 @@
-import { Badge } from '@/components/ui/badge';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -7,86 +6,24 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useSession } from '@/lib/session';
-import { cn } from '@/lib/utils';
-import type { Appointment, AppointmentStatus } from '@/types/appointment';
+import type { Appointment } from '@/types/appointment';
 import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
 import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
+import {
+    ALLOWED_TRANSITIONS,
+    CANCELLABLE_STATUSES,
+    RESCHEDULABLE_STATUSES,
+    STATUS_LABELS,
+} from './appointment-status';
+import {
+    AppointmentCardContent,
+    type AppointmentCardVariant,
+} from './AppointmentCardContent';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { ClinicalNotesDialog } from './ClinicalNotesDialog';
+import { PrescriptionsDialog } from './PrescriptionsDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
-
-// Mirrors `AppointmentStatus::allowedTransitions()` in `app/Enums/AppointmentStatus.php` — keep in sync.
-const ALLOWED_TRANSITIONS: Record<AppointmentStatus, AppointmentStatus[]> = {
-    scheduled: ['confirmed', 'no_show'],
-    confirmed: ['arrived', 'no_show'],
-    arrived: ['completed'],
-    completed: [],
-    no_show: [],
-    cancelled: [],
-    rescheduled: [],
-};
-
-// Mirrors `CancelAppointmentAction::CANCELLABLE_STATUSES` — keep in sync.
-const CANCELLABLE_STATUSES: AppointmentStatus[] = [
-    'scheduled',
-    'confirmed',
-    'arrived',
-];
-
-// Mirrors `RescheduleAppointmentAction::RESCHEDULABLE_STATUSES` — keep in sync.
-const RESCHEDULABLE_STATUSES: AppointmentStatus[] = ['scheduled', 'confirmed'];
-
-const STATUS_LABELS: Record<AppointmentStatus, string> = {
-    scheduled: 'Agendado',
-    confirmed: 'Confirmado',
-    arrived: 'Llegó',
-    completed: 'Completado',
-    no_show: 'Ausente',
-    cancelled: 'Cancelado',
-    rescheduled: 'Reprogramado',
-};
-
-const STATUS_VARIANTS: Record<
-    AppointmentStatus,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    scheduled: 'outline',
-    confirmed: 'secondary',
-    arrived: 'secondary',
-    completed: 'default',
-    no_show: 'destructive',
-    cancelled: 'destructive',
-    rescheduled: 'outline',
-};
-
-// Solid per-status surface for the `day` variant only; `default` (week view) keeps its translucent look unchanged.
-const STATUS_DAY_STYLES: Record<AppointmentStatus, string> = {
-    scheduled: 'border-border bg-background text-foreground',
-    confirmed: 'border-transparent bg-secondary text-secondary-foreground',
-    arrived: 'border-transparent bg-accent text-accent-foreground',
-    completed: 'border-transparent bg-primary text-primary-foreground',
-    no_show: 'border-transparent bg-destructive/15 text-destructive',
-    cancelled: 'border-transparent bg-destructive/15 text-destructive',
-    rescheduled: 'border-border bg-background text-foreground',
-};
-
-type AppointmentCardVariant = 'default' | 'day';
-
-function formatTime(iso: string, variant: AppointmentCardVariant): string {
-    const date = new Date(iso);
-
-    if (variant === 'day') {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    return date.toLocaleTimeString('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
-}
 
 type AppointmentCardProps = {
     appointment: Appointment;
@@ -106,20 +43,16 @@ export function AppointmentCard({
     const [showReschedule, setShowReschedule] = useState(false);
     const [showCancel, setShowCancel] = useState(false);
     const [showNotes, setShowNotes] = useState(false);
+    const [showPrescriptions, setShowPrescriptions] = useState(false);
     const { data: session } = useSession();
     const router = useRouter();
     const { mutate } = useUpdateAppointmentStatus();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
-    // Clinical notes are authored-only (issue #30): visible only to the professional booked on this appointment, independent of `canUpdate`.
+    // Clinical notes and prescriptions are authored-only (issues #30, #31): visible only to the professional booked on this appointment, independent of `canUpdate`.
     const isOwnAppointment =
         session?.membership?.id === appointment.membership_id;
-    const timeLabel = `${formatTime(appointment.start_at, variant)}–${formatTime(appointment.end_at, variant)}`;
-    const patientLabel =
-        appointment.patient_name ?? `Paciente #${appointment.patient_id}`;
-    const serviceLabel =
-        appointment.service_name ?? `Servicio #${appointment.service_id}`;
 
     function goToPatient() {
         void router.navigate({
@@ -128,43 +61,13 @@ export function AppointmentCard({
         });
     }
 
-    const content =
-        variant === 'day' ? (
-            <div
-                className={cn(
-                    'flex h-full flex-col gap-0.5 overflow-hidden rounded-md border p-1.5 text-left text-xs',
-                    STATUS_DAY_STYLES[appointment.status],
-                )}
-            >
-                <div className="flex items-center justify-between gap-1">
-                    <span className="font-semibold whitespace-nowrap">
-                        {timeLabel}
-                    </span>
-                    <Badge variant={STATUS_VARIANTS[appointment.status]}>
-                        {STATUS_LABELS[appointment.status]}
-                    </Badge>
-                </div>
-                <span className="truncate font-medium">{patientLabel}</span>
-                {!compact && (
-                    <span className="truncate text-[0.6875rem] opacity-80">
-                        {serviceLabel}
-                    </span>
-                )}
-            </div>
-        ) : (
-            <div className="flex h-full flex-col gap-0.5 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-1.5 text-left text-xs">
-                <div className="flex items-center justify-between gap-1">
-                    <span className="font-medium">{timeLabel}</span>
-                    <Badge variant={STATUS_VARIANTS[appointment.status]}>
-                        {STATUS_LABELS[appointment.status]}
-                    </Badge>
-                </div>
-                <span className="truncate font-medium">{patientLabel}</span>
-                <span className="truncate text-muted-foreground">
-                    {serviceLabel}
-                </span>
-            </div>
-        );
+    const content = (
+        <AppointmentCardContent
+            appointment={appointment}
+            variant={variant}
+            compact={compact}
+        />
+    );
 
     const hasUpdateActions =
         canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);
@@ -224,6 +127,13 @@ export function AppointmentCard({
                             Notas clínicas
                         </DropdownMenuItem>
                     )}
+                    {isOwnAppointment && (
+                        <DropdownMenuItem
+                            onClick={() => setShowPrescriptions(true)}
+                        >
+                            Recetas
+                        </DropdownMenuItem>
+                    )}
                 </DropdownMenuContent>
             </DropdownMenu>
 
@@ -242,6 +152,12 @@ export function AppointmentCard({
             <ClinicalNotesDialog
                 open={showNotes}
                 onOpenChange={setShowNotes}
+                appointment={appointment}
+            />
+
+            <PrescriptionsDialog
+                open={showPrescriptions}
+                onOpenChange={setShowPrescriptions}
                 appointment={appointment}
             />
         </>

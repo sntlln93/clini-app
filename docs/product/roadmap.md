@@ -20,7 +20,7 @@ Cobro de consultas mediante Mercado Pago, opcional por profesional.
 
 ## Futuro
 
-- Historia clínica.
+- Historia clínica. Ya existen notas clínicas y recetas estructuradas por turno (CU-45, CU-53); la receta electrónica con validez legal (Ley 27.553) sigue fuera de alcance.
 - Estadísticas.
 - Integraciones.
 - Google Calendar.
