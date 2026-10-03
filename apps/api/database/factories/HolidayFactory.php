@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\HolidaySource;
+use App\Enums\Province as ProvinceSlug;
 use App\Models\Holiday;
-use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
+ * National by default (`province_id` NULL); see `inProvince()`.
+ *
  * @extends Factory<Holiday>
  */
 class HolidayFactory extends Factory
@@ -22,17 +23,16 @@ class HolidayFactory extends Factory
     public function definition(): array
     {
         return [
-            'organization_id' => Organization::factory(),
             'date' => fake()->unique()->dateTimeBetween('now', '+1 year')->format('Y-m-d'),
             'name' => fake()->sentence(2),
-            'source' => HolidaySource::Auto,
+            'province_id' => null,
         ];
     }
 
-    public function manual(): static
+    public function inProvince(ProvinceSlug $province): static
     {
         return $this->state(fn (array $attributes): array => [
-            'source' => HolidaySource::Manual,
+            'province_id' => CityFactory::provinceId($province),
         ]);
     }
 }

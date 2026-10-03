@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use Database\Factories\HolidayFactory;
+use Database\Factories\OrganizationHolidayFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * Shared holiday catalog, filled by the provider sync: `province_id` NULL
- * is national, set is provincial. An organization's own closures are
- * OrganizationHoliday rows instead.
+ * A closure day an organization sets for itself, on top of the shared
+ * Holiday catalog. The catalog sync never writes this table.
  */
-#[Fillable(['date', 'name', 'province_id'])]
-class Holiday extends Model
+#[Fillable(['organization_id', 'date', 'name'])]
+class OrganizationHoliday extends Model
 {
-    /** @use HasFactory<HolidayFactory> */
+    /** @use HasFactory<OrganizationHolidayFactory> */
     use HasFactory;
 
     /**
@@ -32,10 +31,10 @@ class Holiday extends Model
     }
 
     /**
-     * @return BelongsTo<Province, $this>
+     * @return BelongsTo<Organization, $this>
      */
-    public function province(): BelongsTo
+    public function organization(): BelongsTo
     {
-        return $this->belongsTo(Province::class);
+        return $this->belongsTo(Organization::class);
     }
 }

@@ -16,8 +16,9 @@ use App\Exceptions\Holidays\HolidayProviderUnavailableException;
 interface HolidayProvider
 {
     /**
-     * Returns national holidays when `$province` is `null`, and national
-     * plus provincial holidays when a province is given.
+     * Returns only national holidays when `$province` is `null`, and only
+     * that province's own holidays when one is given — each scope is
+     * fetched (and stored in the catalog) on its own.
      *
      * @return array<int, HolidayData>
      *

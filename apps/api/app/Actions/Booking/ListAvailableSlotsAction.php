@@ -22,10 +22,11 @@ use Illuminate\Database\Eloquent\Collection;
  * range: the professional's *published* schedule per day (delegated to
  * ComputePublishedDayIntervalsAction), minus any overlapping active
  * appointment of the same physical professional across organizations (same
- * rule as BookAppointmentAction). Organization holidays — of either source,
- * `auto` or `manual` — are already subtracted by the delegated action, so no
- * day intervals are published for them. Runs in the organization's own
- * timezone (`organizations.timezone`); the app itself runs in UTC.
+ * rule as BookAppointmentAction). Holidays — national, the organization's
+ * province's, or the organization's own — are already subtracted by the
+ * delegated action, so no day intervals are published for them. Runs in the
+ * organization's own timezone (`organizations.timezone`); the app itself
+ * runs in UTC.
  *
  * @implements Action<SlotSearchData>
  */

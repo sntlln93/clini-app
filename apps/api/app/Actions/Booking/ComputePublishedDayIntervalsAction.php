@@ -12,6 +12,8 @@ use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\Holiday;
 use App\Models\Membership;
+use App\Models\Organization;
+use App\Models\OrganizationHoliday;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
@@ -22,13 +24,24 @@ use Illuminate\Support\Collection as SupportCollection;
  * exceptions, minus `blocked` exceptions — never excluding time already
  * taken by busy appointments, which stays each caller's own concern.
  * `day` must already be anchored to the organization's own timezone by
- * the caller. A day the organization has marked as a holiday (any
- * `source`) publishes no intervals at all, regardless of availability.
+ * the caller. A holiday publishes no intervals at all, regardless of
+ * availability: a national catalog holiday, a catalog holiday of the
+ * organization's province (address → city → province), or one of the
+ * organization's own `organization_holidays`.
  *
  * @implements Action<PublishedDayIntervalsData>
  */
 class ComputePublishedDayIntervalsAction implements Action
 {
+    /**
+     * Per membership, resolved once per action instance: callers such as
+     * ListAvailableSlotsAction call handle() once per day of a range, and the
+     * organization/province lookup doesn't change between days.
+     *
+     * @var array<int, array{organizationId: int|null, provinceId: int|null}>
+     */
+    private array $holidayScopes = [];
+
     /**
      * @param  PublishedDayIntervalsData  $dto
      * @return array<int, array{start: CarbonImmutable, end: CarbonImmutable}>
@@ -94,10 +107,39 @@ class ComputePublishedDayIntervalsAction implements Action
 
     private function isHoliday(int $membershipId, CarbonImmutable $day): bool
     {
-        return Holiday::query()
-            ->whereIn('organization_id', Membership::whereKey($membershipId)->select('organization_id'))
+        ['organizationId' => $organizationId, 'provinceId' => $provinceId] = $this->holidayScope($membershipId);
+
+        $isCatalogHoliday = Holiday::query()
+            ->whereDate('date', $day)
+            ->where(fn ($query) => $query
+                ->whereNull('province_id')
+                ->when($provinceId !== null, fn ($query) => $query->orWhere('province_id', $provinceId)))
+            ->exists();
+
+        return $isCatalogHoliday || OrganizationHoliday::query()
+            ->where('organization_id', $organizationId)
             ->whereDate('date', $day)
             ->exists();
+    }
+
+    /**
+     * @return array{organizationId: int|null, provinceId: int|null}
+     */
+    private function holidayScope(int $membershipId): array
+    {
+        if (! array_key_exists($membershipId, $this->holidayScopes)) {
+            $organization = Organization::query()
+                ->with('address.city')
+                ->whereIn('id', Membership::whereKey($membershipId)->select('organization_id'))
+                ->first();
+
+            $this->holidayScopes[$membershipId] = [
+                'organizationId' => $organization?->id,
+                'provinceId' => $organization?->address?->city?->province_id,
+            ];
+        }
+
+        return $this->holidayScopes[$membershipId];
     }
 
     private function isExceptionType(AvailabilityException $exception, AvailabilityExceptionType $type): bool

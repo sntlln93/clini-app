@@ -18,8 +18,7 @@ return new class extends Migration
             $table->string('addressable_type');
             $table->unsignedBigInteger('addressable_id');
             $table->string('street')->nullable();
-            $table->string('city')->nullable();
-            $table->string('state')->nullable();
+            $table->foreignId('city_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('postal_code')->nullable();
             $table->string('country')->nullable();
             $table->timestamps();
