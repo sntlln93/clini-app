@@ -6,9 +6,12 @@ namespace Database\Seeders;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
-use App\Enums\Province;
+use App\Enums\Province as ProvinceSlug;
+use App\Models\Address;
+use App\Models\City;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\Province;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -17,11 +20,13 @@ use Illuminate\Support\Facades\Hash;
  * Two fixture organizations with literal, deterministic users and
  * memberships, covering every App\Enums\MembershipRole case, every
  * App\Enums\MembershipStatus case, a multi-role membership and a user with
- * a membership in both organizations. Idempotent via firstOrCreate on
- * organizations.slug, users.email and the (organization_id, user_id)
- * natural key on memberships, so a repeated `php artisan db:seed` never
- * duplicates rows. See docs/architecture/development.md for the full
- * credentials table.
+ * a membership in both organizations. Each organization gets one address
+ * (CABA and Córdoba), which is what resolves its province for holidays.
+ * Idempotent via firstOrCreate on organizations.slug, users.email, the
+ * (organization_id, user_id) natural key on memberships, the
+ * (province_id, name) key on cities and the addressable on addresses, so a
+ * repeated `php artisan db:seed` never duplicates rows. See
+ * docs/architecture/development.md for the full credentials table.
  */
 class OrganizationsSeeder extends Seeder
 {
@@ -61,13 +66,15 @@ class OrganizationsSeeder extends Seeder
     {
         $organizationA = Organization::firstOrCreate(
             ['slug' => self::ORGANIZATION_A_SLUG],
-            ['name' => 'Clínica Modelo', 'timezone' => 'America/Argentina/Buenos_Aires', 'province' => Province::CiudadAutonomaDeBuenosAires],
+            ['name' => 'Clínica Modelo', 'timezone' => 'America/Argentina/Buenos_Aires'],
         );
+        $this->seedAddress($organizationA, ProvinceSlug::CiudadAutonomaDeBuenosAires, 'Ciudad Autónoma de Buenos Aires', 'Av. Corrientes 1234', 'C1043');
 
         $organizationB = Organization::firstOrCreate(
             ['slug' => self::ORGANIZATION_B_SLUG],
-            ['name' => 'Consultorio Dos', 'timezone' => 'America/Argentina/Cordoba', 'province' => Province::Cordoba],
+            ['name' => 'Consultorio Dos', 'timezone' => 'America/Argentina/Cordoba'],
         );
+        $this->seedAddress($organizationB, ProvinceSlug::Cordoba, 'Córdoba', 'Av. Colón 500', 'X5000');
 
         // Shared across both organizations: the "one user with a
         // membership in both orgs" fixture case.
@@ -105,6 +112,19 @@ class OrganizationsSeeder extends Seeder
 
             $this->seedMembership($organization, $user, [MembershipRole::Staff], MembershipStatus::Active);
         }
+    }
+
+    private function seedAddress(Organization $organization, ProvinceSlug $province, string $cityName, string $street, string $postalCode): Address
+    {
+        $city = City::firstOrCreate([
+            'province_id' => Province::query()->where('slug', $province->value)->valueOrFail('id'),
+            'name' => $cityName,
+        ]);
+
+        return Address::firstOrCreate(
+            ['addressable_type' => Organization::class, 'addressable_id' => $organization->id],
+            ['street' => $street, 'city_id' => $city->id, 'postal_code' => $postalCode, 'country' => 'Argentina'],
+        );
     }
 
     private function firstOrCreateUser(string $email, string $name): User

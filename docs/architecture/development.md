@@ -77,7 +77,7 @@ mejor `docker compose down` desde la raíz en lugar de `sail down`.
 
 `database/seeders/DatabaseSeeder.php` es el único punto de entrada — no hay comandos artisan alternativos ni perfiles/subconjuntos. Es literal y determinístico (sin factories, sin faker, `Model::create`/`firstOrCreate` únicamente), así que corre también sobre la imagen de producción (`composer install --no-dev`) y es re-ejecutable: un `php artisan db:seed` repetido no duplica filas.
 
-Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`) y `Consultorio Dos` (slug `consultorio-dos`) — con estos usuarios. **Contraseña única para todos: `password`** (sin override por variable de entorno).
+Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`, con dirección en CABA) y `Consultorio Dos` (slug `consultorio-dos`, con dirección en Córdoba; la dirección es lo que resuelve la provincia para los feriados) — con estos usuarios. **Contraseña única para todos: `password`** (sin override por variable de entorno).
 
 | Email                          | Organización     | Rol(es)         | Estado      |
 |---------------------------------|------------------|------------------|-------------|

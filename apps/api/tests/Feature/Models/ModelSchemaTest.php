@@ -8,6 +8,7 @@ use App\Enums\AvailabilityExceptionType;
 use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\Province as ProvinceSlug;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Enums\Sex;
@@ -15,12 +16,16 @@ use App\Models\Address;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\City;
+use App\Models\Holiday;
 use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\OrganizationHoliday;
 use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
+use App\Models\Province;
 use App\Models\Reminder;
 use App\Models\Service;
 use App\Models\Specialty;
@@ -29,7 +34,7 @@ use App\Models\UserSpecialty;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-test('each of the 14 models can be created singly and in a batch via its factory', function (string $modelClass) {
+test('each of the 17 models can be created singly and in a batch via its factory', function (string $modelClass) {
     $single = $modelClass::factory()->create();
     expect($single)->toBeInstanceOf($modelClass);
 
@@ -51,6 +56,9 @@ test('each of the 14 models can be created singly and in a batch via its factory
     InsuranceProvider::class,
     Address::class,
     Reminder::class,
+    City::class,
+    Holiday::class,
+    OrganizationHoliday::class,
 ]);
 
 test('Appointment casts status and origin to their enums', function () {
@@ -186,6 +194,62 @@ test('Address addressable morphTo resolves to the Organization', function () {
 
     expect($address->addressable)->toBeInstanceOf(Organization::class);
     expect($address->addressable->id)->toBe($organization->id);
+});
+
+test('the provinces table holds exactly one row per Province enum case, slug cast back to the enum', function () {
+    $slugs = Province::query()->orderBy('slug')->get()->map(fn (Province $province) => $province->slug)->all();
+
+    $expected = collect(ProvinceSlug::cases())->sortBy(fn (ProvinceSlug $case) => $case->value)->values()->all();
+    expect($slugs)->toBe($expected);
+    expect(Province::query()->where('slug', ProvinceSlug::Cordoba->value)->value('name'))->toBe('Córdoba');
+});
+
+test('Address resolves its city and the city its province', function () {
+    $city = City::factory()->inProvince(ProvinceSlug::LaRioja)->create();
+    $address = Address::factory()->create(['city_id' => $city->id]);
+
+    expect($address->city?->is($city))->toBeTrue();
+    expect($address->city?->province?->slug)->toBe(ProvinceSlug::LaRioja);
+});
+
+test('a city name is unique within its province but may repeat across provinces', function () {
+    City::factory()->inProvince(ProvinceSlug::BuenosAires)->create(['name' => 'San Martín']);
+    City::factory()->inProvince(ProvinceSlug::Mendoza)->create(['name' => 'San Martín']);
+
+    expect(fn () => City::factory()->inProvince(ProvinceSlug::BuenosAires)->create(['name' => 'San Martín']))
+        ->toThrow(QueryException::class);
+});
+
+test('Organization resolves its province through its oldest address city', function () {
+    $organization = Organization::factory()->inProvince(ProvinceSlug::Cordoba)->create();
+    $this->travel(1)->minutes();
+    Address::factory()->create([
+        'addressable_type' => Organization::class,
+        'addressable_id' => $organization->id,
+        'city_id' => City::factory()->inProvince(ProvinceSlug::Salta),
+    ]);
+
+    expect($organization->resolveProvince())->toBe(ProvinceSlug::Cordoba);
+});
+
+test('Organization without an address, or whose address has no city, resolves no province', function () {
+    $withoutAddress = Organization::factory()->create();
+    $withoutCity = Organization::factory()->create();
+    Address::factory()->withoutCity()->create([
+        'addressable_type' => Organization::class,
+        'addressable_id' => $withoutCity->id,
+    ]);
+
+    expect($withoutAddress->resolveProvince())->toBeNull();
+    expect($withoutCity->resolveProvince())->toBeNull();
+});
+
+test('an organization holiday date is unique per organization', function () {
+    $holiday = OrganizationHoliday::factory()->create(['date' => '2026-08-03']);
+    OrganizationHoliday::factory()->create(['date' => '2026-08-03']);
+
+    expect(fn () => OrganizationHoliday::factory()->create(['organization_id' => $holiday->organization_id, 'date' => '2026-08-03']))
+        ->toThrow(QueryException::class);
 });
 
 test('Patient resolves its insuranceProvider relation', function () {

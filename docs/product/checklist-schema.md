@@ -60,6 +60,7 @@ Cómo usarlo:
 - [x] Existen **excepciones a fecha concreta** que suman disponibilidad. · CU-12
 - [x] Existen **excepciones/bloqueos a fecha concreta** que restan, sin borrar la regla recurrente. · CU-12
 - [x] La indisponibilidad puede expresarse a **nivel organización** (feriado que afecta a todos). · CU-13
+  - Los feriados nacionales y provinciales son un **catálogo compartido** (`holidays`, una fila por fecha y alcance, sin duplicar por organización); la provincia de la organización se resuelve por dirección → ciudad → provincia. Los cierres propios de cada organización viven aparte (`organization_holidays`).
 - [x] La granularidad de la grilla **no** está fijada globalmente: depende de la prestación. · CU-14, CU-35
 
 ## D. Prestaciones y especialidades

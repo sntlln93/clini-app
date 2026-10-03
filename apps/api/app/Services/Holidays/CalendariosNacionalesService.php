@@ -31,21 +31,9 @@ final class CalendariosNacionalesService implements HolidayProvider
     {
         $baseUrl = rtrim(Config::string('services.holidays.url'), '/');
 
-        $national = $this->fetchNational($baseUrl, $year);
-
-        if ($province === null) {
-            return $national;
-        }
-
-        $provincial = $this->fetchProvincial($baseUrl, $year, $province);
-
-        $byDate = [];
-
-        foreach ([...$national, ...$provincial] as $holiday) {
-            $byDate[$holiday->date->toDateString()] = $holiday;
-        }
-
-        return array_values($byDate);
+        return $province === null
+            ? $this->fetchNational($baseUrl, $year)
+            : $this->fetchProvincial($baseUrl, $year, $province);
     }
 
     /**
@@ -65,8 +53,8 @@ final class CalendariosNacionalesService implements HolidayProvider
     }
 
     /**
-     * A 404 here means "province without coverage": degrade to
-     * national-only instead of failing.
+     * A 404 here means "province without coverage": no provincial
+     * holidays, instead of failing.
      *
      * @return array<int, HolidayData>
      */
