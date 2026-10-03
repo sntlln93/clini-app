@@ -85,7 +85,7 @@ Table organizations {
   updated_at timestamp [not null]
   deleted_at timestamp [null]
 
-  Note: 'Address lives in the polymorphic addresses table (addressable = organization).'
+  Note: 'Address lives in the polymorphic addresses table (addressable = organization). The primary address is the oldest one; the organization province (for holidays) is resolved address -> city -> province, never stored here. No address or no city = only national holidays apply.'
 }
 
 Table users {
@@ -316,8 +316,7 @@ Table addresses {
   addressable_type varchar [not null]
   addressable_id bigint [not null]
   street varchar [null]
-  city varchar [null]
-  state varchar [null]
+  city_id bigint [null]
   postal_code varchar [null]
   country varchar [null]
   created_at timestamp [not null]
@@ -329,6 +328,58 @@ Table addresses {
   }
 
   Note: 'Polymorphic address (CU-50). Only organization addresses are used in the MVP; patient addresses are deferred but not blocked.'
+}
+
+Table provinces {
+  id bigint [pk, increment]
+  slug varchar [not null, unique, note: 'the App Province enum backing value, the slug the holiday provider uses']
+  name varchar [not null]
+
+  Note: 'Reference data: the 24 rows are inserted by their own migration from the App Province enum (production never seeds). No timestamps.'
+}
+
+Table cities {
+  id bigint [pk, increment]
+  province_id bigint [not null]
+  name varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (province_id, name) [unique]
+  }
+
+  Note: 'Created on demand when an address is saved; there is no national city catalog.'
+}
+
+Table holidays {
+  id bigint [pk, increment]
+  date date [not null]
+  name varchar [not null]
+  province_id bigint [null, note: 'NULL = national, set = provincial']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (date, province_id) [unique, note: 'NULLS NOT DISTINCT: a national date is unique too']
+  }
+
+  Note: 'Shared holiday catalog (CU-13), one row per date and scope, synced monthly from the provider by holidays:sync (national + each of the 24 provinces, each fetched once). A date is a holiday for an organization when a national row, a row for its province, or an organization_holidays row exists.'
+}
+
+Table organization_holidays {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  date date [not null]
+  name varchar [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (organization_id, date) [unique]
+  }
+
+  Note: 'An organization own closure days (CU-13), on top of the catalog. The catalog sync never writes this table.'
 }
 
 Table reminders {
@@ -379,3 +430,8 @@ Ref: appointments.rescheduled_from_id > appointments.id [delete: set null]
 
 Ref: reminders.organization_id > organizations.id [delete: restrict]
 Ref: reminders.appointment_id > appointments.id [delete: cascade]
+
+Ref: cities.province_id > provinces.id [delete: restrict]
+Ref: addresses.city_id > cities.id [delete: restrict]
+Ref: holidays.province_id > provinces.id [delete: restrict]
+Ref: organization_holidays.organization_id > organizations.id [delete: cascade]
