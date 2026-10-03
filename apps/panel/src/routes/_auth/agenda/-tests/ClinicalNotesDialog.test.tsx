@@ -31,6 +31,7 @@ const APPOINTMENT: Appointment = {
     cancelled_at: null,
     cancellation_reason: null,
     rescheduled_from_id: null,
+    arrived_at: null,
 };
 
 function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {

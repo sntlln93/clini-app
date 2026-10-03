@@ -38,6 +38,7 @@ function renderSidebarAt(path: string, permissions?: string[]) {
     });
     const paths = [
         '/agenda',
+        '/sala-de-espera',
         '/pacientes',
         '/profesionales',
         '/disponibilidad',
