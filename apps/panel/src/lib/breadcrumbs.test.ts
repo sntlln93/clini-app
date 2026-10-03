@@ -13,6 +13,13 @@ describe('buildBreadcrumbs', () => {
         ]);
     });
 
+    it('labels the hyphenated sala-de-espera segment in Spanish', () => {
+        expect(buildBreadcrumbs('/sala-de-espera')).toEqual([
+            { label: 'Inicio', href: '/' },
+            { label: 'Sala de espera' },
+        ]);
+    });
+
     it('prefers the pacientes-section copy for the trailing "nuevo" segment', () => {
         expect(buildBreadcrumbs('/pacientes/nuevo')).toEqual([
             { label: 'Inicio', href: '/' },

@@ -30,6 +30,7 @@ class AppointmentResource extends JsonResource
             'origin' => $appointment->origin,
             'start_at' => $appointment->start_at,
             'end_at' => $appointment->end_at,
+            'arrived_at' => $appointment->arrived_at,
             'reason' => $appointment->reason,
             'notes' => $appointment->notes,
             'cancelled_at' => $appointment->cancelled_at,

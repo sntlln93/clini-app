@@ -20,6 +20,7 @@ export type Appointment = {
     end_at: string;
     reason: string | null;
     notes: string | null;
+    arrived_at: string | null;
     cancelled_at: string | null;
     cancellation_reason: string | null;
     rescheduled_from_id: number | null;

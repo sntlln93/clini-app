@@ -1,4 +1,4 @@
-import { Calendar, Clock, Stethoscope, Users } from 'lucide-react';
+import { Armchair, Calendar, Clock, Stethoscope, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 export type NavItem = {
@@ -11,6 +11,7 @@ export type NavItem = {
 
 export const navItems: NavItem[] = [
     { label: 'Agenda', to: '/agenda', icon: Calendar },
+    { label: 'Sala de espera', to: '/sala-de-espera', icon: Armchair },
     { label: 'Pacientes', to: '/pacientes', icon: Users },
     {
         label: 'Profesionales',

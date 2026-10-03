@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -131,4 +132,38 @@ test('index returns 422 when from or to is missing, and when to is before from',
 
     $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-10&to=2026-08-01')
         ->assertStatus(422)->assertJsonValidationErrors('to');
+});
+
+test('index filtered by status returns only appointments in that status, exposing arrived_at', function () {
+    $membership = Membership::factory()->create();
+
+    $arrived = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'status' => AppointmentStatus::Arrived,
+        'start_at' => '2026-08-05 10:00:00',
+        'end_at' => '2026-08-05 10:30:00',
+        'arrived_at' => '2026-08-05 09:50:00',
+    ]);
+    Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'status' => AppointmentStatus::Confirmed,
+        'start_at' => '2026-08-05 11:00:00',
+        'end_at' => '2026-08-05 11:30:00',
+    ]);
+
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-05&to=2026-08-06&status=arrived');
+
+    $response->assertSuccessful();
+    expect(collect($response->json('data'))->pluck('id')->all())->toBe([$arrived->id]);
+    expect($response->json('data.0.status'))->toBe('arrived');
+    expect($response->json('data.0.arrived_at'))->not->toBeNull();
+});
+
+test('index returns 422 for an unknown status filter', function () {
+    $membership = Membership::factory()->create();
+
+    $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-01&to=2026-08-10&status=bogus')
+        ->assertStatus(422)->assertJsonValidationErrors('status');
 });
