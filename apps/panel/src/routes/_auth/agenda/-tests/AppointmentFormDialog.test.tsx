@@ -88,6 +88,7 @@ function mockApiGet(overrides: {
 function renderDialog(
     prefill?: AppointmentPrefill,
     onOpenChange: (open: boolean) => void = () => {},
+    professionals = [PROFESSIONAL],
 ) {
     const queryClient = new QueryClient();
     return render(
@@ -95,7 +96,7 @@ function renderDialog(
             <AppointmentFormDialog
                 open
                 onOpenChange={onOpenChange}
-                professionals={[PROFESSIONAL]}
+                professionals={professionals}
                 prefill={prefill}
             />
         </QueryClientProvider>,
@@ -195,6 +196,39 @@ describe('AppointmentFormDialog', () => {
             name: 'Dra. Ana López',
         });
         expect(option.getAttribute('aria-selected')).toBe('true');
+    });
+
+    it('prefills only the date and leaves professional and time empty (quick-create from a week-view day)', async () => {
+        mockApiGet({});
+        const otherProfessional = buildProfessional({
+            id: 2,
+            user: {
+                id: 20,
+                name: 'Dr. Pablo Ruiz',
+                email: 'pablo@example.com',
+            },
+        });
+        renderDialog({ date: '2026-08-04' }, () => {}, [
+            PROFESSIONAL,
+            otherProfessional,
+        ]);
+
+        expect((screen.getByLabelText('Fecha') as HTMLInputElement).value).toBe(
+            '2026-08-04',
+        );
+        expect((screen.getByLabelText('Hora') as HTMLInputElement).value).toBe(
+            '',
+        );
+
+        fireEvent.click(screen.getByRole('combobox', { name: 'Profesional' }));
+        const options = await screen.findAllByRole('option');
+        expect(options.map((option) => option.textContent)).toEqual([
+            'Dra. Ana López',
+            'Dr. Pablo Ruiz',
+        ]);
+        for (const option of options) {
+            expect(option.getAttribute('aria-selected')).toBe('false');
+        }
     });
 
     it('leaves professional, date and time empty with no prefill', async () => {
