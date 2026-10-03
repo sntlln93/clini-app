@@ -49,6 +49,10 @@ class AppointmentController extends Controller
             $query->where('membership_id', $request->integer('membership_id'));
         }
 
+        if ($request->filled('status')) {
+            $query->where('status', $request->enum('status', AppointmentStatus::class));
+        }
+
         $appointments = $query
             ->with(['membership.user', 'patient', 'service'])
             ->orderBy('start_at')
