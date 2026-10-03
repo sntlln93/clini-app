@@ -7,29 +7,38 @@ import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard
 import { PatientContactCard } from './-components/PatientContactCard';
 import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
+import { PatientPrescriptionsCard } from './-components/PatientPrescriptionsCard';
 import { patientQueryOptions } from './-hooks/use-patient';
 import {
     findTodaysOwnAppointment,
     patientAppointmentsQueryOptions,
 } from './-hooks/use-patient-appointments';
 import { patientClinicalNotesQueryOptions } from './-hooks/use-patient-clinical-notes';
+import { patientPrescriptionsQueryOptions } from './-hooks/use-patient-prescriptions';
 
 export const Route = createFileRoute('/_auth/pacientes/$id')({
     params: {
         parse: (rawParams) => ({ id: Number(rawParams.id) }),
     },
     loader: async ({ context, params }) => {
-        const [patient, appointments, notes] = await Promise.all([
-            context.queryClient.ensureQueryData(patientQueryOptions(params.id)),
-            context.queryClient.ensureQueryData(
-                patientAppointmentsQueryOptions(params.id),
-            ),
-            context.queryClient.ensureQueryData(
-                patientClinicalNotesQueryOptions(params.id),
-            ),
-        ]);
+        const [patient, appointments, notes, prescriptions] = await Promise.all(
+            [
+                context.queryClient.ensureQueryData(
+                    patientQueryOptions(params.id),
+                ),
+                context.queryClient.ensureQueryData(
+                    patientAppointmentsQueryOptions(params.id),
+                ),
+                context.queryClient.ensureQueryData(
+                    patientClinicalNotesQueryOptions(params.id),
+                ),
+                context.queryClient.ensureQueryData(
+                    patientPrescriptionsQueryOptions(params.id),
+                ),
+            ],
+        );
 
-        return { patient, appointments, notes };
+        return { patient, appointments, notes, prescriptions };
     },
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
@@ -37,7 +46,8 @@ export const Route = createFileRoute('/_auth/pacientes/$id')({
 });
 
 function PacienteDetallePage() {
-    const { patient, appointments, notes } = Route.useLoaderData();
+    const { patient, appointments, notes, prescriptions } =
+        Route.useLoaderData();
     const { id } = Route.useParams();
 
     return (
@@ -70,6 +80,7 @@ function PacienteDetallePage() {
                     findTodaysOwnAppointment(appointments)?.id ?? null
                 }
             />
+            <PatientPrescriptionsCard prescriptions={prescriptions} />
         </div>
     );
 }

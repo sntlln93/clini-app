@@ -18,23 +18,32 @@ export function PanelLayout({ children }: { children: ReactNode }) {
             <SidebarProvider open={open} onOpenChange={setOpen}>
                 <a
                     href="#main-content"
-                    className="sr-only rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
+                    className="sr-only rounded-md bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 print:hidden"
                 >
                     Saltar al contenido principal
                 </a>
-                <PanelSidebar />
+                {/* Panel chrome stays off paper (printable views, e.g. `recetas/$id`). */}
+                <div className="contents print:hidden">
+                    <PanelSidebar />
+                </div>
                 <div className="relative flex min-h-svh w-full min-w-0 flex-1 flex-col bg-background">
-                    <PanelHeader />
+                    <div className="contents print:hidden">
+                        <PanelHeader />
+                    </div>
                     <main
                         id="main-content"
                         ref={mainRef}
                         tabIndex={-1}
-                        className="min-w-0 flex-1 overflow-auto p-4 md:p-6"
+                        className="min-w-0 flex-1 overflow-auto p-4 md:p-6 print:overflow-visible print:p-0"
                     >
-                        <PanelBreadcrumbs />
+                        <div className="contents print:hidden">
+                            <PanelBreadcrumbs />
+                        </div>
                         {children}
                     </main>
-                    <PanelFooter />
+                    <div className="contents print:hidden">
+                        <PanelFooter />
+                    </div>
                 </div>
             </SidebarProvider>
         </TooltipProvider>

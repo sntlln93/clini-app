@@ -5,6 +5,7 @@ const HOME_CRUMB: Breadcrumb = { label: 'Inicio', href: '/' };
 const SEGMENT_LABELS: Record<string, string> = {
     agenda: 'Agenda',
     'sala-de-espera': 'Sala de espera',
+    recetas: 'Recetas',
     pacientes: 'Pacientes',
     profesionales: 'Profesionales',
     disponibilidad: 'Disponibilidad',
