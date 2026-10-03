@@ -5,6 +5,12 @@ import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
+import {
+    addDays,
+    fromDateInputValue,
+    rangeFor,
+    toDateInputValue,
+} from './-components/agenda-dates';
 import { AgendaDayView } from './-components/AgendaDayView';
 import { AgendaProfessionalFilter } from './-components/AgendaProfessionalFilter';
 import {
@@ -25,52 +31,6 @@ const agendaSearchSchema = z.object({
     view: z.enum(['day', 'week']).optional(),
     professionals: z.array(z.number()).optional(),
 });
-
-function startOfDay(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(0, 0, 0, 0);
-    return result;
-}
-
-function endOfDay(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(23, 59, 59, 999);
-    return result;
-}
-
-function startOfWeek(date: Date): Date {
-    const result = startOfDay(date);
-    result.setDate(result.getDate() - result.getDay());
-    return result;
-}
-
-function endOfWeek(date: Date): Date {
-    return endOfDay(addDays(startOfWeek(date), 6));
-}
-
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-function toDateInputValue(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function fromDateInputValue(value: string): Date {
-    const [year, month, day] = value.split('-').map(Number);
-    return new Date(year, month - 1, day);
-}
-
-function rangeFor(date: Date, view: AgendaViewMode) {
-    return view === 'day'
-        ? { start: startOfDay(date), end: endOfDay(date) }
-        : { start: startOfWeek(date), end: endOfWeek(date) };
-}
 
 export const Route = createFileRoute('/_auth/agenda/')({
     validateSearch: (search) => agendaSearchSchema.parse(search),
@@ -169,6 +129,14 @@ function AgendaPage() {
         });
     };
 
+    // The week grid has no professional axis, so only the date is prefilled (#134).
+    const handleDayClick = (day: Date) => {
+        setFormState({
+            open: true,
+            prefill: { date: toDateInputValue(day) },
+        });
+    };
+
     return (
         <div className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -232,6 +200,8 @@ function AgendaPage() {
                         professionals={visibleProfessionals}
                         appointments={appointments}
                         canUpdate={canUpdate}
+                        canCreate={canCreate}
+                        onDayClick={handleDayClick}
                     />
                 ))}
 
