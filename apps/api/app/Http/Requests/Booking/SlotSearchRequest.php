@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Requests\Booking;
 
 use App\Actions\Booking\ListAvailableSlotsAction;
+use App\Models\Organization;
+use App\Support\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -20,8 +22,11 @@ class SlotSearchRequest extends FormRequest
      */
     public function rules(): array
     {
-        $today = CarbonImmutable::today()->toDateString();
-        $maxDate = CarbonImmutable::today()
+        // "Today" is the practice's own day, not the app's (UTC): at 22:00 in
+        // Buenos Aires UTC is already tomorrow, and the patient asks for theirs.
+        $organizationToday = CarbonImmutable::today($this->organizationTimezone());
+        $today = $organizationToday->toDateString();
+        $maxDate = $organizationToday
             ->addDays(ListAvailableSlotsAction::BOOKING_WINDOW_DAYS)
             ->toDateString();
 
@@ -46,5 +51,15 @@ class SlotSearchRequest extends FormRequest
             'to.after_or_equal' => 'La fecha de fin debe ser posterior o igual a la de inicio.',
             'to.before_or_equal' => 'La fecha debe estar dentro de los próximos '.ListAvailableSlotsAction::BOOKING_WINDOW_DAYS.' días.',
         ];
+    }
+
+    // `public-organization` has already resolved the tenant from {slug}; the
+    // app timezone is only a fallback for a request that never went through it.
+    private function organizationTimezone(): string
+    {
+        $organizationId = app(CurrentOrganization::class)->get();
+        $timezone = $organizationId === null ? null : Organization::query()->whereKey($organizationId)->value('timezone');
+
+        return is_string($timezone) ? $timezone : config()->string('app.timezone');
     }
 }

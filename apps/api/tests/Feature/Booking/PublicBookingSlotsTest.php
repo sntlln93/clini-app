@@ -287,6 +287,23 @@ test('from before today returns 422', function () {
         ->assertJsonValidationErrors('from');
 });
 
+test('in the evening, "today" and the booking window follow the organization timezone, not UTC', function () {
+    // 22:00 in Buenos Aires on 2026-10-04 is already 2026-10-05 in UTC.
+    $this->travelTo(CarbonImmutable::parse('2026-10-04 22:00:00', 'America/Argentina/Buenos_Aires'));
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    $organization->update(['timezone' => 'America/Argentina/Buenos_Aires']);
+
+    $this->getJson(slotsUrl($organization, $membership, $service, '2026-10-04'))->assertOk();
+    $this->getJson(slotsUrl($organization, $membership, $service, '2026-10-03'))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('from');
+    // Window end is the organization's today + 60 = 2026-12-03, not UTC's 2026-12-04.
+    $this->getJson(slotsUrl($organization, $membership, $service, '2026-12-03'))->assertOk();
+    $this->getJson(slotsUrl($organization, $membership, $service, '2026-12-04'))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('from');
+});
+
 test('missing or nonexistent membership_id or service_id returns 422', function () {
     [$organization, $membership, $service] = createSlotsFixture(30);
 
