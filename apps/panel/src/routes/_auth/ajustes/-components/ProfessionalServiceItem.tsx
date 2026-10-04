@@ -1,9 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import type { CatalogService, ProfessionalService } from '@/types/professional';
 import { useId, useState } from 'react';
 import {
@@ -11,6 +8,12 @@ import {
     useRemoveProfessionalService,
     useUpdateProfessionalService,
 } from '../-hooks/use-professional-services';
+import { ServiceAssignmentFields } from './ServiceAssignmentFields';
+import {
+    centsToPesosInput,
+    parseDurationInput,
+    pesosInputToCents,
+} from './service-price';
 
 const DEFAULT_DURATION_MINUTES = 30;
 
@@ -28,11 +31,12 @@ export function ProfessionalServiceItem({
     canManage,
 }: ProfessionalServiceItemProps) {
     const assignedCheckboxId = useId();
-    const [durationMinutes, setDurationMinutes] = useState(
-        assignment?.duration_minutes ?? DEFAULT_DURATION_MINUTES,
+    // Both kept as raw input strings, so clearing a field doesn't silently turn it into 0.
+    const [duration, setDuration] = useState(
+        String(assignment?.duration_minutes ?? DEFAULT_DURATION_MINUTES),
     );
-    const [priceCents, setPriceCents] = useState(
-        assignment?.price_cents ?? null,
+    const [price, setPrice] = useState(
+        centsToPesosInput(assignment?.price_cents ?? null),
     );
     const [active, setActive] = useState(assignment?.active ?? true);
     const [appliedId, setAppliedId] = useState<number | null>(null);
@@ -41,8 +45,8 @@ export function ProfessionalServiceItem({
     // Adjust state during render (react-hooks/set-state-in-effect), not an Effect.
     if (assignment && assignment.id !== appliedId) {
         setAppliedId(assignment.id);
-        setDurationMinutes(assignment.duration_minutes);
-        setPriceCents(assignment.price_cents);
+        setDuration(String(assignment.duration_minutes));
+        setPrice(centsToPesosInput(assignment.price_cents));
         setActive(assignment.active);
     }
 
@@ -69,6 +73,13 @@ export function ProfessionalServiceItem({
     }
 
     function handleSave() {
+        const durationMinutes = parseDurationInput(duration);
+        const priceCents = pesosInputToCents(price);
+        // The save button is disabled while either is invalid; this only narrows the types.
+        if (durationMinutes === undefined || priceCents === undefined) {
+            return;
+        }
+
         update.mutate({
             serviceId: service.id,
             durationMinutes,
@@ -100,13 +111,13 @@ export function ProfessionalServiceItem({
 
             {assignment && (
                 <ServiceAssignmentFields
-                    durationMinutes={durationMinutes}
-                    priceCents={priceCents}
+                    duration={duration}
+                    price={price}
                     active={active}
                     canManage={canManage}
                     isSaving={update.isPending}
-                    onDurationChange={setDurationMinutes}
-                    onPriceChange={setPriceCents}
+                    onDurationChange={setDuration}
+                    onPriceChange={setPrice}
                     onActiveChange={setActive}
                     onSave={handleSave}
                 />
@@ -116,116 +127,10 @@ export function ProfessionalServiceItem({
                 open={showRemoveConfirm}
                 onOpenChange={setShowRemoveConfirm}
                 title="Quitar servicio"
-                description="¿Quitar este servicio del profesional? Esta acción no se puede deshacer."
+                description="¿Quitar este servicio del profesional? Deja de ofrecerse en la reserva online y se pierden la duración y el precio configurados; si lo volvés a asignar, vuelve con los valores por defecto."
                 onConfirm={handleConfirmRemove}
                 isPending={remove.isPending}
             />
-        </div>
-    );
-}
-
-type ServiceAssignmentFieldsProps = {
-    durationMinutes: number;
-    priceCents: number | null;
-    active: boolean;
-    canManage: boolean;
-    isSaving: boolean;
-    onDurationChange: (value: number) => void;
-    onPriceChange: (value: number | null) => void;
-    onActiveChange: (value: boolean) => void;
-    onSave: () => void;
-};
-
-function ServiceAssignmentFields({
-    durationMinutes,
-    priceCents,
-    active,
-    canManage,
-    isSaving,
-    onDurationChange,
-    onPriceChange,
-    onActiveChange,
-    onSave,
-}: ServiceAssignmentFieldsProps) {
-    const durationInputId = useId();
-    const priceInputId = useId();
-    const activeSwitchId = useId();
-
-    return (
-        <div className="flex flex-wrap items-end gap-3">
-            <div className="space-y-1">
-                <Label
-                    htmlFor={durationInputId}
-                    className="text-xs text-muted-foreground"
-                >
-                    Duración (min)
-                </Label>
-                <Input
-                    id={durationInputId}
-                    type="number"
-                    min={1}
-                    disabled={!canManage}
-                    className="w-24"
-                    value={durationMinutes}
-                    onChange={(event) =>
-                        onDurationChange(Number(event.target.value))
-                    }
-                />
-            </div>
-            <div className="space-y-1">
-                <Label
-                    htmlFor={priceInputId}
-                    className="text-xs text-muted-foreground"
-                >
-                    Precio (centavos)
-                </Label>
-                <Input
-                    id={priceInputId}
-                    type="number"
-                    min={0}
-                    disabled={!canManage}
-                    className="w-32"
-                    value={priceCents ?? ''}
-                    onChange={(event) =>
-                        onPriceChange(
-                            event.target.value
-                                ? Number(event.target.value)
-                                : null,
-                        )
-                    }
-                />
-            </div>
-            <div className="space-y-1 text-xs text-muted-foreground">
-                Moneda
-                <p className="flex h-9 items-center text-sm text-foreground">
-                    ARS
-                </p>
-            </div>
-            <div className="flex items-center gap-2">
-                <Label
-                    htmlFor={activeSwitchId}
-                    className="text-xs text-muted-foreground"
-                >
-                    Activo
-                </Label>
-                <Switch
-                    id={activeSwitchId}
-                    disabled={!canManage}
-                    checked={active}
-                    onCheckedChange={onActiveChange}
-                />
-            </div>
-            {canManage && (
-                <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    disabled={isSaving}
-                    onClick={onSave}
-                >
-                    Guardar
-                </Button>
-            )}
         </div>
     );
 }

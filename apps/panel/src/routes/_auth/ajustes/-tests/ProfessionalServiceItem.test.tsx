@@ -104,11 +104,63 @@ describe('ProfessionalServiceItem', () => {
                 {
                     service_id: 1,
                     duration_minutes: 45,
-                    price_cents: 7500,
+                    price_cents: 750000,
                     active: false,
                 },
             ),
         );
+    });
+
+    it('prefills the price in pesos and shows it formatted', () => {
+        renderItem({ ...ASSIGNMENT, price_cents: 1500000 });
+
+        expect(
+            (screen.getByLabelText('Precio ($)') as HTMLInputElement).value,
+        ).toBe('15000');
+        screen.getByText('$ 15.000,00');
+    });
+
+    it('sends an emptied price as null', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        renderItem(ASSIGNMENT);
+
+        fireEvent.change(screen.getByLabelText('Precio ($)'), {
+            target: { value: '' },
+        });
+        screen.getByText('Sin precio');
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith(
+                '/memberships/3/services/1',
+                expect.objectContaining({ price_cents: null }),
+            ),
+        );
+    });
+
+    it.each([
+        ['an empty duration', /Duración/, ''],
+        ['a zero duration', /Duración/, '0'],
+        ['a fractional duration', /Duración/, '1.5'],
+        ['a negative price', /Precio/, '-10'],
+    ])('disables Guardar for %s', (_label, field, value) => {
+        renderItem(ASSIGNMENT);
+        const save = screen.getByRole('button', { name: 'Guardar' });
+        expect(save).toHaveProperty('disabled', false);
+
+        fireEvent.change(screen.getByLabelText(field), { target: { value } });
+
+        expect(save).toHaveProperty('disabled', true);
+    });
+
+    it('explains an invalid duration under the field', () => {
+        renderItem(ASSIGNMENT);
+
+        fireEvent.change(screen.getByLabelText(/Duración/), {
+            target: { value: '' },
+        });
+
+        screen.getByText('La duración debe ser de al menos 1 minuto');
     });
 
     it('requires confirmation before removing an assigned service', async () => {

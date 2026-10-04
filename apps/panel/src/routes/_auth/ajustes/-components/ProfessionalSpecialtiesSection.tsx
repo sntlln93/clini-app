@@ -1,3 +1,4 @@
+import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import type { Membership } from '@/types/membership';
 import type {
     ProfessionalSpecialty,
@@ -32,9 +33,7 @@ export function ProfessionalSpecialtiesSection({
             </div>
 
             {professionals.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    Todavía no hay profesionales en esta organización.
-                </p>
+                <NoProfessionalsEmptyState description="Invitá a un profesional para asignarle sus especialidades." />
             )}
 
             {professionals.length > 0 && (
