@@ -1,35 +1,39 @@
+import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Subscription } from '@/types/subscription';
-import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import type { MouseEventHandler, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { SubscriptionBanner } from './SubscriptionBanner';
 
 vi.mock('@tanstack/react-router', () => ({
     Link: ({
         to,
+        hash,
+        onClick,
         className,
         children,
     }: {
         to: string;
+        hash?: string;
+        onClick?: MouseEventHandler<HTMLAnchorElement>;
         className?: string;
         children: ReactNode;
     }) => (
-        <a href={to} className={className}>
+        <a
+            href={hash ? `${to}#${hash}` : to}
+            className={className}
+            onClick={(event) => {
+                event.preventDefault();
+                onClick?.(event);
+            }}
+        >
             {children}
         </a>
     ),
 }));
 
 function subscription(overrides: Partial<Subscription> = {}): Subscription {
-    return {
-        status: 'active',
-        restricted: false,
-        grace_ends_at: null,
-        grace_days_left: null,
-        last_payment_at: null,
-        last_payment_failed_at: null,
-        ...overrides,
-    };
+    return buildSubscription(overrides.status ?? 'active', overrides);
 }
 
 describe('SubscriptionBanner', () => {
@@ -66,7 +70,7 @@ describe('SubscriptionBanner', () => {
             screen
                 .getByRole('link', { name: 'Ver suscripción' })
                 .getAttribute('href'),
-        ).toBe('/ajustes');
+        ).toBe('/ajustes#suscripcion');
     });
 
     it('uses the singular for the last day of grace', () => {
@@ -112,5 +116,42 @@ describe('SubscriptionBanner', () => {
         expect(screen.getByRole('alert').textContent).toContain(
             'Suscripción cancelada: la agenda está en modo solo lectura',
         );
+    });
+
+    it.each(['grace', 'expired', 'cancelled'] as const)(
+        'links a %s subscription to the Suscripción section of Ajustes',
+        (status) => {
+            render(
+                <SubscriptionBanner
+                    subscription={subscription({ status, grace_days_left: 2 })}
+                />,
+            );
+
+            expect(
+                screen
+                    .getByRole('link', { name: 'Ver suscripción' })
+                    .getAttribute('href'),
+            ).toBe('/ajustes#suscripcion');
+        },
+    );
+
+    it('scrolls the section into view when it is already on screen', () => {
+        const section = document.createElement('section');
+        section.id = 'suscripcion';
+        section.scrollIntoView = vi.fn();
+        document.body.appendChild(section);
+
+        render(
+            <SubscriptionBanner
+                subscription={subscription({
+                    status: 'expired',
+                    restricted: true,
+                })}
+            />,
+        );
+        fireEvent.click(screen.getByRole('link', { name: 'Ver suscripción' }));
+
+        expect(section.scrollIntoView).toHaveBeenCalled();
+        section.remove();
     });
 });

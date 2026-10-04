@@ -10,6 +10,7 @@ import type {
     UserSpecialty,
 } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
@@ -20,11 +21,19 @@ import {
     catalogServicesQueryOptions,
     catalogSpecialtiesQueryOptions,
 } from './-hooks/use-catalog';
+import { useCheckoutReturn } from './-hooks/use-checkout-return';
 import { professionalServicesQueryOptions } from './-hooks/use-professional-services';
 import { professionalSpecialtiesQueryOptions } from './-hooks/use-professional-specialties';
 import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
+// `retorno`: the browser is back from the Mercado Pago checkout (the API's
+// return route). Any other value is dropped rather than failing the page.
+const ajustesSearchSchema = z.object({
+    suscripcion: z.literal('retorno').optional().catch(undefined),
+});
+
 export const Route = createFileRoute('/_auth/ajustes/')({
+    validateSearch: (search) => ajustesSearchSchema.parse(search),
     loader: async ({ context }) => {
         const [session, catalogSpecialties, catalogServices] =
             await Promise.all([
@@ -154,6 +163,11 @@ function AjustesPage() {
     const liveSubscription = useSubscription();
     const subscription =
         liveSubscription !== undefined ? liveSubscription : loaderSubscription;
+    const { suscripcion } = Route.useSearch();
+    const confirmingPayment = useCheckoutReturn(
+        suscripcion === 'retorno',
+        subscription?.status === 'pending',
+    );
 
     return (
         <div className="mx-auto max-w-2xl space-y-8">
@@ -182,6 +196,7 @@ function AjustesPage() {
                     <SubscriptionSection
                         subscription={subscription}
                         isOwner={isOwner}
+                        confirmingPayment={confirmingPayment}
                     />
                 </>
             )}

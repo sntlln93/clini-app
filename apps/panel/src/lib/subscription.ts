@@ -37,6 +37,20 @@ export function useSubscriptionRestricted(): boolean {
     return isSubscriptionRestricted(useSubscription());
 }
 
+/** Anchor of Ajustes' subscription section, the target of the panel banner's link. */
+export const SUBSCRIPTION_SECTION_ID = 'suscripcion';
+
+/**
+ * Brings the subscription section into view when it is already rendered
+ * (the banner is clicked on Ajustes itself, where a same-URL navigation
+ * wouldn't scroll again); a no-op anywhere else.
+ */
+export function scrollToSubscriptionSection(): void {
+    document
+        .getElementById(SUBSCRIPTION_SECTION_ID)
+        ?.scrollIntoView({ block: 'start' });
+}
+
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
     pending: 'Pendiente',
     active: 'Activa',

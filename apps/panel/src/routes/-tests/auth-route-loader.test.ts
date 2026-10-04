@@ -28,6 +28,8 @@ const EXPIRED_SUBSCRIPTION: Subscription = {
     grace_days_left: null,
     last_payment_at: null,
     last_payment_failed_at: '2026-10-03T12:00:00+00:00',
+    next_payment_at: null,
+    cancelled_at: null,
 };
 
 // Narrowed from the loader union to a plain callable, since this route always passes a plain async function.

@@ -1,5 +1,9 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
+import {
+    SUBSCRIPTION_SECTION_ID,
+    scrollToSubscriptionSection,
+} from '@/lib/subscription';
 import type { Subscription } from '@/types/subscription';
 import { Link } from '@tanstack/react-router';
 import { CircleAlert } from 'lucide-react';
@@ -57,6 +61,8 @@ export function SubscriptionBanner({ subscription }: SubscriptionBannerProps) {
                 <span>{copy.description}</span>
                 <Link
                     to="/ajustes"
+                    hash={SUBSCRIPTION_SECTION_ID}
+                    onClick={scrollToSubscriptionSection}
                     className={buttonVariants({ size: 'sm', variant: 'link' })}
                 >
                     Ver suscripción

@@ -1,12 +1,22 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { SUBSCRIPTION_STATUS_LABELS } from '@/lib/subscription';
+import { Spinner } from '@/components/ui/spinner';
+import {
+    SUBSCRIPTION_SECTION_ID,
+    SUBSCRIPTION_STATUS_LABELS,
+} from '@/lib/subscription';
 import type { Subscription, SubscriptionStatus } from '@/types/subscription';
 import { useStartSubscription } from '../-hooks/use-start-subscription';
+import {
+    lastPaymentDetail,
+    subscriptionStatusDetail,
+} from './subscription-copy';
 
 type SubscriptionSectionProps = {
     subscription: Subscription | null;
     isOwner: boolean;
+    /** Back from the checkout, waiting for the provider to confirm the payment. */
+    confirmingPayment?: boolean;
 };
 
 const BADGE_VARIANTS: Record<
@@ -33,23 +43,28 @@ function actionLabel(subscription: Subscription | null): string | null {
     }
 }
 
-function daysLeftCopy(days: number): string {
-    return days === 1
-        ? 'Te queda 1 día para regularizar el pago.'
-        : `Te quedan ${days} días para regularizar el pago.`;
-}
-
 export function SubscriptionSection({
     subscription,
     isOwner,
+    confirmingPayment = false,
 }: SubscriptionSectionProps) {
-    const { mutate, isPending } = useStartSubscription();
+    const { start, isRedirecting } = useStartSubscription();
     const label = actionLabel(subscription);
+    const lastPayment = subscription ? lastPaymentDetail(subscription) : null;
 
     return (
-        <section className="space-y-3">
+        <section
+            id={SUBSCRIPTION_SECTION_ID}
+            aria-labelledby={`${SUBSCRIPTION_SECTION_ID}-title`}
+            className="scroll-mt-4 space-y-3"
+        >
             <div className="space-y-1">
-                <h2 className="text-sm font-medium">Suscripción</h2>
+                <h2
+                    id={`${SUBSCRIPTION_SECTION_ID}-title`}
+                    className="text-sm font-medium"
+                >
+                    Suscripción
+                </h2>
                 <p className="text-sm text-muted-foreground">
                     La suscripción mensual del consultorio se cobra con Mercado
                     Pago.
@@ -71,20 +86,37 @@ export function SubscriptionSection({
                     <Button
                         type="button"
                         size="sm"
-                        disabled={isPending}
-                        onClick={() => mutate()}
+                        disabled={isRedirecting}
+                        onClick={start}
                     >
-                        {label}
+                        {isRedirecting ? (
+                            <>
+                                <Spinner data-icon="inline-start" aria-hidden />
+                                Redirigiendo a Mercado Pago…
+                            </>
+                        ) : (
+                            label
+                        )}
                     </Button>
                 )}
             </div>
 
-            {subscription?.status === 'grace' &&
-                subscription.grace_days_left !== null && (
-                    <p className="text-sm text-muted-foreground">
-                        {daysLeftCopy(subscription.grace_days_left)}
-                    </p>
-                )}
+            {confirmingPayment && (
+                <p
+                    role="status"
+                    className="flex items-center gap-2 text-sm text-muted-foreground"
+                >
+                    <Spinner aria-hidden />
+                    Estamos confirmando tu pago con Mercado Pago…
+                </p>
+            )}
+
+            {subscription && (
+                <div className="space-y-1 text-sm text-muted-foreground">
+                    <p>{subscriptionStatusDetail(subscription)}</p>
+                    {lastPayment && <p>{lastPayment}</p>}
+                </div>
+            )}
 
             {subscription?.restricted && (
                 <p className="text-sm text-muted-foreground">
