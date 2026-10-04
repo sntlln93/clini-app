@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { Patient } from '@/types/patient';
+import { formatBirthDateWithAge } from './patient-age';
 import { DOCUMENT_TYPE_OPTIONS, SEX_OPTIONS } from './patient-schemas';
 
 type PatientPersonalDataCardProps = {
@@ -11,14 +12,6 @@ function labelFor(
     value: string,
 ): string {
     return options.find((option) => option.value === value)?.label ?? value;
-}
-
-function formatBirthDate(birthDate: string | null): string {
-    if (birthDate === null) {
-        return '—';
-    }
-
-    return new Date(`${birthDate}T00:00:00`).toLocaleDateString('es-AR');
 }
 
 function Field({ label, value }: { label: string; value: string }) {
@@ -55,7 +48,7 @@ export function PatientPersonalDataCard({
                     />
                     <Field
                         label="Fecha de nacimiento"
-                        value={formatBirthDate(patient.birth_date)}
+                        value={formatBirthDateWithAge(patient.birth_date)}
                     />
                 </dl>
             </CardContent>

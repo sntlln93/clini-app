@@ -1,6 +1,7 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifySuccess } from '@/lib/toast';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 import { patientAppointmentsQueryKey } from './use-patient-appointments';
@@ -41,7 +42,7 @@ export function useCreatePatientClinicalNote(
             refreshPageData(
                 patientClinicalNotesQueryKey(patientId),
                 patientAppointmentsQueryKey(patientId),
-            ),
+            ).then(() => notifySuccess('Nota guardada')),
     });
 
     const { message, errors } = mutation.error

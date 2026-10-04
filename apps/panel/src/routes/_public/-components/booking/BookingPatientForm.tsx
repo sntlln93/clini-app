@@ -33,7 +33,7 @@ export function BookingPatientForm({
         defaultValues: {
             patient: {
                 name: '',
-                document_type: '',
+                document_type: 'dni',
                 document_number: '',
                 email: '',
                 phone: '',

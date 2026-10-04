@@ -7,7 +7,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import type { Control } from 'react-hook-form';
+import { useWatch, type Control } from 'react-hook-form';
 import type { BookingPatientFormValues } from './booking-patient-schema';
 
 const DOCUMENT_TYPE_OPTIONS = [
@@ -23,6 +23,9 @@ type BookingPatientFormFieldsProps = {
 export function BookingPatientFormFields({
     control,
 }: BookingPatientFormFieldsProps) {
+    // Passports and insurance cards may carry letters, so only a DNI gets the numeric keypad.
+    const documentType = useWatch({ control, name: 'patient.document_type' });
+
     return (
         <>
             <FormField
@@ -31,7 +34,9 @@ export function BookingPatientFormFields({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Nombre</FormLabel>
-                        <FormControl render={<Input {...field} />} />
+                        <FormControl
+                            render={<Input autoComplete="name" {...field} />}
+                        />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -73,7 +78,18 @@ export function BookingPatientFormFields({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Número de documento</FormLabel>
-                        <FormControl render={<Input {...field} />} />
+                        <FormControl
+                            render={
+                                <Input
+                                    inputMode={
+                                        documentType === 'dni'
+                                            ? 'numeric'
+                                            : undefined
+                                    }
+                                    {...field}
+                                />
+                            }
+                        />
                         <FormMessage />
                     </FormItem>
                 )}
@@ -86,7 +102,13 @@ export function BookingPatientFormFields({
                     <FormItem>
                         <FormLabel>Correo electrónico (opcional)</FormLabel>
                         <FormControl
-                            render={<Input type="email" {...field} />}
+                            render={
+                                <Input
+                                    type="email"
+                                    autoComplete="email"
+                                    {...field}
+                                />
+                            }
                         />
                         <FormMessage />
                     </FormItem>
@@ -99,7 +121,15 @@ export function BookingPatientFormFields({
                 render={({ field }) => (
                     <FormItem>
                         <FormLabel>Teléfono (opcional)</FormLabel>
-                        <FormControl render={<Input {...field} />} />
+                        <FormControl
+                            render={
+                                <Input
+                                    type="tel"
+                                    autoComplete="tel"
+                                    {...field}
+                                />
+                            }
+                        />
                         <FormMessage />
                     </FormItem>
                 )}

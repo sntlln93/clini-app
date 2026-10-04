@@ -7,10 +7,12 @@ import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentH
 import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard';
 import { PatientContactCard } from './-components/PatientContactCard';
 import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
+import { PatientNextAppointmentCard } from './-components/PatientNextAppointmentCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
 import { PatientPrescriptionsCard } from './-components/PatientPrescriptionsCard';
 import { patientQueryOptions } from './-hooks/use-patient';
 import {
+    findNextAppointment,
     findTodaysOwnAppointment,
     patientAppointmentsQueryOptions,
 } from './-hooks/use-patient-appointments';
@@ -64,14 +66,16 @@ function PacienteDetallePage() {
                 </Button>
             </header>
 
+            <PatientNextAppointmentCard
+                appointment={findNextAppointment(appointments)}
+            />
+
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <PatientPersonalDataCard patient={patient} />
                 <PatientContactCard patient={patient} />
-                {patient.insurance_provider && (
-                    <PatientInsuranceCard
-                        insuranceProvider={patient.insurance_provider}
-                    />
-                )}
+                <PatientInsuranceCard
+                    insuranceProvider={patient.insurance_provider}
+                />
             </div>
 
             <PatientAppointmentHistoryCard appointments={appointments} />

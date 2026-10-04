@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { notifySuccess } from '@/lib/toast';
 import type { InsuranceProvider, Patient } from '@/types/patient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -9,12 +10,23 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PatientForm } from '../-components/PatientForm';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), put: vi.fn() },
+}));
+
+vi.mock('@/lib/toast', () => ({
+    notifySuccess: vi.fn(),
+    notifyError: vi.fn(),
 }));
 
 function unauthorizedError(data: unknown) {
@@ -32,6 +44,19 @@ function mockLookupMiss() {
 function mockLookupHit(patient: Record<string, unknown>) {
     vi.mocked(api.get).mockResolvedValueOnce({ data: { data: patient } });
 }
+
+const EXISTING_PATIENT: Patient = {
+    id: 7,
+    name: 'Juan Perez',
+    email: 'juan@example.com',
+    phone: '1122334455',
+    document_type: 'dni',
+    document_number: '12345678',
+    sex: 'm',
+    birth_date: '1990-01-01',
+    insurance_provider_id: 2,
+    created_at: '2026-01-01T00:00:00Z',
+};
 
 function renderPatientForm(
     patient?: Patient,
@@ -62,12 +87,23 @@ function renderPatientForm(
         path: '/pacientes',
         component: () => <div>Pacientes</div>,
     });
-    const routeTree = rootRoute.addChildren([nuevoRoute, pacientesRoute]);
+    const detalleRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/pacientes/$id',
+        component: () => <div>Ficha del paciente</div>,
+    });
+    const routeTree = rootRoute.addChildren([
+        nuevoRoute,
+        pacientesRoute,
+        detalleRoute,
+    ]);
     const router = createRouter({
         routeTree,
         history: createMemoryHistory({ initialEntries: ['/pacientes/nuevo'] }),
     });
     render(<RouterProvider router={router} />);
+
+    return router;
 }
 
 async function fillMinimalPatientForm() {
@@ -81,6 +117,13 @@ async function fillMinimalPatientForm() {
 }
 
 describe('PatientForm', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.put).mockReset();
+        vi.mocked(notifySuccess).mockReset();
+    });
+
     it('posts the expected payload to /patients on submit', async () => {
         mockLookupMiss();
         vi.mocked(api.post).mockResolvedValueOnce({
@@ -151,20 +194,29 @@ describe('PatientForm', () => {
 
         await fillMinimalPatientForm();
 
-        await screen.findByText(
-            'Ya existe un paciente con este documento: se va a reutilizar el registro y solo se completarán los datos faltantes.',
+        const notice = await screen.findByRole('status');
+        await waitFor(() =>
+            expect(notice.textContent).toContain(
+                'Ya existe un paciente con este documento: se va a reutilizar el registro y solo se completarán los datos faltantes.',
+            ),
         );
+        expect(
+            within(notice)
+                .getByRole('link', { name: 'Ver ficha de Juan Perez' })
+                .getAttribute('href'),
+        ).toBe('/pacientes/7');
         await waitFor(() =>
             expect(
                 (
                     screen.getByLabelText(
-                        'Correo electrónico',
+                        'Correo electrónico (opcional)',
                     ) as HTMLInputElement
                 ).value,
             ).toBe('juan@example.com'),
         );
         expect(
-            (screen.getByLabelText('Teléfono') as HTMLInputElement).value,
+            (screen.getByLabelText('Teléfono (opcional)') as HTMLInputElement)
+                .value,
         ).toBe('1122334455');
     });
 
@@ -176,11 +228,15 @@ describe('PatientForm', () => {
 
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
         expect(
-            (screen.getByLabelText('Correo electrónico') as HTMLInputElement)
-                .value,
+            (
+                screen.getByLabelText(
+                    'Correo electrónico (opcional)',
+                ) as HTMLInputElement
+            ).value,
         ).toBe('');
         expect(
-            (screen.getByLabelText('Teléfono') as HTMLInputElement).value,
+            (screen.getByLabelText('Teléfono (opcional)') as HTMLInputElement)
+                .value,
         ).toBe('');
         expect(screen.queryByText(/ya existe un paciente/i)).toBeNull();
         expect(screen.queryByText(/ocurrió un error inesperado/i)).toBeNull();
@@ -189,31 +245,17 @@ describe('PatientForm', () => {
     it('keeps the Obra social select working with the loaded insurance providers', async () => {
         renderPatientForm(undefined, [{ id: 1, name: 'OSDE' }]);
 
-        fireEvent.click(await screen.findByLabelText('Obra social'));
+        fireEvent.click(await screen.findByLabelText('Obra social (opcional)'));
         await screen.findByRole('option', { name: 'OSDE' });
     });
 
     it('shows the insurance provider name at mount in edit mode, not the raw id', async () => {
-        renderPatientForm(
-            {
-                id: 7,
-                name: 'Juan Perez',
-                email: 'juan@example.com',
-                phone: '1122334455',
-                document_type: 'dni',
-                document_number: '12345678',
-                sex: 'm',
-                birth_date: '1990-01-01',
-                insurance_provider_id: 2,
-                created_at: '2026-01-01T00:00:00Z',
-            },
-            [
-                { id: 1, name: 'OSDE' },
-                { id: 2, name: 'Swiss Medical' },
-            ],
-        );
+        renderPatientForm(EXISTING_PATIENT, [
+            { id: 1, name: 'OSDE' },
+            { id: 2, name: 'Swiss Medical' },
+        ]);
 
-        const trigger = await screen.findByLabelText('Obra social');
+        const trigger = await screen.findByLabelText('Obra social (opcional)');
         await waitFor(() =>
             expect(trigger.textContent).toContain('Swiss Medical'),
         );
@@ -223,8 +265,93 @@ describe('PatientForm', () => {
     it('shows the placeholder, not an empty value or 0, in create mode', async () => {
         renderPatientForm(undefined, [{ id: 1, name: 'OSDE' }]);
 
-        const trigger = await screen.findByLabelText('Obra social');
+        const trigger = await screen.findByLabelText('Obra social (opcional)');
         expect(trigger.textContent).toContain('Sin obra social');
         expect(trigger.textContent).not.toContain('0');
+    });
+
+    it('confirms the creation and lands on the new patient detail page', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 31 } },
+        });
+        const router = renderPatientForm();
+
+        await fillMinimalPatientForm();
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText('Ficha del paciente');
+        expect(router.state.location.pathname).toBe('/pacientes/31');
+        expect(notifySuccess).toHaveBeenCalledWith('Paciente creado');
+    });
+
+    it('confirms an edit and goes back to that patient detail page', async () => {
+        vi.mocked(api.put).mockResolvedValueOnce({
+            data: { data: EXISTING_PATIENT },
+        });
+        const router = renderPatientForm(EXISTING_PATIENT);
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText('Ficha del paciente');
+        expect(api.put).toHaveBeenCalledWith(
+            '/patients/7',
+            expect.objectContaining({ name: 'Juan Perez' }),
+        );
+        expect(router.state.location.pathname).toBe('/pacientes/7');
+        expect(notifySuccess).toHaveBeenCalledWith('Cambios guardados');
+    });
+
+    it('links Cancelar to the list in create mode', async () => {
+        renderPatientForm();
+
+        expect(
+            (
+                await screen.findByRole('link', { name: 'Cancelar' })
+            ).getAttribute('href'),
+        ).toBe('/pacientes');
+    });
+
+    it('links Cancelar to the patient detail page in edit mode', async () => {
+        renderPatientForm(EXISTING_PATIENT);
+
+        expect(
+            (
+                await screen.findByRole('link', { name: 'Cancelar' })
+            ).getAttribute('href'),
+        ).toBe('/pacientes/7');
+    });
+
+    it('preselects DNI on create, so typing only the number triggers the lookup', async () => {
+        mockLookupMiss();
+        renderPatientForm();
+
+        const dni = await screen.findByRole('radio', { name: 'DNI' });
+        expect(dni.getAttribute('aria-checked')).toBe('true');
+        expect(
+            screen
+                .getByLabelText('Número de documento')
+                .getAttribute('inputmode'),
+        ).toBe('numeric');
+
+        fireEvent.change(screen.getByLabelText('Número de documento'), {
+            target: { value: '12345678' },
+        });
+
+        await waitFor(() =>
+            expect(api.get).toHaveBeenCalledWith('/patients/lookup', {
+                params: { document_type: 'dni', document_number: '12345678' },
+            }),
+        );
+    });
+
+    it('uses a phone input type for Teléfono', async () => {
+        renderPatientForm();
+
+        expect(
+            (await screen.findByLabelText('Teléfono (opcional)')).getAttribute(
+                'type',
+            ),
+        ).toBe('tel');
     });
 });

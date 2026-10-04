@@ -35,7 +35,9 @@ function EditarPacientePage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Editar paciente</h1>
+            <h1 className="text-2xl font-semibold wrap-break-word">
+                Editar a {patient.name}
+            </h1>
             <PatientForm
                 patient={patient}
                 insuranceProviders={insuranceProviders}

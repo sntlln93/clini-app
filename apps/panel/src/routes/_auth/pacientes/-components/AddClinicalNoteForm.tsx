@@ -7,6 +7,7 @@ import {
     FormControl,
     FormField,
     FormItem,
+    FormLabel,
     FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
@@ -64,10 +65,14 @@ export function AddClinicalNoteForm({
                     name="body"
                     render={({ field }) => (
                         <FormItem>
+                            <FormLabel className="sr-only">
+                                Nueva nota clínica
+                            </FormLabel>
                             <FormControl
                                 render={
                                     <Textarea
                                         rows={3}
+                                        placeholder="Escribí la nota de la visita…"
                                         maxLength={5000}
                                         {...field}
                                     />

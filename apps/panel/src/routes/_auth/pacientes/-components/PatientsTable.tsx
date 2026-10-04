@@ -1,7 +1,7 @@
 import { DataTable } from '@/components/DataTable';
 import { DataTableRowActions } from '@/components/DataTableRowActions';
 import type { Patient } from '@/types/patient';
-import { useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
@@ -51,7 +51,13 @@ const columns: ColumnDef<Patient, unknown>[] = [
         accessorKey: 'name',
         header: 'Nombre',
         cell: ({ row }) => (
-            <span className="font-medium">{row.original.name}</span>
+            <Link
+                to="/pacientes/$id"
+                params={{ id: row.original.id }}
+                className="font-medium underline-offset-4 hover:underline focus-visible:underline"
+            >
+                {row.original.name}
+            </Link>
         ),
     },
     {

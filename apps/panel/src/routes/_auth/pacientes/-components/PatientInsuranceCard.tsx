@@ -2,11 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { InsuranceProvider } from '@/types/patient';
 
 type PatientInsuranceCardProps = {
-    insuranceProvider: InsuranceProvider;
+    insuranceProvider: InsuranceProvider | null | undefined;
 };
 
-// Only rendered by the page when the patient has a linked provider — see
-// `pacientes/$id.tsx`.
+// Always rendered, so a private ("particular") patient reads as such rather than as missing data.
 export function PatientInsuranceCard({
     insuranceProvider,
 }: PatientInsuranceCardProps) {
@@ -16,7 +15,15 @@ export function PatientInsuranceCard({
                 <CardTitle>Obra social</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm font-medium">{insuranceProvider.name}</p>
+                {insuranceProvider ? (
+                    <p className="text-sm font-medium">
+                        {insuranceProvider.name}
+                    </p>
+                ) : (
+                    <p className="text-sm text-muted-foreground">
+                        Particular (sin obra social)
+                    </p>
+                )}
             </CardContent>
         </Card>
     );

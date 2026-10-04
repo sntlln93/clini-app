@@ -170,7 +170,13 @@ describe('BookingPatientForm validation and submission', () => {
         );
 
         await screen.findByText('El nombre es obligatorio.');
-        await screen.findByText('Elegí un tipo de documento.');
+        // DNI comes preselected, so the document type never fails validation.
+        expect(screen.queryByText('Elegí un tipo de documento.')).toBeNull();
+        expect(
+            screen
+                .getByRole('radio', { name: 'DNI' })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
         await screen.findByText('El número de documento es obligatorio.');
         expect(api.post).not.toHaveBeenCalled();
 

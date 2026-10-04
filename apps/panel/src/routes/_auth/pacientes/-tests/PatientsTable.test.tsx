@@ -83,6 +83,13 @@ describe('PatientsTable', () => {
         await screen.findByText('Ficha del paciente');
     });
 
+    it('renders the patient name as a link to the detail page', async () => {
+        renderPatientsTable(PATIENTS);
+
+        const link = await screen.findByRole('link', { name: 'Ana Gomez' });
+        expect(link.getAttribute('href')).toBe('/pacientes/1');
+    });
+
     it('renders the empty state for an empty list, with no Eliminar affordance in either state', async () => {
         const empty = renderPatientsTable([]);
 

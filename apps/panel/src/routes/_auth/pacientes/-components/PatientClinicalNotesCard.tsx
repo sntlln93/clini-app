@@ -3,6 +3,7 @@ import {
     Card,
     CardAction,
     CardContent,
+    CardDescription,
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
@@ -36,11 +37,19 @@ export function PatientClinicalNotesCard({
     // expired/cancelled (#28); the backend still enforces it.
     const restricted = useSubscriptionRestricted();
     const canAddNote = todaysAppointmentId !== null && !restricted;
+    const unavailableReason = restricted
+        ? 'Tu suscripción no está activa: las notas clínicas son de solo lectura.'
+        : todaysAppointmentId === null
+          ? 'Podés agregar notas cuando tengas un turno con este paciente hoy.'
+          : null;
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Notas clínicas</CardTitle>
+                {unavailableReason && (
+                    <CardDescription>{unavailableReason}</CardDescription>
+                )}
                 {canAddNote && (
                     <CardAction>
                         <Button
