@@ -17,12 +17,13 @@
 
 ## Endpoints
 
-- `GET /api/v1/subscription` — cualquier miembro activo. `{"data": null}` si la organización nunca se suscribió; si no, `status`, `restricted`, `grace_ends_at`, `grace_days_left`, `last_payment_at`, `last_payment_failed_at`.
+- `GET /api/v1/subscription` — cualquier miembro activo. `{"data": null}` si la organización nunca se suscribió; si no, `status`, `restricted`, `grace_ends_at`, `grace_days_left`, `last_payment_at`, `last_payment_failed_at`, `next_payment_at` (próximo cobro según Mercado Pago, la fecha de renovación) y `cancelled_at` (fecha de la cancelación; solo en una fila `cancelled` — un intento de volver a suscribirse no la cambia, y se limpia al reactivarse).
 - `POST /api/v1/subscription` — **solo dueño** (rol `owner`; 403 para el resto). Devuelve `{"data": {"init_point": "<url>"}}` y el panel redirige ahí.
   - Sin suscripción, `cancelled` o `expired` → crea un preapproval nuevo (`payer_email` = email del dueño, `reason` = `Suscripción Clini — <organización>`, mensual, `external_reference` = id de la organización). Si el preapproval anterior todavía no está cancelado en Mercado Pago (una organización vencida suele seguir con reintentos de cobro), se cancela (`PUT /preapproval/{id}` con `status=cancelled`) para que nunca haya dos suscripciones cobrando — recién **después** de crear el nuevo y apuntar la fila a él: si la creación falla, el preapproval anterior sigue vivo y la fila no cambia, y el webhook `cancelled` del anterior ya no encuentra una fila que cancelar. El estado local **no** se levanta: una organización vencida sigue en solo lectura hasta que el webhook confirme el pago.
   - `pending` o `grace` → reutiliza el preapproval existente (su `init_point`), para no generar una segunda suscripción que cobre doble. Excepción: si ese preapproval está `paused` en Mercado Pago ya no cobra, así que se crea uno nuevo y luego se cancela el anterior (la fila sigue en `grace` hasta que el webhook confirme el pago).
   - Todo corre en una transacción con lock sobre la fila de la organización (y su suscripción), así dos inicios concurrentes (dos dueños, dos pestañas) no crean dos preapprovals ni dejan uno huérfano.
   - `active` → 409 `subscriptions.already_active`.
+- `GET /api/v1/subscription/return` — público (sin sesión): es el `back_url` del checkout. Responde 302 a `<FRONTEND_URL>/ajustes?suscripcion=retorno` (el primer origen de `cors.allowed_origins`, igual que los links de los mails). Ignora todos los parámetros que agrega Mercado Pago (p. ej. `preapproval_id`) y cualquier otro: el destino es fijo, así que no es un open redirect, y el estado de la suscripción lo define solo el webhook, nunca este redirect.
 - `POST /api/v1/webhooks/mercadopago` — público (sin sesión ni CSRF), `throttle:120,1`. Ver abajo.
 
 ## Webhook
@@ -32,12 +33,13 @@
 3. **Resolución** — se consulta el recurso a Mercado Pago (nunca se confía en el body):
    - `subscription_preapproval`:
      - `authorized` confirma un checkout `pending` → `active` (Mercado Pago mantiene el preapproval `authorized` mientras reintenta un cobro fallido y manda `updated` por cambios que no son pagos, como una tarjeta nueva, así que **no** saca de `grace` ni de `expired`: eso lo hace solo un pago aprobado). También confirma una fila `cancelled` → `active`: el recurso se consulta fresco y un preapproval cancelado nunca vuelve a `authorized`, así que uno autorizado que llega a una fila cancelada es el preapproval de reemplazo creado al volver a suscribirse.
-     - `cancelled` → `cancelled` desde cualquier estado.
+     - `cancelled` → `cancelled` desde cualquier estado; guarda `cancelled_at` (una cancelación repetida conserva la fecha original).
      - `paused` → si estaba `active`, pasa a `grace` igual que ante un cobro fallido (un preapproval pausado deja de cobrar, así que nunca llegaría un cobro fallido que abra la gracia) y avisa a los dueños; una gracia en curso **no** se extiende.
      - `authorized` sobre una gracia abierta por una pausa (`grace_reason = paused`) → `active`: al reanudar, Mercado Pago no vuelve a cobrar hasta la próxima fecha de cobro (casi siempre después de los 7 días), así que esperar un pago aprobado vencería a una organización con el preapproval autorizado de nuevo. Una gracia abierta por un cobro fallido (`grace_reason = payment_failed`) sigue necesitando un pago aprobado; un cobro fallido durante una gracia por pausa la convierte en `payment_failed`.
-     - El resto no cambia nada.
+     - El resto no cambia el estado.
+     - Todo preapproval aplicado guarda su `next_payment_date` en `next_payment_at`, haya o no transición (uno `cancelled` lo deja en null: no hay próximo cobro).
    - `subscription_authorized_payment`:
-     - Pago `approved` → `active` (limpia la gracia, setea `last_payment_at`). Si la fila local está `cancelled`, solo la activa cuando el preapproval cobrado **no** está cancelado en Mercado Pago (el de reemplazo tras volver a suscribirse). Excepción: un cobro tardío del preapproval cancelado nunca la revive — la cancelación es definitiva para ese preapproval.
+     - Pago `approved` → `active` (limpia la gracia, setea `last_payment_at` y refresca `next_payment_at` consultando el preapproval del cobro; si esa consulta da 404 o falla, se conserva el valor guardado y el pago se aplica igual — la fecha es informativa). Si la fila local está `cancelled`, solo la activa cuando el preapproval cobrado **no** está cancelado en Mercado Pago (el de reemplazo tras volver a suscribirse). Excepción: un cobro tardío del preapproval cancelado nunca la revive — la cancelación es definitiva para ese preapproval.
      - `rejected`/`cancelled` o estado `recycling` → si estaba `active`, pasa a `grace` con `grace_ends_at = ahora + 7 días` y avisa a los dueños; una gracia en curso **no** se extiende.
      - **Orden** — las notificaciones pueden llegar fuera de orden (un reenvío tras un 5xx) y el resultado de un cobro viejo es definitivo, así que se compara la fecha del cobro (`debit_date`, o `date_created`; igual en todos sus reintentos) con la del último pago/fallo registrado: un `approved` anterior al último fallo se ignora, y un fallo no posterior al último pago también. `last_payment_at`/`last_payment_failed_at` guardan esa fecha del cobro.
    - Cualquier otro tipo, o una suscripción desconocida → 200 sin cambios.
@@ -50,7 +52,11 @@ Con estado `expired` o `cancelled`, todas las escrituras de turnos (alta, estado
 
 Se aplica en un solo lugar: el middleware `subscription.active`, agrupando las rutas de escritura en `routes/api/v1/{appointments,availability,clinical-notes,prescriptions,booking}.php`. Una ruta de escritura nueva en esos módulos tiene que entrar en ese grupo.
 
-El panel lee la suscripción una vez en el loader de `_auth` y la observa con `useSubscription()`: muestra el banner (gracia / vencida / cancelada), la sección «Suscripción» en Ajustes y oculta las acciones de alta/edición en agenda, notas clínicas, recetas y disponibilidad. El backend sigue siendo la fuente de verdad.
+El panel lee la suscripción una vez en el loader de `_auth` y la observa con `useSubscription()`: muestra el banner (gracia / vencida / cancelada, con «Ver suscripción» que lleva a `/ajustes#suscripcion`), la sección «Suscripción» en Ajustes y oculta las acciones de alta/edición en agenda, notas clínicas, recetas y disponibilidad. El backend sigue siendo la fuente de verdad.
+
+La sección «Suscripción» muestra, según el estado: «Se renueva automáticamente el …» (`next_payment_at`), «Pago pendiente: te quedan N días (hasta el …)», «Venció el …», «Cancelada el …» o «Esperando confirmación del pago», más «Último pago: …» si lo hay. «Suscribirse»/«Regularizar pago» queda deshabilitado con «Redirigiendo a Mercado Pago…» desde el clic hasta que el navegador sale al checkout; solo un error lo vuelve a habilitar.
+
+**Vuelta del checkout** — con `?suscripcion=retorno` Ajustes refresca la suscripción y, mientras siga `pending` (el webhook puede llegar después que el navegador), muestra «Estamos confirmando tu pago con Mercado Pago…» y vuelve a consultar cada 5 s, hasta 2 minutos. Cuando deja de estar `pending` (o se agota la espera) saca el parámetro de la URL.
 
 ## Variables de entorno (`apps/api/.env`)
 
@@ -61,7 +67,7 @@ El panel lee la suscripción una vez en el loader de `_auth` y la observa con `u
 | `MERCADOPAGO_WEBHOOK_SECRET` | Clave secreta de la sección Webhooks de la aplicación. Sin ella, todo webhook se rechaza con 401. |
 | `MERCADOPAGO_PLAN_AMOUNT` | Precio mensual en pesos enteros (ej. `15000`). |
 | `MERCADOPAGO_PLAN_CURRENCY` | Moneda; `ARS` por defecto. |
-| `MERCADOPAGO_BACK_URL` | URL a la que Mercado Pago devuelve al pagador (ej. `<panel>/ajustes`). Mercado Pago exige una URL `https` pública. |
+| `MERCADOPAGO_BACK_URL` | URL a la que Mercado Pago devuelve al pagador. Por defecto `${APP_URL}/api/v1/subscription/return`, la ruta de la API que redirige al panel (`/ajustes?suscripcion=retorno`); se puede sobrescribir. Mercado Pago exige una URL `https` pública. |
 
 Nunca commitear valores reales: `.env.example` los deja vacíos.
 
@@ -78,7 +84,7 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
    MERCADOPAGO_WEBHOOK_SECRET=<clave secreta del webhook>
    MERCADOPAGO_PLAN_AMOUNT=15000
    MERCADOPAGO_PLAN_CURRENCY=ARS
-   MERCADOPAGO_BACK_URL=https://<host-público-del-panel>/ajustes
+   MERCADOPAGO_BACK_URL=https://<host-público-de-la-api>/api/v1/subscription/return
    ```
 
    y reiniciar la API (`docker compose restart laravel.test queue`) para que tome la config. Migrar si hace falta: `apps/api/vendor/bin/sail artisan migrate`.

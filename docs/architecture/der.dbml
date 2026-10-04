@@ -414,6 +414,8 @@ Table subscriptions {
   grace_reason varchar [null, note: 'payment_failed | paused; set only while status = grace']
   last_payment_at timestamp [null]
   last_payment_failed_at timestamp [null]
+  next_payment_at timestamptz [null, note: 'Provider next scheduled charge (preapproval next_payment_date), shown as the renewal date']
+  cancelled_at timestamp [null, note: 'When the subscription was cancelled; set only while status = cancelled, cleared on reactivation']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
