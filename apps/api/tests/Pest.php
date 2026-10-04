@@ -19,7 +19,7 @@ function configureMercadoPago(): void
         'services.mercadopago.webhook_secret' => 'test-webhook-secret',
         'services.mercadopago.plan_amount' => 15000,
         'services.mercadopago.plan_currency' => 'ARS',
-        'services.mercadopago.back_url' => 'https://panel.example.com/ajustes',
+        'services.mercadopago.back_url' => 'https://api.example.com/api/v1/subscription/return',
     ]);
 }
 

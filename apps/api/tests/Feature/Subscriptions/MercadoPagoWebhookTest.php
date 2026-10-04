@@ -52,10 +52,14 @@ function postMercadoPagoNotification(string $type, string $dataId, string $notif
     );
 }
 
-function fakePreapproval(string $id, string $status): void
+function fakePreapproval(string $id, string $status, ?string $nextPaymentDate = null): void
 {
     Http::fake([
-        "api.mercadopago.com/preapproval/{$id}" => Http::response(['id' => $id, 'status' => $status]),
+        "api.mercadopago.com/preapproval/{$id}" => Http::response(array_filter([
+            'id' => $id,
+            'status' => $status,
+            'next_payment_date' => $nextPaymentDate,
+        ], fn (mixed $value): bool => $value !== null)),
     ]);
 }
 
@@ -126,7 +130,35 @@ test('a cancelled preapproval cancels the subscription', function () {
 
     postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
 
-    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Cancelled);
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->cancelled_at?->toDateTimeString())->toBe('2026-10-03 12:00:00');
+});
+
+test('a repeated cancellation keeps the original cancellation date', function () {
+    fakePreapproval('pre-1', 'cancelled');
+    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
+        'provider_subscription_id' => 'pre-1',
+        'cancelled_at' => '2026-10-01 09:00:00',
+    ]);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    expect($subscription->fresh()->cancelled_at?->toDateTimeString())->toBe('2026-10-01 09:00:00');
+});
+
+test('a pending replacement preapproval keeps the cancellation date of a cancelled subscription', function () {
+    fakePreapproval('pre-2', 'pending', '2026-11-20T12:00:00.000-03:00');
+    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
+        'provider_subscription_id' => 'pre-2',
+        'cancelled_at' => '2026-10-01 09:00:00',
+    ]);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-2')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->cancelled_at?->toDateTimeString())->toBe('2026-10-01 09:00:00');
 });
 
 test('pausing the preapproval of an active subscription opens the 7-day grace period and notifies its owners', function () {
@@ -229,6 +261,7 @@ test('a late failed charge from an earlier period does not move a paid subscript
 
 test('an approved retry of the charge that opened grace reactivates the subscription', function () {
     fakeAuthorizedPayment('7012', 'pre-1', 'approved', '2026-10-01T10:00:00.000-03:00');
+    fakePreapproval('pre-1', 'authorized');
     $subscription = Subscription::factory()->inGrace(now()->addDays(5))->create([
         'provider_subscription_id' => 'pre-1',
         'last_payment_failed_at' => '2026-10-01 13:00:00',
@@ -296,6 +329,7 @@ test('a further failed charge during grace does not extend the grace period nor 
 
 test('an approved charge during grace reactivates the subscription without manual intervention', function () {
     fakeAuthorizedPayment('7003', 'pre-1', 'approved');
+    fakePreapproval('pre-1', 'authorized');
     $subscription = Subscription::factory()->inGrace(now()->addDays(3))->create(['provider_subscription_id' => 'pre-1']);
 
     postMercadoPagoNotification('subscription_authorized_payment', '7003')->assertOk();
@@ -308,6 +342,7 @@ test('an approved charge during grace reactivates the subscription without manua
 
 test('an approved charge reactivates an expired subscription', function () {
     fakeAuthorizedPayment('7004', 'pre-1', 'approved');
+    fakePreapproval('pre-1', 'authorized');
     $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Expired)->create(['provider_subscription_id' => 'pre-1']);
 
     postMercadoPagoNotification('subscription_authorized_payment', '7004')->assertOk();
@@ -357,10 +392,12 @@ test('re-subscribing after a cancellation activates the org once the new preappr
     $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
         'organization_id' => $owner->organization_id,
         'provider_subscription_id' => 'pre-1',
+        'cancelled_at' => '2026-10-01 09:00:00',
     ]);
 
     $this->actingAs($owner->user)->postJson('/api/v1/subscription')->assertOk();
     expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->fresh()->cancelled_at?->toDateTimeString())->toBe('2026-10-01 09:00:00');
 
     postMercadoPagoNotification('subscription_authorized_payment', '7006')->assertOk();
 
@@ -368,15 +405,21 @@ test('re-subscribing after a cancellation activates the org once the new preappr
     expect($subscription->provider_subscription_id)->toBe('pre-2');
     expect($subscription->status)->toBe(SubscriptionStatus::Active);
     expect($subscription->last_payment_at?->toDateTimeString())->toBe('2026-10-03 12:00:00');
+    expect($subscription->cancelled_at)->toBeNull();
 });
 
 test('an authorized replacement preapproval activates a cancelled subscription', function () {
     fakePreapproval('pre-2', 'authorized');
-    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create(['provider_subscription_id' => 'pre-2']);
+    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
+        'provider_subscription_id' => 'pre-2',
+        'cancelled_at' => '2026-10-01 09:00:00',
+    ]);
 
     postMercadoPagoNotification('subscription_preapproval', 'pre-2')->assertOk();
 
-    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active);
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active);
+    expect($subscription->cancelled_at)->toBeNull();
 });
 
 test('the same notification delivered twice is processed once', function () {
@@ -441,13 +484,14 @@ test('a notification only affects the subscription it refers to', function () {
     expect($other->fresh()->status)->toBe(SubscriptionStatus::Active);
 });
 
-test('a notification whose resource the provider does not find is acknowledged, changes nothing and is not logged', function (string $type, string $resourceId, string $endpoint, array $found) {
+test('a notification whose resource the provider does not find is acknowledged, changes nothing and is not logged', function (string $type, string $resourceId, string $endpoint, array $found, array $otherFakes) {
     Log::spy();
     // First lookup: the provider doesn't find it; a later delivery finds it.
     Http::fake([
         "api.mercadopago.com/{$endpoint}" => Http::sequence()
             ->push(['message' => 'not found'], 404)
             ->push($found),
+        ...$otherFakes,
     ]);
     $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Pending)->create(['provider_subscription_id' => 'pre-1']);
 
@@ -469,13 +513,13 @@ test('a notification whose resource the provider does not find is acknowledged, 
     expect(SubscriptionEvent::query()->sole()->notification_id)->toBe('n-404');
     expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active);
 })->with([
-    'preapproval' => ['subscription_preapproval', 'pre-1', 'preapproval/pre-1', ['id' => 'pre-1', 'status' => 'authorized']],
+    'preapproval' => ['subscription_preapproval', 'pre-1', 'preapproval/pre-1', ['id' => 'pre-1', 'status' => 'authorized'], []],
     'authorized payment' => ['subscription_authorized_payment', '7010', 'authorized_payments/7010', [
         'id' => 7010,
         'preapproval_id' => 'pre-1',
         'status' => 'processed',
         'payment' => ['status' => 'approved'],
-    ]],
+    ], ['api.mercadopago.com/preapproval/pre-1' => ['id' => 'pre-1', 'status' => 'authorized']]],
 ]);
 
 test('a provider server error on an authorized payment answers 409 and does not log the event', function () {
@@ -501,3 +545,52 @@ test('an authorization failure on the resource lookup still answers 409 so it is
 
     expect(SubscriptionEvent::count())->toBe(0);
 })->with([401, 403]);
+
+test('an applied preapproval notification stores the provider next payment date', function (SubscriptionStatus $status, string $raw, SubscriptionStatus $expectedStatus, ?string $expected) {
+    fakePreapproval('pre-1', $raw, '2026-11-03T10:00:00.000-03:00');
+    $subscription = Subscription::factory()->withStatus($status)->renewingAt(now()->addDays(10))->create([
+        'provider_subscription_id' => 'pre-1',
+        'grace_ends_at' => $status === SubscriptionStatus::Grace ? now()->addDays(2) : null,
+    ]);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe($expectedStatus);
+    expect($subscription->next_payment_at?->toDateTimeString())->toBe($expected);
+})->with([
+    'confirming a pending checkout' => [SubscriptionStatus::Pending, 'authorized', SubscriptionStatus::Active, '2026-11-03 13:00:00'],
+    'an update that changes no status' => [SubscriptionStatus::Grace, 'authorized', SubscriptionStatus::Grace, '2026-11-03 13:00:00'],
+    'a pause' => [SubscriptionStatus::Active, 'paused', SubscriptionStatus::Grace, '2026-11-03 13:00:00'],
+    'a cancellation clears it' => [SubscriptionStatus::Active, 'cancelled', SubscriptionStatus::Cancelled, null],
+]);
+
+test('an approved charge refreshes the next payment date from its preapproval', function () {
+    fakeAuthorizedPayment('7030', 'pre-1', 'approved');
+    fakePreapproval('pre-1', 'authorized', '2026-12-03T10:00:00.000-03:00');
+    $subscription = Subscription::factory()->inGrace(now()->addDays(3))->renewingAt(now()->subDay())->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_authorized_payment', '7030')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active);
+    expect($subscription->next_payment_at?->toDateTimeString())->toBe('2026-12-03 13:00:00');
+});
+
+test('an approved charge still activates and keeps the stored next payment date when its preapproval lookup fails', function (int $status) {
+    fakeAuthorizedPayment('7031', 'pre-1', 'approved');
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'boom'], $status),
+    ]);
+    $subscription = Subscription::factory()->inGrace(now()->addDays(3))->renewingAt(now()->addDays(20))->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_authorized_payment', '7031')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active);
+    expect($subscription->next_payment_at?->toDateTimeString())->toBe('2026-10-23 12:00:00');
+    expect(SubscriptionEvent::count())->toBe(1);
+})->with([
+    'not found' => 404,
+    'outage' => 500,
+]);

@@ -33,6 +33,11 @@ class SubscriptionFactory extends Factory
         return $this->state(fn (array $attributes): array => ['status' => $status]);
     }
 
+    public function renewingAt(\DateTimeInterface $nextPaymentAt): static
+    {
+        return $this->state(fn (array $attributes): array => ['next_payment_at' => $nextPaymentAt]);
+    }
+
     public function inGrace(\DateTimeInterface $endsAt, SubscriptionGraceReason $reason = SubscriptionGraceReason::PaymentFailed): static
     {
         return $this->state(fn (array $attributes): array => [

@@ -32,6 +32,8 @@ class SubscriptionResource extends JsonResource
             'grace_days_left' => $this->graceDaysLeft($status, $subscription->grace_ends_at),
             'last_payment_at' => $subscription->last_payment_at?->toIso8601String(),
             'last_payment_failed_at' => $subscription->last_payment_failed_at?->toIso8601String(),
+            'next_payment_at' => $subscription->next_payment_at?->toIso8601String(),
+            'cancelled_at' => $subscription->cancelled_at?->toIso8601String(),
         ];
     }
 

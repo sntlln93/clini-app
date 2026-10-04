@@ -21,6 +21,10 @@ Route::prefix('v1')->group(function (): void {
     // they authenticate through their own signature header instead.
     require __DIR__.'/api/v1/webhooks.php';
 
+    // Mixes the public checkout return route with the authenticated
+    // subscription endpoints, so it applies the auth group itself.
+    require __DIR__.'/api/v1/subscriptions.php';
+
     // Domain modules (#20–#24) mount here. Auth (login/register/logout/me)
     // and health stay outside this group: they run before an organization
     // can be resolved, or don't need one at all.
@@ -33,6 +37,5 @@ Route::prefix('v1')->group(function (): void {
         require __DIR__.'/api/v1/appointments.php';
         require __DIR__.'/api/v1/clinical-notes.php';
         require __DIR__.'/api/v1/prescriptions.php';
-        require __DIR__.'/api/v1/subscriptions.php';
     });
 });

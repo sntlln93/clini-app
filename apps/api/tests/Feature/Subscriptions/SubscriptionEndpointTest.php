@@ -71,6 +71,39 @@ test('show never exposes another organization\'s subscription', function () {
         ->assertExactJson(['data' => null]);
 });
 
+test('show exposes the next payment date of the subscription', function () {
+    Date::setTestNow('2026-10-03 12:00:00');
+    $membership = Membership::factory()->staff()->create();
+    Subscription::factory()->renewingAt(now()->addMonth())->create(['organization_id' => $membership->organization_id]);
+
+    $this->actingAs($membership->user)->getJson('/api/v1/subscription')
+        ->assertOk()
+        ->assertJsonPath('data.next_payment_at', '2026-11-03T12:00:00+00:00')
+        ->assertJsonPath('data.cancelled_at', null);
+});
+
+test('show keeps reporting the original cancellation date after a re-subscribe attempt on the cancelled row', function () {
+    Date::setTestNow('2026-10-20 12:00:00');
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'cancelled']),
+    ]);
+    fakePreapprovalCreation('pre-2');
+    $owner = Membership::factory()->owner()->create();
+    Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
+        'organization_id' => $owner->organization_id,
+        'provider_subscription_id' => 'pre-1',
+        'cancelled_at' => '2026-10-01 09:00:00',
+    ]);
+
+    $this->actingAs($owner->user)->postJson('/api/v1/subscription')->assertOk();
+
+    expect(Subscription::query()->sole()->provider_subscription_id)->toBe('pre-2');
+    $this->actingAs($owner->user)->getJson('/api/v1/subscription')
+        ->assertOk()
+        ->assertJsonPath('data.status', 'cancelled')
+        ->assertJsonPath('data.cancelled_at', '2026-10-01T09:00:00+00:00');
+});
+
 test('show requires authentication', function () {
     $this->getJson('/api/v1/subscription')->assertUnauthorized();
 });

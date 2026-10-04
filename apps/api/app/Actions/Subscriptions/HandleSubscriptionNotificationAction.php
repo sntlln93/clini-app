@@ -14,6 +14,7 @@ use App\Enums\SubscriptionGraceReason;
 use App\Enums\SubscriptionNotificationKind;
 use App\Enums\SubscriptionPaymentOutcome;
 use App\Enums\SubscriptionStatus;
+use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
 use App\Models\Organization;
 use App\Models\Subscription;
@@ -186,14 +187,25 @@ final class HandleSubscriptionNotificationAction implements Action
      * past the grace period), so waiting for an approved charge would expire
      * an org whose preapproval is authorized again. Only a pause-opened grace
      * is lifted this way; a failed charge's grace still needs an approved one.
+     *
+     * Every applied preapproval also refreshes the next charge date, whatever
+     * the transition (a cancelled one has no next charge).
+     *
+     * `cancelled_at` records when the row was first cancelled: a repeated
+     * cancellation keeps it, and reactivating the row clears it.
      */
     private function applySubscription(Subscription $subscription, ProviderSubscriptionData $resource): ?Subscription
     {
+        $subscription->next_payment_at = $resource->status === SubscriptionStatus::Cancelled ? null : $resource->nextPaymentAt;
+
         if ($resource->status === SubscriptionStatus::Cancelled) {
             $subscription->update([
                 'status' => SubscriptionStatus::Cancelled,
                 'grace_ends_at' => null,
                 'grace_reason' => null,
+                'cancelled_at' => $subscription->status === SubscriptionStatus::Cancelled
+                    ? ($subscription->cancelled_at ?? CarbonImmutable::now())
+                    : CarbonImmutable::now(),
             ]);
 
             return null;
@@ -213,8 +225,13 @@ final class HandleSubscriptionNotificationAction implements Action
                 'status' => SubscriptionStatus::Active,
                 'grace_ends_at' => null,
                 'grace_reason' => null,
+                'cancelled_at' => null,
             ]);
+
+            return null;
         }
+
+        $subscription->save();
 
         return null;
     }
@@ -247,15 +264,23 @@ final class HandleSubscriptionNotificationAction implements Action
             // points at a live preapproval instead, so its approved charge
             // does activate it — the provider's current preapproval status
             // tells the two apart.
-            if ($subscription->status === SubscriptionStatus::Cancelled && $this->chargedPreapprovalIsCancelled($resource)) {
-                return null;
+            if ($subscription->status === SubscriptionStatus::Cancelled) {
+                $preapproval = $this->chargedPreapproval($resource);
+
+                if ($preapproval === null || $preapproval->status === SubscriptionStatus::Cancelled) {
+                    return null;
+                }
+            } else {
+                $preapproval = $this->chargedPreapprovalForRenewalDate($resource);
             }
 
             $subscription->update([
                 'status' => SubscriptionStatus::Active,
                 'grace_ends_at' => null,
                 'grace_reason' => null,
+                'cancelled_at' => null,
                 'last_payment_at' => $lastPaymentAt !== null && $lastPaymentAt->greaterThan($chargedAt) ? $lastPaymentAt : $chargedAt,
+                'next_payment_at' => $preapproval->nextPaymentAt ?? $subscription->next_payment_at,
             ]);
 
             return null;
@@ -301,18 +326,37 @@ final class HandleSubscriptionNotificationAction implements Action
     }
 
     /**
-     * A charge with no preapproval, or whose preapproval the provider no
-     * longer finds, can't revive the cancelled row either.
+     * The preapproval a charge belongs to, fetched fresh. Null for a charge
+     * with no preapproval or one the provider no longer finds — neither can
+     * revive a cancelled row. A provider outage throws, so the notification
+     * is redelivered.
      */
-    private function chargedPreapprovalIsCancelled(ProviderPaymentData $resource): bool
+    private function chargedPreapproval(ProviderPaymentData $resource): ?ProviderSubscriptionData
     {
         if ($resource->providerSubscriptionId === null) {
-            return true;
+            return null;
         }
 
-        $preapproval = $this->gateway->fetchSubscription($resource->providerSubscriptionId);
+        return $this->gateway->fetchSubscription($resource->providerSubscriptionId);
+    }
 
-        return $preapproval === null || $preapproval->status === SubscriptionStatus::Cancelled;
+    /**
+     * Same lookup, made only to refresh the displayed renewal date: an
+     * approved charge activates the row regardless, so a provider outage
+     * here keeps the stored date instead of failing the notification.
+     */
+    private function chargedPreapprovalForRenewalDate(ProviderPaymentData $resource): ?ProviderSubscriptionData
+    {
+        try {
+            return $this->chargedPreapproval($resource);
+        } catch (SubscriptionGatewayUnavailableException $exception) {
+            Log::warning('Could not refresh the next payment date after an approved charge.', [
+                'payment_id' => $resource->id,
+                ...$exception->logContext(),
+            ]);
+
+            return null;
+        }
     }
 
     private function notifyGraceStarted(Subscription $subscription): void

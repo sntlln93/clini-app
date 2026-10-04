@@ -42,7 +42,7 @@ test('createSubscription posts a monthly preapproval with the configured plan an
         && $request['reason'] === 'Suscripción Clini — Consultorio Uno'
         && $request['external_reference'] === '42'
         && $request['payer_email'] === 'duena@example.com'
-        && $request['back_url'] === 'https://panel.example.com/ajustes'
+        && $request['back_url'] === 'https://api.example.com/api/v1/subscription/return'
         && $request['status'] === 'pending'
         && $request['auto_recurring'] === [
             'frequency' => 1,
@@ -66,6 +66,22 @@ test('fetchSubscription maps the preapproval status into the domain vocabulary',
     'cancelled' => ['cancelled', SubscriptionStatus::Cancelled, false],
     'pending' => ['pending', SubscriptionStatus::Pending, false],
     'paused' => ['paused', null, true],
+]);
+
+test('fetchSubscription maps next_payment_date into the app timezone, and null when absent', function (array $extra, ?string $expected) {
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'authorized', ...$extra]),
+    ]);
+
+    $subscription = app(MercadoPagoService::class)->fetchSubscription('pre-1');
+
+    expect($subscription->nextPaymentAt?->toDateTimeString())->toBe($expected);
+    expect($subscription->toArray()['next_payment_at'])->toBe($subscription->nextPaymentAt?->toIso8601String());
+})->with([
+    'present' => [['next_payment_date' => '2026-11-03T10:00:00.000-03:00'], '2026-11-03 13:00:00'],
+    'absent' => [[], null],
+    'null' => [['next_payment_date' => null], null],
+    'unparseable' => [['next_payment_date' => 'not-a-date'], null],
 ]);
 
 test('cancelSubscription puts the preapproval in cancelled status', function () {

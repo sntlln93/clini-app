@@ -49,7 +49,8 @@ return [
         // Monthly price in whole ARS pesos.
         'plan_amount' => (int) env('MERCADOPAGO_PLAN_AMOUNT', 0),
         'plan_currency' => env('MERCADOPAGO_PLAN_CURRENCY', 'ARS'),
-        'back_url' => env('MERCADOPAGO_BACK_URL'),
+        // The API's public return route, which redirects to the panel.
+        'back_url' => env('MERCADOPAGO_BACK_URL', rtrim((string) env('APP_URL', 'http://localhost'), '/').'/api/v1/subscription/return'),
     ],
 
 ];

@@ -6,12 +6,14 @@ namespace App\Data\Subscriptions;
 
 use App\Contracts\Data;
 use App\Enums\SubscriptionStatus;
+use Carbon\CarbonImmutable;
 
 /**
  * A provider-side subscription, normalized by the adapter. `status` is
  * null for a provider state with no direct domain status; `paused` flags
  * one that stopped charging without being cancelled (no further charge, so
- * no failed charge, will ever reach the webhook for it).
+ * no failed charge, will ever reach the webhook for it). `nextPaymentAt` is
+ * the provider's next scheduled charge, null when it reports none.
  */
 final readonly class ProviderSubscriptionData implements Data
 {
@@ -20,6 +22,7 @@ final readonly class ProviderSubscriptionData implements Data
         public ?SubscriptionStatus $status,
         public ?string $initPoint,
         public bool $paused = false,
+        public ?CarbonImmutable $nextPaymentAt = null,
     ) {}
 
     /**
@@ -32,6 +35,7 @@ final readonly class ProviderSubscriptionData implements Data
             'status' => $this->status?->value,
             'init_point' => $this->initPoint,
             'paused' => $this->paused,
+            'next_payment_at' => $this->nextPaymentAt?->toIso8601String(),
         ];
     }
 }

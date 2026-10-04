@@ -264,6 +264,7 @@ final class MercadoPagoService implements SubscriptionGateway
             status: $this->subscriptionStatus($payload['status'] ?? null),
             initPoint: is_string($initPoint) ? $initPoint : null,
             paused: ($payload['status'] ?? null) === 'paused',
+            nextPaymentAt: $this->parseDate($payload['next_payment_date'] ?? null),
         );
     }
 
@@ -309,8 +310,15 @@ final class MercadoPagoService implements SubscriptionGateway
      */
     private function chargeDate(array $payload): ?CarbonImmutable
     {
-        $raw = $payload['debit_date'] ?? $payload['date_created'] ?? null;
+        return $this->parseDate($payload['debit_date'] ?? $payload['date_created'] ?? null);
+    }
 
+    /**
+     * A provider date normalized to the app timezone; null when absent or
+     * unparseable.
+     */
+    private function parseDate(mixed $raw): ?CarbonImmutable
+    {
         if (! is_string($raw) || $raw === '') {
             return null;
         }

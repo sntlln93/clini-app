@@ -26,6 +26,10 @@ return new class extends Migration
             $table->string('grace_reason')->nullable();
             $table->timestamp('last_payment_at')->nullable();
             $table->timestamp('last_payment_failed_at')->nullable();
+            // The provider's next scheduled charge, shown as the renewal date.
+            $table->timestampTz('next_payment_at')->nullable();
+            // When the subscription was cancelled; null unless status = cancelled.
+            $table->timestamp('cancelled_at')->nullable();
             $table->timestamps();
 
             $table->index(['status', 'grace_ends_at']);
