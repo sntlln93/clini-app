@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { useSession } from '@/lib/session';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Membership } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -44,6 +45,14 @@ function renderSection(membership: Membership) {
             <MyPublicLinkSection membership={membership} />
         </QueryClientProvider>,
     );
+}
+
+// Mirrors the ajustes page: the section's membership comes from the session.
+function SessionBackedSection() {
+    const { data } = useSession();
+    return data?.membership ? (
+        <MyPublicLinkSection membership={data.membership} />
+    ) : null;
 }
 
 describe('MyPublicLinkSection', () => {
@@ -216,6 +225,62 @@ describe('MyPublicLinkSection', () => {
             expect(api.patch).toHaveBeenCalledWith('/memberships/me/slug', {
                 slug: null,
             }),
+        );
+    });
+
+    it('reflects the saved slug once saving refreshes the session', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'clipboard', {
+            value: { writeText },
+            configurable: true,
+        });
+        vi.mocked(api.get)
+            .mockReset()
+            .mockResolvedValueOnce({
+                data: {
+                    id: 1,
+                    name: 'Dra. Lopez',
+                    email: 'dra.lopez@example.com',
+                    membership: membershipWithSlug('dra-lopez'),
+                },
+            })
+            .mockResolvedValue({
+                data: {
+                    id: 1,
+                    name: 'Dra. Lopez',
+                    email: 'dra.lopez@example.com',
+                    membership: membershipWithSlug('carla-p'),
+                },
+            });
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        render(
+            <QueryClientProvider client={new QueryClient()}>
+                <SessionBackedSection />
+            </QueryClientProvider>,
+        );
+
+        fireEvent.change(await screen.findByLabelText('Link'), {
+            target: { value: 'carla-p' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(notifySuccess).toHaveBeenCalledWith(
+                'Link público actualizado',
+            ),
+        );
+        await screen.findByText(`${window.location.origin}/reservar/carla-p`);
+        expect(screen.queryByText(/Vista previa/)).toBeNull();
+        expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty(
+            'disabled',
+            true,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /Copiar link/ }));
+        await waitFor(() =>
+            expect(writeText).toHaveBeenCalledWith(
+                `${window.location.origin}/reservar/carla-p`,
+            ),
         );
     });
 });

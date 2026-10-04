@@ -1,4 +1,5 @@
 import { api, refreshCsrfCookie } from '@/lib/api';
+import { sessionQueryOptions } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -75,6 +76,8 @@ function renderAcceptInvitationForm(sessionEmail: string | null = null) {
         }),
     });
     render(<RouterProvider router={router} />);
+
+    return { queryClient };
 }
 
 describe('AcceptInvitationForm', () => {
@@ -221,6 +224,46 @@ describe('AcceptInvitationForm', () => {
                 'Tenés una sesión abierta como beto@clini.app; al aceptar vas a ingresar como ana@clini.app.',
             ),
         ).not.toBeNull();
+    });
+
+    it("replaces another account's cached session and data with the invited user's before reaching /agenda", async () => {
+        vi.mocked(api.get).mockImplementation((url: string) =>
+            Promise.resolve(
+                url === '/me'
+                    ? { data: { id: 7, name: 'Ana', email: 'ana@clini.app' } }
+                    : {
+                          data: {
+                              email: 'ana@clini.app',
+                              organization_name: 'Consultorio Ana',
+                              requires_registration: false,
+                          },
+                      },
+            ),
+        );
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { message: 'Invitación aceptada.' },
+        });
+        const { queryClient } = renderAcceptInvitationForm('beto@clini.app');
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 3,
+            name: 'Beto',
+            email: 'beto@clini.app',
+        });
+        queryClient.setQueryData(['patients', { q: '', page: 1 }], {
+            data: [{ id: 1, name: 'Paciente de Beto' }],
+        });
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Aceptar invitación' }),
+        );
+
+        await screen.findByText('Agenda');
+        expect(
+            queryClient.getQueryData(sessionQueryOptions.queryKey),
+        ).toMatchObject({ id: 7, email: 'ana@clini.app' });
+        expect(
+            queryClient.getQueryData(['patients', { q: '', page: 1 }]),
+        ).toBeUndefined();
     });
 
     it('shows no session warning when the open session is the invited email', async () => {

@@ -205,6 +205,26 @@ describe('LoginForm', () => {
         ).toMatchObject({ permissions: ['memberships.view'] });
     });
 
+    it("drops a previous session's cached data before caching the new session", async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 2, name: 'Bruno', email: 'bruno@clini.app' },
+        });
+        const { queryClient } = renderLoginForm('/pacientes/12');
+        queryClient.setQueryData(['patients', { q: '', page: 1 }], {
+            data: [{ id: 12, name: 'Paciente de otra organización' }],
+        });
+
+        await submitValidCredentials();
+
+        await screen.findByText('Ficha del paciente');
+        expect(
+            queryClient.getQueryData(['patients', { q: '', page: 1 }]),
+        ).toBeUndefined();
+        expect(
+            queryClient.getQueryData(sessionQueryOptions.queryKey),
+        ).toMatchObject({ id: 2 });
+    });
+
     it('links to /registro', async () => {
         renderLoginForm();
 

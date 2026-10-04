@@ -231,6 +231,24 @@ describe('QueryErrorState', () => {
             ).toBeNull();
         });
 
+        it('drops every cached query of the dead session, not just the session, on a 401', async () => {
+            const { queryClient } = renderQueryErrorState({
+                error: unauthorized,
+            });
+            queryClient.setQueryData(['patients', { q: '', page: 1 }], {
+                data: [],
+            });
+
+            fireEvent.click(
+                await screen.findByRole('button', { name: 'Iniciar sesión' }),
+            );
+
+            expect(await screen.findByText('Login')).not.toBeNull();
+            expect(
+                queryClient.getQueryData(['patients', { q: '', page: 1 }]),
+            ).toBeUndefined();
+        });
+
         it('clears the cached session and goes to /login with the current page as redirect on a 401', async () => {
             const { queryClient, router } = renderQueryErrorState({
                 error: unauthorized,

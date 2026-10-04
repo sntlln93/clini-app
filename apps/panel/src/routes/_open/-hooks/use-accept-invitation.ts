@@ -38,11 +38,15 @@ export function useAcceptInvitation(token: string) {
                     .post<{ message: string }>(`/invitations/${token}`, payload)
                     .then((response) => response.data),
             ),
-        onSuccess: () => {
-            queryClient.invalidateQueries({
-                queryKey: sessionQueryOptions.queryKey,
-            });
-            navigate({ to: '/agenda' });
+        // Accepting logs in as the invited user, possibly replacing another
+        // signed-in account: drop everything that account left cached and load
+        // the new session before /agenda's guard and loaders read the cache.
+        onSuccess: async () => {
+            queryClient.clear();
+            await queryClient
+                .fetchQuery(sessionQueryOptions)
+                .catch(() => undefined);
+            await navigate({ to: '/agenda' });
         },
     });
 

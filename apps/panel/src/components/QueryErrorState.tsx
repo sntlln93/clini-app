@@ -2,7 +2,6 @@ import { Button } from '@/components/ui/button';
 import { mapToAppError, type AppError } from '@/lib/api-errors';
 import { messageForAppError } from '@/lib/error-codes';
 import { reloadPage } from '@/lib/external-navigation';
-import { sessionQueryOptions } from '@/lib/session';
 import { cn } from '@/lib/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
@@ -115,10 +114,11 @@ function SignInAgainButton() {
     const router = useRouter();
     const queryClient = useQueryClient();
 
-    // The cached session must go first: `/login`'s guard would otherwise
-    // still see the stale user and bounce back to the agenda, in a loop.
+    // The whole cache goes, not just the session: `/login`'s guard would
+    // otherwise bounce the stale user back, and the redirect target's loaders
+    // would serve the dead session's (possibly another tenant's) data.
     function signIn() {
-        queryClient.removeQueries({ queryKey: sessionQueryOptions.queryKey });
+        queryClient.clear();
         void router.navigate({
             to: '/login',
             search: { redirect: router.state.location.href },

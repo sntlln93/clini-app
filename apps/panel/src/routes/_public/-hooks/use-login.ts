@@ -22,6 +22,9 @@ export function useLogin(redirectTo?: string) {
                     .then((response) => response.data),
             ),
         onSuccess: (user) => {
+            // Drops whatever a previous session left cached, so the redirect
+            // target's loaders can't serve another account's data.
+            queryClient.clear();
             queryClient.setQueryData(sessionQueryOptions.queryKey, user);
             // Re-checked here too, so no caller can turn this into an open redirect.
             const target = safeInternalPath(redirectTo);
