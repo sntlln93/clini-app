@@ -12,6 +12,7 @@ use App\Notifications\Subscriptions\SubscriptionGraceStartedNotification;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Testing\TestResponse;
 
@@ -326,6 +327,21 @@ test('a late approved charge never reactivates a cancelled subscription', functi
     expect($subscription->last_payment_at)->toBeNull();
 });
 
+test('an approved charge whose preapproval the provider no longer finds never reactivates a cancelled subscription', function () {
+    fakeAuthorizedPayment('7007', 'pre-1', 'approved');
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'not found'], 404),
+    ]);
+    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_authorized_payment', '7007', 'n-gone')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->last_payment_at)->toBeNull();
+    expect(SubscriptionEvent::query()->sole()->notification_id)->toBe('n-gone');
+});
+
 test('re-subscribing after a cancellation activates the org once the new preapproval charges', function () {
     Http::fake([
         'api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'cancelled']),
@@ -373,7 +389,7 @@ test('the same notification delivered twice is processed once', function () {
     // Reset to active to prove the redelivery is a no-op, not a re-application.
     $subscription->refresh()->update(['status' => SubscriptionStatus::Active, 'grace_ends_at' => null]);
 
-    postMercadoPagoNotification('subscription_authorized_payment', '7005', 'n-1')->assertOk();
+    postMercadoPagoNotification('subscription_authorized_payment', '7005', 'n-1')->assertNoContent();
 
     expect(SubscriptionEvent::count())->toBe(1);
     expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active);
@@ -424,3 +440,64 @@ test('a notification only affects the subscription it refers to', function () {
     expect($target->fresh()->status)->toBe(SubscriptionStatus::Cancelled);
     expect($other->fresh()->status)->toBe(SubscriptionStatus::Active);
 });
+
+test('a notification whose resource the provider does not find is acknowledged, changes nothing and is not logged', function (string $type, string $resourceId, string $endpoint, array $found) {
+    Log::spy();
+    // First lookup: the provider doesn't find it; a later delivery finds it.
+    Http::fake([
+        "api.mercadopago.com/{$endpoint}" => Http::sequence()
+            ->push(['message' => 'not found'], 404)
+            ->push($found),
+    ]);
+    $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Pending)->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification($type, $resourceId, 'n-404')->assertNoContent();
+
+    expect(SubscriptionEvent::count())->toBe(0);
+    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Pending);
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => $context === ['endpoint' => '/'.$endpoint, 'provider_status' => 404])
+        ->once();
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $message, array $context): bool => ($context['notification_id'] ?? null) === 'n-404'
+            && ($context['resource_id'] ?? null) === $resourceId)
+        ->once();
+
+    // A later genuine delivery with the same notification id is processed.
+    postMercadoPagoNotification($type, $resourceId, 'n-404')->assertOk();
+
+    expect(SubscriptionEvent::query()->sole()->notification_id)->toBe('n-404');
+    expect($subscription->fresh()->status)->toBe(SubscriptionStatus::Active);
+})->with([
+    'preapproval' => ['subscription_preapproval', 'pre-1', 'preapproval/pre-1', ['id' => 'pre-1', 'status' => 'authorized']],
+    'authorized payment' => ['subscription_authorized_payment', '7010', 'authorized_payments/7010', [
+        'id' => 7010,
+        'preapproval_id' => 'pre-1',
+        'status' => 'processed',
+        'payment' => ['status' => 'approved'],
+    ]],
+]);
+
+test('a provider server error on an authorized payment answers 409 and does not log the event', function () {
+    Http::fake([
+        'api.mercadopago.com/authorized_payments/7011' => Http::response([], 500),
+    ]);
+    Subscription::factory()->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_authorized_payment', '7011')
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::SubscriptionsGatewayUnavailable->value);
+
+    expect(SubscriptionEvent::count())->toBe(0);
+});
+
+test('an authorization failure on the resource lookup still answers 409 so it is redelivered', function (int $status) {
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response([], $status),
+    ]);
+    Subscription::factory()->withStatus(SubscriptionStatus::Pending)->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertStatus(409);
+
+    expect(SubscriptionEvent::count())->toBe(0);
+})->with([401, 403]);

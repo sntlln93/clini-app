@@ -119,6 +119,28 @@ test('a non-2xx provider response throws SubscriptionGatewayUnavailableException
     app(MercadoPagoService::class)->fetchSubscription('pre-1');
 })->throws(SubscriptionGatewayUnavailableException::class);
 
+test('a 404 on a resource lookup yields null instead of throwing', function () {
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'not found'], 404),
+        'api.mercadopago.com/authorized_payments/7001' => Http::response(['message' => 'not found'], 404),
+    ]);
+
+    expect(app(MercadoPagoService::class)->fetchSubscription('pre-1'))->toBeNull();
+    expect(app(MercadoPagoService::class)->fetchPayment('7001'))->toBeNull();
+});
+
+test('a 404 on creating or cancelling a preapproval still throws SubscriptionGatewayUnavailableException', function (string $operation) {
+    Http::fake([
+        'api.mercadopago.com/*' => Http::response(['message' => 'not found'], 404),
+    ]);
+    $service = app(MercadoPagoService::class);
+
+    match ($operation) {
+        'create' => $service->createSubscription(new SubscriptionSignupData('42', 'duena@example.com', 'Suscripción')),
+        'cancel' => $service->cancelSubscription('pre-1'),
+    };
+})->with(['create', 'cancel'])->throws(SubscriptionGatewayUnavailableException::class);
+
 test('a payload without an id throws SubscriptionGatewayUnavailableException', function () {
     Http::fake([
         'api.mercadopago.com/preapproval/pre-1' => Http::response(['status' => 'authorized']),

@@ -114,6 +114,14 @@ final class StartSubscriptionCheckoutAction implements Action
     {
         $providerId = $subscription?->provider_subscription_id;
 
-        return $providerId !== null ? $this->gateway->fetchSubscription($providerId) : null;
+        if ($providerId === null) {
+            return null;
+        }
+
+        // A stored preapproval the provider no longer finds can't be told
+        // apart from one that could still charge, so checkout refuses
+        // rather than risk creating a second one alongside it.
+        return $this->gateway->fetchSubscription($providerId)
+            ?? throw new SubscriptionGatewayUnavailableException('/preapproval/'.rawurlencode($providerId), 404);
     }
 }

@@ -10,8 +10,10 @@ use Throwable;
 
 /**
  * Thrown when the payment provider fails — a network error, a non-2xx
- * response, or a payload missing the fields the adapter needs. On a
- * webhook this non-2xx answer makes the provider redeliver later.
+ * response (except a 404 on a resource lookup, which the gateway reports
+ * as a missing resource instead), or a payload missing the fields the
+ * adapter needs. On a webhook this non-2xx answer makes the provider
+ * redeliver later.
  */
 final class SubscriptionGatewayUnavailableException extends DomainException
 {

@@ -271,3 +271,21 @@ test('store does not cancel an old provider subscription that is already cancell
     Http::assertNotSent(fn (Request $request): bool => $request->method() === 'PUT');
     expect(Subscription::query()->sole()->provider_subscription_id)->toBe('pre-2');
 });
+
+test('store refuses with 409 when the provider no longer finds the stored preapproval, creating nothing', function () {
+    Http::fake([
+        'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'not found'], 404),
+    ]);
+    $owner = Membership::factory()->owner()->create();
+    $subscription = Subscription::factory()->inGrace(now()->addDays(3))->create([
+        'organization_id' => $owner->organization_id,
+        'provider_subscription_id' => 'pre-1',
+    ]);
+
+    $this->actingAs($owner->user)->postJson('/api/v1/subscription')
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::SubscriptionsGatewayUnavailable->value);
+
+    Http::assertSentCount(1);
+    expect($subscription->fresh()->provider_subscription_id)->toBe('pre-1');
+});

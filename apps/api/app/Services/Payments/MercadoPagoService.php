@@ -21,12 +21,18 @@ use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Adapter for Mercado Pago's subscriptions REST API: `/preapproval` for
  * recurring subscriptions and `/authorized_payments` for each of their
  * charges. Isolates its raw JSON shape and status vocabulary behind
  * `SubscriptionGateway`. No SDK: plain Http client calls.
+ *
+ * Only the GET lookups (`fetchSubscription`, `fetchPayment`) treat a 404 as
+ * "the resource doesn't exist for these credentials" and return null; every
+ * other failure — and any failure of a POST/PUT — throws
+ * SubscriptionGatewayUnavailableException.
  */
 final class MercadoPagoService implements SubscriptionGateway
 {
@@ -60,13 +66,13 @@ final class MercadoPagoService implements SubscriptionGateway
         return $this->toSubscription($endpoint, $response);
     }
 
-    public function fetchSubscription(string $id): ProviderSubscriptionData
+    public function fetchSubscription(string $id): ?ProviderSubscriptionData
     {
         $endpoint = '/preapproval/'.rawurlencode($id);
 
-        $response = $this->send($endpoint, fn (PendingRequest $request): Response => $request->get(self::BASE_URL.$endpoint));
+        $response = $this->lookup($endpoint);
 
-        return $this->toSubscription($endpoint, $response);
+        return $response !== null ? $this->toSubscription($endpoint, $response) : null;
     }
 
     public function cancelSubscription(string $id): void
@@ -78,11 +84,15 @@ final class MercadoPagoService implements SubscriptionGateway
         ]));
     }
 
-    public function fetchPayment(string $id): ProviderPaymentData
+    public function fetchPayment(string $id): ?ProviderPaymentData
     {
         $endpoint = '/authorized_payments/'.rawurlencode($id);
 
-        $response = $this->send($endpoint, fn (PendingRequest $request): Response => $request->get(self::BASE_URL.$endpoint));
+        $response = $this->lookup($endpoint);
+
+        if ($response === null) {
+            return null;
+        }
 
         $payload = $response->json();
 
@@ -154,9 +164,37 @@ final class MercadoPagoService implements SubscriptionGateway
     }
 
     /**
+     * GETs a resource; null when the provider answers 404 (the resource
+     * doesn't exist for these credentials — retrying won't change that).
+     */
+    private function lookup(string $endpoint): ?Response
+    {
+        $response = $this->dispatch($endpoint, fn (PendingRequest $request): Response => $request->get(self::BASE_URL.$endpoint));
+
+        if ($response->notFound()) {
+            Log::warning('Payment provider resource not found.', [
+                'endpoint' => $endpoint,
+                'provider_status' => $response->status(),
+            ]);
+
+            return null;
+        }
+
+        return $this->ensureSuccessful($endpoint, $response);
+    }
+
+    /**
      * @param  callable(PendingRequest): Response  $call
      */
     private function send(string $endpoint, callable $call): Response
+    {
+        return $this->ensureSuccessful($endpoint, $this->dispatch($endpoint, $call));
+    }
+
+    /**
+     * @param  callable(PendingRequest): Response  $call
+     */
+    private function dispatch(string $endpoint, callable $call): Response
     {
         $request = Http::withToken($this->configString('access_token'))
             ->acceptJson()
@@ -164,11 +202,14 @@ final class MercadoPagoService implements SubscriptionGateway
             ->timeout(self::TIMEOUT_SECONDS);
 
         try {
-            $response = $call($request);
+            return $call($request);
         } catch (ConnectionException $exception) {
             throw new SubscriptionGatewayUnavailableException($endpoint, previous: $exception);
         }
+    }
 
+    private function ensureSuccessful(string $endpoint, Response $response): Response
+    {
         if ($response->failed()) {
             throw new SubscriptionGatewayUnavailableException($endpoint, $response->status());
         }

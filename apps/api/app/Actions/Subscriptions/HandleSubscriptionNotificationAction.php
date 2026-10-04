@@ -22,6 +22,7 @@ use App\Notifications\Subscriptions\SubscriptionGraceStartedNotification;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 
 /**
@@ -30,7 +31,12 @@ use Illuminate\Support\Facades\Notification;
  * notification already logged in `subscription_events`).
  *
  * The provider resource is fetched before the event is logged: a fetch
- * failure throws, nothing is logged, and the provider redelivers later.
+ * failure throws, nothing is logged, and the provider redelivers later. A
+ * resource the provider reports as nonexistent (e.g. the dashboard's
+ * "Simular notificación", which signs a fake id) is acknowledged without
+ * being processed or logged as an event — retrying can't make it exist, and
+ * leaving it unlogged keeps a later genuine delivery with the same
+ * notification id processable.
  * Notifications for a subscription this app doesn't know (by
  * provider_subscription_id) are logged and otherwise ignored.
  *
@@ -65,7 +71,22 @@ final class HandleSubscriptionNotificationAction implements Action
             return false;
         }
 
-        $resource = $this->resolveResource($dto);
+        $kind = $dto->type !== null && $dto->resourceId !== null && $dto->resourceId !== ''
+            ? $this->gateway->notificationKind($dto->type)
+            : null;
+
+        $resource = $kind !== null ? $this->resolveResource($kind, $dto->resourceId ?? '') : null;
+
+        if ($kind !== null && $resource === null) {
+            Log::warning('Subscription webhook resource not found at the provider; acknowledged without processing.', [
+                'provider' => $provider,
+                'notification_id' => $notificationId,
+                'type' => $dto->type,
+                'resource_id' => $dto->resourceId,
+            ]);
+
+            return false;
+        }
 
         try {
             $graceStarted = DB::transaction(function () use ($dto, $provider, $notificationId, $resource): ?Subscription {
@@ -99,16 +120,14 @@ final class HandleSubscriptionNotificationAction implements Action
         return true;
     }
 
-    private function resolveResource(SubscriptionNotificationData $dto): ProviderSubscriptionData|ProviderPaymentData|null
+    /**
+     * Null when the provider reports the resource doesn't exist.
+     */
+    private function resolveResource(SubscriptionNotificationKind $kind, string $resourceId): ProviderSubscriptionData|ProviderPaymentData|null
     {
-        if ($dto->type === null || $dto->resourceId === null || $dto->resourceId === '') {
-            return null;
-        }
-
-        return match ($this->gateway->notificationKind($dto->type)) {
-            SubscriptionNotificationKind::Subscription => $this->gateway->fetchSubscription($dto->resourceId),
-            SubscriptionNotificationKind::Payment => $this->gateway->fetchPayment($dto->resourceId),
-            null => null,
+        return match ($kind) {
+            SubscriptionNotificationKind::Subscription => $this->gateway->fetchSubscription($resourceId),
+            SubscriptionNotificationKind::Payment => $this->gateway->fetchPayment($resourceId),
         };
     }
 
@@ -281,13 +300,19 @@ final class HandleSubscriptionNotificationAction implements Action
         return $entersGrace;
     }
 
+    /**
+     * A charge with no preapproval, or whose preapproval the provider no
+     * longer finds, can't revive the cancelled row either.
+     */
     private function chargedPreapprovalIsCancelled(ProviderPaymentData $resource): bool
     {
         if ($resource->providerSubscriptionId === null) {
             return true;
         }
 
-        return $this->gateway->fetchSubscription($resource->providerSubscriptionId)->status === SubscriptionStatus::Cancelled;
+        $preapproval = $this->gateway->fetchSubscription($resource->providerSubscriptionId);
+
+        return $preapproval === null || $preapproval->status === SubscriptionStatus::Cancelled;
     }
 
     private function notifyGraceStarted(Subscription $subscription): void

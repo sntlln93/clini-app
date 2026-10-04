@@ -29,9 +29,12 @@ interface SubscriptionGateway
     public function createSubscription(SubscriptionSignupData $signup): ProviderSubscriptionData;
 
     /**
-     * @throws SubscriptionGatewayUnavailableException
+     * Null when the provider reports that the subscription doesn't exist
+     * (for these credentials): a definitive answer, not a failure to retry.
+     *
+     * @throws SubscriptionGatewayUnavailableException on any other failure
      */
-    public function fetchSubscription(string $id): ProviderSubscriptionData;
+    public function fetchSubscription(string $id): ?ProviderSubscriptionData;
 
     /**
      * @throws SubscriptionGatewayUnavailableException
@@ -39,9 +42,12 @@ interface SubscriptionGateway
     public function cancelSubscription(string $id): void;
 
     /**
-     * @throws SubscriptionGatewayUnavailableException
+     * Null when the provider reports that the payment doesn't exist (for
+     * these credentials): a definitive answer, not a failure to retry.
+     *
+     * @throws SubscriptionGatewayUnavailableException on any other failure
      */
-    public function fetchPayment(string $id): ProviderPaymentData;
+    public function fetchPayment(string $id): ?ProviderPaymentData;
 
     public function verifyWebhookSignature(WebhookSignatureData $signature): bool;
 
