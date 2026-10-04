@@ -72,10 +72,13 @@ describe('PatientPrescriptionsCard', () => {
 
         expect(await screen.findByText('Faringitis')).toBeTruthy();
         expect(screen.getAllByText('Amoxicilina × 2')).toHaveLength(2);
-        const links = screen.getAllByRole('link', { name: 'Imprimir' });
+        const links = screen.getAllByRole('link', {
+            name: 'Ver / imprimir (se abre en una pestaña nueva)',
+        });
         expect(links.map((link) => link.getAttribute('href'))).toEqual([
             '/recetas/7',
             '/recetas/8',
         ]);
+        expect(links[0].getAttribute('target')).toBe('_blank');
     });
 });

@@ -1,6 +1,13 @@
 import type { Prescription } from '@/types/prescription';
+import {
+    createMemoryHistory,
+    createRootRoute,
+    createRouter,
+    RouterProvider,
+} from '@tanstack/react-router';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { prescriptionTitleParts } from '../-components/prescription-title';
 import { PrescriptionPrintView } from '../-components/PrescriptionPrintView';
 
 function buildPrescription(
@@ -42,13 +49,26 @@ function buildPrescription(
     };
 }
 
+// Resolves once the router has rendered the view (it renders asynchronously).
+async function renderView(prescription: Prescription) {
+    const rootRoute = createRootRoute({
+        component: () => <PrescriptionPrintView prescription={prescription} />,
+    });
+    const router = createRouter({
+        routeTree: rootRoute,
+        history: createMemoryHistory({ initialEntries: ['/'] }),
+    });
+    render(<RouterProvider router={router} />);
+    await screen.findByRole('heading', { level: 1 });
+}
+
 describe('PrescriptionPrintView', () => {
     afterEach(() => {
         vi.restoreAllMocks();
     });
 
-    it('renders professional, patient, diagnosis, items and the no-validity legend', () => {
-        render(<PrescriptionPrintView prescription={buildPrescription()} />);
+    it('renders professional, patient, diagnosis, items and the no-validity legend', async () => {
+        await renderView(buildPrescription());
 
         expect(screen.getByText('Dra. Ana Gomez')).toBeTruthy();
         expect(screen.getByText('Clínica médica · Pediatría')).toBeTruthy();
@@ -75,23 +95,18 @@ describe('PrescriptionPrintView', () => {
         ).toBeTruthy();
     });
 
-    it('omits the diagnosis and specialties lines when absent', () => {
-        render(
-            <PrescriptionPrintView
-                prescription={buildPrescription({
-                    diagnosis: null,
-                    author_specialties: [],
-                })}
-            />,
+    it('omits the diagnosis and specialties lines when absent', async () => {
+        await renderView(
+            buildPrescription({ diagnosis: null, author_specialties: [] }),
         );
 
         expect(screen.queryByText('Diagnóstico:')).toBeNull();
         expect(screen.queryByText(/Clínica médica/)).toBeNull();
     });
 
-    it('the Imprimir button opens the browser print dialog and is hidden on paper', () => {
+    it('the Imprimir button opens the browser print dialog and is hidden on paper', async () => {
         const print = vi.spyOn(window, 'print').mockImplementation(() => {});
-        render(<PrescriptionPrintView prescription={buildPrescription()} />);
+        await renderView(buildPrescription());
 
         const button = screen.getByRole('button', { name: 'Imprimir' });
         expect(button.closest('.print\\:hidden')).not.toBeNull();
@@ -99,5 +114,42 @@ describe('PrescriptionPrintView', () => {
         fireEvent.click(button);
 
         expect(print).toHaveBeenCalledTimes(1);
+    });
+
+    it("names the patient in the heading and links back to the patient's page", async () => {
+        await renderView(buildPrescription());
+
+        expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+            'Receta de Juan Pérez',
+        );
+        const back = screen.getByRole('link', { name: 'Volver a la ficha' });
+        expect(back.getAttribute('href')).toBe('/pacientes/50');
+        expect(back.closest('.print\\:hidden')).not.toBeNull();
+    });
+
+    it('falls back to a generic heading without a patient name', async () => {
+        await renderView(buildPrescription({ patient_name: null }));
+
+        expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(
+            'Receta',
+        );
+    });
+});
+
+describe('prescriptionTitleParts', () => {
+    it('names the patient and the issue date, without slashes, for the PDF file name', () => {
+        expect(
+            prescriptionTitleParts(
+                buildPrescription({ issued_at: '2026-08-03T10:15:00' }),
+            ),
+        ).toEqual(['Receta', 'Juan Pérez', '03-08-2026']);
+    });
+
+    it('keeps only the generic label before the data loads', () => {
+        expect(prescriptionTitleParts(undefined)).toEqual([
+            'Receta',
+            undefined,
+            undefined,
+        ]);
     });
 });
