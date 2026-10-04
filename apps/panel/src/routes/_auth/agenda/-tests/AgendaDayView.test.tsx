@@ -192,4 +192,106 @@ describe('AgendaDayView', () => {
         expect(column?.className).not.toMatch(/\bw-48\b/);
         expect(column?.className).not.toMatch(/\bshrink-0\b/);
     });
+
+    function blockOf(text: string): HTMLElement | null {
+        let block: HTMLElement | null = screen.getByText(text);
+        while (block && !block.style.top) {
+            block = block.parentElement;
+        }
+        return block;
+    }
+
+    it('extends the grid up to a 07:00 appointment instead of clipping it', () => {
+        renderDayView({
+            appointments: [
+                buildAppointment({
+                    start_at: '2026-08-03T07:00:00',
+                    end_at: '2026-08-03T07:30:00',
+                }),
+            ],
+        });
+
+        expect(blockOf('Juan Pérez')?.style.top).toBe('0px');
+        expect(
+            screen.getByRole('button', {
+                name: 'Crear turno a las 07:00 para Dra. Ana López',
+            }),
+        ).toBeTruthy();
+        expect(
+            screen.getAllByRole('button', { name: /^Crear turno/ }),
+        ).toHaveLength(13);
+    });
+
+    it('extends the grid down to fit a 21:00–21:30 appointment inside the column', () => {
+        renderDayView({
+            appointments: [
+                buildAppointment({
+                    start_at: '2026-08-03T21:00:00',
+                    end_at: '2026-08-03T21:30:00',
+                }),
+            ],
+        });
+
+        const block = blockOf('Juan Pérez');
+        const columnHeight = parseFloat(
+            block?.parentElement?.style.height ?? '0',
+        );
+        expect(
+            parseFloat(block?.style.top ?? '0') +
+                parseFloat(block?.style.height ?? '0'),
+        ).toBeLessThanOrEqual(columnHeight);
+        expect(
+            screen.getByRole('button', {
+                name: 'Crear turno a las 21:00 para Dra. Ana López',
+            }),
+        ).toBeTruthy();
+    });
+
+    it('keeps the default 08:00–20:00 grid when every appointment fits', () => {
+        renderDayView({ appointments: [buildAppointment()] });
+
+        const cells = screen.getAllByRole('button', { name: /^Crear turno/ });
+        expect(cells[0].getAttribute('aria-label')).toContain('08:00');
+        expect(cells.at(-1)?.getAttribute('aria-label')).toContain('19:00');
+    });
+
+    it('dims a cancelled appointment and lets clicks through to the free cell underneath', () => {
+        const onCellClick = vi.fn();
+        renderDayView({
+            canUpdate: () => false,
+            onCellClick,
+            appointments: [buildAppointment({ status: 'cancelled' })],
+        });
+
+        const block = blockOf('Juan Pérez');
+        expect(block?.className).toMatch(/\bpointer-events-none\b/);
+        expect(block?.className).toMatch(/\bopacity-60\b/);
+
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Crear turno a las 10:00 para Dra. Ana López',
+            }),
+        );
+        expect(onCellClick).toHaveBeenCalledWith(1, 10);
+    });
+
+    it('paints inactive appointments before active ones in the same slot', () => {
+        renderDayView({
+            appointments: [
+                buildAppointment({ id: 1, patient_name: 'Paciente activa' }),
+                buildAppointment({
+                    id: 2,
+                    status: 'cancelled',
+                    patient_name: 'Paciente cancelada',
+                }),
+            ],
+        });
+
+        const active = blockOf('Paciente activa');
+        const cancelled = blockOf('Paciente cancelada');
+        expect(
+            cancelled!.compareDocumentPosition(active!) &
+                Node.DOCUMENT_POSITION_FOLLOWING,
+        ).toBeTruthy();
+    });
 });

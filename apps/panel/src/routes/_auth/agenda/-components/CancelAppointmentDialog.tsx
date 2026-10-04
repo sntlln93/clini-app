@@ -24,6 +24,7 @@ import { Input } from '@/components/ui/input';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import { useCancelAppointment } from '../-hooks/use-appointments';
+import { describeAppointment } from './appointment-format';
 import { cancelSchema, type CancelFormValues } from './appointment-schemas';
 
 type CancelAppointmentDialogProps = {
@@ -85,6 +86,7 @@ export function CancelAppointmentDialog({
                 <DialogHeader>
                     <DialogTitle>Cancelar turno</DialogTitle>
                     <DialogDescription>
+                        {appointment && `${describeAppointment(appointment)}. `}
                         Esta acción no se puede deshacer. Podés indicar un
                         motivo de cancelación, es opcional.
                     </DialogDescription>

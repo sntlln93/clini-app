@@ -6,6 +6,7 @@ type AgendaSearch = {
     date?: string;
     view?: 'day' | 'week';
     professionals?: number[];
+    showCancelled?: boolean;
 };
 
 // Their type also allows a non-callable schema-object shape; narrow it back to the plain function this route always passes.
@@ -62,6 +63,14 @@ describe('/agenda validateSearch + loaderDeps', () => {
         const parsed = validateSearch({ professionals: [1, 2] });
         const deps = loaderDeps({ search: parsed });
 
+        expect(Object.keys(deps).sort()).toEqual(['date', 'view']);
+    });
+
+    it('validateSearch accepts showCancelled, and loaderDeps leaves it out (presentation only)', () => {
+        const parsed = validateSearch({ showCancelled: true });
+        const deps = loaderDeps({ search: parsed });
+
+        expect(parsed.showCancelled).toBe(true);
         expect(Object.keys(deps).sort()).toEqual(['date', 'view']);
     });
 });

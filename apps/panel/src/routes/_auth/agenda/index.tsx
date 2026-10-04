@@ -7,18 +7,16 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
 import {
-    addDays,
     fromDateInputValue,
     rangeFor,
     toDateInputValue,
 } from './-components/agenda-dates';
+import { agendaNavigation } from './-components/agenda-navigation';
 import { AgendaDayView } from './-components/AgendaDayView';
 import { AgendaProfessionalFilter } from './-components/AgendaProfessionalFilter';
-import {
-    AgendaToolbar,
-    type AgendaViewMode,
-} from './-components/AgendaToolbar';
+import { AgendaToolbar } from './-components/AgendaToolbar';
 import { AgendaWeekView } from './-components/AgendaWeekView';
+import { filterAgendaAppointments } from './-components/appointment-status';
 import {
     AppointmentFormDialog,
     type AppointmentPrefill,
@@ -31,6 +29,8 @@ const agendaSearchSchema = z.object({
     date: z.string().optional(),
     view: z.enum(['day', 'week']).optional(),
     professionals: z.array(z.number()).optional(),
+    // Presentation only: deliberately not a loader dep, the API still returns every status.
+    showCancelled: z.boolean().optional(),
 });
 
 export const Route = createFileRoute('/_auth/agenda/')({
@@ -75,9 +75,16 @@ function AgendaPage() {
         date: dateParam,
         view = 'day',
         professionals: selectedProfessionalIds,
+        showCancelled = false,
     } = Route.useSearch();
     const navigate = Route.useNavigate();
-    const { professionals, appointments } = Route.useLoaderData();
+    const { professionals, appointments: loadedAppointments } =
+        Route.useLoaderData();
+    // Cancelled/rescheduled appointments no longer hold their slot, so by default they don't cover it either.
+    const appointments = filterAgendaAppointments(
+        loadedAppointments,
+        showCancelled,
+    );
     const { canCreate, canUpdate } = useAppointmentPermissions();
     const [formState, setFormState] = useState<FormState>(CLOSED_FORM);
 
@@ -95,28 +102,13 @@ function AgendaPage() {
         selectedProfessionalIds,
     );
 
-    function updateDate(next: Date) {
-        void navigate({
-            search: (prev) => ({ ...prev, date: toDateInputValue(next) }),
-        });
-    }
-
-    const handleProfessionalsChange = (ids: number[]) => {
-        void navigate({
-            search: (prev) => ({
-                ...prev,
-                professionals:
-                    ids.length === professionals.length ? undefined : ids,
-            }),
-        });
-    };
-
-    const handlePrev = () =>
-        updateDate(addDays(date, view === 'day' ? -1 : -7));
-    const handleNext = () => updateDate(addDays(date, view === 'day' ? 1 : 7));
-    const handleToday = () => updateDate(new Date());
-    const handleViewChange = (nextView: AgendaViewMode) =>
-        void navigate({ search: (prev) => ({ ...prev, view: nextView }) });
+    const navigation = agendaNavigation({
+        date,
+        view,
+        professionalsCount: professionals.length,
+        setSearch: (patch) =>
+            void navigate({ search: (prev) => ({ ...prev, ...patch }) }),
+    });
 
     const handleNewAppointment = () => setFormState({ open: true });
 
@@ -160,18 +152,20 @@ function AgendaPage() {
                         selectedProfessionalIds ??
                         professionals.map((professional) => professional.id)
                     }
-                    onChange={handleProfessionalsChange}
+                    onChange={navigation.onProfessionalsChange}
                 />
             )}
 
             <AgendaToolbar
                 date={date}
                 view={view}
-                onPrev={handlePrev}
-                onNext={handleNext}
-                onToday={handleToday}
-                onViewChange={handleViewChange}
-                onDateSelect={updateDate}
+                onPrev={navigation.onPrev}
+                onNext={navigation.onNext}
+                onToday={navigation.onToday}
+                onViewChange={navigation.onViewChange}
+                onDateSelect={navigation.updateDate}
+                showCancelled={showCancelled}
+                onShowCancelledChange={navigation.onShowCancelledChange}
             />
 
             {professionals.length === 0 && (

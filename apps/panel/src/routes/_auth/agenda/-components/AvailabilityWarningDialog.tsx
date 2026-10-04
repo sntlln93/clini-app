@@ -13,6 +13,7 @@ type AvailabilityWarningDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     onConfirm: () => void;
+    confirmLabel?: string;
 };
 
 // Client-side UX warning only — the backend never rejects a booking outside declared availability.
@@ -20,6 +21,7 @@ export function AvailabilityWarningDialog({
     open,
     onOpenChange,
     onConfirm,
+    confirmLabel = 'Registrar de todos modos',
 }: AvailabilityWarningDialogProps) {
     return (
         <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -27,14 +29,14 @@ export function AvailabilityWarningDialog({
                 <AlertDialogHeader>
                     <AlertDialogTitle>Turno fuera de horario</AlertDialogTitle>
                     <AlertDialogDescription>
-                        ¿Está seguro de registrar el turno fuera del horario
-                        disponible del profesional?
+                        ¿Querés registrar el turno fuera del horario disponible
+                        del profesional?
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     <AlertDialogAction onClick={onConfirm}>
-                        Registrar de todos modos
+                        {confirmLabel}
                     </AlertDialogAction>
                 </AlertDialogFooter>
             </AlertDialogContent>

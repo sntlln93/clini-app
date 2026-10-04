@@ -45,3 +45,14 @@ export function rangeFor(date: Date, view: AgendaViewMode) {
         ? { start: startOfDay(date), end: endOfDay(date) }
         : { start: startOfWeek(date), end: endOfWeek(date) };
 }
+
+// Reads the date/time inputs as browser-local time (not `organizations.timezone`, see #230 A1) and sends a UTC instant, since the API parses an offset-less string as UTC.
+export function toInstant(date: string, time: string): string {
+    return new Date(`${date}T${time}`).toISOString();
+}
+
+export function toTimeInputValue(date: Date): string {
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${hours}:${minutes}`;
+}
