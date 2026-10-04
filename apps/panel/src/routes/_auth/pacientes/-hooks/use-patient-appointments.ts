@@ -45,3 +45,38 @@ export function findTodaysOwnAppointment(
         ) ?? null
     );
 }
+
+const UPCOMING_STATUSES = new Set<PatientAppointmentHistoryItem['status']>([
+    'scheduled',
+    'confirmed',
+    'arrived',
+]);
+
+// The history only carries the active organization's appointments (the
+// API's organization scope), so every item here is reachable in the agenda.
+// Keyed off `end_at` so an appointment in progress still counts as upcoming.
+export function findNextAppointment(
+    appointments: PatientAppointmentHistoryItem[],
+    now: Date = new Date(),
+): PatientAppointmentHistoryItem | null {
+    let next: PatientAppointmentHistoryItem | null = null;
+
+    for (const appointment of appointments) {
+        if (
+            !UPCOMING_STATUSES.has(appointment.status) ||
+            new Date(appointment.end_at).getTime() < now.getTime()
+        ) {
+            continue;
+        }
+
+        if (
+            next === null ||
+            new Date(appointment.start_at).getTime() <
+                new Date(next.start_at).getTime()
+        ) {
+            next = appointment;
+        }
+    }
+
+    return next;
+}

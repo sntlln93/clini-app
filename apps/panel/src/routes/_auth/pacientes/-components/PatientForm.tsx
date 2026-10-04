@@ -1,8 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from '@tanstack/react-router';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type {
@@ -12,6 +13,7 @@ import type {
 } from '@/types/patient';
 import { usePatientLookup } from '../-hooks/use-patient-lookup';
 import { useSavePatient } from '../-hooks/use-save-patient';
+import { ExistingPatientNotice } from './ExistingPatientNotice';
 import { PatientFormFields } from './PatientFormFields';
 import { patientSchema } from './patient-schemas';
 
@@ -23,7 +25,7 @@ type PatientFormProps = {
 function initialValues(patient?: Patient): PatientPayload {
     return {
         name: patient?.name ?? '',
-        document_type: patient?.document_type ?? '',
+        document_type: patient?.document_type ?? 'dni',
         document_number: patient?.document_number ?? '',
         email: patient?.email ?? '',
         phone: patient?.phone ?? '',
@@ -104,22 +106,37 @@ export function PatientForm({ patient, insuranceProviders }: PatientFormProps) {
                     </div>
                 )}
 
-                {foundPatient && (
-                    <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm text-foreground">
-                        Ya existe un paciente con este documento: se va a
-                        reutilizar el registro y solo se completarán los datos
-                        faltantes.
-                    </div>
-                )}
+                <ExistingPatientNotice patient={foundPatient} />
 
                 <PatientFormFields
                     control={form.control}
                     insuranceProviders={insuranceProviders}
                 />
 
-                <Button type="submit" disabled={form.formState.isSubmitting}>
-                    {form.formState.isSubmitting ? 'Guardando…' : 'Guardar'}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="submit"
+                        disabled={form.formState.isSubmitting}
+                    >
+                        {form.formState.isSubmitting ? 'Guardando…' : 'Guardar'}
+                    </Button>
+                    {patient ? (
+                        <Link
+                            to="/pacientes/$id"
+                            params={{ id: patient.id }}
+                            className={buttonVariants({ variant: 'outline' })}
+                        >
+                            Cancelar
+                        </Link>
+                    ) : (
+                        <Link
+                            to="/pacientes"
+                            className={buttonVariants({ variant: 'outline' })}
+                        >
+                            Cancelar
+                        </Link>
+                    )}
+                </div>
             </form>
         </Form>
     );

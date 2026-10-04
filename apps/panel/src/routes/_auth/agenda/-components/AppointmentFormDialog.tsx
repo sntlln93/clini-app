@@ -12,13 +12,13 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { api } from '@/lib/api';
-import type { Paginated } from '@/types/pagination';
-import type { Patient } from '@/types/patient';
-import type { Professional, ProfessionalService } from '@/types/professional';
-import { useQuery } from '@tanstack/react-query';
+import { sessionHasPermission, useSession } from '@/lib/session';
+import type { Professional } from '@/types/professional';
 import { useCreateAppointment } from '../-hooks/use-appointments';
 import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
+import { useBookableServices } from '../-hooks/use-bookable-services';
+import { usePatientSearch } from '../-hooks/use-patient-search';
+import { toInstant } from './agenda-dates';
 import { applyAppointmentServerErrors } from './apply-appointment-server-errors';
 import {
     appointmentSchema,
@@ -67,7 +67,9 @@ export function AppointmentFormDialog({
     professionals,
     prefill,
 }: AppointmentFormDialogProps) {
-    const [patientQuery, setPatientQuery] = useState('');
+    const { patientQuery, setPatientQuery, patients, emptySearch } =
+        usePatientSearch(open);
+    const { data: session } = useSession();
     const [showWarning, setShowWarning] = useState(false);
     const [appliedKey, setAppliedKey] = useState<string | null>(null);
 
@@ -97,27 +99,7 @@ export function AppointmentFormDialog({
         name: 'membershipId',
     });
 
-    const { data: services } = useQuery({
-        queryKey: ['professional-services', membershipId],
-        queryFn: () =>
-            api
-                .get<{ data: ProfessionalService[] }>(
-                    `/memberships/${membershipId}/services`,
-                )
-                .then((response) => response.data.data),
-        enabled: membershipId !== null,
-    });
-
-    const { data: patientsPage } = useQuery({
-        queryKey: ['patients', 'booking', patientQuery],
-        queryFn: () =>
-            api
-                .get<Paginated<Patient>>('/patients', {
-                    params: { q: patientQuery || undefined, page: 1 },
-                })
-                .then((response) => response.data),
-        enabled: open,
-    });
+    const services = useBookableServices(membershipId);
 
     const { isOutside, isLoading: isAvailabilityLoading } =
         useAvailabilityWarning(membershipId);
@@ -129,7 +111,7 @@ export function AppointmentFormDialog({
                 membershipId: values.membershipId as number,
                 patientId: values.patientId as number,
                 serviceId: values.serviceId as number,
-                startAt: `${values.date}T${values.time}`,
+                startAt: toInstant(values.date, values.time),
                 reason: values.reason || null,
                 notes: null,
             });
@@ -178,10 +160,15 @@ export function AppointmentFormDialog({
                             <AppointmentFormFields
                                 control={form.control}
                                 professionals={professionals}
-                                services={services ?? []}
-                                patients={patientsPage?.data ?? []}
+                                services={services}
+                                patients={patients}
                                 patientQuery={patientQuery}
                                 onPatientQueryChange={setPatientQuery}
+                                emptyPatientSearch={emptySearch}
+                                canCreatePatient={sessionHasPermission(
+                                    session,
+                                    'patients.create',
+                                )}
                             />
 
                             <DialogFooter>

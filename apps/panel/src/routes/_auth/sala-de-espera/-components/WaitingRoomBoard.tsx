@@ -6,11 +6,14 @@ import { buildWaitingQueues } from './waiting-room';
 export type WaitingRoomBoardProps = {
     professionals: Professional[];
     appointments: Appointment[];
+    /** When the data was read (ms epoch), the reference for waiting times. */
+    updatedAt: number;
 };
 
 export function WaitingRoomBoard({
     professionals,
     appointments,
+    updatedAt,
 }: WaitingRoomBoardProps) {
     if (professionals.length === 0) {
         return (
@@ -28,6 +31,7 @@ export function WaitingRoomBoard({
                 <ProfessionalQueueCard
                     key={queue.professional.id}
                     queue={queue}
+                    now={updatedAt}
                 />
             ))}
         </div>

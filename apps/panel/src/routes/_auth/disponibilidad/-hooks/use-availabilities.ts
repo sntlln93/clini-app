@@ -1,6 +1,7 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Availability } from '@/types/availability';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
@@ -51,7 +52,11 @@ export function useSaveAvailability(membershipId: number) {
                       `/availabilities/${payload.id}`,
                       toRequestBody(payload),
                   ),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        // Save errors render inline in the row's form, so only success toasts here.
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Horario guardado'),
+            ),
     });
 
     const { message, errors } = mutation.error
@@ -66,6 +71,11 @@ export function useDeleteAvailability(membershipId: number) {
 
     return useMutation({
         mutationFn: (id: number) => api.delete(`/availabilities/${id}`),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Horario eliminado'),
+            ),
+        onError: (error) =>
+            notifyError(error, 'No se pudo eliminar el horario'),
     });
 }

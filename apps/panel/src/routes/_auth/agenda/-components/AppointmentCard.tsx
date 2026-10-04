@@ -5,21 +5,23 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useSession } from '@/lib/session';
+import { sessionHasPermission, useSession } from '@/lib/session';
 import type { Appointment } from '@/types/appointment';
 import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
-import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
 import {
     ALLOWED_TRANSITIONS,
     CANCELLABLE_STATUSES,
     RESCHEDULABLE_STATUSES,
-    STATUS_LABELS,
 } from './appointment-status';
 import {
     AppointmentCardContent,
     type AppointmentCardVariant,
 } from './AppointmentCardContent';
+import {
+    AppointmentStatusActions,
+    NoShowConfirmDialog,
+} from './AppointmentStatusActions';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { ClinicalNotesDialog } from './ClinicalNotesDialog';
 import { PrescriptionsDialog } from './PrescriptionsDialog';
@@ -32,104 +34,112 @@ type AppointmentCardProps = {
     variant?: AppointmentCardVariant;
     /** Day view only: hides the service line when the block is too short for three lines. */
     compact?: boolean;
+    /** Week view only, when several professionals share a day column. */
+    professionalLabel?: string;
 };
+
+type CardDialog =
+    'reschedule' | 'cancel' | 'notes' | 'prescriptions' | 'noShow';
 
 export function AppointmentCard({
     appointment,
     canUpdate,
     variant = 'default',
     compact = false,
+    professionalLabel,
 }: AppointmentCardProps) {
-    const [showReschedule, setShowReschedule] = useState(false);
-    const [showCancel, setShowCancel] = useState(false);
-    const [showNotes, setShowNotes] = useState(false);
-    const [showPrescriptions, setShowPrescriptions] = useState(false);
+    const [openDialog, setOpenDialog] = useState<CardDialog | null>(null);
     const { data: session } = useSession();
     const router = useRouter();
-    const { mutate } = useUpdateAppointmentStatus();
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
     // Clinical notes and prescriptions are authored-only (issues #30, #31): visible only to the professional booked on this appointment, independent of `canUpdate`.
     const isOwnAppointment =
         session?.membership?.id === appointment.membership_id;
+    const canViewPatient = sessionHasPermission(session, 'patients.view');
 
-    function goToPatient() {
-        void router.navigate({
-            to: '/pacientes/$id',
-            params: { id: appointment.patient_id },
-        });
-    }
+    const dialogProps = (dialog: CardDialog) => ({
+        open: openDialog === dialog,
+        onOpenChange: (open: boolean) => setOpenDialog(open ? dialog : null),
+        appointment,
+    });
 
     const content = (
         <AppointmentCardContent
             appointment={appointment}
             variant={variant}
             compact={compact}
+            professionalLabel={professionalLabel}
         />
     );
 
     const hasUpdateActions =
         canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);
-    const hasActions = hasUpdateActions || isOwnAppointment;
+    const hasRecordActions = canViewPatient || isOwnAppointment;
 
-    if (!hasActions) {
+    if (!hasUpdateActions && !hasRecordActions) {
         return content;
     }
 
     return (
         <>
             <DropdownMenu>
-                <DropdownMenuTrigger className="block h-full w-full text-left">
+                {/* `pointer-events-auto` keeps the card clickable inside a dimmed, click-through wrapper (day view). */}
+                <DropdownMenuTrigger className="pointer-events-auto block h-full w-full text-left">
                     {content}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                    {nextStatuses.map((status) => (
-                        <DropdownMenuItem
-                            key={status}
-                            onClick={() =>
-                                mutate({
-                                    appointmentId: appointment.id,
-                                    status,
-                                })
-                            }
-                        >
-                            {STATUS_LABELS[status]}
-                        </DropdownMenuItem>
-                    ))}
-                    {(canCancel || canReschedule) &&
+                    {canUpdate && (
+                        <AppointmentStatusActions
+                            appointment={appointment}
+                            statuses={nextStatuses}
+                            onNoShowRequest={() => setOpenDialog('noShow')}
+                        />
+                    )}
+                    {canUpdate &&
+                        (canCancel || canReschedule) &&
                         nextStatuses.length > 0 && <DropdownMenuSeparator />}
-                    {canReschedule && (
+                    {canUpdate && canReschedule && (
                         <DropdownMenuItem
-                            onClick={() => setShowReschedule(true)}
+                            onClick={() => setOpenDialog('reschedule')}
                         >
                             Reprogramar
                         </DropdownMenuItem>
                     )}
-                    {canCancel && (
+                    {canUpdate && canCancel && (
                         <DropdownMenuItem
                             variant="destructive"
-                            onClick={() => setShowCancel(true)}
+                            onClick={() => setOpenDialog('cancel')}
                         >
                             Cancelar
                         </DropdownMenuItem>
                     )}
-                    {isOwnAppointment && hasUpdateActions && (
+                    {hasRecordActions && hasUpdateActions && (
                         <DropdownMenuSeparator />
                     )}
-                    {isOwnAppointment && (
-                        <DropdownMenuItem onClick={goToPatient}>
+                    {canViewPatient && (
+                        <DropdownMenuItem
+                            onClick={() =>
+                                void router.navigate({
+                                    to: '/pacientes/$id',
+                                    params: { id: appointment.patient_id },
+                                })
+                            }
+                        >
                             Ver ficha del paciente
                         </DropdownMenuItem>
                     )}
                     {isOwnAppointment && (
-                        <DropdownMenuItem onClick={() => setShowNotes(true)}>
+                        <DropdownMenuItem
+                            onClick={() => setOpenDialog('notes')}
+                        >
                             Notas clínicas
                         </DropdownMenuItem>
                     )}
                     {isOwnAppointment && (
                         <DropdownMenuItem
-                            onClick={() => setShowPrescriptions(true)}
+                            onClick={() => setOpenDialog('prescriptions')}
                         >
                             Recetas
                         </DropdownMenuItem>
@@ -137,29 +147,11 @@ export function AppointmentCard({
                 </DropdownMenuContent>
             </DropdownMenu>
 
-            <RescheduleAppointmentDialog
-                open={showReschedule}
-                onOpenChange={setShowReschedule}
-                appointment={appointment}
-            />
-
-            <CancelAppointmentDialog
-                open={showCancel}
-                onOpenChange={setShowCancel}
-                appointment={appointment}
-            />
-
-            <ClinicalNotesDialog
-                open={showNotes}
-                onOpenChange={setShowNotes}
-                appointment={appointment}
-            />
-
-            <PrescriptionsDialog
-                open={showPrescriptions}
-                onOpenChange={setShowPrescriptions}
-                appointment={appointment}
-            />
+            <NoShowConfirmDialog {...dialogProps('noShow')} />
+            <RescheduleAppointmentDialog {...dialogProps('reschedule')} />
+            <CancelAppointmentDialog {...dialogProps('cancel')} />
+            <ClinicalNotesDialog {...dialogProps('notes')} />
+            <PrescriptionsDialog {...dialogProps('prescriptions')} />
         </>
     );
 }

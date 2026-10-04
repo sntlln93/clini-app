@@ -2,6 +2,9 @@ import { useSession } from '@/lib/session';
 import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { Professional } from '@/types/professional';
 
+/** Why a professional's availability renders read-only, so the page can say so instead of just disabling everything. */
+export type AvailabilityReadOnlyReason = 'subscription' | 'permission';
+
 /**
  * Whether the signed-in user may manage availability: `availability.manage` covers every professional, `availability.manage.own` only their own membership.
  * `canManageOrgWide` is the permission alone (it also unlocks browsing other professionals); `canWriteOrgWide` and `canManage` are also false while the subscription is expired/cancelled (#28).
@@ -29,5 +32,15 @@ export function useAvailabilityPermissions() {
         );
     };
 
-    return { canManageOrgWide, canWriteOrgWide, canManage };
+    const readOnlyReason = (
+        membership: Professional,
+    ): AvailabilityReadOnlyReason | null => {
+        if (canManage(membership)) {
+            return null;
+        }
+
+        return restricted ? 'subscription' : 'permission';
+    };
+
+    return { canManageOrgWide, canWriteOrgWide, canManage, readOnlyReason };
 }

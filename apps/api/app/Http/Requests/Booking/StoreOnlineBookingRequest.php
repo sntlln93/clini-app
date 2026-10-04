@@ -6,6 +6,8 @@ namespace App\Http\Requests\Booking;
 
 use App\Actions\Booking\ListAvailableSlotsAction;
 use App\Enums\DocumentType;
+use App\Models\Organization;
+use App\Support\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -22,7 +24,11 @@ class StoreOnlineBookingRequest extends FormRequest
      */
     public function rules(): array
     {
-        $bookingWindowEnd = CarbonImmutable::now()->addDays(ListAvailableSlotsAction::BOOKING_WINDOW_DAYS);
+        // Same window the slot search offers: through the end of the
+        // practice's own day BOOKING_WINDOW_DAYS out, not now() + N days in UTC.
+        $bookingWindowEnd = CarbonImmutable::today($this->organizationTimezone())
+            ->addDays(ListAvailableSlotsAction::BOOKING_WINDOW_DAYS)
+            ->endOfDay();
 
         return [
             'membership_id' => ['required', 'integer', 'exists:memberships,id'],
@@ -51,5 +57,15 @@ class StoreOnlineBookingRequest extends FormRequest
             'patient.document_number.required' => 'El número de documento es obligatorio.',
             'patient.email.email' => 'El correo no es válido.',
         ];
+    }
+
+    // `public-organization` has already resolved the tenant from {slug}; the
+    // app timezone is only a fallback for a request that never went through it.
+    private function organizationTimezone(): string
+    {
+        $organizationId = app(CurrentOrganization::class)->get();
+        $timezone = $organizationId === null ? null : Organization::query()->whereKey($organizationId)->value('timezone');
+
+        return is_string($timezone) ? $timezone : config()->string('app.timezone');
     }
 }

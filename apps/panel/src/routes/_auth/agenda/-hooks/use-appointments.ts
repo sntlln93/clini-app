@@ -2,8 +2,11 @@ import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { queryOptions, useMutation } from '@tanstack/react-query';
+import { formatAppointmentMoment } from '../-components/appointment-format';
+import { STATUS_SUCCESS_MESSAGES } from '../-components/appointment-status';
 
 type AppointmentsRange = {
     from: string;
@@ -24,10 +27,6 @@ type CreateAppointmentPayload = {
 const CREATE_APPOINTMENT_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.service_not_active_for_professional': 'service_id',
     'appointments.slot_taken': 'start_at',
-};
-
-const STATUS_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
-    'appointments.status_transition_not_allowed': 'status',
 };
 
 const CANCEL_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
@@ -72,7 +71,12 @@ export function useCreateAppointment() {
                 reason: payload.reason,
                 notes: payload.notes,
             }),
-        onSuccess: () => refreshPageData(['appointments']),
+        onSuccess: (_data, payload) => {
+            notifySuccess(
+                `Turno creado para el ${formatAppointmentMoment(payload.startAt)}.`,
+            );
+            return refreshPageData(['appointments']);
+        },
     });
 
     const { message, errors } = mutation.error
@@ -85,7 +89,7 @@ export function useCreateAppointment() {
 export function useUpdateAppointmentStatus() {
     const refreshPageData = useRefreshPageData();
 
-    const mutation = useMutation({
+    return useMutation({
         mutationFn: ({
             appointmentId,
             status,
@@ -93,14 +97,16 @@ export function useUpdateAppointmentStatus() {
             appointmentId: number;
             status: AppointmentStatus;
         }) => api.patch(`/appointments/${appointmentId}/status`, { status }),
-        onSuccess: () => refreshPageData(['appointments']),
+        // Status changes start from a dropdown item with no form to hold an inline error, so both outcomes surface as toasts.
+        onSuccess: async (_data, { status }) => {
+            await refreshPageData(['appointments']);
+            notifySuccess(
+                STATUS_SUCCESS_MESSAGES[status] ?? 'Turno actualizado.',
+            );
+        },
+        onError: (error) =>
+            notifyError(error, 'No se pudo actualizar el estado del turno.'),
     });
-
-    const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error, STATUS_FIELD_MAP)
-        : { message: null, errors: {} };
-
-    return { ...mutation, message, errors };
 }
 
 export function useCancelAppointment() {
@@ -117,7 +123,10 @@ export function useCancelAppointment() {
             api.patch(`/appointments/${appointmentId}/cancel`, {
                 cancellation_reason: cancellationReason ?? null,
             }),
-        onSuccess: () => refreshPageData(['appointments']),
+        onSuccess: () => {
+            notifySuccess('Turno cancelado.');
+            return refreshPageData(['appointments']);
+        },
     });
 
     const { message, errors } = mutation.error
@@ -147,7 +156,12 @@ export function useRescheduleAppointment() {
                 reason: reason ?? null,
                 notes: notes ?? null,
             }),
-        onSuccess: () => refreshPageData(['appointments']),
+        onSuccess: (_data, { startAt }) => {
+            notifySuccess(
+                `Turno reprogramado para el ${formatAppointmentMoment(startAt)}.`,
+            );
+            return refreshPageData(['appointments']);
+        },
     });
 
     const { message, errors } = mutation.error

@@ -1,4 +1,6 @@
 import { api } from '@/lib/api';
+import { useSession } from '@/lib/session';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Membership } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -8,6 +10,13 @@ import { MyPublicLinkSection } from '../-components/MyPublicLinkSection';
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
+
+vi.mock('@/lib/toast', () => ({
+    notifySuccess: vi.fn(),
+    notifyError: vi.fn(),
+}));
+
+const SAVED_URL = `${window.location.origin}/reservar/dra-lopez`;
 
 const invalidate = vi.fn();
 vi.mock('@tanstack/react-router', async (importOriginal) => {
@@ -38,9 +47,19 @@ function renderSection(membership: Membership) {
     );
 }
 
+// Mirrors the ajustes page: the section's membership comes from the session.
+function SessionBackedSection() {
+    const { data } = useSession();
+    return data?.membership ? (
+        <MyPublicLinkSection membership={data.membership} />
+    ) : null;
+}
+
 describe('MyPublicLinkSection', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
+        vi.mocked(notifySuccess).mockReset();
+        vi.mocked(notifyError).mockReset();
         invalidate.mockReset();
     });
 
@@ -62,22 +81,119 @@ describe('MyPublicLinkSection', () => {
         );
     });
 
-    it('renders the input prefilled with the current slug and a link preview', () => {
+    it('renders the input prefilled with the current slug and the saved link', () => {
         renderSection(membershipWithSlug('dra-lopez'));
 
         expect((screen.getByLabelText('Link') as HTMLInputElement).value).toBe(
             'dra-lopez',
         );
-        expect(screen.getByText(/\/reservar\/dra-lopez/)).toBeTruthy();
+        expect(screen.getByText(SAVED_URL)).toBeTruthy();
+        expect(screen.queryByText(/Vista previa/)).toBeNull();
     });
 
-    it('renders no link preview when the slug is empty or null', () => {
+    it('renders no saved link or preview when the slug is empty or null', () => {
         renderSection(membershipWithSlug(null));
 
         expect((screen.getByLabelText('Link') as HTMLInputElement).value).toBe(
             '',
         );
-        expect(screen.queryByText(/\/reservar\//)).toBeNull();
+        expect(screen.queryByText(/Tu link/)).toBeNull();
+        expect(screen.queryByText(/Vista previa/)).toBeNull();
+        expect(
+            screen.queryByRole('button', { name: /Copiar link/ }),
+        ).toBeNull();
+    });
+
+    it('shows the /reservar/ prefix next to the input', () => {
+        renderSection(membershipWithSlug(null));
+
+        screen.getByText(`${window.location.host}/reservar/`);
+    });
+
+    it('labels a typed, unsaved slug as a preview and keeps the saved link apart', () => {
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: 'otro-slug' },
+        });
+
+        screen.getByText(
+            `Vista previa (sin guardar): ${window.location.origin}/reservar/otro-slug`,
+        );
+        expect(screen.getByText(SAVED_URL)).toBeTruthy();
+    });
+
+    it('warns that saving an emptied field removes the saved link', () => {
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: '' },
+        });
+
+        screen.getByText(/se elimina tu link público/);
+    });
+
+    it('disables Guardar until the slug differs from the saved one', () => {
+        renderSection(membershipWithSlug('dra-lopez'));
+        const save = screen.getByRole('button', { name: 'Guardar' });
+
+        expect(save).toHaveProperty('disabled', true);
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: 'otro-slug' },
+        });
+        expect(save).toHaveProperty('disabled', false);
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: ' dra-lopez ' },
+        });
+        expect(save).toHaveProperty('disabled', true);
+    });
+
+    it('copies the saved link and confirms it with a toast', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'clipboard', {
+            value: { writeText },
+            configurable: true,
+        });
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        fireEvent.change(screen.getByLabelText('Link'), {
+            target: { value: 'sin-guardar' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: /Copiar link/ }));
+
+        await waitFor(() =>
+            expect(notifySuccess).toHaveBeenCalledWith('Link copiado'),
+        );
+        expect(writeText).toHaveBeenCalledWith(SAVED_URL);
+    });
+
+    it('reports a failed copy with an error toast', async () => {
+        Object.defineProperty(navigator, 'clipboard', {
+            value: {
+                writeText: vi.fn().mockRejectedValue(new Error('denied')),
+            },
+            configurable: true,
+        });
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        fireEvent.click(screen.getByRole('button', { name: /Copiar link/ }));
+
+        await waitFor(() =>
+            expect(notifyError).toHaveBeenCalledWith(
+                expect.any(Error),
+                'No se pudo copiar el link',
+            ),
+        );
+    });
+
+    it('opens the saved link in a new tab', () => {
+        renderSection(membershipWithSlug('dra-lopez'));
+
+        const open = screen.getByRole('link', { name: /Abrir/ });
+        expect(open.getAttribute('href')).toBe(SAVED_URL);
+        expect(open.getAttribute('target')).toBe('_blank');
     });
 
     it('submits the typed slug via PATCH /memberships/me/slug', async () => {
@@ -109,6 +225,62 @@ describe('MyPublicLinkSection', () => {
             expect(api.patch).toHaveBeenCalledWith('/memberships/me/slug', {
                 slug: null,
             }),
+        );
+    });
+
+    it('reflects the saved slug once saving refreshes the session', async () => {
+        const writeText = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'clipboard', {
+            value: { writeText },
+            configurable: true,
+        });
+        vi.mocked(api.get)
+            .mockReset()
+            .mockResolvedValueOnce({
+                data: {
+                    id: 1,
+                    name: 'Dra. Lopez',
+                    email: 'dra.lopez@example.com',
+                    membership: membershipWithSlug('dra-lopez'),
+                },
+            })
+            .mockResolvedValue({
+                data: {
+                    id: 1,
+                    name: 'Dra. Lopez',
+                    email: 'dra.lopez@example.com',
+                    membership: membershipWithSlug('carla-p'),
+                },
+            });
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        render(
+            <QueryClientProvider client={new QueryClient()}>
+                <SessionBackedSection />
+            </QueryClientProvider>,
+        );
+
+        fireEvent.change(await screen.findByLabelText('Link'), {
+            target: { value: 'carla-p' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(notifySuccess).toHaveBeenCalledWith(
+                'Link público actualizado',
+            ),
+        );
+        await screen.findByText(`${window.location.origin}/reservar/carla-p`);
+        expect(screen.queryByText(/Vista previa/)).toBeNull();
+        expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty(
+            'disabled',
+            true,
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: /Copiar link/ }));
+        await waitFor(() =>
+            expect(writeText).toHaveBeenCalledWith(
+                `${window.location.origin}/reservar/carla-p`,
+            ),
         );
     });
 });

@@ -81,7 +81,7 @@ export function MySpecialtiesSection({
                 open={confirmingId !== null}
                 onOpenChange={(open) => !open && setConfirmingId(null)}
                 title="Quitar especialidad"
-                description="¿Quitar esta especialidad de tu perfil? Esta acción no se puede deshacer."
+                description="¿Quitar esta especialidad de tu perfil? Podés volver a agregarla cuando quieras."
                 onConfirm={handleConfirmRemove}
                 isPending={remove.isPending}
             />

@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { subscriptionQueryOptions } from '@/lib/subscription';
+import { notifySuccess } from '@/lib/toast';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -18,6 +19,11 @@ import { patientClinicalNotesQueryOptions } from '../-hooks/use-patient-clinical
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
+}));
+
+vi.mock('@/lib/toast', () => ({
+    notifySuccess: vi.fn(),
+    notifyError: vi.fn(),
 }));
 
 function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {
@@ -76,6 +82,7 @@ describe('PatientClinicalNotesCard', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset();
+        vi.mocked(notifySuccess).mockReset();
     });
 
     it("renders the patient's notes, including notes authored by another professional", async () => {
@@ -113,6 +120,11 @@ describe('PatientClinicalNotesCard', () => {
         expect(
             screen.queryByRole('button', { name: 'Agregar nota' }),
         ).toBeNull();
+        expect(
+            screen.getByText(
+                'Podés agregar notas cuando tengas un turno con este paciente hoy.',
+            ),
+        ).toBeTruthy();
     });
 
     it.each(['expired', 'cancelled'] as const)(
@@ -135,6 +147,11 @@ describe('PatientClinicalNotesCard', () => {
                 screen.queryByRole('button', { name: 'Agregar nota' }),
             ).toBeNull();
             expect(screen.queryByRole('textbox')).toBeNull();
+            expect(
+                screen.getByText(
+                    'Tu suscripción no está activa: las notas clínicas son de solo lectura.',
+                ),
+            ).toBeTruthy();
         },
     );
 
@@ -153,7 +170,13 @@ describe('PatientClinicalNotesCard', () => {
         fireEvent.click(
             await screen.findByRole('button', { name: 'Agregar nota' }),
         );
-        fireEvent.change(screen.getByRole('textbox'), {
+        const textbox = screen.getByRole('textbox', {
+            name: 'Nueva nota clínica',
+        });
+        expect(textbox.getAttribute('placeholder')).toBe(
+            'Escribí la nota de la visita…',
+        );
+        fireEvent.change(textbox, {
             target: { value: 'Paciente refiere mejoría.' },
         });
         fireEvent.click(screen.getByRole('button', { name: 'Guardar nota' }));
@@ -165,6 +188,16 @@ describe('PatientClinicalNotesCard', () => {
             ),
         );
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+        await waitFor(() =>
+            expect(notifySuccess).toHaveBeenCalledWith('Nota guardada'),
+        );
+    });
+
+    it('explains nothing when a note can be added', async () => {
+        renderCard({ todaysAppointmentId: 77 });
+
+        await screen.findByRole('button', { name: 'Agregar nota' });
+        expect(screen.queryByText(/Podés agregar notas/)).toBeNull();
     });
 
     it('an empty or whitespace-only body does not trigger the mutation and shows the validation message', async () => {

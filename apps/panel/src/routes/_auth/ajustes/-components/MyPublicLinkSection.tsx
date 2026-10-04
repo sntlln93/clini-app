@@ -4,10 +4,15 @@ import { Label } from '@/components/ui/label';
 import type { Membership } from '@/types/membership';
 import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
+import { PublicLinkActions } from './PublicLinkActions';
 
 type MyPublicLinkSectionProps = {
     membership: Pick<Membership, 'id' | 'slug'>;
 };
+
+function bookingUrl(slug: string): string {
+    return `${window.location.origin}/reservar/${slug}`;
+}
 
 export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
     const slugInputId = useId();
@@ -22,13 +27,13 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
 
     const { mutate, isPending } = useUpdateMyPublicLink();
 
-    function handleSave() {
-        const trimmed = slug.trim();
-        mutate(trimmed === '' ? null : trimmed);
-    }
-
+    const savedSlug = membership.slug ?? '';
     const trimmedSlug = slug.trim();
-    const previewUrl = `${window.location.origin}/reservar/${trimmedSlug}`;
+    const isDirty = trimmedSlug !== savedSlug;
+
+    function handleSave() {
+        mutate(trimmedSlug === '' ? null : trimmedSlug);
+    }
 
     return (
         <section className="space-y-3">
@@ -49,28 +54,45 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
                     >
                         Link
                     </Label>
-                    <Input
-                        id={slugInputId}
-                        value={slug}
-                        onChange={(event) => setSlug(event.target.value)}
-                        placeholder="tu-nombre"
-                        maxLength={50}
-                    />
+                    <div className="flex min-w-0 items-center gap-1">
+                        <span className="min-w-0 shrink truncate text-sm text-muted-foreground">
+                            {window.location.host}/reservar/
+                        </span>
+                        <Input
+                            id={slugInputId}
+                            className="min-w-24 flex-1"
+                            value={slug}
+                            onChange={(event) => setSlug(event.target.value)}
+                            placeholder="tu-nombre"
+                            maxLength={50}
+                        />
+                    </div>
                 </div>
                 <Button
                     type="button"
                     size="sm"
-                    disabled={isPending}
+                    disabled={isPending || !isDirty}
                     onClick={handleSave}
                 >
                     Guardar
                 </Button>
             </div>
 
-            {trimmedSlug !== '' && (
-                <p className="text-sm text-muted-foreground">
-                    Tu link: {previewUrl}
+            {isDirty && trimmedSlug !== '' && (
+                <p className="text-sm break-all text-muted-foreground">
+                    Vista previa (sin guardar): {bookingUrl(trimmedSlug)}
                 </p>
+            )}
+
+            {isDirty && trimmedSlug === '' && savedSlug !== '' && (
+                <p className="text-sm text-muted-foreground">
+                    Si guardás con el campo vacío, se elimina tu link público y
+                    deja de recibir reservas.
+                </p>
+            )}
+
+            {savedSlug !== '' && (
+                <PublicLinkActions url={bookingUrl(savedSlug)} />
             )}
         </section>
     );

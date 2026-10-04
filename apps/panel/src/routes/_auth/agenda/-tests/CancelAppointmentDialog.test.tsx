@@ -47,6 +47,8 @@ const APPOINTMENT: Appointment = {
     cancellation_reason: null,
     rescheduled_from_id: null,
     arrived_at: null,
+    patient_name: 'Juan Pérez',
+    professional_name: 'Dra. Ana López',
 };
 
 function renderDialog(onOpenChange: (open: boolean) => void = () => {}) {
@@ -65,6 +67,16 @@ function renderDialog(onOpenChange: (open: boolean) => void = () => {}) {
 describe('CancelAppointmentDialog', () => {
     beforeEach(() => {
         vi.mocked(api.patch).mockReset();
+    });
+
+    it('names the appointment it is about to cancel', () => {
+        renderDialog();
+
+        expect(
+            screen.getByText(
+                /Turno de Juan Pérez con Dra\. Ana López · lun 3 ago, 10:00\. Esta acción no se puede deshacer/,
+            ),
+        ).toBeTruthy();
     });
 
     it('confirming with no reason sends a null cancellation_reason and closes the dialog', async () => {

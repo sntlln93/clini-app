@@ -96,4 +96,29 @@ describe('AgendaDayStrip', () => {
             isSameDay(onDateSelect.mock.calls[1][0] as Date, addDays(date, 7)),
         ).toBe(true);
     });
+
+    it("marks today's button with aria-current=date, independent of the selected day", () => {
+        const today = new Date();
+        render(
+            <AgendaDayStrip
+                date={addDays(today, today.getDay() === 0 ? 1 : -1)}
+                onDateSelect={vi.fn()}
+            />,
+        );
+
+        const current = dayButtons().filter(
+            (button) => button.getAttribute('aria-current') === 'date',
+        );
+        expect(current).toHaveLength(1);
+        expect(current[0].textContent).toBe(expectedDayLabel(today));
+        expect(current[0].getAttribute('aria-pressed')).toBe('false');
+    });
+
+    it('marks no day as today in a week that does not contain it', () => {
+        render(<AgendaDayStrip date={date} onDateSelect={vi.fn()} />);
+
+        expect(
+            dayButtons().some((button) => button.hasAttribute('aria-current')),
+        ).toBe(false);
+    });
 });

@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { sessionQueryOptions } from '@/lib/session';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -8,6 +9,11 @@ import { AppointmentCard } from '../-components/AppointmentCard';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+}));
+
+vi.mock('@/lib/toast', () => ({
+    notifySuccess: vi.fn(),
+    notifyError: vi.fn(),
 }));
 
 const invalidate = vi.fn();
@@ -48,13 +54,17 @@ function renderCard(
     variant: 'default' | 'day' = 'default',
     compact: boolean = false,
     sessionMembershipId?: number,
+    permissions: string[] = [],
 ) {
-    const queryClient = new QueryClient();
+    const queryClient = new QueryClient({
+        defaultOptions: { mutations: { retry: false } },
+    });
     if (sessionMembershipId !== undefined) {
         queryClient.setQueryData(sessionQueryOptions.queryKey, {
             id: 1,
             name: 'Ana Ejemplo',
             email: 'ana@clini.app',
+            permissions,
             membership: {
                 id: sessionMembershipId,
                 user: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
@@ -81,6 +91,8 @@ function renderCard(
 
 describe('AppointmentCard', () => {
     beforeEach(() => {
+        vi.mocked(notifySuccess).mockReset();
+        vi.mocked(notifyError).mockReset();
         vi.mocked(api.patch).mockReset();
         vi.mocked(api.get).mockReset();
         invalidate.mockReset();
@@ -99,9 +111,11 @@ describe('AppointmentCard', () => {
             screen.getByRole('menuitem', { name: 'Reprogramar' }),
         ).toBeTruthy();
         expect(
-            screen.getByRole('menuitem', { name: 'Confirmado' }),
+            screen.getByRole('menuitem', { name: 'Confirmar turno' }),
         ).toBeTruthy();
-        expect(screen.getByRole('menuitem', { name: 'Ausente' })).toBeTruthy();
+        expect(
+            screen.getByRole('menuitem', { name: 'Marcar ausente' }),
+        ).toBeTruthy();
     });
 
     it('shows Cancelar but not Reprogramar for an arrived appointment', async () => {
@@ -212,7 +226,7 @@ describe('AppointmentCard', () => {
         ).toBeTruthy();
     });
 
-    it("shows the Ver ficha del paciente item, navigating to the patient's detail route, when the session membership is the appointment's professional", async () => {
+    it("shows the Ver ficha del paciente item, navigating to the patient's detail route, for the appointment's own professional with patients.view", async () => {
         renderCard(
             buildAppointment({
                 id: 1,
@@ -224,6 +238,7 @@ describe('AppointmentCard', () => {
             'default',
             false,
             1,
+            ['patients.view'],
         );
 
         fireEvent.click(screen.getByRole('button'));
@@ -239,7 +254,7 @@ describe('AppointmentCard', () => {
         });
     });
 
-    it('does not show the Ver ficha del paciente item when the session membership is a different membership', () => {
+    it('renders a static card for a different membership without patients.view and no update actions', () => {
         renderCard(
             buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
             true,
@@ -352,5 +367,130 @@ describe('AppointmentCard', () => {
                 'Todavía no emitiste recetas para este turno.',
             ),
         ).toBeTruthy();
+    });
+
+    it('applies a non-destructive status change straight from the menu and confirms it with a toast', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        renderCard(buildAppointment({ id: 9, status: 'scheduled' }));
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', { name: 'Confirmar turno' }),
+        );
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith('/appointments/9/status', {
+                status: 'confirmed',
+            }),
+        );
+        await waitFor(() =>
+            expect(notifySuccess).toHaveBeenCalledWith('Turno confirmado.'),
+        );
+    });
+
+    it('surfaces a rejected status change as an error toast', async () => {
+        vi.mocked(api.patch).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: { status: 500 },
+        });
+        renderCard(buildAppointment({ id: 9, status: 'confirmed' }));
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', { name: 'Marcar llegada' }),
+        );
+
+        await waitFor(() =>
+            expect(notifyError).toHaveBeenCalledWith(
+                expect.anything(),
+                'No se pudo actualizar el estado del turno.',
+            ),
+        );
+        expect(notifySuccess).not.toHaveBeenCalled();
+    });
+
+    it('asks for confirmation before marking a patient as absent', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        renderCard(buildAppointment({ id: 9, status: 'scheduled' }));
+
+        fireEvent.click(screen.getByRole('button'));
+        fireEvent.click(
+            await screen.findByRole('menuitem', { name: 'Marcar ausente' }),
+        );
+
+        expect(
+            await screen.findByText('¿Marcar al paciente como ausente?'),
+        ).toBeTruthy();
+        expect(api.patch).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Marcar ausente' }));
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith('/appointments/9/status', {
+                status: 'no_show',
+            }),
+        );
+    });
+
+    it("offers staff with patients.view the patient record but not the professional's notes or prescriptions", async () => {
+        renderCard(
+            buildAppointment({ status: 'scheduled', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+            ['patients.view'],
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', {
+                name: 'Ver ficha del paciente',
+            }),
+        ).toBeTruthy();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Notas clínicas' }),
+        ).toBeNull();
+        expect(screen.queryByRole('menuitem', { name: 'Recetas' })).toBeNull();
+    });
+
+    it('keeps a completed appointment clickable for staff with patients.view, offering just the patient record', async () => {
+        renderCard(
+            buildAppointment({ status: 'completed', membership_id: 1 }),
+            false,
+            'default',
+            false,
+            2,
+            ['patients.view'],
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', {
+                name: 'Ver ficha del paciente',
+            }),
+        ).toBeTruthy();
+        expect(screen.getAllByRole('menuitem')).toHaveLength(1);
+    });
+
+    it('does not offer the patient record to the own professional without patients.view', async () => {
+        renderCard(
+            buildAppointment({ status: 'completed', membership_id: 1 }),
+            false,
+            'default',
+            false,
+            1,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', { name: 'Notas clínicas' }),
+        ).toBeTruthy();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Ver ficha del paciente' }),
+        ).toBeNull();
     });
 });

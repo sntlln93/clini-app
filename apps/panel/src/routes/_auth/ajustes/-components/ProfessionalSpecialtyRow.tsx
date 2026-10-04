@@ -48,8 +48,8 @@ export function ProfessionalSpecialtyRow({
 
             {credentials.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                    Este profesional no tiene especialidades credenciales
-                    cargadas en «Mis especialidades».
+                    Este profesional todavía no cargó sus especialidades. Pedile
+                    que las marque en Ajustes › Mis especialidades.
                 </p>
             )}
 
@@ -90,7 +90,7 @@ export function ProfessionalSpecialtyRow({
                 open={confirmingId !== null}
                 onOpenChange={(open) => !open && setConfirmingId(null)}
                 title="Quitar especialidad"
-                description="¿Quitar esta especialidad de este profesional? Esta acción no se puede deshacer."
+                description="¿Quitar esta especialidad de este profesional? Podés volver a asignarla cuando quieras."
                 onConfirm={handleConfirmRemove}
                 isPending={remove.isPending}
             />

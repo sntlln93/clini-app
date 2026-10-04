@@ -183,4 +183,36 @@ describe('RegisterForm', () => {
         await screen.findByText('Las contraseñas no coinciden.');
         expect(api.post).not.toHaveBeenCalled();
     });
+
+    it('shows the 8-character rule upfront and blocks a shorter password before submitting', async () => {
+        renderRegisterForm();
+
+        await fillForm();
+        expect(screen.getByText('Mínimo 8 caracteres.')).not.toBeNull();
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'corta' },
+        });
+        fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+            target: { value: 'corta' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await screen.findByText(
+            'La contraseña debe tener al menos 8 caracteres.',
+        );
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('asks to confirm the password when the confirmation is empty', async () => {
+        renderRegisterForm();
+
+        await fillForm();
+        fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+            target: { value: '' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await screen.findByText('Confirmá tu contraseña.');
+        expect(api.post).not.toHaveBeenCalled();
+    });
 });

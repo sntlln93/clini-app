@@ -20,14 +20,15 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import type { ErrorCode } from '@/lib/error-codes';
-import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
-import { useRescheduleAppointment } from '../-hooks/use-appointments';
+import { useRescheduleSubmit } from '../-hooks/use-reschedule-submit';
+import { toDateInputValue, toTimeInputValue } from './agenda-dates';
+import { describeAppointment } from './appointment-format';
 import {
     rescheduleSchema,
     type RescheduleFormValues,
 } from './appointment-schemas';
+import { AvailabilityWarningDialog } from './AvailabilityWarningDialog';
 
 type RescheduleAppointmentDialogProps = {
     open: boolean;
@@ -36,19 +37,6 @@ type RescheduleAppointmentDialogProps = {
 };
 
 const EMPTY_VALUES: RescheduleFormValues = { date: '', time: '' };
-
-// Only `slot_taken` maps to a field; `not_reschedulable_from_status` deliberately falls through to the general message.
-const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
-    'appointments.slot_taken': 'start_at',
-};
-
-function toDateInput(iso: string): string {
-    return iso.slice(0, 10);
-}
-
-function toTimeInput(iso: string): string {
-    return new Date(iso).toTimeString().slice(0, 5);
-}
 
 // Submits to `POST /appointments/{id}/reschedule`; the backend creates a new row and marks the original as `rescheduled`.
 export function RescheduleAppointmentDialog({
@@ -64,109 +52,119 @@ export function RescheduleAppointmentDialog({
     // `form.reset()` notifies Controller children synchronously, so this must run in an effect, not during render.
     useEffect(() => {
         if (open && appointment) {
+            // Both halves in local time — slicing the ISO string would take the UTC date, a day ahead for a late-evening appointment.
+            const startAt = new Date(appointment.start_at);
             form.reset({
-                date: toDateInput(appointment.start_at),
-                time: toTimeInput(appointment.start_at),
+                date: toDateInputValue(startAt),
+                time: toTimeInputValue(startAt),
             });
         }
     }, [open, appointment, form]);
 
-    const { mutateAsync, isPending } = useRescheduleAppointment();
-
-    async function onSubmit(values: RescheduleFormValues) {
-        if (!appointment) {
-            return;
-        }
-
-        try {
-            await mutateAsync({
-                appointmentId: appointment.id,
-                startAt: `${values.date}T${values.time}`,
-            });
-            onOpenChange(false);
-        } catch (error) {
-            applyFormErrors(
-                form,
-                extractFormErrors(error, RESCHEDULE_FIELD_MAP),
-                { start_at: 'time' },
-            );
-        }
-    }
+    const {
+        onValid,
+        showWarning,
+        setShowWarning,
+        confirmWarning,
+        isPending,
+        isAvailabilityLoading,
+    } = useRescheduleSubmit(form, appointment, open, () => onOpenChange(false));
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>Reprogramar turno</DialogTitle>
-                    <DialogDescription>
-                        Elegí el nuevo horario para este turno.
-                    </DialogDescription>
-                </DialogHeader>
+        <>
+            <Dialog open={open} onOpenChange={onOpenChange}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reprogramar turno</DialogTitle>
+                        <DialogDescription>
+                            {appointment &&
+                                `${describeAppointment(appointment)}. `}
+                            Elegí el nuevo horario.
+                        </DialogDescription>
+                    </DialogHeader>
 
-                <Form {...form}>
-                    <form
-                        onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
-                    >
-                        {form.formState.errors.root && (
-                            <p className="text-sm text-destructive">
-                                {form.formState.errors.root.message}
-                            </p>
-                        )}
+                    <Form {...form}>
+                        <form
+                            onSubmit={form.handleSubmit(onValid)}
+                            className="space-y-4"
+                        >
+                            {form.formState.errors.root && (
+                                <p className="text-sm text-destructive">
+                                    {form.formState.errors.root.message}
+                                </p>
+                            )}
 
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            <FormField
-                                control={form.control}
-                                name="date"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Fecha</FormLabel>
-                                        <FormControl
-                                            render={
-                                                <Input type="date" {...field} />
-                                            }
-                                        />
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                            <FormField
-                                control={form.control}
-                                name="time"
-                                render={({ field }) => (
-                                    <FormItem>
-                                        <FormLabel>Hora</FormLabel>
-                                        <FormControl
-                                            render={
-                                                <Input type="time" {...field} />
-                                            }
-                                        />
-                                        <FormMessage />
-                                    </FormItem>
-                                )}
-                            />
-                        </div>
+                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                                <FormField
+                                    control={form.control}
+                                    name="date"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Fecha</FormLabel>
+                                            <FormControl
+                                                render={
+                                                    <Input
+                                                        type="date"
+                                                        {...field}
+                                                    />
+                                                }
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                                <FormField
+                                    control={form.control}
+                                    name="time"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Hora</FormLabel>
+                                            <FormControl
+                                                render={
+                                                    <Input
+                                                        type="time"
+                                                        {...field}
+                                                    />
+                                                }
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+                            </div>
 
-                        <DialogFooter>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                onClick={() => onOpenChange(false)}
-                            >
-                                Cancelar
-                            </Button>
-                            <Button
-                                type="submit"
-                                disabled={
-                                    isPending || form.formState.isSubmitting
-                                }
-                            >
-                                {isPending ? 'Reprogramando…' : 'Reprogramar'}
-                            </Button>
-                        </DialogFooter>
-                    </form>
-                </Form>
-            </DialogContent>
-        </Dialog>
+                            <DialogFooter>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => onOpenChange(false)}
+                                >
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    type="submit"
+                                    disabled={
+                                        isPending ||
+                                        form.formState.isSubmitting ||
+                                        isAvailabilityLoading
+                                    }
+                                >
+                                    {isPending
+                                        ? 'Reprogramando…'
+                                        : 'Reprogramar'}
+                                </Button>
+                            </DialogFooter>
+                        </form>
+                    </Form>
+                </DialogContent>
+            </Dialog>
+
+            <AvailabilityWarningDialog
+                open={showWarning}
+                onOpenChange={setShowWarning}
+                onConfirm={confirmWarning}
+                confirmLabel="Reprogramar de todos modos"
+            />
+        </>
     );
 }

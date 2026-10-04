@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AvailabilityExceptionsSection } from '../-components/AvailabilityExceptionsSection';
+import type { AvailabilityReadOnlyReason } from '../-hooks/use-availability-permissions';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -25,14 +26,18 @@ const EXCEPTION: AvailabilityException = {
     reason: null,
 };
 
-function renderSection(exceptions: AvailabilityException[]) {
+function renderSection(
+    exceptions: AvailabilityException[],
+    readOnlyReason: AvailabilityReadOnlyReason | null = null,
+) {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
             <AvailabilityExceptionsSection
                 membershipId={3}
-                canManageOwn
+                canManageOwn={readOnlyReason === null}
                 canManageOrgWide={false}
+                readOnlyReason={readOnlyReason}
                 exceptions={exceptions}
             />
         </QueryClientProvider>,
@@ -66,5 +71,40 @@ describe('AvailabilityExceptionsSection', () => {
             ),
         );
         await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    });
+
+    it('shows the range in local es-AR time instead of the raw ISO strings', () => {
+        renderSection([
+            {
+                ...EXCEPTION,
+                start_at: '2099-10-12T12:00:00.000000Z',
+                end_at: '2099-10-12T16:00:00.000000Z',
+            },
+        ]);
+
+        screen.getByText('lun 12 oct, 09:00 – 13:00');
+        expect(screen.queryByText(/2099-10-12T/)).toBeNull();
+        expect(screen.queryByText('Finalizada')).toBeNull();
+    });
+
+    it('labels an exception that already ended as «Finalizada»', () => {
+        renderSection([
+            {
+                ...EXCEPTION,
+                start_at: '2020-03-02T12:00:00Z',
+                end_at: '2020-03-02T16:00:00Z',
+            },
+        ]);
+
+        screen.getByText('Finalizada');
+    });
+
+    it('explains why the section is read-only', () => {
+        renderSection([EXCEPTION], 'permission');
+
+        screen.getByText(/no tenés permiso para editar la disponibilidad/);
+        expect(
+            screen.queryByRole('button', { name: 'Agregar excepción' }),
+        ).toBeNull();
     });
 });

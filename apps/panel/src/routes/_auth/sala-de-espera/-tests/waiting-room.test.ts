@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 import {
     buildWaitingQueues,
     displayPatientName,
+    formatWaitingTime,
+    minutesSinceArrival,
     todayRange,
 } from '../-components/waiting-room';
 
@@ -142,5 +144,32 @@ describe('todayRange', () => {
             from: start.toISOString(),
             to: end.toISOString(),
         });
+    });
+});
+
+describe('minutesSinceArrival', () => {
+    const now = new Date('2026-08-03T10:20:00').getTime();
+
+    it('returns whole minutes since check-in', () => {
+        expect(minutesSinceArrival('2026-08-03T10:07:30', now)).toBe(12);
+    });
+
+    it('returns null when the check-in time is unknown', () => {
+        expect(minutesSinceArrival(null, now)).toBeNull();
+    });
+
+    it('never goes negative for a check-in slightly ahead of the clock', () => {
+        expect(minutesSinceArrival('2026-08-03T10:21:00', now)).toBe(0);
+    });
+});
+
+describe('formatWaitingTime', () => {
+    it.each([
+        [0, 'Llegó recién'],
+        [7, 'Llegó hace 7 min'],
+        [60, 'Llegó hace 1 h'],
+        [85, 'Llegó hace 1 h 25 min'],
+    ])('formats %i minutes as "%s"', (minutes, expected) => {
+        expect(formatWaitingTime(minutes)).toBe(expected);
     });
 });

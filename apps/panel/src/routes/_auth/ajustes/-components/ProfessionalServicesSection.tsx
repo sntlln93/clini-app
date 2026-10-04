@@ -1,3 +1,4 @@
+import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import type { Membership } from '@/types/membership';
 import type { CatalogService, ProfessionalService } from '@/types/professional';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
@@ -29,9 +30,7 @@ export function ProfessionalServicesSection({
             </div>
 
             {professionals.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    Todavía no hay profesionales en esta organización.
-                </p>
+                <NoProfessionalsEmptyState description="Invitá a un profesional para asignarle los servicios que ofrece." />
             )}
 
             {professionals.length > 0 && services.length === 0 && (

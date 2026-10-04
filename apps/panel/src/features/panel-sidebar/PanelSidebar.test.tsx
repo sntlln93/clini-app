@@ -11,8 +11,14 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelSidebar } from './PanelSidebar';
 import { isNavItemActive, navItems } from './nav-items';
 
@@ -29,6 +35,7 @@ function renderSidebarAt(path: string, permissions?: string[]) {
             <QueryClientProvider client={queryClient}>
                 <TooltipProvider>
                     <SidebarProvider>
+                        <SidebarTrigger />
                         <PanelSidebar />
                         <Outlet />
                     </SidebarProvider>
@@ -217,5 +224,38 @@ describe('PanelSidebar rail', () => {
                 value: originalMatchMedia,
             });
         }
+    });
+});
+
+describe('PanelSidebar mobile drawer', () => {
+    const originalInnerWidth = window.innerWidth;
+
+    afterEach(() => {
+        Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: originalInnerWidth,
+        });
+    });
+
+    it('closes the drawer when a nav item is tapped', async () => {
+        Object.defineProperty(window, 'innerWidth', {
+            writable: true,
+            configurable: true,
+            value: 375,
+        });
+        renderSidebarAt('/agenda');
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: /toggle sidebar/i }),
+        );
+        const drawer = await screen.findByRole('dialog');
+        fireEvent.click(
+            within(drawer).getByRole('link', { name: /Pacientes/ }),
+        );
+
+        await waitFor(() => {
+            expect(screen.queryByRole('dialog')).toBeNull();
+        });
     });
 });

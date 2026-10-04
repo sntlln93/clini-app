@@ -13,6 +13,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Models\Service;
+use Carbon\CarbonImmutable;
 
 /**
  * UTC timezone keeps every plain (no offset) date/time string below
@@ -187,6 +188,68 @@ test('store with a start_at beyond the 60-day booking window returns 422', funct
 
     $response->assertStatus(422);
     expect(Appointment::withoutGlobalScope('organization')->count())->toBe(0);
+});
+
+/**
+ * @return array{0: Organization, 1: Membership, 2: Service}
+ */
+function createBuenosAiresBookingFixture(): array
+{
+    [$organization, $membership, $service] = createOnlineBookingFixture();
+    $organization->update(['timezone' => 'America/Argentina/Buenos_Aires']);
+    Availability::query()->withoutGlobalScope('organization')->where('membership_id', $membership->id)->delete();
+    foreach ([1, 5, 6] as $dayOfWeek) {
+        Availability::factory()->create([
+            'organization_id' => $organization->id,
+            'membership_id' => $membership->id,
+            'day_of_week' => $dayOfWeek,
+            'start_time' => '08:00:00',
+            'end_time' => '23:00:00',
+        ]);
+    }
+
+    return [$organization, $membership, $service];
+}
+
+test('store in the evening accepts a later slot of the organization\'s today and rejects an earlier one', function () {
+    // Monday 2026-10-05 22:00 in Buenos Aires is already Tuesday in UTC.
+    $this->travelTo(CarbonImmutable::parse('2026-10-05 22:00:00', 'America/Argentina/Buenos_Aires'));
+    [$organization, $membership, $service] = createBuenosAiresBookingFixture();
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-10-05T21:00:00-03:00',
+        'patient' => bookingPatientPayload(),
+    ])->assertStatus(422)->assertJsonValidationErrors('start_at');
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-10-05T22:30:00-03:00',
+        'patient' => bookingPatientPayload(),
+    ])->assertCreated();
+});
+
+test('store accepts any slot through the end of the organization\'s day 60 days out, and rejects the day after', function () {
+    // Morning in Buenos Aires: now() + 60 days would cut 2026-12-04 at 09:00.
+    $this->travelTo(CarbonImmutable::parse('2026-10-05 09:00:00', 'America/Argentina/Buenos_Aires'));
+    [$organization, $membership, $service] = createBuenosAiresBookingFixture();
+
+    // 2026-12-04 is a Friday; 2026-12-05 a Saturday — both have availability.
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-12-04T16:00:00-03:00',
+        'patient' => bookingPatientPayload(),
+    ])->assertCreated();
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-12-05T10:00:00-03:00',
+        'patient' => bookingPatientPayload(),
+    ])->assertStatus(422)->assertJsonValidationErrors('start_at');
 });
 
 test('store with patient.name or patient.document_number missing, or an invalid document_type, returns 422', function () {

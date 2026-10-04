@@ -1,8 +1,10 @@
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
 import { Plus } from 'lucide-react';
 import { addDays } from './agenda-dates';
+import { INACTIVE_STATUSES } from './appointment-status';
 import { AppointmentCard } from './AppointmentCard';
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
@@ -47,6 +49,8 @@ export function AgendaWeekView({
     const membershipById = new Map(
         professionals.map((professional) => [professional.id, professional]),
     );
+    // Days mix every visible professional's appointments, so the card names them once there is more than one.
+    const showProfessional = professionals.length > 1;
 
     return (
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
@@ -91,15 +95,29 @@ export function AgendaWeekView({
                                 );
 
                                 return (
-                                    <AppointmentCard
+                                    <div
                                         key={appointment.id}
-                                        appointment={appointment}
-                                        canUpdate={
-                                            professional
-                                                ? canUpdate(professional)
-                                                : false
-                                        }
-                                    />
+                                        className={cn(
+                                            INACTIVE_STATUSES.includes(
+                                                appointment.status,
+                                            ) && 'opacity-60',
+                                        )}
+                                    >
+                                        <AppointmentCard
+                                            appointment={appointment}
+                                            canUpdate={
+                                                professional
+                                                    ? canUpdate(professional)
+                                                    : false
+                                            }
+                                            professionalLabel={
+                                                showProfessional
+                                                    ? (appointment.professional_name ??
+                                                      professional?.user.name)
+                                                    : undefined
+                                            }
+                                        />
+                                    </div>
                                 );
                             })}
                         </div>

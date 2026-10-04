@@ -46,7 +46,7 @@ export function PatientDetailFields({
                     name="sex"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Sexo</FormLabel>
+                            <FormLabel>Sexo (opcional)</FormLabel>
                             <FormControl
                                 render={
                                     <RadioGroup
@@ -76,7 +76,9 @@ export function PatientDetailFields({
                     name="birth_date"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Fecha de nacimiento</FormLabel>
+                            <FormLabel>
+                                Fecha de nacimiento (opcional)
+                            </FormLabel>
                             <FormControl
                                 render={<Input type="date" {...field} />}
                             />
@@ -91,7 +93,7 @@ export function PatientDetailFields({
                 name="insurance_provider_id"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Obra social</FormLabel>
+                        <FormLabel>Obra social (opcional)</FormLabel>
                         <Select
                             items={insuranceProviderItems}
                             value={field.value ? String(field.value) : ''}

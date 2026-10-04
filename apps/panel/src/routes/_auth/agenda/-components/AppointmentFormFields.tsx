@@ -21,6 +21,8 @@ type AppointmentFormFieldsProps = {
     patients: Patient[];
     patientQuery: string;
     onPatientQueryChange: (query: string) => void;
+    emptyPatientSearch: string | null;
+    canCreatePatient: boolean;
 };
 
 export function AppointmentFormFields({
@@ -30,6 +32,8 @@ export function AppointmentFormFields({
     patients,
     patientQuery,
     onPatientQueryChange,
+    emptyPatientSearch,
+    canCreatePatient,
 }: AppointmentFormFieldsProps) {
     return (
         <div className="space-y-4">
@@ -44,6 +48,8 @@ export function AppointmentFormFields({
                 patients={patients}
                 patientQuery={patientQuery}
                 onPatientQueryChange={onPatientQueryChange}
+                emptySearch={emptyPatientSearch}
+                canCreatePatient={canCreatePatient}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

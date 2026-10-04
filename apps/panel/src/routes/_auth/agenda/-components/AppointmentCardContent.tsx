@@ -28,6 +28,8 @@ type AppointmentCardContentProps = {
     appointment: Appointment;
     variant: AppointmentCardVariant;
     compact: boolean;
+    /** Rendered by the `default` variant only; the day view already has one column per professional. */
+    professionalLabel?: string;
 };
 
 // The visual block of an appointment, shared by the week (`default`) and day views.
@@ -35,6 +37,7 @@ export function AppointmentCardContent({
     appointment,
     variant,
     compact,
+    professionalLabel,
 }: AppointmentCardContentProps) {
     const timeLabel = `${formatTime(appointment.start_at, variant)}–${formatTime(appointment.end_at, variant)}`;
     const patientLabel =
@@ -76,6 +79,11 @@ export function AppointmentCardContent({
             <span className="truncate text-muted-foreground">
                 {serviceLabel}
             </span>
+            {professionalLabel && (
+                <span className="truncate text-muted-foreground">
+                    {professionalLabel}
+                </span>
+            )}
         </div>
     );
 }

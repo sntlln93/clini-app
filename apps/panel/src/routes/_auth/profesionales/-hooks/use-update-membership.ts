@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifySuccess } from '@/lib/toast';
 import type {
     Membership,
     MembershipRole,
@@ -29,8 +30,10 @@ export function useUpdateMembership(membershipId: number) {
                     payload,
                 )
                 .then((response) => response.data.data),
+        // Navigates back to the list on success, whose loader refetches, so a plain invalidate is enough; errors render inline in the form.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            notifySuccess('Cambios guardados');
         },
     });
 
@@ -47,12 +50,14 @@ export function useDeactivateMembership() {
     const mutation = useMutation({
         mutationFn: (membershipId: number) =>
             api.delete(`/memberships/${membershipId}`),
+        // Its error already renders inline in the «Zona de peligro» section (MemberDangerZone), so no error toast.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            notifySuccess('Miembro dado de baja');
         },
     });
 
-    // No field map here on purpose: this flow has no field for `memberships.last_active_admin` to land on, so it surfaces as the general message instead of being silently dropped.
+    // No field map here on purpose: this flow has no field for `memberships.last_active_admin` to land on, so it surfaces as a single message (shown by MemberDangerZone) instead of being silently dropped.
     const { message } = mutation.error
         ? extractFormErrors(mutation.error)
         : { message: null };

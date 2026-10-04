@@ -12,6 +12,8 @@ import type {
     PatientAppointmentHistoryItem,
     PatientAppointmentStatus,
 } from '@/types/patient';
+import { Link } from '@tanstack/react-router';
+import { agendaDaySearch } from './agenda-day-search';
 
 type PatientAppointmentHistoryCardProps = {
     appointments: PatientAppointmentHistoryItem[];
@@ -77,9 +79,17 @@ export function PatientAppointmentHistoryCard({
                                 {appointments.map((appointment) => (
                                     <TableRow key={appointment.id}>
                                         <TableCell>
-                                            {formatDateTime(
-                                                appointment.start_at,
-                                            )}
+                                            <Link
+                                                to="/agenda"
+                                                search={agendaDaySearch(
+                                                    appointment.start_at,
+                                                )}
+                                                className="underline-offset-4 hover:underline"
+                                            >
+                                                {formatDateTime(
+                                                    appointment.start_at,
+                                                )}
+                                            </Link>
                                         </TableCell>
                                         <TableCell>
                                             {appointment.service_name ?? '—'}

@@ -1,4 +1,4 @@
-import type { Control } from 'react-hook-form';
+import { useWatch, type Control } from 'react-hook-form';
 
 import {
     FormControl,
@@ -17,6 +17,9 @@ type PatientBasicFieldsProps = {
 };
 
 export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
+    // Passports and insurance cards may carry letters, so only a DNI gets the numeric keypad.
+    const documentType = useWatch({ control, name: 'document_type' });
+
     return (
         <>
             <FormField
@@ -68,7 +71,18 @@ export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
                     render={({ field }) => (
                         <FormItem>
                             <FormLabel>Número de documento</FormLabel>
-                            <FormControl render={<Input {...field} />} />
+                            <FormControl
+                                render={
+                                    <Input
+                                        inputMode={
+                                            documentType === 'dni'
+                                                ? 'numeric'
+                                                : undefined
+                                        }
+                                        {...field}
+                                    />
+                                }
+                            />
                             <FormMessage />
                         </FormItem>
                     )}
@@ -80,7 +94,7 @@ export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
                 name="email"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Correo electrónico</FormLabel>
+                        <FormLabel>Correo electrónico (opcional)</FormLabel>
                         <FormControl
                             render={<Input type="email" {...field} />}
                         />
@@ -94,8 +108,8 @@ export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
                 name="phone"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Teléfono</FormLabel>
-                        <FormControl render={<Input {...field} />} />
+                        <FormLabel>Teléfono (opcional)</FormLabel>
+                        <FormControl render={<Input type="tel" {...field} />} />
                         <FormMessage />
                     </FormItem>
                 )}

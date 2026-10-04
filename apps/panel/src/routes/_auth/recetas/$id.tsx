@@ -1,6 +1,8 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
+import { prescriptionTitleParts } from './-components/prescription-title';
 import { PrescriptionPrintView } from './-components/PrescriptionPrintView';
 import { prescriptionQueryOptions } from './-hooks/use-prescription';
 
@@ -14,6 +16,8 @@ export const Route = createFileRoute('/_auth/recetas/$id')({
         context.queryClient.ensureQueryData(
             prescriptionQueryOptions(params.id),
         ),
+    // Also the suggested file name when printing the prescription to PDF.
+    head: ({ loaderData }) => titleHead(...prescriptionTitleParts(loaderData)),
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
     component: RecetaPage,

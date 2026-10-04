@@ -1,6 +1,8 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { titleHead } from '@/lib/page-title';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import type { Professional } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
@@ -38,6 +40,7 @@ function defaultMembershipId(
 }
 
 export const Route = createFileRoute('/_auth/disponibilidad/')({
+    head: () => titleHead('Disponibilidad'),
     validateSearch: (search) => disponibilidadSearchSchema.parse(search),
     loaderDeps: ({ search }) => ({ membershipId: search.membershipId }),
     loader: async ({ context, deps }) => {
@@ -77,7 +80,7 @@ function DisponibilidadPage() {
     const navigate = Route.useNavigate();
     const { professionals, selectedId, slots, exceptions } =
         Route.useLoaderData();
-    const { canManageOrgWide, canWriteOrgWide, canManage } =
+    const { canManageOrgWide, canWriteOrgWide, canManage, readOnlyReason } =
         useAvailabilityPermissions();
 
     const selectedMembership = professionals.find(
@@ -99,9 +102,7 @@ function DisponibilidadPage() {
             </div>
 
             {professionals.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    Todavía no hay profesionales en esta organización.
-                </p>
+                <NoProfessionalsEmptyState description="Invitá a un profesional para configurar sus horarios." />
             )}
 
             {professionals.length > 0 && (
@@ -119,12 +120,18 @@ function DisponibilidadPage() {
                             <WeeklyAvailabilitySection
                                 membershipId={selectedMembership.id}
                                 canManage={canManage(selectedMembership)}
+                                readOnlyReason={readOnlyReason(
+                                    selectedMembership,
+                                )}
                                 slots={slots}
                             />
                             <AvailabilityExceptionsSection
                                 membershipId={selectedMembership.id}
                                 canManageOwn={canManage(selectedMembership)}
                                 canManageOrgWide={canWriteOrgWide}
+                                readOnlyReason={readOnlyReason(
+                                    selectedMembership,
+                                )}
                                 exceptions={exceptions}
                             />
                         </>

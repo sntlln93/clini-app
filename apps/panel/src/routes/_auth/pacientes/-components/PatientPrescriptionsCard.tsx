@@ -8,6 +8,7 @@ import {
 } from '@/components/ui/card';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
+import { ExternalLink } from 'lucide-react';
 
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('es-AR', { dateStyle: 'short' });
@@ -62,12 +63,20 @@ export function PatientPrescriptionsCard({
                                     to="/recetas/$id"
                                     params={{ id: prescription.id }}
                                     target="_blank"
+                                    rel="noopener noreferrer"
                                     className={buttonVariants({
                                         size: 'sm',
                                         variant: 'ghost',
                                     })}
                                 >
-                                    Imprimir
+                                    Ver / imprimir{' '}
+                                    <span className="sr-only">
+                                        (se abre en una pestaña nueva)
+                                    </span>
+                                    <ExternalLink
+                                        data-icon="inline-end"
+                                        aria-hidden
+                                    />
                                 </Link>
                             </div>
                         </div>

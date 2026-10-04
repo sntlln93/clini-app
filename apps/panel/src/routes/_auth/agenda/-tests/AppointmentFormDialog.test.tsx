@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { sessionQueryOptions } from '@/lib/session';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -89,8 +90,17 @@ function renderDialog(
     prefill?: AppointmentPrefill,
     onOpenChange: (open: boolean) => void = () => {},
     professionals = [PROFESSIONAL],
+    permissions?: string[],
 ) {
     const queryClient = new QueryClient();
+    if (permissions) {
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 1,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions,
+        });
+    }
     return render(
         <QueryClientProvider client={queryClient}>
             <AppointmentFormDialog
@@ -280,12 +290,12 @@ describe('AppointmentFormDialog', () => {
                 membership_id: 1,
                 patient_id: 50,
                 service_id: 5,
-                start_at: '2026-08-03T10:00',
+                start_at: '2026-08-03T13:00:00.000Z',
             }),
         );
         expect(
             screen.queryByText(
-                '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+                '¿Querés registrar el turno fuera del horario disponible del profesional?',
             ),
         ).toBeNull();
     });
@@ -301,7 +311,7 @@ describe('AppointmentFormDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Crear turno' }));
 
         await screen.findByText(
-            '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+            '¿Querés registrar el turno fuera del horario disponible del profesional?',
         );
         expect(api.post).not.toHaveBeenCalled();
 
@@ -316,7 +326,7 @@ describe('AppointmentFormDialog', () => {
                 membership_id: 1,
                 patient_id: 50,
                 service_id: 5,
-                start_at: '2026-08-03T10:00',
+                start_at: '2026-08-03T13:00:00.000Z',
             }),
         );
     });
@@ -331,7 +341,7 @@ describe('AppointmentFormDialog', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Crear turno' }));
 
         await screen.findByText(
-            '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+            '¿Querés registrar el turno fuera del horario disponible del profesional?',
         );
 
         // Both dialogs have their own "Cancelar" action, so scope the click to the alert dialog specifically.
@@ -343,7 +353,7 @@ describe('AppointmentFormDialog', () => {
         await waitFor(() =>
             expect(
                 screen.queryByText(
-                    '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+                    '¿Querés registrar el turno fuera del horario disponible del profesional?',
                 ),
             ).toBeNull(),
         );
@@ -404,7 +414,7 @@ describe('AppointmentFormDialog', () => {
         expect(api.post).not.toHaveBeenCalled();
         expect(
             screen.queryByText(
-                '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+                '¿Querés registrar el turno fuera del horario disponible del profesional?',
             ),
         ).toBeNull();
 
@@ -419,7 +429,7 @@ describe('AppointmentFormDialog', () => {
 
         // Regression check: once settled, the same click evaluates `isOutside` against real data instead of skipping it.
         await screen.findByText(
-            '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+            '¿Querés registrar el turno fuera del horario disponible del profesional?',
         );
         expect(api.post).not.toHaveBeenCalled();
     });
@@ -446,9 +456,97 @@ describe('AppointmentFormDialog', () => {
             expect(api.post).not.toHaveBeenCalled();
             expect(
                 screen.queryByText(
-                    '¿Está seguro de registrar el turno fuera del horario disponible del profesional?',
+                    '¿Querés registrar el turno fuera del horario disponible del profesional?',
                 ),
             ).toBeNull();
         });
+    });
+});
+
+describe('AppointmentFormDialog patient search', () => {
+    function mockEmptySearch() {
+        vi.mocked(api.get).mockImplementation(
+            (url: string, config?: { params?: { q?: string } }) => {
+                if (url === '/patients') {
+                    const data = config?.params?.q ? [] : [PATIENT];
+                    return Promise.resolve({
+                        data: {
+                            data,
+                            meta: {
+                                current_page: 1,
+                                last_page: 1,
+                                per_page: 15,
+                                total: data.length,
+                            },
+                            links: {
+                                first: null,
+                                last: null,
+                                prev: null,
+                                next: null,
+                            },
+                        },
+                    });
+                }
+                return Promise.resolve({ data: { data: [] } });
+            },
+        );
+    }
+
+    const patientSearches = () =>
+        vi
+            .mocked(api.get)
+            .mock.calls.filter(([url]) => url === '/patients')
+            .map(
+                ([, config]) => (config as { params: { q?: string } }).params.q,
+            );
+
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        mockEmptySearch();
+    });
+
+    it('debounces typing into a single search for the final text', async () => {
+        renderDialog(undefined, () => {}, [PROFESSIONAL], ['patients.create']);
+        const input = screen.getByRole('textbox', { name: 'Buscar paciente' });
+
+        fireEvent.change(input, { target: { value: 'Z' } });
+        fireEvent.change(input, { target: { value: 'Zo' } });
+        fireEvent.change(input, { target: { value: 'Zoe' } });
+
+        await waitFor(() => expect(patientSearches()).toContain('Zoe'));
+        expect(patientSearches()).not.toContain('Z');
+        expect(patientSearches()).not.toContain('Zo');
+    });
+
+    it('explains an empty search and offers to register the patient when allowed', async () => {
+        renderDialog(undefined, () => {}, [PROFESSIONAL], ['patients.create']);
+
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: 'Zoe' } },
+        );
+
+        expect(
+            await screen.findByText(/No encontramos pacientes con “Zoe”/),
+        ).toBeTruthy();
+        expect(
+            screen.getByRole('link', { name: 'Registrar paciente nuevo' }),
+        ).toBeTruthy();
+    });
+
+    it('hides the register link without patients.create', async () => {
+        renderDialog(undefined, () => {}, [PROFESSIONAL], []);
+
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: 'Zoe' } },
+        );
+
+        expect(
+            await screen.findByText(/No encontramos pacientes con “Zoe”/),
+        ).toBeTruthy();
+        expect(
+            screen.queryByRole('link', { name: 'Registrar paciente nuevo' }),
+        ).toBeNull();
     });
 });

@@ -6,6 +6,10 @@ import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
+import {
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_TOO_SHORT_MESSAGE,
+} from '@/lib/password';
 import { useRegister } from '../-hooks/use-register';
 import { RegisterFormFields } from './RegisterFormFields';
 
@@ -19,8 +23,11 @@ const registerSchema = z
             .string()
             .min(1, 'El correo es obligatorio.')
             .email('El correo no es válido.'),
-        password: z.string().min(1, 'La contraseña es obligatoria.'),
-        password_confirmation: z.string(),
+        password: z
+            .string()
+            .min(1, 'La contraseña es obligatoria.')
+            .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
+        password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],

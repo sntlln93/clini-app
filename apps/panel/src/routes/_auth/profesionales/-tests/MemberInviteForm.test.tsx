@@ -91,8 +91,55 @@ describe('MemberInviteForm', () => {
             screen.getByRole('button', { name: 'Enviar invitación' }),
         );
 
-        await screen.findByText('Invitación enviada correctamente.');
+        const status = await screen.findByRole('status');
+        expect(status.textContent).toBe(
+            'Le enviamos la invitación a nuevo@clini.app. Cuando la acepte, va a aparecer en el listado.',
+        );
         expect(screen.queryByText('Profesionales')).toBeNull();
+        expect(
+            screen
+                .getByRole('button', { name: 'Volver al listado' })
+                .getAttribute('href'),
+        ).toBe('/profesionales');
+    });
+
+    it('brings back an empty form from «Invitar a otra persona»', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { message: 'Invitación enviada.' },
+        });
+        renderMemberInviteForm();
+
+        await fillInviteForm();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Enviar invitación' }),
+        );
+        fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'Invitar a otra persona',
+            }),
+        );
+
+        const email = (await screen.findByLabelText(
+            'Correo electrónico',
+        )) as HTMLInputElement;
+        expect(email.value).toBe('');
+        expect(
+            screen
+                .getByRole('checkbox', { name: 'Profesional' })
+                .getAttribute('aria-checked'),
+        ).toBe('false');
+    });
+
+    it('warns that the owner role grants full control only once it is checked', async () => {
+        renderMemberInviteForm();
+        const warning = /Como Propietario va a tener control total/;
+
+        await screen.findByLabelText('Correo electrónico');
+        expect(screen.queryByText(warning)).toBeNull();
+
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Propietario' }));
+
+        await screen.findByText(warning);
     });
 
     it('surfaces a 422 email error under that field', async () => {

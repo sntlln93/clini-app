@@ -1,5 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { MemberEditForm } from './-components/MemberEditForm';
 import { membershipQueryOptions } from './-hooks/use-memberships';
@@ -10,6 +11,8 @@ export const Route = createFileRoute('/_auth/profesionales/$id/editar')({
     },
     loader: ({ context, params }) =>
         context.queryClient.ensureQueryData(membershipQueryOptions(params.id)),
+    head: ({ loaderData }) =>
+        titleHead('Editar miembro', loaderData?.user.name),
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
     component: EditarProfesionalPage,
@@ -20,7 +23,7 @@ function EditarProfesionalPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Editar profesional</h1>
+            <h1 className="text-2xl font-semibold">Editar miembro</h1>
             <MemberEditForm membership={membership} />
         </div>
     );

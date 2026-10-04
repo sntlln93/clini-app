@@ -121,4 +121,36 @@ describe('AgendaWeekView', () => {
         expect(screen.getByText('Juan Pérez')).toBeTruthy();
         expect(quickCreateButtons()).toHaveLength(7);
     });
+
+    it('names the professional on each card when several professionals share the week', () => {
+        const second = buildProfessional({
+            id: 2,
+            user: { id: 20, name: 'Dr. Luis Gómez', email: 'luis@example.com' },
+        });
+
+        renderWeekView({
+            professionals: [buildProfessional(), second],
+            appointments: [
+                buildAppointment({ id: 1, membership_id: 1 }),
+                buildAppointment({
+                    id: 2,
+                    membership_id: 2,
+                    professional_name: 'Dr. Luis Gómez',
+                }),
+            ],
+        });
+
+        expect(screen.getByText('Dra. Ana López')).toBeTruthy();
+        expect(screen.getByText('Dr. Luis Gómez')).toBeTruthy();
+    });
+
+    it('leaves the professional out with a single visible professional', () => {
+        renderWeekView({
+            appointments: [
+                buildAppointment({ professional_name: 'Dra. Ana López' }),
+            ],
+        });
+
+        expect(screen.queryByText('Dra. Ana López')).toBeNull();
+    });
 });

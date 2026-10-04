@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
 const DAY_ABBREVIATION_FORMAT = new Intl.DateTimeFormat('es-AR', {
@@ -41,6 +42,7 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
     const days = Array.from({ length: 7 }, (_, index) =>
         addDays(weekStart, index),
     );
+    const today = new Date();
 
     const shiftWeek = (weeks: number) => onDateSelect(addDays(date, weeks * 7));
 
@@ -59,6 +61,7 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
             <div className="flex min-w-0 gap-1 overflow-x-auto">
                 {days.map((day) => {
                     const selected = isSameDay(day, date);
+                    const isToday = isSameDay(day, today);
 
                     return (
                         <Button
@@ -67,7 +70,12 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
                             variant={selected ? 'secondary' : 'ghost'}
                             size="sm"
                             aria-pressed={selected}
-                            className="shrink-0 capitalize"
+                            aria-current={isToday ? 'date' : undefined}
+                            className={cn(
+                                'shrink-0 capitalize',
+                                isToday &&
+                                    'font-semibold text-primary underline underline-offset-4',
+                            )}
                             onClick={() => onDateSelect(day)}
                         >
                             {dayLabel(day)}

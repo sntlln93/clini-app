@@ -1,4 +1,4 @@
-import type { AppointmentStatus } from '@/types/appointment';
+import type { Appointment, AppointmentStatus } from '@/types/appointment';
 
 // Mirrors `AppointmentStatus::allowedTransitions()` in `app/Enums/AppointmentStatus.php` — keep in sync.
 export const ALLOWED_TRANSITIONS: Record<
@@ -60,3 +60,39 @@ export const STATUS_DAY_STYLES: Record<AppointmentStatus, string> = {
     cancelled: 'border-transparent bg-destructive/15 text-destructive',
     rescheduled: 'border-border bg-background text-foreground',
 };
+
+// Menu copy names the action, not the target state; `STATUS_LABELS` stays the badge copy.
+export const STATUS_ACTION_LABELS: Partial<Record<AppointmentStatus, string>> =
+    {
+        confirmed: 'Confirmar turno',
+        arrived: 'Marcar llegada',
+        completed: 'Marcar como atendido',
+        no_show: 'Marcar ausente',
+    };
+
+export const STATUS_SUCCESS_MESSAGES: Partial<
+    Record<AppointmentStatus, string>
+> = {
+    confirmed: 'Turno confirmado.',
+    arrived: 'Llegada registrada.',
+    completed: 'Turno marcado como atendido.',
+    no_show: 'Turno marcado como ausente.',
+};
+
+// Statuses that no longer hold their slot — mirrors the overlap query in `BookAppointmentAction`; hidden from the agenda by default.
+export const INACTIVE_STATUSES: AppointmentStatus[] = [
+    'cancelled',
+    'rescheduled',
+];
+
+/** Presentation-only filter behind the agenda's "Mostrar cancelados" toggle; the API response itself is never narrowed. */
+export function filterAgendaAppointments(
+    appointments: Appointment[],
+    showCancelled: boolean,
+): Appointment[] {
+    return showCancelled
+        ? appointments
+        : appointments.filter(
+              (appointment) => !INACTIVE_STATUSES.includes(appointment.status),
+          );
+}

@@ -15,7 +15,8 @@ export type BookingService = {
     id: number;
     name: string | null;
     duration_minutes: number;
-    price_cents: number;
+    /** Optional per professional: `null` when the practice set no price. */
+    price_cents: number | null;
     currency: string;
 };
 

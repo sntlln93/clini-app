@@ -1,10 +1,12 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { PatientForm } from './-components/PatientForm';
 import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers';
 
 export const Route = createFileRoute('/_auth/pacientes/nuevo')({
+    head: () => titleHead('Nuevo paciente'),
     loader: ({ context }) =>
         context.queryClient.ensureQueryData(insuranceProvidersQueryOptions()),
     pendingComponent: () => <ListSkeleton />,

@@ -83,3 +83,39 @@ const TIME_FORMAT = new Intl.DateTimeFormat('es-AR', {
 export function formatAppointmentTime(iso: string): string {
     return TIME_FORMAT.format(new Date(iso));
 }
+
+/** Whole minutes between check-in and `now`, or null when the check-in time is unknown. */
+export function minutesSinceArrival(
+    arrivedAt: string | null,
+    now: number,
+): number | null {
+    if (arrivedAt === null) {
+        return null;
+    }
+
+    return Math.max(
+        0,
+        Math.floor((now - new Date(arrivedAt).getTime()) / 60_000),
+    );
+}
+
+export function formatWaitingTime(minutes: number): string {
+    if (minutes < 1) {
+        return 'Llegó recién';
+    }
+
+    if (minutes < 60) {
+        return `Llegó hace ${minutes} min`;
+    }
+
+    const hours = Math.floor(minutes / 60);
+    const rest = minutes % 60;
+
+    return rest === 0
+        ? `Llegó hace ${hours} h`
+        : `Llegó hace ${hours} h ${rest} min`;
+}
+
+export function formatClockTime(timestamp: number): string {
+    return TIME_FORMAT.format(new Date(timestamp));
+}

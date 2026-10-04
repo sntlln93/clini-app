@@ -4,6 +4,7 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { SEARCH_DEBOUNCE_MS, Searchbar } from '@/features/Searchbar';
+import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { SearchX, UserPlus } from 'lucide-react';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ const professionalsSearchSchema = z.object({
 });
 
 export const Route = createFileRoute('/_auth/profesionales/')({
+    head: () => titleHead('Profesionales'),
     validateSearch: (search) => professionalsSearchSchema.parse(search),
     loaderDeps: ({ search }) => ({
         q: search.q ?? '',
@@ -72,7 +74,7 @@ function ProfesionalesPage() {
             <EmptyState
                 icon={UserPlus}
                 title="Todavía no hay miembros"
-                description="Invitá a un profesional para que pueda gestionar su agenda."
+                description="Invitá a alguien de tu equipo para que pueda acceder al panel."
                 action={
                     <Button
                         render={<Link to="/profesionales/nuevo" />}
@@ -100,7 +102,7 @@ function ProfesionalesPage() {
                 value={q}
                 onSearch={handleSearch}
                 placeholder="Buscar por nombre o email…"
-                label="Buscar profesionales"
+                label="Buscar miembros"
                 className="max-w-sm"
             />
 

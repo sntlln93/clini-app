@@ -118,13 +118,24 @@ describe('VerifyEmailCard', () => {
         );
     });
 
-    it('renders the generic Spanish message and no confirm button when the validity query fails', async () => {
+    it('renders a titled error with the generic Spanish message and a way back to Clini when the validity query fails', async () => {
         vi.mocked(api.get).mockRejectedValueOnce(verificationDomainError());
         renderVerifyEmailCard();
 
         await screen.findByText(
             'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
         );
-        expect(screen.queryByRole('button')).toBeNull();
+        expect(
+            screen.getByRole('heading', { level: 1, name: 'Enlace no válido' }),
+        ).not.toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Confirmar correo' }),
+        ).toBeNull();
+        // `/` works with or without a session: `_auth` sends an anonymous visitor on to login.
+        expect(
+            screen
+                .getByRole('button', { name: 'Ir a Clini' })
+                .getAttribute('href'),
+        ).toBe('/');
     });
 });

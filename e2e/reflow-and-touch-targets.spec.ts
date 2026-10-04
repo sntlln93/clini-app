@@ -219,9 +219,9 @@ test.describe('the touch-target exemption stays narrow', () => {
     });
 });
 
+// `/reservar/$slug` sits under `_open`, which never probes the session, so no
+// anonymous 401 on GET /me is expected here.
 test.describe('booking select truncation at scaled font', () => {
-    test.use({ expectedIssues: ANONYMOUS_SESSION_PROBE_ISSUES });
-
     test('specialty select truncates a long value with an ellipsis instead of hard-cutting it', async ({
         page,
     }) => {

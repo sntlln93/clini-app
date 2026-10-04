@@ -23,6 +23,7 @@ test.describe('panel redirects an unauthenticated visitor to login', () => {
     }) => {
         await page.goto('/');
         await expect(page).toHaveURL(/\/login$/);
+        await expect(page.locator('html')).toHaveAttribute('lang', 'es-AR');
         await expect(
             page.getByRole('heading', { name: 'Iniciar sesión' }),
         ).toBeVisible();

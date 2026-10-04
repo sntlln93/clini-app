@@ -1,3 +1,4 @@
+import type { Page } from '@playwright/test';
 import { runA11yScan } from './a11y';
 import { expect, test } from './fixtures';
 import { STORAGE_STATE } from './storage-state';
@@ -23,6 +24,16 @@ test.describe('/login (anonymous)', () => {
     });
 });
 
+// `networkidle` alone can resolve before the SPA has rendered the page (the
+// guard and loaders are still settling), and axe then scans an empty shell —
+// no landmark, no heading. Wait for the page's own landmark and title first.
+async function waitForPage(page: Page, heading: string) {
+    await expect(page.getByRole('main')).toBeVisible();
+    await expect(
+        page.getByRole('heading', { level: 1, name: heading }),
+    ).toBeVisible();
+}
+
 test.describe('authenticated views', () => {
     test.use({ storageState: STORAGE_STATE });
 
@@ -31,6 +42,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Agenda');
 
         await runA11yScan(page, '/');
     });
@@ -40,6 +52,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/agenda');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Agenda');
 
         await runA11yScan(page, '/agenda');
     });
@@ -49,6 +62,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/pacientes');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Pacientes');
 
         await runA11yScan(page, '/pacientes');
     });
@@ -58,6 +72,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/profesionales');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Profesionales');
 
         await runA11yScan(page, '/profesionales');
     });
@@ -67,6 +82,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/disponibilidad');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Disponibilidad');
 
         await runA11yScan(page, '/disponibilidad');
     });
@@ -76,6 +92,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/ajustes');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Ajustes');
 
         await runA11yScan(page, '/ajustes');
     });
@@ -85,6 +102,7 @@ test.describe('authenticated views', () => {
     }) => {
         await page.goto('/agenda');
         await page.waitForLoadState('networkidle');
+        await waitForPage(page, 'Agenda');
 
         await page.getByRole('button', { name: 'Nuevo turno' }).click();
         await expect(

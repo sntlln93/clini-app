@@ -27,7 +27,7 @@ function getInitials(name: string) {
 }
 
 export function ProfileMenu() {
-    const { isMobile } = useSidebar();
+    const { isMobile, setOpenMobile } = useSidebar();
     const { data: user } = useSession();
     const logout = useLogout();
 
@@ -88,6 +88,11 @@ export function ProfileMenu() {
                         <DropdownMenuItem
                             render={<Link to="/ajustes" />}
                             nativeButton={false}
+                            onClick={() => {
+                                if (isMobile) {
+                                    setOpenMobile(false);
+                                }
+                            }}
                         >
                             <Settings className="size-4" />
                             Ajustes

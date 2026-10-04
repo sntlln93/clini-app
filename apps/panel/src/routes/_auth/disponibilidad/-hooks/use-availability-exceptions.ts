@@ -1,6 +1,7 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type {
     AvailabilityException,
     AvailabilityExceptionType,
@@ -60,7 +61,11 @@ export function useSaveAvailabilityException(membershipId: number | null) {
                       `/availability-exceptions/${payload.id}`,
                       toRequestBody(payload),
                   ),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        // Save errors render inline in the form, so only success toasts here.
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Excepción guardada'),
+            ),
     });
 
     const { message, errors } = mutation.error
@@ -76,6 +81,11 @@ export function useDeleteAvailabilityException(membershipId: number | null) {
     return useMutation({
         mutationFn: (id: number) =>
             api.delete(`/availability-exceptions/${id}`),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Excepción eliminada'),
+            ),
+        onError: (error) =>
+            notifyError(error, 'No se pudo eliminar la excepción'),
     });
 }

@@ -1,6 +1,7 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import type { ProfessionalService } from '@/types/professional';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
@@ -45,7 +46,11 @@ export function useAssignProfessionalService(membershipId: number) {
                 `/memberships/${membershipId}/services`,
                 toRequestBody(payload),
             ),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        // Errors render inline next to the service, so only success toasts here.
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Servicio asignado'),
+            ),
     });
 
     const { message, errors } = mutation.error
@@ -64,7 +69,10 @@ export function useUpdateProfessionalService(membershipId: number) {
                 `/memberships/${membershipId}/services/${payload.serviceId}`,
                 toRequestBody(payload),
             ),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Servicio actualizado'),
+            ),
     });
 
     const { message, errors } = mutation.error
@@ -80,6 +88,10 @@ export function useRemoveProfessionalService(membershipId: number) {
     return useMutation({
         mutationFn: (serviceId: number) =>
             api.delete(`/memberships/${membershipId}/services/${serviceId}`),
-        onSuccess: () => refreshPageData(queryKey(membershipId)),
+        onSuccess: () =>
+            refreshPageData(queryKey(membershipId)).then(() =>
+                notifySuccess('Servicio quitado'),
+            ),
+        onError: (error) => notifyError(error, 'No se pudo quitar el servicio'),
     });
 }

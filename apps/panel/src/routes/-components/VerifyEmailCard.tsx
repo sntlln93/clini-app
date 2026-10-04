@@ -1,7 +1,9 @@
-import { ListSkeleton } from '@/components/ListSkeleton';
+import { CardErrorState } from '@/components/CardErrorState';
+import { CardSkeleton } from '@/components/CardSkeleton';
 import { Button } from '@/components/ui/button';
 import { mapToAppError } from '@/lib/api-errors';
 import { messageForAppError } from '@/lib/error-codes';
+import { Link } from '@tanstack/react-router';
 import {
     useEmailVerificationInfo,
     useVerifyEmail,
@@ -24,14 +26,25 @@ export function VerifyEmailCard({ token }: VerifyEmailCardProps) {
     } = useVerifyEmail(token);
 
     if (isPending) {
-        return <ListSkeleton />;
+        return <CardSkeleton />;
     }
 
+    // The visitor may or may not be signed in here, so the way out is `/`: the `_auth` guard sends an anonymous one on to login.
     if (isError || !data) {
         return (
-            <p className="text-sm text-destructive">
-                {infoErrorMessage(error)}
-            </p>
+            <CardErrorState
+                title="Enlace no válido"
+                message={infoErrorMessage(error)}
+                action={
+                    <Button
+                        className="w-full"
+                        nativeButton={false}
+                        render={<Link to="/" />}
+                    >
+                        Ir a Clini
+                    </Button>
+                }
+            />
         );
     }
 
