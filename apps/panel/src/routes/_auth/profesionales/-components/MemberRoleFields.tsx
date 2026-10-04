@@ -1,3 +1,5 @@
+import { TriangleAlert } from 'lucide-react';
+import { useId, type ReactNode } from 'react';
 import type { Control, FieldPath, FieldValues } from 'react-hook-form';
 
 import { Checkbox } from '@/components/ui/checkbox';
@@ -17,11 +19,37 @@ type MemberFieldProps<TFieldValues extends FieldValues> = {
     name: FieldPath<TFieldValues>;
 };
 
+type OptionRowProps = {
+    descriptionId: string;
+    description: string;
+    children: ReactNode;
+};
+
+// The description sits outside the <label> and is linked via `aria-describedby`, so the control's accessible name stays the option label alone.
+function OptionRow({ descriptionId, description, children }: OptionRowProps) {
+    return (
+        <div className="space-y-0.5">
+            <label className="flex items-center gap-2 text-sm">
+                {children}
+            </label>
+            <p
+                id={descriptionId}
+                className="pl-6 text-xs text-muted-foreground"
+            >
+                {description}
+            </p>
+        </div>
+    );
+}
+
 // `roles` is multi-selection, so it stays a Checkbox group despite the <5-options RadioGroup rule (that rule applies only to single-choice fields).
 export function MemberRoleFields<TFieldValues extends FieldValues>({
     control,
     name,
-}: MemberFieldProps<TFieldValues>) {
+    warnOnOwner = false,
+}: MemberFieldProps<TFieldValues> & { warnOnOwner?: boolean }) {
+    const idPrefix = useId();
+
     return (
         <FormField
             control={control}
@@ -29,38 +57,50 @@ export function MemberRoleFields<TFieldValues extends FieldValues>({
             render={({ field }) => {
                 const selected = (field.value ?? []) as MembershipRole[];
 
+                function toggle(role: MembershipRole, checked: boolean) {
+                    field.onChange(
+                        checked
+                            ? [...selected, role]
+                            : selected.filter((value) => value !== role),
+                    );
+                }
+
                 return (
                     <FormItem>
                         <FormLabel>Roles</FormLabel>
-                        <FormControl render={<div className="space-y-1.5" />}>
+                        <FormControl render={<div className="space-y-2" />}>
                             {ROLE_OPTIONS.map((option) => (
-                                <label
+                                <OptionRow
                                     key={option.value}
-                                    className="flex items-center gap-2 text-sm"
+                                    descriptionId={`${idPrefix}-${option.value}`}
+                                    description={option.description}
                                 >
                                     <Checkbox
+                                        aria-describedby={`${idPrefix}-${option.value}`}
                                         checked={selected.includes(
                                             option.value,
                                         )}
                                         onCheckedChange={(checked) =>
-                                            field.onChange(
-                                                checked === true
-                                                    ? [
-                                                          ...selected,
-                                                          option.value,
-                                                      ]
-                                                    : selected.filter(
-                                                          (role) =>
-                                                              role !==
-                                                              option.value,
-                                                      ),
+                                            toggle(
+                                                option.value,
+                                                checked === true,
                                             )
                                         }
                                     />
                                     {option.label}
-                                </label>
+                                </OptionRow>
                             ))}
                         </FormControl>
+                        {warnOnOwner && selected.includes('owner') && (
+                            <p className="flex items-start gap-2 text-sm text-muted-foreground">
+                                <TriangleAlert
+                                    className="mt-0.5 size-4 shrink-0"
+                                    aria-hidden
+                                />
+                                Como Propietario va a tener control total del
+                                consultorio, incluida la suscripción.
+                            </p>
+                        )}
                         <FormMessage />
                     </FormItem>
                 );
@@ -74,6 +114,8 @@ export function MemberStatusField<TFieldValues extends FieldValues>({
     control,
     name,
 }: MemberFieldProps<TFieldValues>) {
+    const idPrefix = useId();
+
     return (
         <FormField
             control={control}
@@ -91,13 +133,17 @@ export function MemberStatusField<TFieldValues extends FieldValues>({
                         }
                     >
                         {STATUS_OPTIONS.map((option) => (
-                            <label
+                            <OptionRow
                                 key={option.value}
-                                className="flex items-center gap-2 text-sm"
+                                descriptionId={`${idPrefix}-${option.value}`}
+                                description={option.description}
                             >
-                                <RadioGroupItem value={option.value} />
+                                <RadioGroupItem
+                                    value={option.value}
+                                    aria-describedby={`${idPrefix}-${option.value}`}
+                                />
                                 {option.label}
-                            </label>
+                            </OptionRow>
                         ))}
                     </FormControl>
                     <FormMessage />

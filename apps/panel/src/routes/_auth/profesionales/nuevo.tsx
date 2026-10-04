@@ -10,7 +10,7 @@ export const Route = createFileRoute('/_auth/profesionales/nuevo')({
 function NuevoProfesionalPage() {
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Invitar profesional</h1>
+            <h1 className="text-2xl font-semibold">Invitar miembro</h1>
             <MemberInviteForm />
         </div>
     );

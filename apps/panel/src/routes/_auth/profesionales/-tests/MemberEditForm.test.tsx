@@ -9,7 +9,13 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberEditForm } from '../-components/MemberEditForm';
 
@@ -195,7 +201,7 @@ describe('MemberEditForm', () => {
             await screen.findByRole('button', { name: 'Dar de baja' }),
         );
 
-        await screen.findByRole('button', { name: 'Confirmar' });
+        await screen.findByRole('alertdialog');
         expect(api.delete).not.toHaveBeenCalled();
     });
 
@@ -219,14 +225,48 @@ describe('MemberEditForm', () => {
         fireEvent.click(
             await screen.findByRole('button', { name: 'Dar de baja' }),
         );
+        const dialog = await screen.findByRole('alertdialog');
         fireEvent.click(
-            await screen.findByRole('button', { name: 'Confirmar' }),
+            within(dialog).getByRole('button', { name: 'Dar de baja' }),
         );
 
         await waitFor(() =>
             expect(api.delete).toHaveBeenCalledWith('/memberships/5'),
         );
         await screen.findByText('Profesionales');
+    });
+
+    it('keeps «Dar de baja» out of the save/cancel row, inside a danger zone', async () => {
+        renderMemberEditForm();
+        const save = await screen.findByRole('button', {
+            name: 'Guardar cambios',
+        });
+
+        const dangerZone = screen.getByRole('region', {
+            name: 'Zona de peligro',
+        });
+        expect(
+            within(dangerZone).getByRole('button', { name: 'Dar de baja' }),
+        ).not.toBeNull();
+        expect(save.parentElement?.textContent).toBe('Guardar cambiosCancelar');
+    });
+
+    it('describes each role and status without changing its accessible name', async () => {
+        renderMemberEditForm();
+        await screen.findByRole('button', { name: 'Guardar cambios' });
+
+        const staff = screen.getByRole('checkbox', { name: 'Personal' });
+        const describedBy = staff.getAttribute('aria-describedby') ?? '';
+        expect(document.getElementById(describedBy)?.textContent).toMatch(
+            /^Recepción:/,
+        );
+
+        const suspended = screen.getByRole('radio', { name: 'Suspendido' });
+        expect(
+            document.getElementById(
+                suspended.getAttribute('aria-describedby') ?? '',
+            )?.textContent,
+        ).toBe('Sin acceso por una decisión administrativa.');
     });
 
     it('shows a mutation error message at the top of the form', async () => {

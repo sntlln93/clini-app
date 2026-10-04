@@ -23,7 +23,12 @@ import {
 const DEFAULT_VALUES: InviteMemberFormValues = { email: '', roles: [] };
 
 export function MemberInviteForm() {
-    const { mutateAsync, isSuccess } = useInviteMember();
+    const {
+        mutateAsync,
+        isSuccess,
+        variables,
+        reset: resetMutation,
+    } = useInviteMember();
 
     const form = useForm<InviteMemberFormValues>({
         resolver: zodResolver(inviteMemberSchema),
@@ -41,19 +46,35 @@ export function MemberInviteForm() {
         }
     }
 
+    function inviteAnother() {
+        form.reset(DEFAULT_VALUES);
+        resetMutation();
+    }
+
     if (isSuccess) {
         return (
             <div className="max-w-xl space-y-4">
-                <p className="text-sm text-foreground">
-                    Invitación enviada correctamente.
+                <p className="text-sm text-foreground" role="status">
+                    Le enviamos la invitación a{' '}
+                    <span className="font-medium">{variables?.email}</span>.
+                    Cuando la acepte, va a aparecer en el listado.
                 </p>
-                <Button
-                    type="button"
-                    render={<Link to="/profesionales" />}
-                    nativeButton={false}
-                >
-                    Volver
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={inviteAnother}
+                    >
+                        Invitar a otra persona
+                    </Button>
+                    <Button
+                        type="button"
+                        render={<Link to="/profesionales" />}
+                        nativeButton={false}
+                    >
+                        Volver al listado
+                    </Button>
+                </div>
             </div>
         );
     }
@@ -84,7 +105,11 @@ export function MemberInviteForm() {
                     )}
                 />
 
-                <MemberRoleFields control={form.control} name="roles" />
+                <MemberRoleFields
+                    control={form.control}
+                    name="roles"
+                    warnOnOwner
+                />
 
                 <div className="flex gap-2">
                     <Button
