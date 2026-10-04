@@ -80,10 +80,9 @@ export function ServiceAssignmentFields({
                 </Label>
                 <Input
                     id={priceInputId}
-                    type="number"
-                    min={0}
-                    step="0.01"
+                    type="text"
                     inputMode="decimal"
+                    placeholder="15.000,00"
                     disabled={!canManage}
                     className="w-32"
                     value={price}
@@ -100,7 +99,7 @@ export function ServiceAssignmentFields({
                     }
                 >
                     {!priceValid
-                        ? 'El precio no puede ser negativo'
+                        ? 'Ingresá un monto válido, por ejemplo 15.000 o 15.000,50'
                         : priceCents === null
                           ? 'Sin precio'
                           : formatPesos(priceCents)}

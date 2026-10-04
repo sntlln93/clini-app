@@ -120,6 +120,41 @@ describe('ProfessionalServiceItem', () => {
         screen.getByText('$ 15.000,00');
     });
 
+    it('reads an es-AR amount with thousands dots and comma decimals', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        renderItem(ASSIGNMENT);
+
+        fireEvent.change(screen.getByLabelText('Precio ($)'), {
+            target: { value: '15.000,50' },
+        });
+        screen.getByText('$ 15.000,50');
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith(
+                '/memberships/3/services/1',
+                expect.objectContaining({ price_cents: 1500050 }),
+            ),
+        );
+    });
+
+    it('flags an invalid price instead of treating it as no price', () => {
+        renderItem(ASSIGNMENT);
+
+        fireEvent.change(screen.getByLabelText('Precio ($)'), {
+            target: { value: '15,000.50' },
+        });
+
+        screen.getByText(
+            'Ingresá un monto válido, por ejemplo 15.000 o 15.000,50',
+        );
+        expect(screen.queryByText('Sin precio')).toBeNull();
+        expect(screen.getByRole('button', { name: 'Guardar' })).toHaveProperty(
+            'disabled',
+            true,
+        );
+    });
+
     it('sends an emptied price as null', async () => {
         vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
         renderItem(ASSIGNMENT);
@@ -143,6 +178,7 @@ describe('ProfessionalServiceItem', () => {
         ['a zero duration', /Duración/, '0'],
         ['a fractional duration', /Duración/, '1.5'],
         ['a negative price', /Precio/, '-10'],
+        ['an ambiguous price', /Precio/, '15,000.50'],
     ])('disables Guardar for %s', (_label, field, value) => {
         renderItem(ASSIGNMENT);
         const save = screen.getByRole('button', { name: 'Guardar' });
@@ -206,9 +242,7 @@ describe('ProfessionalServiceItem', () => {
         expect(
             screen.getByRole('spinbutton', { name: /Duración/ }),
         ).not.toBeNull();
-        expect(
-            screen.getByRole('spinbutton', { name: /Precio/ }),
-        ).not.toBeNull();
+        expect(screen.getByRole('textbox', { name: /Precio/ })).not.toBeNull();
     });
 
     it('keeps distinct field ids across two rows, so each label maps to its own checkbox', () => {
