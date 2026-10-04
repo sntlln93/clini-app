@@ -2,12 +2,14 @@ import type { Control } from 'react-hook-form';
 
 import {
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PASSWORD_HINT } from '@/lib/password';
 import type { RegisterFormValues } from './RegisterForm';
 
 type RegisterFormFieldsProps = {
@@ -82,6 +84,7 @@ export function RegisterFormFields({ control }: RegisterFormFieldsProps) {
                                 />
                             }
                         />
+                        <FormDescription>{PASSWORD_HINT}</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
