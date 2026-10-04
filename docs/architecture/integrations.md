@@ -19,6 +19,10 @@ Evaluado como canal complementario, no reemplazo del email. Casos de uso previst
 - **Profesionales**: nuevo turno, cancelación, confirmación, próxima consulta, pago recibido, vencimiento de suscripción.
 - **Pacientes**: confirmación de turno, recordatorios, reprogramaciones, cancelaciones.
 
+## Mercado Pago
+
+Suscripción SaaS por organización (cobro recurrente, webhook, período de gracia, modo solo lectura): ver [subscriptions.md](subscriptions.md). Los avisos de gracia/vencimiento salen hoy solo por mail; Web Push queda como seguimiento.
+
 ## SMS
 
 Se evaluó un sistema propio sobre dispositivos Android (técnicamente viable). Conclusión actual: no debería ser un pilar del sistema — depende de hardware y operadoras, incrementa complejidad operativa, escala peor que las alternativas. Si se implementa, sería como canal opcional, no core.
