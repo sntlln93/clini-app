@@ -21,6 +21,12 @@ export function useSavePatient(patientId?: number) {
                       .then((response) => response.data.data),
         onSuccess: (saved) => {
             queryClient.invalidateQueries({ queryKey: ['patients'] });
+            // List pages are read only by the list loader's `ensureQueryData`, which
+            // serves an invalidated entry as-is; dropping them makes going back refetch.
+            queryClient.removeQueries({
+                queryKey: ['patients'],
+                predicate: (query) => typeof query.queryKey[1] === 'object',
+            });
             // The save response omits `insurance_provider`, so it can't seed the detail cache;
             // dropping the entry makes the detail loader's `ensureQueryData` fetch it fresh.
             queryClient.removeQueries({
