@@ -129,4 +129,50 @@ describe('/reservar/$slug beforeLoad default slot date', () => {
             }),
         ).resolves.toBeUndefined();
     });
+
+    it('moves a date past the booking window back to today', async () => {
+        mockOrganization();
+
+        await expect(
+            beforeLoad({
+                context: { queryClient: new QueryClient() },
+                params: { slug: 'consultorio-salud' },
+                search: { professional: 10, service: 100, date: '2026-12-04' },
+            }),
+        ).rejects.toMatchObject({
+            options: { search: { date: '2026-10-04' } },
+        });
+    });
+
+    it('keeps the last day of the booking window', async () => {
+        mockOrganization();
+
+        await expect(
+            beforeLoad({
+                context: { queryClient: new QueryClient() },
+                params: { slug: 'consultorio-salud' },
+                search: { professional: 10, service: 100, date: '2026-12-03' },
+            }),
+        ).resolves.toBeUndefined();
+    });
+});
+
+describe('/reservar/$slug validateSearch date', () => {
+    const validateSearch = Route.options.validateSearch as (
+        search: Record<string, unknown>,
+    ) => BookingSearch;
+
+    it('keeps a YYYY-MM-DD date', () => {
+        expect(validateSearch({ date: '2026-10-04' }).date).toBe('2026-10-04');
+    });
+
+    it.each(['foo', '2026-1-4', '04/10/2026', '2026-10-04T10:00'])(
+        'drops the malformed date %s instead of failing the route',
+        (date) => {
+            expect(validateSearch({ professional: '10', date })).toMatchObject({
+                professional: 10,
+                date: undefined,
+            });
+        },
+    );
 });

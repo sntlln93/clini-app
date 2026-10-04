@@ -1,10 +1,11 @@
 import { CardSkeleton } from '@/components/CardSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
-import { todayInTimeZone } from '@/lib/iso-date';
+import { addDaysToIsoDate, todayInTimeZone } from '@/lib/iso-date';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 import { BookingWizard } from './-components/booking/BookingWizard';
+import { BOOKING_WINDOW_DAYS } from './-components/booking/booking-window';
 import {
     bookingOrganizationQueryOptions,
     bookingSlotsQueryOptions,
@@ -14,7 +15,13 @@ const bookingSearchSchema = z.object({
     specialty: z.coerce.number().optional(),
     professional: z.coerce.number().optional(),
     service: z.coerce.number().optional(),
-    date: z.string().optional(),
+    // A malformed date from a hand-edited link is dropped, so beforeLoad
+    // replaces it with today instead of sending it to the API.
+    date: z
+        .string()
+        .regex(/^\d{4}-\d{2}-\d{2}$/)
+        .optional()
+        .catch(undefined),
 });
 
 export const Route = createFileRoute('/_open/reservar/$slug')({
@@ -39,12 +46,15 @@ export const Route = createFileRoute('/_open/reservar/$slug')({
             });
         }
 
-        // The slot step opens on the practice's today, and a stale past day from an old link snaps forward to it.
+        // The slot step opens on the practice's today, and a day outside the booking window (a stale or hand-edited link) snaps back to it.
         const today = todayInTimeZone(organization.organization.timezone);
+        const lastDay = addDaysToIsoDate(today, BOOKING_WINDOW_DAYS);
         if (
             search.professional !== undefined &&
             search.service !== undefined &&
-            (search.date === undefined || search.date < today)
+            (search.date === undefined ||
+                search.date < today ||
+                search.date > lastDay)
         ) {
             throw redirect({
                 to: '/reservar/$slug',

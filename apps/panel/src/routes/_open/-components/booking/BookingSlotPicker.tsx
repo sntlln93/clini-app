@@ -5,9 +5,7 @@ import type { AvailableSlot } from '@/types/booking';
 import type { ReactNode } from 'react';
 import { BookingDayNavigator } from './BookingDayNavigator';
 import { formatSlotTime } from './booking-format';
-
-/** Fixed 60-day booking window, mirroring `ListAvailableSlotsAction::BOOKING_WINDOW_DAYS`. */
-const BOOKING_WINDOW_DAYS = 60;
+import { BOOKING_WINDOW_DAYS } from './booking-window';
 
 type BookingSlotPickerProps = {
     timezone: string;
