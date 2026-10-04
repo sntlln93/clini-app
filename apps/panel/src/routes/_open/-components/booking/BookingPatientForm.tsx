@@ -3,11 +3,17 @@ import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { AvailableSlot, BookingConfirmation } from '@/types/booking';
 import { zodResolver } from '@hookform/resolvers/zod';
+import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
-import { useConfirmBooking } from '../../-hooks/use-confirm-booking';
+import {
+    isSlotUnavailableError,
+    useConfirmBooking,
+} from '../../-hooks/use-confirm-booking';
 import { BookingPatientFormFields } from './BookingPatientFormFields';
 import {
     bookingPatientSchema,
+    EMPTY_PATIENT_DRAFT,
+    type BookingPatientDraft,
     type BookingPatientFormValues,
 } from './booking-patient-schema';
 
@@ -16,7 +22,11 @@ type BookingPatientFormProps = {
     membershipId: number;
     serviceId: number;
     slot: AvailableSlot;
-    onBack: () => void;
+    summary: ReactNode;
+    /** What the patient typed last time, so going back to the grid never loses it. */
+    defaultValues?: BookingPatientDraft;
+    onBack: (draft: BookingPatientDraft) => void;
+    onSlotUnavailable: (draft: BookingPatientDraft) => void;
     onConfirmed: (confirmation: BookingConfirmation) => void;
 };
 
@@ -25,20 +35,15 @@ export function BookingPatientForm({
     membershipId,
     serviceId,
     slot,
+    summary,
+    defaultValues = EMPTY_PATIENT_DRAFT,
     onBack,
+    onSlotUnavailable,
     onConfirmed,
 }: BookingPatientFormProps) {
     const form = useForm<BookingPatientFormValues>({
         resolver: zodResolver(bookingPatientSchema),
-        defaultValues: {
-            patient: {
-                name: '',
-                document_type: 'dni',
-                document_number: '',
-                email: '',
-                phone: '',
-            },
-        },
+        defaultValues: { patient: defaultValues },
     });
     const { mutateAsync } = useConfirmBooking(slug);
 
@@ -52,6 +57,12 @@ export function BookingPatientForm({
             });
             onConfirmed(confirmation);
         } catch (error) {
+            // The hook already refreshed the slots by now, so the wizard can send the patient straight back to an up-to-date grid.
+            if (isSlotUnavailableError(error)) {
+                onSlotUnavailable(values.patient);
+                return;
+            }
+
             applyFormErrors(form, extractFormErrors(error), {
                 'patient.name': 'patient.name',
                 'patient.document_type': 'patient.document_type',
@@ -71,11 +82,13 @@ export function BookingPatientForm({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        onClick={onBack}
+                        onClick={() => onBack(form.getValues().patient)}
                     >
                         Volver
                     </Button>
                 </div>
+
+                {summary}
 
                 {form.formState.errors.root && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

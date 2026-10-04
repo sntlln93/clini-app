@@ -1,53 +1,43 @@
+import { Alert, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { addDaysToIsoDate, todayInTimeZone } from '@/lib/iso-date';
 import type { AvailableSlot } from '@/types/booking';
+import type { ReactNode } from 'react';
+import { BookingDayNavigator } from './BookingDayNavigator';
+import { formatSlotTime } from './booking-format';
 
 /** Fixed 60-day booking window, mirroring `ListAvailableSlotsAction::BOOKING_WINDOW_DAYS`. */
 const BOOKING_WINDOW_DAYS = 60;
-
-function toDateInputValue(date: Date): string {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-function formatSlotTime(isoInstant: string, timeZone: string): string {
-    return new Intl.DateTimeFormat('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone,
-    }).format(new Date(isoInstant));
-}
 
 type BookingSlotPickerProps = {
     timezone: string;
     date?: string;
     slots: AvailableSlot[];
+    summary: ReactNode;
+    /** Shown above the grid, e.g. after the chosen time was taken by someone else. */
+    notice?: string;
     onDateChange: (date: string) => void;
     onSlotSelect: (slot: AvailableSlot) => void;
     onBack: () => void;
 };
 
 /**
- * Uses a native `<input type="date">` since no `calendar` primitive is
- * installed. The parent route's loader does the fetching; this component
- * only reports the date upward.
+ * The window is computed in the practice's zone, the same one the slots
+ * use. The parent route's loader does the fetching; this component only
+ * reports the date upward.
  */
 export function BookingSlotPicker({
     timezone,
     date,
     slots,
+    summary,
+    notice,
     onDateChange,
     onSlotSelect,
     onBack,
 }: BookingSlotPickerProps) {
-    const today = new Date();
-    const minDate = toDateInputValue(today);
-    const maxDate = toDateInputValue(
-        new Date(today.getTime() + BOOKING_WINDOW_DAYS * 24 * 60 * 60 * 1000),
-    );
+    const minDate = todayInTimeZone(timezone);
+    const maxDate = addDaysToIsoDate(minDate, BOOKING_WINDOW_DAYS);
 
     return (
         <div className="space-y-4">
@@ -58,17 +48,20 @@ export function BookingSlotPicker({
                 </Button>
             </div>
 
-            <div className="space-y-1.5">
-                <Label htmlFor="booking-date">Día</Label>
-                <Input
-                    id="booking-date"
-                    type="date"
-                    value={date ?? ''}
-                    min={minDate}
-                    max={maxDate}
-                    onChange={(event) => onDateChange(event.target.value)}
-                />
-            </div>
+            {summary}
+
+            {notice && (
+                <Alert>
+                    <AlertTitle>{notice}</AlertTitle>
+                </Alert>
+            )}
+
+            <BookingDayNavigator
+                date={date}
+                minDate={minDate}
+                maxDate={maxDate}
+                onDateChange={onDateChange}
+            />
 
             {!date && (
                 <p className="text-sm text-muted-foreground">
@@ -77,9 +70,23 @@ export function BookingSlotPicker({
             )}
 
             {date && slots.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    No hay horarios disponibles para este día.
-                </p>
+                <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">
+                        No hay horarios disponibles para este día.
+                    </p>
+                    {date < maxDate && (
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                                onDateChange(addDaysToIsoDate(date, 1))
+                            }
+                        >
+                            Ver el día siguiente
+                        </Button>
+                    )}
+                </div>
             )}
 
             {date && slots.length > 0 && (

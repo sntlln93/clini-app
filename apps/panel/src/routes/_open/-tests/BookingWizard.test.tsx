@@ -165,11 +165,11 @@ describe('BookingWizard selection cascade', () => {
         fireEvent.click(serviceCombobox);
         expect(
             await screen.findByRole('option', {
-                name: 'Consulta cardiológica',
+                name: /^Consulta cardiológica/,
             }),
         ).not.toBeNull();
         expect(
-            screen.queryByRole('option', { name: 'Consulta clínica' }),
+            screen.queryByRole('option', { name: /^Consulta clínica/ }),
         ).toBeNull();
     });
 
@@ -184,10 +184,10 @@ describe('BookingWizard selection cascade', () => {
         const serviceCombobox = await findServiceCombobox();
         fireEvent.click(serviceCombobox);
         expect(
-            await screen.findByRole('option', { name: 'Consulta clínica' }),
+            await screen.findByRole('option', { name: /^Consulta clínica/ }),
         ).not.toBeNull();
         expect(
-            screen.queryByRole('option', { name: 'Consulta cardiológica' }),
+            screen.queryByRole('option', { name: /^Consulta cardiológica/ }),
         ).toBeNull();
     });
 
@@ -223,6 +223,61 @@ describe('BookingWizard selection cascade', () => {
 
         expect(
             screen.getByRole('combobox', { name: 'Prestación' }),
+        ).not.toBeNull();
+    });
+
+    it("labels each service with its duration and price, e.g. 'Consulta clínica · 20 min · $ 40,00'", async () => {
+        renderWizard();
+
+        const professionalCombobox = (
+            await screen.findAllByRole('combobox')
+        )[1];
+        await selectComboboxOption(professionalCombobox, 'Dra. Dos');
+
+        fireEvent.click(await findServiceCombobox());
+        expect(
+            await screen.findByRole('option', {
+                name: 'Consulta clínica · 20 min · $\u00a040,00',
+            }),
+        ).not.toBeNull();
+    });
+
+    it("goes back to every professional after choosing 'Todas las especialidades'", async () => {
+        renderWizard();
+
+        const [specialtyCombobox, professionalCombobox] =
+            await screen.findAllByRole('combobox');
+        await selectComboboxOption(specialtyCombobox, 'Cardiología');
+        await selectComboboxOption(
+            specialtyCombobox,
+            'Todas las especialidades',
+        );
+
+        fireEvent.click(professionalCombobox);
+        expect(
+            await screen.findByRole('option', { name: 'Dra. Dos' }),
+        ).not.toBeNull();
+        expect(screen.getByRole('option', { name: 'Dr. Uno' })).not.toBeNull();
+    });
+
+    it('shows the practice name and step 1 of 3 on the selection step', async () => {
+        renderWizard();
+
+        await screen.findAllByRole('combobox');
+
+        expect(screen.getByText(ORGANIZATION.name)).not.toBeNull();
+        expect(screen.getByText('Paso 1 de 3')).not.toBeNull();
+    });
+
+    it('shows the practice, step 2 of 3 and the chosen professional and service on the slot step', async () => {
+        renderWizard({ professional: 10, service: 100 });
+
+        await screen.findByRole('heading', { name: 'Elegí día y horario' });
+
+        expect(screen.getByText(ORGANIZATION.name)).not.toBeNull();
+        expect(screen.getByText('Paso 2 de 3')).not.toBeNull();
+        expect(
+            screen.getByText('Dr. Uno · Consulta cardiológica (30 min)'),
         ).not.toBeNull();
     });
 

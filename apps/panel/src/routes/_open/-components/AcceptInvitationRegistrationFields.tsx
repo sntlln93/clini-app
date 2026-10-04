@@ -2,12 +2,14 @@ import type { Control } from 'react-hook-form';
 
 import {
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { PASSWORD_HINT } from '@/lib/password';
 import type { AcceptInvitationFormValues } from './AcceptInvitationForm';
 
 type AcceptInvitationRegistrationFieldsProps = {
@@ -48,6 +50,7 @@ export function AcceptInvitationRegistrationFields({
                                 />
                             }
                         />
+                        <FormDescription>{PASSWORD_HINT}</FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}

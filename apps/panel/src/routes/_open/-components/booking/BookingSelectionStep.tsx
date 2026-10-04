@@ -1,14 +1,7 @@
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import type { BookingProfessional, BookingSpecialty } from '@/types/booking';
-import type { ComponentProps } from 'react';
 import { useId, useMemo } from 'react';
+import { BookingSelectField } from './BookingSelectField';
+import { professionalLabel, serviceOptionLabel } from './booking-format';
 
 type SelectionValues = {
     specialty?: number;
@@ -16,49 +9,14 @@ type SelectionValues = {
     service?: number;
 };
 
-type SelectableItem = { value: string; label: string };
-
-type BookingSelectFieldProps = {
-    id: string;
-    label: string;
-    items: SelectableItem[];
-    value?: string;
-    placeholder: string;
-    onValueChange: NonNullable<ComponentProps<typeof Select>['onValueChange']>;
-};
-
-function BookingSelectField({
-    id,
-    label,
-    items,
-    value,
-    placeholder,
-    onValueChange,
-}: BookingSelectFieldProps) {
-    return (
-        <div className="space-y-1.5">
-            <Label htmlFor={id}>{label}</Label>
-            <Select items={items} value={value} onValueChange={onValueChange}>
-                <SelectTrigger id={id} className="w-full">
-                    <SelectValue placeholder={placeholder} />
-                </SelectTrigger>
-                <SelectContent>
-                    {items.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                            {item.label}
-                        </SelectItem>
-                    ))}
-                </SelectContent>
-            </Select>
-        </div>
-    );
-}
-
 type BookingSelectionStepProps = {
     professionals: BookingProfessional[];
     selection: SelectionValues;
     onChange: (next: SelectionValues) => void;
 };
+
+/** Non-empty sentinel for "no specialty filter": an empty string breaks the `items=` label lookup and base-ui's value handling. */
+const ALL_SPECIALTIES = 'all';
 
 function uniqueSpecialties(
     professionals: BookingProfessional[],
@@ -70,6 +28,10 @@ function uniqueSpecialties(
         }
     }
     return [...byId.values()];
+}
+
+function EmptyMessage({ children }: { children: string }) {
+    return <p className="text-sm text-muted-foreground">{children}</p>;
 }
 
 /**
@@ -89,6 +51,7 @@ export function BookingSelectionStep({
         [professionals],
     );
 
+    // Never empty while a specialty is selected: specialties come from the professionals themselves.
     const filteredProfessionals = useMemo(
         () =>
             selection.specialty
@@ -106,18 +69,20 @@ export function BookingSelectionStep({
     );
     const services = selectedProfessional?.services ?? [];
 
-    const specialtyItems = specialties.map((specialty) => ({
-        value: String(specialty.id),
-        label: specialty.name,
-    }));
+    const specialtyItems = [
+        { value: ALL_SPECIALTIES, label: 'Todas las especialidades' },
+        ...specialties.map((specialty) => ({
+            value: String(specialty.id),
+            label: specialty.name,
+        })),
+    ];
     const professionalItems = filteredProfessionals.map((professional) => ({
         value: String(professional.membership_id),
-        label:
-            professional.name ?? `Profesional #${professional.membership_id}`,
+        label: professionalLabel(professional),
     }));
     const serviceItems = services.map((service) => ({
         value: String(service.id),
-        label: service.name ?? `Prestación #${service.id}`,
+        label: serviceOptionLabel(service),
     }));
 
     return (
@@ -129,6 +94,12 @@ export function BookingSelectionStep({
                 </p>
             </div>
 
+            {professionals.length === 0 && (
+                <EmptyMessage>
+                    Este consultorio todavía no tiene turnos disponibles online.
+                </EmptyMessage>
+            )}
+
             {specialties.length > 0 && (
                 <BookingSelectField
                     id={specialtyTriggerId}
@@ -137,12 +108,15 @@ export function BookingSelectionStep({
                     value={
                         selection.specialty
                             ? String(selection.specialty)
-                            : undefined
+                            : ALL_SPECIALTIES
                     }
                     placeholder="Todas las especialidades"
                     onValueChange={(value) =>
                         onChange({
-                            specialty: Number(value),
+                            specialty:
+                                value === ALL_SPECIALTIES || value === null
+                                    ? undefined
+                                    : Number(value),
                             professional: undefined,
                             service: undefined,
                         })
@@ -150,26 +124,34 @@ export function BookingSelectionStep({
                 />
             )}
 
-            <BookingSelectField
-                id={professionalTriggerId}
-                label="Profesional"
-                items={professionalItems}
-                value={
-                    selection.professional
-                        ? String(selection.professional)
-                        : undefined
-                }
-                placeholder="Seleccioná un profesional"
-                onValueChange={(value) =>
-                    onChange({
-                        ...selection,
-                        professional: Number(value),
-                        service: undefined,
-                    })
-                }
-            />
+            {professionals.length > 0 && (
+                <BookingSelectField
+                    id={professionalTriggerId}
+                    label="Profesional"
+                    items={professionalItems}
+                    value={
+                        selection.professional
+                            ? String(selection.professional)
+                            : undefined
+                    }
+                    placeholder="Seleccioná un profesional"
+                    onValueChange={(value) =>
+                        onChange({
+                            ...selection,
+                            professional: Number(value),
+                            service: undefined,
+                        })
+                    }
+                />
+            )}
 
-            {selectedProfessional && (
+            {selectedProfessional && services.length === 0 && (
+                <EmptyMessage>
+                    Este profesional no tiene prestaciones para reservar online.
+                </EmptyMessage>
+            )}
+
+            {selectedProfessional && services.length > 0 && (
                 <BookingSelectField
                     id={serviceTriggerId}
                     label="Prestación"

@@ -8,7 +8,7 @@ import { useRouter } from '@tanstack/react-router';
  * `status: 'error'`. `retry` awaits it and only calls `reset()` once the reload has actually settled and the route is no longer in error; if it
  * failed again, the boundary stays mounted so the new error is caught here instead of unmounting the app with nothing above it to catch it.
  * Never re-throws: no parent boundary exists above it, so re-throwing would just yield a blank screen.
- * `__root`/`_auth`/`_public` deliberately have no `errorComponent` of their own — see ADR 0009.
+ * `__root`/`_auth`/`_public`/`_open` deliberately have no `errorComponent` of their own — see ADR 0009.
  */
 export function RouteErrorState({ error, reset }: ErrorComponentProps) {
     const router = useRouter();

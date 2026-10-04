@@ -1,13 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod';
+import { Link } from '@tanstack/react-router';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
-import { ListSkeleton } from '@/components/ListSkeleton';
+import { CardErrorState } from '@/components/CardErrorState';
+import { CardSkeleton } from '@/components/CardSkeleton';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { mapToAppError } from '@/lib/api-errors';
 import { messageForAppError } from '@/lib/error-codes';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
+import {
+    PASSWORD_MIN_LENGTH,
+    PASSWORD_TOO_SHORT_MESSAGE,
+} from '@/lib/password';
 import {
     useAcceptInvitation,
     useInvitationInfo,
@@ -36,7 +42,10 @@ function buildSchema(requiresRegistration: boolean) {
     return z
         .object({
             name: z.string().min(1, 'El nombre es obligatorio.'),
-            password: z.string().min(1, 'La contraseña es obligatoria.'),
+            password: z
+                .string()
+                .min(1, 'La contraseña es obligatoria.')
+                .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
             password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
         })
         .refine((v) => v.password === v.password_confirmation, {
@@ -47,9 +56,21 @@ function buildSchema(requiresRegistration: boolean) {
 
 type AcceptInvitationFormProps = {
     token: string;
+    /** The visitor's current session email, or `null` when nobody is signed in. */
+    sessionEmail?: string | null;
 };
 
-export function AcceptInvitationForm({ token }: AcceptInvitationFormProps) {
+function isOtherAccount(sessionEmail: string | null, invitedEmail: string) {
+    return (
+        sessionEmail !== null &&
+        sessionEmail.toLowerCase() !== invitedEmail.toLowerCase()
+    );
+}
+
+export function AcceptInvitationForm({
+    token,
+    sessionEmail = null,
+}: AcceptInvitationFormProps) {
     const {
         data: invitation,
         isPending,
@@ -80,14 +101,24 @@ export function AcceptInvitationForm({ token }: AcceptInvitationFormProps) {
     }
 
     if (isPending) {
-        return <ListSkeleton />;
+        return <CardSkeleton />;
     }
 
     if (isError || !invitation) {
         return (
-            <p className="text-sm text-destructive">
-                {infoErrorMessage(error)}
-            </p>
+            <CardErrorState
+                title="Invitación no disponible"
+                message={infoErrorMessage(error)}
+                action={
+                    <Button
+                        className="w-full"
+                        nativeButton={false}
+                        render={<Link to="/login" />}
+                    >
+                        Ir a iniciar sesión
+                    </Button>
+                }
+            />
         );
     }
 
@@ -102,6 +133,13 @@ export function AcceptInvitationForm({ token }: AcceptInvitationFormProps) {
                             : `Te invitaron a sumarte con ${invitation.email}.`}
                     </p>
                 </div>
+
+                {isOtherAccount(sessionEmail, invitation.email) && (
+                    <p className="rounded-md border bg-muted p-3 text-sm">
+                        Tenés una sesión abierta como {sessionEmail}; al aceptar
+                        vas a ingresar como {invitation.email}.
+                    </p>
+                )}
 
                 {form.formState.errors.root && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

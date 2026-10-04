@@ -117,15 +117,33 @@ function renderWizard() {
         history: createMemoryHistory({ initialEntries: ['/reservar'] }),
     });
     render(<RouterProvider router={router} />);
+
+    return queryClient;
 }
 
 async function goToPatientForm() {
-    renderWizard();
+    const queryClient = renderWizard();
     const slotButton = await screen.findByRole('button', {
         name: '01:00 p. m.',
     });
     fireEvent.click(slotButton);
     await screen.findByRole('heading', { name: 'Tus datos' });
+
+    return queryClient;
+}
+
+function confirmedBooking() {
+    return {
+        data: {
+            data: {
+                start_at: SLOT.start_at,
+                end_at: SLOT.end_at,
+                professional_name: 'Dr. Uno',
+                service_name: 'Consulta cardiológica',
+                organization_name: ORGANIZATION.name,
+            },
+        },
+    };
 }
 
 /** Asserts the document's only heading is the expected h1 — with no other heading present, none can outrank it. */
@@ -136,7 +154,7 @@ function expectTopmostH1(name: string) {
 }
 
 function fillValidPatientData() {
-    fireEvent.change(screen.getByLabelText('Nombre'), {
+    fireEvent.change(screen.getByLabelText('Nombre y apellido'), {
         target: { value: 'Juan Pérez' },
     });
     fireEvent.click(screen.getByRole('radio', { name: 'DNI' }));
@@ -169,7 +187,7 @@ describe('BookingPatientForm validation and submission', () => {
             screen.getByRole('button', { name: 'Confirmar turno' }),
         );
 
-        await screen.findByText('El nombre es obligatorio.');
+        await screen.findByText('El nombre y apellido es obligatorio.');
         // DNI comes preselected, so the document type never fails validation.
         expect(screen.queryByText('Elegí un tipo de documento.')).toBeNull();
         expect(
@@ -203,23 +221,98 @@ describe('BookingPatientForm validation and submission', () => {
         );
     });
 
-    it('renders the Spanish catalog copy for a 409 booking.slot_not_available error, never the backend message', async () => {
+    it('sends the patient back to a refreshed grid with a notice and keeps their data when the slot was just taken (409)', async () => {
         vi.mocked(api.post).mockRejectedValueOnce(slotNotAvailableError());
-        await goToPatientForm();
+        const queryClient = await goToPatientForm();
+        const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
 
         fillValidPatientData();
         fireEvent.click(
             screen.getByRole('button', { name: 'Confirmar turno' }),
         );
 
-        await screen.findByText(
-            'Ese horario ya no está disponible. Elegí otro turno.',
-        );
+        await screen.findByRole('heading', { name: 'Elegí día y horario' });
+        expect(
+            screen.getByText('Ese horario se acaba de ocupar. Elegí otro.'),
+        ).not.toBeNull();
+        expect(invalidate).toHaveBeenCalledWith({
+            queryKey: ['booking', ORGANIZATION.slug, 'slots'],
+            refetchType: 'all',
+        });
         expect(
             screen.queryByText(
                 "The requested slot is not among the professional's published availability.",
             ),
         ).toBeNull();
+
+        fireEvent.click(screen.getByRole('button', { name: '01:00 p. m.' }));
+        await screen.findByRole('heading', { name: 'Tus datos' });
+
+        expect(
+            (screen.getByLabelText('Nombre y apellido') as HTMLInputElement)
+                .value,
+        ).toBe('Juan Pérez');
+        expect(
+            (screen.getByLabelText('Número de documento') as HTMLInputElement)
+                .value,
+        ).toBe('30111222');
+        expect(
+            screen.queryByText('Ese horario se acaba de ocupar. Elegí otro.'),
+        ).toBeNull();
+    });
+
+    it('keeps the typed data when the patient goes back to the grid by hand', async () => {
+        await goToPatientForm();
+        fillValidPatientData();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Volver' }));
+        fireEvent.click(
+            await screen.findByRole('button', { name: '01:00 p. m.' }),
+        );
+        await screen.findByRole('heading', { name: 'Tus datos' });
+
+        expect(
+            (screen.getByLabelText('Nombre y apellido') as HTMLInputElement)
+                .value,
+        ).toBe('Juan Pérez');
+    });
+
+    it('shows the practice, the step and everything chosen so far on the patient-data step', async () => {
+        await goToPatientForm();
+
+        expect(screen.getByText(ORGANIZATION.name)).not.toBeNull();
+        expect(screen.getByText('Paso 3 de 3')).not.toBeNull();
+        expect(
+            screen.getByText('Dr. Uno · Consulta cardiológica (30 min)'),
+        ).not.toBeNull();
+        expect(screen.getByText(/lunes, 3 de agosto.*UTC/)).not.toBeNull();
+    });
+
+    it('gives the patient next steps after confirming and lets them start another booking', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce(confirmedBooking());
+        await goToPatientForm();
+        fillValidPatientData();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        await screen.findByText('Turno confirmado');
+        expect(
+            screen.getByText(
+                `Guardá estos datos. Si necesitás cancelar o reprogramar el turno, comunicate con ${ORGANIZATION.name}.`,
+            ),
+        ).not.toBeNull();
+        expect(screen.getByText('30 min')).not.toBeNull();
+        expect(screen.getByText('$ 50,00')).not.toBeNull();
+        expect(screen.queryByText(/te enviamos|correo/i)).toBeNull();
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Reservar otro turno' }),
+        );
+
+        await screen.findByRole('heading', { name: 'Reservar turno' });
+        expect(screen.getByText('Paso 1 de 3')).not.toBeNull();
+        expect(screen.queryByText('Turno confirmado')).toBeNull();
     });
 
     it('shows the appointment summary after a successful confirmation and cannot be resubmitted', async () => {

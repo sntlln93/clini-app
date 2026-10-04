@@ -3,7 +3,7 @@ import { z } from 'zod';
 
 export const bookingPatientSchema = z.object({
     patient: z.object({
-        name: z.string().min(1, 'El nombre es obligatorio.'),
+        name: z.string().min(1, 'El nombre y apellido es obligatorio.'),
         document_type: z
             .union([z.enum(['dni', 'passport', 'insurance_id']), z.literal('')])
             .refine((value) => value !== '', {
@@ -20,12 +20,22 @@ export const bookingPatientSchema = z.object({
     }),
 });
 
+export type BookingPatientDraft = {
+    name: string;
+    document_type: DocumentType | '';
+    document_number: string;
+    email: string;
+    phone: string;
+};
+
 export type BookingPatientFormValues = {
-    patient: {
-        name: string;
-        document_type: DocumentType | '';
-        document_number: string;
-        email: string;
-        phone: string;
-    };
+    patient: BookingPatientDraft;
+};
+
+export const EMPTY_PATIENT_DRAFT: BookingPatientDraft = {
+    name: '',
+    document_type: 'dni',
+    document_number: '',
+    email: '',
+    phone: '',
 };

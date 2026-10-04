@@ -1,5 +1,6 @@
+import { CardSkeleton } from '@/components/CardSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
-import { Skeleton } from '@/components/ui/skeleton';
+import { todayInTimeZone } from '@/lib/iso-date';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
@@ -16,9 +17,9 @@ const bookingSearchSchema = z.object({
     date: z.string().optional(),
 });
 
-export const Route = createFileRoute('/_public/reservar/$slug')({
+export const Route = createFileRoute('/_open/reservar/$slug')({
     validateSearch: (search) => bookingSearchSchema.parse(search),
-    // `preselected_membership_id` resolves via a redirect into `search.professional`, not local state, since request state lives in the URL.
+    // `preselected_membership_id` resolves via a redirect into `search.professional`, and the slot step's default day into `search.date`, not local state, since request state lives in the URL.
     beforeLoad: async ({ context, params, search }) => {
         const organization = await context.queryClient.ensureQueryData(
             bookingOrganizationQueryOptions(params.slug),
@@ -35,6 +36,21 @@ export const Route = createFileRoute('/_public/reservar/$slug')({
                     ...search,
                     professional: organization.preselected_membership_id,
                 },
+            });
+        }
+
+        // The slot step opens on the practice's today, and a stale past day from an old link snaps forward to it.
+        const today = todayInTimeZone(organization.organization.timezone);
+        if (
+            search.professional !== undefined &&
+            search.service !== undefined &&
+            (search.date === undefined || search.date < today)
+        ) {
+            throw redirect({
+                to: '/reservar/$slug',
+                params,
+                search: { ...search, date: today },
+                replace: true,
             });
         }
     },
@@ -65,13 +81,7 @@ export const Route = createFileRoute('/_public/reservar/$slug')({
     },
     head: ({ loaderData }) =>
         titleHead('Reservar turno', loaderData?.organization.organization.name),
-    pendingComponent: () => (
-        <div className="w-full max-w-md space-y-3">
-            <Skeleton className="h-8 w-2/3" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-full" />
-        </div>
-    ),
+    pendingComponent: () => <CardSkeleton className="max-w-md" />,
     errorComponent: RouteErrorState,
     component: BookingPage,
 });

@@ -35,7 +35,7 @@ function invitationDomainError() {
     };
 }
 
-function renderAcceptInvitationForm() {
+function renderAcceptInvitationForm(sessionEmail: string | null = null) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     });
@@ -49,14 +49,25 @@ function renderAcceptInvitationForm() {
     const invitationRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/invitaciones/$token',
-        component: () => <AcceptInvitationForm token={TOKEN} />,
+        component: () => (
+            <AcceptInvitationForm token={TOKEN} sessionEmail={sessionEmail} />
+        ),
     });
     const agendaRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/agenda',
         component: () => <div>Agenda</div>,
     });
-    const routeTree = rootRoute.addChildren([invitationRoute, agendaRoute]);
+    const loginRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/login',
+        component: () => <div>Login</div>,
+    });
+    const routeTree = rootRoute.addChildren([
+        invitationRoute,
+        agendaRoute,
+        loginRoute,
+    ]);
     const router = createRouter({
         routeTree,
         history: createMemoryHistory({
@@ -149,7 +160,81 @@ describe('AcceptInvitationForm', () => {
         ).toBeNull();
         expect(screen.queryByLabelText('Nombre')).toBeNull();
         expect(screen.queryByLabelText('Contraseña')).toBeNull();
-        expect(screen.queryByRole('button')).toBeNull();
+        expect(
+            screen.getByRole('heading', {
+                level: 1,
+                name: 'Invitación no disponible',
+            }),
+        ).not.toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Aceptar invitación' }),
+        ).toBeNull();
+        expect(
+            screen
+                .getByRole('button', { name: 'Ir a iniciar sesión' })
+                .getAttribute('href'),
+        ).toBe('/login');
+    });
+
+    it('blocks a password shorter than 8 characters before submitting, with the rule shown upfront', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({
+            data: {
+                email: 'ana@clini.app',
+                organization_name: 'Consultorio Ana',
+                requires_registration: true,
+            },
+        });
+        renderAcceptInvitationForm();
+
+        fireEvent.change(await screen.findByLabelText('Nombre'), {
+            target: { value: 'Ana Gomez' },
+        });
+        expect(screen.getByText('Mínimo 8 caracteres.')).not.toBeNull();
+        fireEvent.change(screen.getByLabelText('Contraseña'), {
+            target: { value: 'corta' },
+        });
+        fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+            target: { value: 'corta' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Crear cuenta y unirme' }),
+        );
+
+        await screen.findByText(
+            'La contraseña debe tener al menos 8 caracteres.',
+        );
+        expect(api.post).not.toHaveBeenCalled();
+    });
+
+    it('warns before accepting when the open session belongs to another email', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({
+            data: {
+                email: 'ana@clini.app',
+                organization_name: 'Consultorio Ana',
+                requires_registration: false,
+            },
+        });
+        renderAcceptInvitationForm('beto@clini.app');
+
+        expect(
+            await screen.findByText(
+                'Tenés una sesión abierta como beto@clini.app; al aceptar vas a ingresar como ana@clini.app.',
+            ),
+        ).not.toBeNull();
+    });
+
+    it('shows no session warning when the open session is the invited email', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({
+            data: {
+                email: 'ana@clini.app',
+                organization_name: 'Consultorio Ana',
+                requires_registration: false,
+            },
+        });
+        renderAcceptInvitationForm('ANA@clini.app');
+
+        await screen.findByRole('button', { name: 'Aceptar invitación' });
+        expect(screen.queryByText(/Tenés una sesión abierta/)).toBeNull();
     });
 
     it('renders the skeleton status region while the invitation query is pending', async () => {

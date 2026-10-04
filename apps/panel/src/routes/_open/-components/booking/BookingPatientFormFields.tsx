@@ -1,5 +1,6 @@
 import {
     FormControl,
+    FormDescription,
     FormField,
     FormItem,
     FormLabel,
@@ -33,7 +34,7 @@ export function BookingPatientFormFields({
                 name="patient.name"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Nombre</FormLabel>
+                        <FormLabel>Nombre y apellido</FormLabel>
                         <FormControl
                             render={<Input autoComplete="name" {...field} />}
                         />
@@ -81,6 +82,7 @@ export function BookingPatientFormFields({
                         <FormControl
                             render={
                                 <Input
+                                    autoComplete="off"
                                     inputMode={
                                         documentType === 'dni'
                                             ? 'numeric'
@@ -130,6 +132,9 @@ export function BookingPatientFormFields({
                                 />
                             }
                         />
+                        <FormDescription>
+                            Con código de área, ej. 11 2345-6789
+                        </FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}
