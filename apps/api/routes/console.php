@@ -13,3 +13,5 @@ Artisan::command('inspire', function () {
 Schedule::command('reminders:send-due')->everyMinute()->withoutOverlapping();
 
 Schedule::command('holidays:sync')->monthly()->withoutOverlapping();
+
+Schedule::command('subscriptions:expire-grace')->daily()->withoutOverlapping();

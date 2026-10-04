@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Contracts\DomainError;
+use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\ResolveCurrentOrganization;
 use App\Http\Middleware\ResolvePublicOrganization;
 use Illuminate\Auth\AuthenticationException;
@@ -26,6 +27,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'organization' => ResolveCurrentOrganization::class,
             'public-organization' => ResolvePublicOrganization::class,
+            'subscription.active' => EnsureSubscriptionActive::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

@@ -9,6 +9,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { extractFormErrors } from '@/lib/form-errors';
+import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
@@ -39,6 +40,8 @@ export function PrescriptionsDialog({
     const appointmentId = appointment?.id ?? null;
     const query = usePrescriptions(appointmentId, open);
     const { data: prescriptions, isLoading } = query;
+    // Read-only while the subscription is expired/cancelled (#28); printing stays available.
+    const restricted = useSubscriptionRestricted();
     const fetchErrorMessage = query.isError
         ? extractFormErrors(query.error).message
         : null;
@@ -102,14 +105,18 @@ export function PrescriptionsDialog({
                                     {formatDate(prescription.issued_at)}
                                 </span>
                                 <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditing(prescription)}
-                                    >
-                                        Editar
-                                    </Button>
+                                    {!restricted && (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                setEditing(prescription)
+                                            }
+                                        >
+                                            Editar
+                                        </Button>
+                                    )}
                                     <Link
                                         to="/recetas/$id"
                                         params={{ id: prescription.id }}
@@ -127,13 +134,15 @@ export function PrescriptionsDialog({
                     ))}
                 </div>
 
-                <PrescriptionForm
-                    appointmentId={appointmentId}
-                    open={open}
-                    editing={editing}
-                    onCancelEdit={() => setEditing(null)}
-                    onSaved={() => setEditing(null)}
-                />
+                {!restricted && (
+                    <PrescriptionForm
+                        appointmentId={appointmentId}
+                        open={open}
+                        editing={editing}
+                        onCancelEdit={() => setEditing(null)}
+                        onSaved={() => setEditing(null)}
+                    />
+                )}
             </DialogContent>
         </Dialog>
     );

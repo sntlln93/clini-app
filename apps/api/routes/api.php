@@ -17,6 +17,14 @@ Route::prefix('v1')->group(function (): void {
     // the {slug} route parameter via the `public-organization` middleware.
     require __DIR__.'/api/v1/booking.php';
 
+    // Payment-provider webhooks are server-to-server calls with no session;
+    // they authenticate through their own signature header instead.
+    require __DIR__.'/api/v1/webhooks.php';
+
+    // Mixes the public checkout return route with the authenticated
+    // subscription endpoints, so it applies the auth group itself.
+    require __DIR__.'/api/v1/subscriptions.php';
+
     // Domain modules (#20–#24) mount here. Auth (login/register/logout/me)
     // and health stay outside this group: they run before an organization
     // can be resolved, or don't need one at all.

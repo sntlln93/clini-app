@@ -1,9 +1,12 @@
 import { useSession } from '@/lib/session';
+import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { Professional } from '@/types/professional';
 
 // Org-wide permission covers every professional; the `.own` variant only covers the user's own membership.
+// An expired/cancelled subscription makes the agenda read-only (#28): writes are hidden, viewing is not.
 export function useAppointmentPermissions() {
     const { data: session } = useSession();
+    const restricted = useSubscriptionRestricted();
     const permissions = session?.permissions ?? [];
 
     const canViewOrgWide = permissions.includes('appointments.view');
@@ -22,6 +25,10 @@ export function useAppointmentPermissions() {
     };
 
     const canCreate = (membership: Professional): boolean => {
+        if (restricted) {
+            return false;
+        }
+
         if (permissions.includes('appointments.create')) {
             return true;
         }
@@ -32,6 +39,10 @@ export function useAppointmentPermissions() {
     };
 
     const canUpdate = (membership: Professional): boolean => {
+        if (restricted) {
+            return false;
+        }
+
         if (permissions.includes('appointments.update')) {
             return true;
         }

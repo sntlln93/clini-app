@@ -76,6 +76,14 @@ Enum reminder_status {
   failed
 }
 
+Enum subscription_status {
+  pending
+  active
+  grace
+  expired
+  cancelled
+}
+
 Table organizations {
   id bigint [pk, increment]
   name varchar [not null]
@@ -396,6 +404,42 @@ Table reminders {
   Note: 'Patient reminder for an appointment. A polymorphic recipient (User or Patient, CU-29) is deferred to a future decoupled notifications module (CU-27/28).'
 }
 
+Table subscriptions {
+  id bigint [pk, increment]
+  organization_id bigint [not null, unique]
+  provider varchar [not null, note: 'mercadopago']
+  provider_subscription_id varchar [null, unique, note: 'Mercado Pago preapproval id']
+  status subscription_status [not null]
+  grace_ends_at timestamp [null]
+  grace_reason varchar [null, note: 'payment_failed | paused; set only while status = grace']
+  last_payment_at timestamp [null]
+  last_payment_failed_at timestamp [null]
+  next_payment_at timestamptz [null, note: 'Provider next scheduled charge (preapproval next_payment_date), shown as the renewal date']
+  cancelled_at timestamp [null, note: 'When the subscription was cancelled; set only while status = cancelled, cleared on reactivation']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'SaaS subscription of an organization (CU-30, #28). No row = unrestricted. expired/cancelled make appointment, clinical note, prescription, availability and public booking writes read-only (409 subscriptions.inactive).'
+}
+
+Table subscription_events {
+  id bigint [pk, increment]
+  provider varchar [not null]
+  notification_id varchar [not null]
+  type varchar [null]
+  resource_id varchar [null]
+  subscription_id bigint [null]
+  payload json [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (provider, notification_id) [unique]
+  }
+
+  Note: 'Idempotency log of verified provider webhook notifications: a redelivered notification id is a no-op.'
+}
+
 Ref: memberships.organization_id > organizations.id [delete: restrict]
 Ref: memberships.user_id > users.id [delete: restrict]
 
@@ -435,3 +479,5 @@ Ref: cities.province_id > provinces.id [delete: restrict]
 Ref: addresses.city_id > cities.id [delete: restrict]
 Ref: holidays.province_id > provinces.id [delete: restrict]
 Ref: organization_holidays.organization_id > organizations.id [delete: cascade]
+Ref: subscriptions.organization_id > organizations.id [delete: cascade]
+Ref: subscription_events.subscription_id > subscriptions.id [delete: set null]

@@ -1,6 +1,9 @@
 import { api } from '@/lib/api';
+import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
+import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -49,8 +52,15 @@ function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {
 function renderDialog(
     open: boolean = true,
     onOpenChange: (open: boolean) => void = () => {},
+    subscription?: Subscription,
 ) {
     const queryClient = new QueryClient();
+    if (subscription !== undefined) {
+        queryClient.setQueryData(
+            subscriptionQueryOptions.queryKey,
+            subscription,
+        );
+    }
     render(
         <QueryClientProvider client={queryClient}>
             <ClinicalNotesDialog
@@ -205,4 +215,22 @@ describe('ClinicalNotesDialog', () => {
         );
         expect(onOpenChange).not.toHaveBeenCalledWith(false);
     });
+
+    it.each(['expired', 'cancelled'] as const)(
+        'while the subscription is %s it lists the notes but hides the form and the edit/delete actions',
+        async (status) => {
+            vi.mocked(api.get).mockResolvedValue({
+                data: { data: [buildNote({ body: 'Nota previa.' })] },
+            });
+            renderDialog(true, () => {}, buildSubscription(status));
+
+            await screen.findByText('Nota previa.');
+            expect(screen.queryByRole('textbox')).toBeNull();
+            expect(
+                screen.queryByRole('button', { name: 'Agregar nota' }),
+            ).toBeNull();
+            expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+            expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull();
+        },
+    );
 });

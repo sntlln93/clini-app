@@ -29,4 +29,8 @@ enum ErrorCode: string
     case AvailabilityExceptionAlreadyCovered = 'availability.exception_already_covered';
     case AvailabilityExceptionTypeConflict = 'availability.exception_type_conflict';
     case HolidaysProviderUnavailable = 'holidays.provider_unavailable';
+    case SubscriptionsInactive = 'subscriptions.inactive';
+    case SubscriptionsAlreadyActive = 'subscriptions.already_active';
+    case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';
+    case SubscriptionsWebhookSignatureInvalid = 'subscriptions.webhook_signature_invalid';
 }

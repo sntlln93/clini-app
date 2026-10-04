@@ -3,26 +3,37 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
 import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
+import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import type {
     ProfessionalService,
     ProfessionalSpecialty,
     UserSpecialty,
 } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
+import { z } from 'zod';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
+import { SubscriptionSection } from './-components/SubscriptionSection';
 import { ThemeToggle } from './-components/ThemeToggle';
 import {
     catalogServicesQueryOptions,
     catalogSpecialtiesQueryOptions,
 } from './-hooks/use-catalog';
+import { useCheckoutReturn } from './-hooks/use-checkout-return';
 import { professionalServicesQueryOptions } from './-hooks/use-professional-services';
 import { professionalSpecialtiesQueryOptions } from './-hooks/use-professional-specialties';
 import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
+// `retorno`: the browser is back from the Mercado Pago checkout (the API's
+// return route). Any other value is dropped rather than failing the page.
+const ajustesSearchSchema = z.object({
+    suscripcion: z.literal('retorno').optional().catch(undefined),
+});
+
 export const Route = createFileRoute('/_auth/ajustes/')({
+    validateSearch: (search) => ajustesSearchSchema.parse(search),
     loader: async ({ context }) => {
         const [session, catalogSpecialties, catalogServices] =
             await Promise.all([
@@ -51,6 +62,14 @@ export const Route = createFileRoute('/_auth/ajustes/')({
         const mySpecialties = await context.queryClient.ensureQueryData(
             userSpecialtiesQueryOptions(session.id),
         );
+
+        // No active membership means no organization to bill.
+        const subscription = session.membership
+            ? await context.queryClient.ensureQueryData({
+                  ...subscriptionQueryOptions,
+                  revalidateIfStale: true,
+              })
+            : null;
 
         const credentialsByMembership: Record<number, UserSpecialty[]> = {};
         const assignedSpecialtiesByMembership: Record<
@@ -103,6 +122,9 @@ export const Route = createFileRoute('/_auth/ajustes/')({
 
         return {
             userId: session.id,
+            hasOrganization: Boolean(session.membership),
+            subscription,
+            isOwner: (session.roles ?? []).includes('owner'),
             canManageProfessionals,
             catalogSpecialties,
             catalogServices,
@@ -122,6 +144,9 @@ export const Route = createFileRoute('/_auth/ajustes/')({
 function AjustesPage() {
     const {
         userId,
+        hasOrganization,
+        subscription: loaderSubscription,
+        isOwner,
         canManageProfessionals,
         catalogSpecialties,
         catalogServices,
@@ -132,6 +157,17 @@ function AjustesPage() {
         assignedSpecialtiesByMembership,
         assignedServicesByMembership,
     } = Route.useLoaderData();
+    // The loader may resolve with a stale cached value while it revalidates
+    // in the background; observing the cache keeps this section in sync with
+    // the banner once that refetch lands.
+    const liveSubscription = useSubscription();
+    const subscription =
+        liveSubscription !== undefined ? liveSubscription : loaderSubscription;
+    const { suscripcion } = Route.useSearch();
+    const confirmingPayment = useCheckoutReturn(
+        suscripcion === 'retorno',
+        subscription?.status === 'pending',
+    );
 
     return (
         <div className="mx-auto max-w-2xl space-y-8">
@@ -153,6 +189,17 @@ function AjustesPage() {
                 </div>
                 <ThemeToggle />
             </section>
+
+            {hasOrganization && (
+                <>
+                    <Separator />
+                    <SubscriptionSection
+                        subscription={subscription}
+                        isOwner={isOwner}
+                        confirmingPayment={confirmingPayment}
+                    />
+                </>
+            )}
 
             <Separator />
 

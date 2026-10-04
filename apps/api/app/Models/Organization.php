@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\MembershipRole;
+use App\Enums\MembershipStatus;
 use App\Enums\Province;
 use Database\Factories\OrganizationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -98,5 +102,38 @@ class Organization extends Model
     public function patients(): BelongsToMany
     {
         return $this->belongsToMany(Patient::class, 'organization_patient')->withTimestamps();
+    }
+
+    /**
+     * @return HasOne<Subscription, $this>
+     */
+    public function subscription(): HasOne
+    {
+        return $this->hasOne(Subscription::class);
+    }
+
+    /**
+     * Users holding an active owner membership — the recipients of
+     * subscription notices. `roles` is an EnumArrayCast column, so the
+     * role is filtered in PHP rather than SQL.
+     *
+     * @return Collection<int, User>
+     */
+    public function ownerUsers(): Collection
+    {
+        $userIds = Membership::withoutGlobalScope('organization')
+            ->where('organization_id', $this->id)
+            ->where('status', MembershipStatus::Active)
+            ->get()
+            ->filter(function (Membership $membership): bool {
+                /** @var array<int, MembershipRole> $roles */
+                $roles = $membership->roles;
+
+                return in_array(MembershipRole::Owner, $roles, true);
+            })
+            ->pluck('user_id')
+            ->all();
+
+        return User::query()->whereIn('id', $userIds)->get();
     }
 }
