@@ -77,7 +77,8 @@ function DisponibilidadPage() {
     const navigate = Route.useNavigate();
     const { professionals, selectedId, slots, exceptions } =
         Route.useLoaderData();
-    const { canManageOrgWide, canManage } = useAvailabilityPermissions();
+    const { canManageOrgWide, canWriteOrgWide, canManage } =
+        useAvailabilityPermissions();
 
     const selectedMembership = professionals.find(
         (membership) => membership.id === selectedId,
@@ -123,7 +124,7 @@ function DisponibilidadPage() {
                             <AvailabilityExceptionsSection
                                 membershipId={selectedMembership.id}
                                 canManageOwn={canManage(selectedMembership)}
-                                canManageOrgWide={canManageOrgWide}
+                                canManageOrgWide={canWriteOrgWide}
                                 exceptions={exceptions}
                             />
                         </>

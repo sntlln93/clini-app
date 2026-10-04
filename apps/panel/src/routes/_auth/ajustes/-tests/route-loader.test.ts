@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
+import type { Subscription } from '@/types/subscription';
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Route } from '../index';
@@ -31,18 +32,37 @@ const loader = Route.options.loader as (opts: {
     canManageProfessionals: boolean;
     professionals: Membership[];
     ownMembership: Membership | null;
+    hasOrganization: boolean;
+    subscription: Subscription | null;
+    isOwner: boolean;
 }>;
 
-function mockApiGet(session: {
-    id: number;
-    name: string;
-    email: string;
-    permissions: string[];
-    membership: Membership | null;
-}) {
+const GRACE_SUBSCRIPTION: Subscription = {
+    status: 'grace',
+    restricted: false,
+    grace_ends_at: '2026-10-10T12:00:00+00:00',
+    grace_days_left: 7,
+    last_payment_at: null,
+    last_payment_failed_at: '2026-10-03T12:00:00+00:00',
+};
+
+function mockApiGet(
+    session: {
+        id: number;
+        name: string;
+        email: string;
+        permissions: string[];
+        roles?: string[];
+        membership: Membership | null;
+    },
+    subscription: Subscription | null = null,
+) {
     vi.mocked(api.get).mockImplementation((url: string) => {
         if (url === '/me') {
             return Promise.resolve({ data: session });
+        }
+        if (url === '/subscription') {
+            return Promise.resolve({ data: { data: subscription } });
         }
         if (url === '/memberships') {
             return Promise.resolve({ data: { data: PROFESSIONALS } });
@@ -117,6 +137,57 @@ describe('/ajustes loader with memberships.view', () => {
         expect(result).toMatchObject({
             canManageProfessionals: true,
             professionals: PROFESSIONALS,
+        });
+    });
+});
+
+describe('/ajustes loader subscription', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    it('returns the subscription and whether the caller is the owner', async () => {
+        mockApiGet(
+            {
+                id: 10,
+                name: 'Ana Ejemplo',
+                email: 'ana@clini.app',
+                permissions: [],
+                roles: ['owner'],
+                membership: OWN_MEMBERSHIP,
+            },
+            GRACE_SUBSCRIPTION,
+        );
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result).toMatchObject({
+            hasOrganization: true,
+            subscription: GRACE_SUBSCRIPTION,
+            isOwner: true,
+        });
+    });
+
+    it('never requests /subscription without an active membership', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: [],
+            membership: null,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(api.get).not.toHaveBeenCalledWith('/subscription');
+        expect(result).toMatchObject({
+            hasOrganization: false,
+            subscription: null,
+            isOwner: false,
         });
     });
 });

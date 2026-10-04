@@ -1,4 +1,6 @@
 import { api } from '@/lib/api';
+import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -112,6 +114,29 @@ describe('PatientClinicalNotesCard', () => {
             screen.queryByRole('button', { name: 'Agregar nota' }),
         ).toBeNull();
     });
+
+    it.each(['expired', 'cancelled'] as const)(
+        'hides the "Agregar nota" control while the subscription is %s, keeping the notes',
+        async (status) => {
+            const queryClient = new QueryClient();
+            queryClient.setQueryData(
+                subscriptionQueryOptions.queryKey,
+                buildSubscription(status),
+            );
+
+            renderCard({
+                notes: [buildNote({ body: 'Nota previa.' })],
+                todaysAppointmentId: 77,
+                queryClient,
+            });
+
+            await screen.findByText('Nota previa.');
+            expect(
+                screen.queryByRole('button', { name: 'Agregar nota' }),
+            ).toBeNull();
+            expect(screen.queryByRole('textbox')).toBeNull();
+        },
+    );
 
     it("submitting the form posts the typed body against today's appointment and the list refreshes", async () => {
         const queryClient = new QueryClient();

@@ -10,6 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { extractFormErrors } from '@/lib/form-errors';
+import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
@@ -42,6 +43,8 @@ export function ClinicalNotesDialog({
     const notesQuery = useClinicalNotes(appointmentId, open);
     const { data: notes, isLoading } = notesQuery;
     const remove = useDeleteClinicalNote(appointmentId);
+    // Read-only while the subscription is expired/cancelled (#28).
+    const restricted = useSubscriptionRestricted();
     const fetchErrorMessage = notesQuery.isError
         ? extractFormErrors(notesQuery.error).message
         : null;
@@ -98,38 +101,42 @@ export function ClinicalNotesDialog({
                                 <span className="text-xs text-muted-foreground">
                                     {formatTimestamp(note.updated_at)}
                                 </span>
-                                <div className="flex gap-2">
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditingNote(note)}
-                                    >
-                                        Editar
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
-                                            setPendingDeleteId(note.id)
-                                        }
-                                    >
-                                        Borrar
-                                    </Button>
-                                </div>
+                                {!restricted && (
+                                    <div className="flex gap-2">
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() => setEditingNote(note)}
+                                        >
+                                            Editar
+                                        </Button>
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="ghost"
+                                            onClick={() =>
+                                                setPendingDeleteId(note.id)
+                                            }
+                                        >
+                                            Borrar
+                                        </Button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     ))}
                 </div>
 
-                <ClinicalNoteForm
-                    appointmentId={appointmentId}
-                    open={open}
-                    editingNote={editingNote}
-                    onCancelEdit={() => setEditingNote(null)}
-                    onSaved={() => setEditingNote(null)}
-                />
+                {!restricted && (
+                    <ClinicalNoteForm
+                        appointmentId={appointmentId}
+                        open={open}
+                        editingNote={editingNote}
+                        onCancelEdit={() => setEditingNote(null)}
+                        onSaved={() => setEditingNote(null)}
+                    />
+                )}
             </DialogContent>
 
             <ConfirmDialog

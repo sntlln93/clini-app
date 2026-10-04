@@ -4,14 +4,17 @@ import { PanelBreadcrumbs } from '@/features/panel-breadcrumbs/PanelBreadcrumbs'
 import { PanelFooter } from '@/features/panel-footer/PanelFooter';
 import { PanelHeader } from '@/features/panel-header/PanelHeader';
 import { PanelSidebar } from '@/features/panel-sidebar/PanelSidebar';
+import { SubscriptionBanner } from '@/features/subscription-banner/SubscriptionBanner';
 import { usePersistedState } from '@/hooks/use-persisted-state';
 import { useRouteFocus } from '@/hooks/use-route-focus';
+import { useSubscription } from '@/lib/subscription';
 import { useRef, type ReactNode } from 'react';
 
 export function PanelLayout({ children }: { children: ReactNode }) {
     const [open, setOpen] = usePersistedState('sidebar:open', true);
     const mainRef = useRef<HTMLElement>(null);
     useRouteFocus(mainRef);
+    const subscription = useSubscription();
 
     return (
         <TooltipProvider>
@@ -39,6 +42,7 @@ export function PanelLayout({ children }: { children: ReactNode }) {
                         <div className="contents print:hidden">
                             <PanelBreadcrumbs />
                         </div>
+                        <SubscriptionBanner subscription={subscription} />
                         {children}
                     </main>
                     <div className="contents print:hidden">

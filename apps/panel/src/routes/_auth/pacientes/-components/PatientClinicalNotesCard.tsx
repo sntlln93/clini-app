@@ -6,6 +6,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { useState } from 'react';
 import { AddClinicalNoteForm } from './AddClinicalNoteForm';
@@ -31,12 +32,16 @@ export function PatientClinicalNotesCard({
     todaysAppointmentId,
 }: PatientClinicalNotesCardProps) {
     const [showForm, setShowForm] = useState(false);
+    // Clinical-note writes are read-only while the subscription is
+    // expired/cancelled (#28); the backend still enforces it.
+    const restricted = useSubscriptionRestricted();
+    const canAddNote = todaysAppointmentId !== null && !restricted;
 
     return (
         <Card>
             <CardHeader>
                 <CardTitle>Notas clínicas</CardTitle>
-                {todaysAppointmentId !== null && (
+                {canAddNote && (
                     <CardAction>
                         <Button
                             type="button"
@@ -50,7 +55,7 @@ export function PatientClinicalNotesCard({
                 )}
             </CardHeader>
             <CardContent className="space-y-3">
-                {todaysAppointmentId !== null && showForm && (
+                {canAddNote && todaysAppointmentId !== null && showForm && (
                     <AddClinicalNoteForm
                         patientId={patientId}
                         appointmentId={todaysAppointmentId}

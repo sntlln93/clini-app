@@ -21,7 +21,11 @@ export type ErrorCode =
     | 'availability.exception_merge_required'
     | 'availability.exception_already_covered'
     | 'availability.exception_type_conflict'
-    | 'holidays.provider_unavailable';
+    | 'holidays.provider_unavailable'
+    | 'subscriptions.inactive'
+    | 'subscriptions.already_active'
+    | 'subscriptions.gateway_unavailable'
+    | 'subscriptions.webhook_signature_invalid';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -64,6 +68,14 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
     'holidays.provider_unavailable':
         'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
+    'subscriptions.inactive':
+        'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, recetas y disponibilidad, y para recibir reservas online.',
+    'subscriptions.already_active':
+        'La suscripción del consultorio ya está activa. No hace falta volver a suscribirse.',
+    'subscriptions.gateway_unavailable':
+        'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
+    'subscriptions.webhook_signature_invalid':
+        'La notificación de pago no es válida.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

@@ -1,6 +1,9 @@
 import { api } from '@/lib/api';
+import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
+import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -64,8 +67,14 @@ function buildPrescription(
     };
 }
 
-function renderDialog(open: boolean = true) {
+function renderDialog(open: boolean = true, subscription?: Subscription) {
     const queryClient = new QueryClient();
+    if (subscription !== undefined) {
+        queryClient.setQueryData(
+            subscriptionQueryOptions.queryKey,
+            subscription,
+        );
+    }
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
@@ -278,4 +287,22 @@ describe('PrescriptionsDialog', () => {
             }),
         );
     });
+
+    it.each(['expired', 'cancelled'] as const)(
+        'while the subscription is %s it keeps the print link but hides the form and the edit action',
+        async (status) => {
+            vi.mocked(api.get).mockResolvedValue({
+                data: { data: [buildPrescription()] },
+            });
+            renderDialog(true, buildSubscription(status));
+
+            await screen.findByText('Amoxicilina × 2');
+            expect(screen.getByRole('link', { name: 'Imprimir' })).toBeTruthy();
+            expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+            expect(
+                screen.queryByRole('button', { name: 'Emitir receta' }),
+            ).toBeNull();
+            expect(screen.queryByLabelText('Medicamento')).toBeNull();
+        },
+    );
 });
