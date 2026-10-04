@@ -21,6 +21,7 @@ final class SubscriptionGatewayUnavailableException extends DomainException
         private readonly string $endpoint,
         private readonly ?int $status = null,
         ?Throwable $previous = null,
+        private readonly ?string $providerMessage = null,
     ) {
         parent::__construct('The payment provider is unavailable.', previous: $previous);
     }
@@ -36,6 +37,9 @@ final class SubscriptionGatewayUnavailableException extends DomainException
     }
 
     /**
+     * The provider's own error reason is logged so a rejected request (e.g. an
+     * invalid back_url) is diagnosable; it never reaches the public response.
+     *
      * @return array<string, mixed>
      */
     public function logContext(): array
@@ -43,6 +47,7 @@ final class SubscriptionGatewayUnavailableException extends DomainException
         return [
             'endpoint' => $this->endpoint,
             'provider_status' => $this->status,
+            'provider_message' => $this->providerMessage,
         ];
     }
 }

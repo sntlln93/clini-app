@@ -119,6 +119,39 @@ test('a non-2xx provider response throws SubscriptionGatewayUnavailableException
     app(MercadoPagoService::class)->fetchSubscription('pre-1');
 })->throws(SubscriptionGatewayUnavailableException::class);
 
+test('a rejected request carries the provider error reason into the log context', function (mixed $body, ?string $expected) {
+    Http::fake([
+        'api.mercadopago.com/preapproval' => Http::response($body, 400),
+    ]);
+
+    try {
+        app(MercadoPagoService::class)->createSubscription(new SubscriptionSignupData(
+            externalReference: '42',
+            payerEmail: 'duena@example.com',
+            reason: 'Suscripción Clini — Consultorio Uno',
+        ));
+    } catch (SubscriptionGatewayUnavailableException $exception) {
+        expect($exception->logContext())->toBe([
+            'endpoint' => '/preapproval',
+            'provider_status' => 400,
+            'provider_message' => $expected,
+        ]);
+        expect($exception->publicContext())->not->toHaveKey('provider_message');
+
+        return;
+    }
+
+    $this->fail('Expected SubscriptionGatewayUnavailableException.');
+})->with([
+    'message only' => [['message' => 'Invalid value for back_url, must be a valid URL', 'status' => 400], 'Invalid value for back_url, must be a valid URL'],
+    'message, error and causes' => [
+        ['message' => 'User bad request', 'error' => 'bad_request', 'cause' => [['code' => 'x', 'description' => 'payer_email invalid']]],
+        'User bad request | bad_request | payer_email invalid',
+    ],
+    'non-JSON body' => ['upstream exploded', 'upstream exploded'],
+    'empty body' => ['', null],
+]);
+
 test('a 404 on a resource lookup yields null instead of throwing', function () {
     Http::fake([
         'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'not found'], 404),

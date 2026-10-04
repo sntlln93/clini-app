@@ -39,7 +39,7 @@ dataset('domain_exceptions', fn () => [
     'PatientNotFoundException' => new PatientNotFoundException('dni', '30111222'),
     'SubscriptionInactiveException' => new SubscriptionInactiveException(510, SubscriptionStatus::Expired),
     'SubscriptionAlreadyActiveException' => new SubscriptionAlreadyActiveException(511),
-    'SubscriptionGatewayUnavailableException' => new SubscriptionGatewayUnavailableException('/preapproval/pre-secret-512', 503),
+    'SubscriptionGatewayUnavailableException' => new SubscriptionGatewayUnavailableException('/preapproval/pre-secret-512', 503, providerMessage: 'provider-reason-secret-512'),
     'WebhookSignatureInvalidException' => new WebhookSignatureInvalidException('req-secret-513'),
 ]);
 

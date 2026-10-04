@@ -22,6 +22,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * Adapter for Mercado Pago's subscriptions REST API: `/preapproval` for
@@ -39,6 +40,8 @@ final class MercadoPagoService implements SubscriptionGateway
     public const BASE_URL = 'https://api.mercadopago.com';
 
     private const TIMEOUT_SECONDS = 10;
+
+    private const ERROR_REASON_LIMIT = 500;
 
     public function provider(): string
     {
@@ -211,10 +214,39 @@ final class MercadoPagoService implements SubscriptionGateway
     private function ensureSuccessful(string $endpoint, Response $response): Response
     {
         if ($response->failed()) {
-            throw new SubscriptionGatewayUnavailableException($endpoint, $response->status());
+            throw new SubscriptionGatewayUnavailableException($endpoint, $response->status(), providerMessage: $this->errorReason($response));
         }
 
         return $response;
+    }
+
+    /**
+     * Mercado Pago's error body carries `message`, `error` and a `cause` list
+     * of `{code, description}`; joined and capped so a large body can't flood
+     * the log. Falls back to the raw body when it isn't JSON.
+     */
+    private function errorReason(Response $response): ?string
+    {
+        $payload = $response->json();
+
+        if (! is_array($payload)) {
+            $body = trim($response->body());
+
+            return $body !== '' ? Str::limit($body, self::ERROR_REASON_LIMIT) : null;
+        }
+
+        $parts = array_filter([
+            is_string($payload['message'] ?? null) ? $payload['message'] : null,
+            is_string($payload['error'] ?? null) ? $payload['error'] : null,
+        ]);
+
+        foreach (is_array($payload['cause'] ?? null) ? $payload['cause'] : [] as $cause) {
+            if (is_array($cause) && is_string($cause['description'] ?? null)) {
+                $parts[] = $cause['description'];
+            }
+        }
+
+        return $parts !== [] ? Str::limit(implode(' | ', $parts), self::ERROR_REASON_LIMIT) : null;
     }
 
     private function toSubscription(string $endpoint, Response $response): ProviderSubscriptionData
