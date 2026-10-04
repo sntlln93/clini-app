@@ -58,6 +58,10 @@ describe('/sala-de-espera loader', () => {
                 status: 'arrived',
             },
         });
-        expect(result).toEqual({ professionals: ROSTER, appointments: [] });
+        expect(result).toEqual({
+            professionals: ROSTER,
+            appointments: [],
+            updatedAt: new Date(2026, 7, 3, 15, 30).getTime(),
+        });
     });
 });

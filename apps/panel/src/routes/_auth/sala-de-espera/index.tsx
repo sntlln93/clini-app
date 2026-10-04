@@ -3,10 +3,11 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
-import { todayRange } from './-components/waiting-room';
+import { formatClockTime, todayRange } from './-components/waiting-room';
 import { WaitingRoomBoard } from './-components/WaitingRoomBoard';
 import {
     useWaitingRoomAutoRefresh,
+    waitingRoomQueryKey,
     waitingRoomQueryOptions,
 } from './-hooks/use-waiting-room';
 
@@ -14,14 +15,17 @@ import {
 export const Route = createFileRoute('/_auth/sala-de-espera/')({
     head: () => titleHead('Sala de espera'),
     loader: async ({ context }) => {
+        const range = todayRange();
         const [professionals, appointments] = await Promise.all([
             ensureScopedProfessionals(context.queryClient),
-            context.queryClient.ensureQueryData(
-                waitingRoomQueryOptions(todayRange()),
-            ),
+            context.queryClient.ensureQueryData(waitingRoomQueryOptions(range)),
         ]);
+        // A failed auto-refresh keeps the cached data and its timestamp, so a stale screen shows an old time.
+        const updatedAt =
+            context.queryClient.getQueryState(waitingRoomQueryKey(range))
+                ?.dataUpdatedAt || Date.now();
 
-        return { professionals, appointments };
+        return { professionals, appointments, updatedAt };
     },
     pendingComponent: () => <ListSkeleton rows={4} />,
     errorComponent: RouteErrorState,
@@ -29,7 +33,7 @@ export const Route = createFileRoute('/_auth/sala-de-espera/')({
 });
 
 function WaitingRoomPage() {
-    const { professionals, appointments } = Route.useLoaderData();
+    const { professionals, appointments, updatedAt } = Route.useLoaderData();
     useWaitingRoomAutoRefresh();
 
     return (
@@ -39,11 +43,18 @@ function WaitingRoomPage() {
                 <p className="text-base text-muted-foreground">
                     Pacientes que ya llegaron hoy, por profesional.
                 </p>
+                <p className="text-sm text-muted-foreground">
+                    Actualizado a las{' '}
+                    <time dateTime={new Date(updatedAt).toISOString()}>
+                        {formatClockTime(updatedAt)}
+                    </time>
+                </p>
             </div>
 
             <WaitingRoomBoard
                 professionals={professionals}
                 appointments={appointments}
+                updatedAt={updatedAt}
             />
         </div>
     );

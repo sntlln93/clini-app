@@ -26,6 +26,9 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     };
 }
 
+// Local time, like the fixtures' offset-less timestamps.
+const NOW = new Date('2026-08-03T10:20:00').getTime();
+
 const ana = buildProfessional({ id: 1 });
 const beto = buildProfessional({
     id: 2,
@@ -51,6 +54,7 @@ describe('WaitingRoomBoard', () => {
                         arrived_at: '2026-08-03T09:55:00',
                     }),
                 ]}
+                updatedAt={NOW}
             />,
         );
 
@@ -64,6 +68,56 @@ describe('WaitingRoomBoard', () => {
         expect(rest[0].textContent).toContain('Turno 11:00');
     });
 
+    it('shows how long each patient has been waiting, relative to the data timestamp', () => {
+        render(
+            <WaitingRoomBoard
+                professionals={[ana]}
+                appointments={[
+                    buildAppointment({
+                        id: 1,
+                        arrived_at: '2026-08-03T09:55:00',
+                    }),
+                    buildAppointment({
+                        id: 2,
+                        patient_name: 'Lucía Fernández',
+                        arrived_at: '2026-08-03T10:15:00',
+                    }),
+                    buildAppointment({
+                        id: 3,
+                        patient_name: 'Pedro Sosa',
+                        arrived_at: null,
+                        start_at: '2026-08-03T10:45:00',
+                    }),
+                ]}
+                updatedAt={NOW}
+            />,
+        );
+
+        const region = screen.getByRole('region', { name: 'Dra. Ana López' });
+        expect(within(region).getByText('Llegó hace 25 min')).toBeTruthy();
+        const rest = within(region).getAllByRole('listitem');
+        expect(rest[0].textContent).toContain('Llegó hace 5 min');
+        expect(rest[1].textContent).not.toContain('Llegó');
+    });
+
+    it('keeps the next-patient live region mounted whether or not someone is waiting', () => {
+        render(
+            <WaitingRoomBoard
+                professionals={[ana, beto]}
+                appointments={[buildAppointment({ membership_id: 1 })]}
+                updatedAt={NOW}
+            />,
+        );
+
+        const live = (name: string) =>
+            screen
+                .getByRole('region', { name })
+                .querySelector('[aria-live="polite"]');
+        expect(live('Dra. Ana López')?.textContent).toContain('Juan P.');
+        expect(live('Dra. Ana López')?.textContent).not.toContain('Llegó');
+        expect(live('Dr. Beto Ruiz')?.textContent).toBe('Nadie en espera');
+    });
+
     it('never renders the full patient name', () => {
         render(
             <WaitingRoomBoard
@@ -71,6 +125,7 @@ describe('WaitingRoomBoard', () => {
                 appointments={[
                     buildAppointment({ patient_name: 'María Gómez' }),
                 ]}
+                updatedAt={NOW}
             />,
         );
 
@@ -82,6 +137,7 @@ describe('WaitingRoomBoard', () => {
             <WaitingRoomBoard
                 professionals={[ana, beto]}
                 appointments={[buildAppointment({ membership_id: 1 })]}
+                updatedAt={NOW}
             />,
         );
 
@@ -107,6 +163,7 @@ describe('WaitingRoomBoard', () => {
                         patient_name: 'Lucía Fernández',
                     }),
                 ]}
+                updatedAt={NOW}
             />,
         );
 
@@ -114,7 +171,13 @@ describe('WaitingRoomBoard', () => {
     });
 
     it('explains the empty roster when there are no professionals', () => {
-        render(<WaitingRoomBoard professionals={[]} appointments={[]} />);
+        render(
+            <WaitingRoomBoard
+                professionals={[]}
+                appointments={[]}
+                updatedAt={NOW}
+            />,
+        );
 
         expect(
             screen.getByText(
