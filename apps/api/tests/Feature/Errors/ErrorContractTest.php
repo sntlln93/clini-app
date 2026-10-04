@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Contracts\DomainError;
 use App\Enums\AppointmentStatus;
+use App\Enums\SubscriptionStatus;
 use App\Exceptions\Appointments\AppointmentNotCancellableException;
 use App\Exceptions\Appointments\AppointmentNotReschedulableException;
 use App\Exceptions\Appointments\ServiceNotActiveForProfessionalException;
@@ -13,6 +14,10 @@ use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
 use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Exceptions\Organizations\NoActiveMembershipException;
 use App\Exceptions\Patients\PatientNotFoundException;
+use App\Exceptions\Subscriptions\SubscriptionAlreadyActiveException;
+use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
+use App\Exceptions\Subscriptions\SubscriptionInactiveException;
+use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -32,6 +37,10 @@ dataset('domain_exceptions', fn () => [
     'InvitationInvalidOrExpiredException' => new InvitationInvalidOrExpiredException('abcdef0123456789'),
     'NoActiveMembershipException' => new NoActiveMembershipException(509),
     'PatientNotFoundException' => new PatientNotFoundException('dni', '30111222'),
+    'SubscriptionInactiveException' => new SubscriptionInactiveException(510, SubscriptionStatus::Expired),
+    'SubscriptionAlreadyActiveException' => new SubscriptionAlreadyActiveException(511),
+    'SubscriptionGatewayUnavailableException' => new SubscriptionGatewayUnavailableException('/preapproval/pre-secret-512', 503),
+    'WebhookSignatureInvalidException' => new WebhookSignatureInvalidException('req-secret-513'),
 ]);
 
 beforeEach(function () {
