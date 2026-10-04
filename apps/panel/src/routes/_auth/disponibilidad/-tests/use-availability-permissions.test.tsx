@@ -63,3 +63,39 @@ describe('useAvailabilityPermissions under a subscription', () => {
         },
     );
 });
+
+describe('useAvailabilityPermissions read-only reason', () => {
+    it('blames the subscription while it is restricted', () => {
+        const permissions = renderPermissions(buildSubscription('expired'));
+
+        expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBe(
+            'subscription',
+        );
+    });
+
+    it('has no reason while the user can manage', () => {
+        const permissions = renderPermissions(buildSubscription('active'));
+
+        expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBeNull();
+    });
+
+    it('blames the missing permission for someone else’s availability', () => {
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 99,
+            name: 'Otro profesional',
+            email: 'otro@example.com',
+            permissions: ['availability.manage.own'],
+        });
+
+        const permissions = renderHook(() => useAvailabilityPermissions(), {
+            wrapper: ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>
+                    {children}
+                </QueryClientProvider>
+            ),
+        }).result.current;
+
+        expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBe('permission');
+    });
+});

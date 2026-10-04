@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import type { Availability } from '@/types/availability';
 import { useState } from 'react';
+import type { AvailabilityReadOnlyReason } from '../-hooks/use-availability-permissions';
+import { AvailabilityReadOnlyNote } from './AvailabilityReadOnlyNote';
 import { AvailabilitySlotRow } from './AvailabilitySlotRow';
 
 const WEEKDAY_LABELS = [
@@ -13,15 +15,20 @@ const WEEKDAY_LABELS = [
     'Sábado',
 ];
 
+// Monday-first display order; `day_of_week` itself stays 0 = Sunday.
+const DISPLAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+
 type WeeklyAvailabilitySectionProps = {
     membershipId: number;
     canManage: boolean;
+    readOnlyReason: AvailabilityReadOnlyReason | null;
     slots: Availability[];
 };
 
 export function WeeklyAvailabilitySection({
     membershipId,
     canManage,
+    readOnlyReason,
     slots,
 }: WeeklyAvailabilitySectionProps) {
     const [addingDay, setAddingDay] = useState<number | null>(null);
@@ -34,10 +41,16 @@ export function WeeklyAvailabilitySection({
         <section className="space-y-3">
             <h2 className="text-sm font-medium">Horarios semanales</h2>
 
+            {readOnlyReason && (
+                <AvailabilityReadOnlyNote reason={readOnlyReason} />
+            )}
+
             <div className="space-y-3">
-                {WEEKDAY_LABELS.map((label, day) => (
+                {DISPLAY_ORDER.map((day) => (
                     <div key={day} className="space-y-2 rounded-md border p-3">
-                        <p className="text-sm font-medium">{label}</p>
+                        <p className="text-sm font-medium">
+                            {WEEKDAY_LABELS[day]}
+                        </p>
 
                         {slotsByDay[day].length === 0 && addingDay !== day && (
                             <p className="text-sm text-muted-foreground">

@@ -1,19 +1,17 @@
-import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import type { AvailabilityException } from '@/types/availability';
 import { useState } from 'react';
 import { useDeleteAvailabilityException } from '../-hooks/use-availability-exceptions';
+import type { AvailabilityReadOnlyReason } from '../-hooks/use-availability-permissions';
 import { AvailabilityExceptionForm } from './AvailabilityExceptionForm';
-
-const TYPE_LABELS: Record<AvailabilityException['type'], string> = {
-    blocked: 'Bloqueo',
-    extra: 'Extra',
-};
+import { AvailabilityExceptionRow } from './AvailabilityExceptionRow';
+import { AvailabilityReadOnlyNote } from './AvailabilityReadOnlyNote';
 
 type AvailabilityExceptionsSectionProps = {
     membershipId: number;
     canManageOwn: boolean;
     canManageOrgWide: boolean;
+    readOnlyReason: AvailabilityReadOnlyReason | null;
     exceptions: AvailabilityException[];
 };
 
@@ -21,12 +19,15 @@ export function AvailabilityExceptionsSection({
     membershipId,
     canManageOwn,
     canManageOrgWide,
+    readOnlyReason,
     exceptions,
 }: AvailabilityExceptionsSectionProps) {
     const remove = useDeleteAvailabilityException(membershipId);
     const [editing, setEditing] = useState<AvailabilityException | null>(null);
     const [isCreating, setIsCreating] = useState(false);
     const canManage = canManageOwn || canManageOrgWide;
+    // Taken once on mount; it only decides which rows read as finished.
+    const [now] = useState(() => new Date());
 
     function canManageRow(exception: AvailabilityException): boolean {
         return exception.membership_id === null
@@ -49,6 +50,10 @@ export function AvailabilityExceptionsSection({
                     </Button>
                 )}
             </div>
+
+            {!canManage && readOnlyReason && (
+                <AvailabilityReadOnlyNote reason={readOnlyReason} />
+            )}
 
             {isCreating && (
                 <AvailabilityExceptionForm
@@ -76,62 +81,15 @@ export function AvailabilityExceptionsSection({
                                 onDone={() => setEditing(null)}
                             />
                         ) : (
-                            <div
+                            <AvailabilityExceptionRow
                                 key={exception.id}
-                                className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3"
-                            >
-                                <div className="space-y-0.5">
-                                    <p className="text-sm font-medium">
-                                        {TYPE_LABELS[exception.type]}
-                                        {exception.membership_id === null && (
-                                            <span className="ml-2 text-xs text-muted-foreground">
-                                                Toda la organización
-                                            </span>
-                                        )}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {exception.start_at} —{' '}
-                                        {exception.end_at}
-                                    </p>
-                                    {exception.reason && (
-                                        <p className="text-xs text-muted-foreground">
-                                            {exception.reason}
-                                        </p>
-                                    )}
-                                </div>
-                                {canManageRow(exception) && (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                setEditing(exception)
-                                            }
-                                        >
-                                            Editar
-                                        </Button>
-                                        <ConfirmDialog
-                                            trigger={
-                                                <Button
-                                                    type="button"
-                                                    size="sm"
-                                                    variant="ghost"
-                                                    disabled={remove.isPending}
-                                                >
-                                                    Eliminar
-                                                </Button>
-                                            }
-                                            title="Eliminar excepción"
-                                            description="Se quita esta excepción y ese período vuelve a regirse por la disponibilidad semanal habitual."
-                                            onConfirm={() =>
-                                                remove.mutate(exception.id)
-                                            }
-                                            isPending={remove.isPending}
-                                        />
-                                    </div>
-                                )}
-                            </div>
+                                exception={exception}
+                                now={now}
+                                canManage={canManageRow(exception)}
+                                isDeleting={remove.isPending}
+                                onEdit={() => setEditing(exception)}
+                                onDelete={() => remove.mutate(exception.id)}
+                            />
                         ),
                     )}
                 </div>
