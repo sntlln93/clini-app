@@ -1,5 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { PatientForm } from './-components/PatientForm';
 import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers';
@@ -22,6 +23,8 @@ export const Route = createFileRoute('/_auth/pacientes/$id_/editar')({
 
         return { patient, insuranceProviders };
     },
+    head: ({ loaderData }) =>
+        titleHead('Editar paciente', loaderData?.patient.name),
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
     component: EditarPacientePage,

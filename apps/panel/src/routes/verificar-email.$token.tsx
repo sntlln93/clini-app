@@ -1,7 +1,9 @@
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { VerifyEmailCard } from './-components/VerifyEmailCard';
 
 export const Route = createFileRoute('/verificar-email/$token')({
+    head: () => titleHead('Confirmá tu correo'),
     component: VerifyEmailPage,
 });
 

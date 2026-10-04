@@ -128,4 +128,80 @@ describe('Searchbar', () => {
         expect(inputA).not.toBe(inputB);
         expect(inputA.id).not.toBe(inputB.id);
     });
+
+    it('shows the clear button only while the field has text', () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="" onSearch={onSearch} />);
+
+        expect(
+            screen.queryByRole('button', { name: 'Limpiar búsqueda' }),
+        ).toBeNull();
+
+        fireEvent.change(screen.getByRole('textbox'), {
+            target: { value: 'ana' },
+        });
+
+        expect(
+            screen.getByRole('button', { name: 'Limpiar búsqueda' }),
+        ).not.toBeNull();
+    });
+
+    it('clears at once on the clear button, refocusing the field, with no pending debounce firing later', async () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="ana" onSearch={onSearch} />);
+        const input = screen.getByRole('textbox') as HTMLInputElement;
+
+        vi.useFakeTimers();
+        fireEvent.change(input, { target: { value: 'anab' } });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Limpiar búsqueda' }),
+        );
+
+        expect(onSearch).toHaveBeenCalledTimes(1);
+        expect(onSearch).toHaveBeenCalledWith('');
+        expect(input.value).toBe('');
+        expect(document.activeElement).toBe(input);
+
+        await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+        expect(onSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it('clears at once on Escape, and ignores Escape on an empty field', () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="ana" onSearch={onSearch} />);
+        const input = screen.getByRole('textbox') as HTMLInputElement;
+
+        fireEvent.keyDown(input, { key: 'Escape' });
+
+        expect(onSearch).toHaveBeenCalledWith('');
+        expect(input.value).toBe('');
+
+        fireEvent.keyDown(input, { key: 'Escape' });
+        expect(onSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it('applies the search at once on Enter and cancels the pending debounce', async () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="" onSearch={onSearch} />);
+        const input = screen.getByRole('textbox') as HTMLInputElement;
+
+        vi.useFakeTimers();
+        fireEvent.change(input, { target: { value: 'ana' } });
+        fireEvent.keyDown(input, { key: 'Enter' });
+
+        expect(onSearch).toHaveBeenCalledTimes(1);
+        expect(onSearch).toHaveBeenCalledWith('ana');
+
+        await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+        expect(onSearch).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not search again on Enter when the value is already applied', () => {
+        const onSearch = vi.fn();
+        render(<Searchbar value="ana" onSearch={onSearch} />);
+
+        fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Enter' });
+
+        expect(onSearch).not.toHaveBeenCalled();
+    });
 });

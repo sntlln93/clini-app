@@ -1,5 +1,6 @@
 import { api, refreshCsrfCookie } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { safeInternalPath } from '@/lib/safe-internal-path';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
@@ -9,7 +10,7 @@ type LoginPayload = {
     password: string;
 };
 
-export function useLogin() {
+export function useLogin(redirectTo?: string) {
     const queryClient = useQueryClient();
     const navigate = useNavigate();
 
@@ -22,7 +23,13 @@ export function useLogin() {
             ),
         onSuccess: (user) => {
             queryClient.setQueryData(sessionQueryOptions.queryKey, user);
-            navigate({ to: '/agenda' });
+            // Re-checked here too, so no caller can turn this into an open redirect.
+            const target = safeInternalPath(redirectTo);
+            if (target) {
+                navigate({ href: target });
+            } else {
+                navigate({ to: '/agenda' });
+            }
         },
     });
 

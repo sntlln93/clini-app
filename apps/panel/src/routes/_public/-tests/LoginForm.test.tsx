@@ -22,7 +22,7 @@ function unauthorizedError(data: unknown, status = 422) {
     return { isAxiosError: true, response: { status, data } };
 }
 
-function renderLoginForm() {
+function renderLoginForm(redirectTo?: string) {
     const queryClient = new QueryClient();
     const rootRoute = createRootRoute({
         component: () => (
@@ -34,7 +34,12 @@ function renderLoginForm() {
     const loginRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/login',
-        component: LoginForm,
+        component: () => <LoginForm redirectTo={redirectTo} />,
+    });
+    const patientRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/pacientes/$id',
+        component: () => <div>Ficha del paciente</div>,
     });
     const registerRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -50,6 +55,7 @@ function renderLoginForm() {
         loginRoute,
         registerRoute,
         agendaRoute,
+        patientRoute,
     ]);
     const router = createRouter({
         routeTree,
@@ -57,7 +63,17 @@ function renderLoginForm() {
     });
     render(<RouterProvider router={router} />);
 
-    return queryClient;
+    return { queryClient, router };
+}
+
+async function submitValidCredentials() {
+    fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+        target: { value: 'ana@clini.app' },
+    });
+    fireEvent.change(screen.getByLabelText('Contraseña'), {
+        target: { value: 'secreta123' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Ingresar' }));
 }
 
 describe('LoginForm', () => {
@@ -171,7 +187,7 @@ describe('LoginForm', () => {
                 permissions: ['memberships.view'],
             },
         });
-        const queryClient = renderLoginForm();
+        const { queryClient } = renderLoginForm();
 
         fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
             target: { value: 'ana@clini.app' },
@@ -257,5 +273,28 @@ describe('LoginForm', () => {
                 'Ocurrió un error inesperado. Intentá nuevamente.',
             ),
         ).toBeNull();
+    });
+
+    it('goes back to the requested page, search included, after logging in', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 1, name: 'Ana', email: 'ana@clini.app' },
+        });
+        const { router } = renderLoginForm('/pacientes/12?tab=notas');
+
+        await submitValidCredentials();
+
+        await screen.findByText('Ficha del paciente');
+        expect(router.state.location.href).toBe('/pacientes/12?tab=notas');
+    });
+
+    it('falls back to /agenda when the redirect is not a safe internal path', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 1, name: 'Ana', email: 'ana@clini.app' },
+        });
+        renderLoginForm('//evil.com');
+
+        await submitValidCredentials();
+
+        await screen.findByText('Agenda');
     });
 });

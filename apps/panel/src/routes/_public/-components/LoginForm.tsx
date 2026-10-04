@@ -26,12 +26,17 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export function LoginForm() {
+type LoginFormProps = {
+    /** Internal path to return to after login; the agenda when absent. */
+    redirectTo?: string;
+};
+
+export function LoginForm({ redirectTo }: LoginFormProps) {
     const form = useForm<LoginFormValues>({
         resolver: zodResolver(loginSchema),
         defaultValues: { email: '', password: '' },
     });
-    const { mutateAsync } = useLogin();
+    const { mutateAsync } = useLogin(redirectTo);
 
     async function onSubmit(values: LoginFormValues) {
         try {

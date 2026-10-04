@@ -37,6 +37,35 @@ describe('requireSession', () => {
             options: { to: '/login' },
         });
     });
+
+    it('keeps the requested page, search included, as the login redirect', async () => {
+        vi.mocked(api.get).mockRejectedValueOnce(unauthorized);
+        const queryClient = new QueryClient();
+
+        await expect(
+            requireSession({
+                queryClient,
+                location: { href: '/pacientes/12?tab=notas' },
+            }),
+        ).rejects.toMatchObject({
+            options: {
+                to: '/login',
+                search: { redirect: '/pacientes/12?tab=notas' },
+            },
+        });
+    });
+
+    it.each(['/', '/agenda'])(
+        'leaves the redirect out for the default destination %s',
+        async (href) => {
+            vi.mocked(api.get).mockRejectedValueOnce(unauthorized);
+            const queryClient = new QueryClient();
+
+            await expect(
+                requireSession({ queryClient, location: { href } }),
+            ).rejects.toMatchObject({ options: { to: '/login', search: {} } });
+        },
+    );
 });
 
 describe('redirectIfAuthenticated', () => {
@@ -49,6 +78,36 @@ describe('redirectIfAuthenticated', () => {
         ).rejects.toMatchObject({
             options: { to: '/agenda' },
         });
+    });
+
+    it('sends an authenticated visitor to a safe ?redirect= target instead', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({ data: user });
+        const queryClient = new QueryClient();
+
+        await expect(
+            redirectIfAuthenticated({
+                queryClient,
+                location: {
+                    href: '/login?redirect=%2Fpacientes%2F12',
+                    search: { redirect: '/pacientes/12' },
+                },
+            }),
+        ).rejects.toMatchObject({ options: { href: '/pacientes/12' } });
+    });
+
+    it('ignores an unsafe ?redirect= target and falls back to /agenda', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({ data: user });
+        const queryClient = new QueryClient();
+
+        await expect(
+            redirectIfAuthenticated({
+                queryClient,
+                location: {
+                    href: '/login',
+                    search: { redirect: '//evil.com' },
+                },
+            }),
+        ).rejects.toMatchObject({ options: { to: '/agenda' } });
     });
 
     it('returns without throwing when GET /me rejects with 401', async () => {

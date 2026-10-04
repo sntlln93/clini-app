@@ -42,7 +42,7 @@ describe('PanelBreadcrumbs', () => {
         const nav = await screen.findByRole('navigation', {
             name: 'Miga de pan',
         });
-        expect(within(nav).getByRole('link', { name: 'Inicio' })).toBeTruthy();
+        expect(within(nav).getByRole('link', { name: 'Agenda' })).toBeTruthy();
         expect(
             within(nav).getByRole('link', { name: 'Pacientes' }),
         ).toBeTruthy();
@@ -58,18 +58,18 @@ describe('PanelBreadcrumbs', () => {
         const nav = await screen.findByRole('navigation', {
             name: 'Miga de pan',
         });
-        const current = within(nav).getByText('Inicio');
+        const current = within(nav).getByText('Agenda');
         expect(current.getAttribute('aria-current')).toBe('page');
         expect(current.tagName).not.toBe('A');
         expect(current.getAttribute('href')).toBeNull();
     });
 
-    it('renders Inicio as a real anchor pointing to /', async () => {
-        renderBreadcrumbsAt('/agenda');
+    it('renders the Agenda root crumb as a real anchor pointing to /agenda', async () => {
+        renderBreadcrumbsAt('/pacientes');
 
-        const homeLink = await screen.findByRole('link', { name: 'Inicio' });
+        const homeLink = await screen.findByRole('link', { name: 'Agenda' });
         expect(homeLink.tagName).toBe('A');
-        expect(homeLink.getAttribute('href')).toBe('/');
+        expect(homeLink.getAttribute('href')).toBe('/agenda');
     });
 
     describe('DOM structure', () => {

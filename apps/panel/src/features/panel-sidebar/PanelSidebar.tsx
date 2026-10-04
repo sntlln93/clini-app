@@ -19,12 +19,19 @@ import { isNavItemActive, navItems } from './nav-items';
 
 export function PanelSidebar() {
     const { pathname } = useLocation();
-    const { isMobile } = useSidebar();
+    const { isMobile, setOpenMobile } = useSidebar();
     const { data: session } = useSession();
     const permissions = session?.permissions ?? [];
     const visibleNavItems = navItems.filter(
         (item) => !item.permission || permissions.includes(item.permission),
     );
+    // The mobile drawer would otherwise stay open over the new page. On click
+    // rather than on route change: it also closes when tapping the current page.
+    const closeMobileDrawer = () => {
+        if (isMobile) {
+            setOpenMobile(false);
+        }
+    };
 
     // `role`/`aria-label` land on Sidebar's container div, which also wraps the header logo and footer ProfileMenu — not just the `<nav>` below — so axe's `region` rule would otherwise flag that content as outside any landmark.
     // The label must stay distinct from the nested "Navegación principal" one.
@@ -62,6 +69,9 @@ export function PanelSidebar() {
                                                 render={
                                                     <Link
                                                         to={item.to}
+                                                        onClick={
+                                                            closeMobileDrawer
+                                                        }
                                                         aria-current={
                                                             active
                                                                 ? 'page'

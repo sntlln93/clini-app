@@ -4,7 +4,8 @@ import { redirectIfAuthenticated } from '@/lib/auth-guards';
 import { createFileRoute } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_public')({
-    beforeLoad: ({ context }) => redirectIfAuthenticated(context),
+    beforeLoad: ({ context, location }) =>
+        redirectIfAuthenticated({ ...context, location }),
     pendingComponent: () => (
         <div className="flex min-h-svh w-full items-center justify-center bg-background p-4">
             <div className="w-full max-w-sm space-y-3">

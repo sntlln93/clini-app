@@ -2,6 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
@@ -33,6 +34,7 @@ const agendaSearchSchema = z.object({
 });
 
 export const Route = createFileRoute('/_auth/agenda/')({
+    head: () => titleHead('Agenda'),
     validateSearch: (search) => agendaSearchSchema.parse(search),
     loaderDeps: ({ search }) => ({
         date: search.date ?? toDateInputValue(new Date()),

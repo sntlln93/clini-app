@@ -1,3 +1,4 @@
+import { NotFoundState } from '@/components/NotFoundState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PanelLayout } from '@/layouts/PanelLayout';
 import { requireSession } from '@/lib/auth-guards';
@@ -6,7 +7,8 @@ import { subscriptionQueryOptions } from '@/lib/subscription';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_auth')({
-    beforeLoad: ({ context }) => requireSession(context),
+    beforeLoad: ({ context, location }) =>
+        requireSession({ ...context, location }),
     // Reads the subscription once for the whole panel (banner + read-only
     // affordances observe it via `useSubscription`). A user with no active
     // membership has no organization to ask about. A failed read is
@@ -43,6 +45,8 @@ export const Route = createFileRoute('/_auth')({
             </div>
         </div>
     ),
+    // For a `notFound()` thrown by a child page; unknown URLs hit the `$` splat route.
+    notFoundComponent: NotFoundState,
     component: () => (
         <PanelLayout>
             <Outlet />

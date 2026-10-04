@@ -1,6 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
+import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentHistoryCard';
 import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard';
@@ -40,6 +41,7 @@ export const Route = createFileRoute('/_auth/pacientes/$id')({
 
         return { patient, appointments, notes, prescriptions };
     },
+    head: ({ loaderData }) => titleHead(loaderData?.patient.name, 'Pacientes'),
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
     component: PacienteDetallePage,

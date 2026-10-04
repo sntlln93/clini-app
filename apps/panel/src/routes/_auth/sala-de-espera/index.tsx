@@ -1,6 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { todayRange } from './-components/waiting-room';
 import { WaitingRoomBoard } from './-components/WaitingRoomBoard';
@@ -11,6 +12,7 @@ import {
 
 // No search params: the date is always "today", recomputed on every (re)load.
 export const Route = createFileRoute('/_auth/sala-de-espera/')({
+    head: () => titleHead('Sala de espera'),
     loader: async ({ context }) => {
         const [professionals, appointments] = await Promise.all([
             ensureScopedProfessionals(context.queryClient),

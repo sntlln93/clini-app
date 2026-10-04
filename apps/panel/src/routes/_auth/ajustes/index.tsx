@@ -2,6 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
+import { titleHead } from '@/lib/page-title';
 import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import type {
@@ -33,6 +34,7 @@ const ajustesSearchSchema = z.object({
 });
 
 export const Route = createFileRoute('/_auth/ajustes/')({
+    head: () => titleHead('Ajustes'),
     validateSearch: (search) => ajustesSearchSchema.parse(search),
     loader: async ({ context }) => {
         const [session, catalogSpecialties, catalogServices] =

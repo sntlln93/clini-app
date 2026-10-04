@@ -1,5 +1,6 @@
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { titleHead } from '@/lib/page-title';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
 import { BookingWizard } from './-components/booking/BookingWizard';
@@ -62,6 +63,8 @@ export const Route = createFileRoute('/_public/reservar/$slug')({
 
         return { organization, slots };
     },
+    head: ({ loaderData }) =>
+        titleHead('Reservar turno', loaderData?.organization.organization.name),
     pendingComponent: () => (
         <div className="w-full max-w-md space-y-3">
             <Skeleton className="h-8 w-2/3" />

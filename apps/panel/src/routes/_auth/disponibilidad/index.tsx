@@ -1,6 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { titleHead } from '@/lib/page-title';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import type { Professional } from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
@@ -38,6 +39,7 @@ function defaultMembershipId(
 }
 
 export const Route = createFileRoute('/_auth/disponibilidad/')({
+    head: () => titleHead('Disponibilidad'),
     validateSearch: (search) => disponibilidadSearchSchema.parse(search),
     loaderDeps: ({ search }) => ({ membershipId: search.membershipId }),
     loader: async ({ context, deps }) => {
