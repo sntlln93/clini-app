@@ -50,14 +50,14 @@ export function useDeactivateMembership() {
     const mutation = useMutation({
         mutationFn: (membershipId: number) =>
             api.delete(`/memberships/${membershipId}`),
-        // Its error already renders inline as the edit form's general message, so no error toast.
+        // Its error already renders inline in the «Zona de peligro» section (MemberDangerZone), so no error toast.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
             notifySuccess('Miembro dado de baja');
         },
     });
 
-    // No field map here on purpose: this flow has no field for `memberships.last_active_admin` to land on, so it surfaces as the general message instead of being silently dropped.
+    // No field map here on purpose: this flow has no field for `memberships.last_active_admin` to land on, so it surfaces as a single message (shown by MemberDangerZone) instead of being silently dropped.
     const { message } = mutation.error
         ? extractFormErrors(mutation.error)
         : { message: null };

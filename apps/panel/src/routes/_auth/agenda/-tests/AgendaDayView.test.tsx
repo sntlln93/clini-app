@@ -255,7 +255,10 @@ describe('AgendaDayView', () => {
         expect(cells.at(-1)?.getAttribute('aria-label')).toContain('19:00');
     });
 
-    it('dims a cancelled appointment and lets clicks through to the free cell underneath', () => {
+    // jsdom ignores CSS `pointer-events`, so this can't prove a click passes
+    // through the card: it asserts the click-through classes and that the cell
+    // underneath stays wired. Real hit-testing is a browser (Playwright) concern.
+    it('marks a static cancelled card dimmed and click-through, and keeps the cell underneath wired', () => {
         const onCellClick = vi.fn();
         renderDayView({
             canUpdate: () => false,
@@ -266,6 +269,8 @@ describe('AgendaDayView', () => {
         const block = blockOf('Juan Pérez');
         expect(block?.className).toMatch(/\bpointer-events-none\b/);
         expect(block?.className).toMatch(/\bopacity-60\b/);
+        // A card with no actions must not re-enable pointer events inside the wrapper.
+        expect(block?.querySelector('.pointer-events-auto')).toBeNull();
 
         fireEvent.click(
             screen.getByRole('button', {
