@@ -1,12 +1,8 @@
 import { ChartCard } from '@/features/charts/ChartCard';
+import { APPOINTMENT_ORIGIN_COLORS } from '@/lib/appointment-status-colors';
 import { formatNumber, formatPercent } from '@/lib/format';
 import { APPOINTMENT_ORIGIN_LABELS } from '@/lib/labels';
 import { APPOINTMENT_ORIGINS, type AppointmentOrigin } from '@/types/stats';
-
-const ORIGIN_COLORS: Record<AppointmentOrigin, string> = {
-    online: 'var(--chart-1)',
-    manual: 'var(--chart-2)',
-};
 
 /** Part-to-whole of two values: one segmented bar with a labelled legend (count + share), no pie. */
 export function AppointmentsByOriginChart({
@@ -35,7 +31,8 @@ export function AppointmentsByOriginChart({
                             className="h-full first:rounded-l-md last:rounded-r-md"
                             style={{
                                 width: `${(byOrigin[origin] / total) * 100}%`,
-                                backgroundColor: ORIGIN_COLORS[origin],
+                                backgroundColor:
+                                    APPOINTMENT_ORIGIN_COLORS[origin],
                             }}
                             title={`${APPOINTMENT_ORIGIN_LABELS[origin]}: ${formatNumber(byOrigin[origin])}`}
                         />
@@ -47,7 +44,8 @@ export function AppointmentsByOriginChart({
                             <span
                                 className="size-2.5 shrink-0 rounded-xs"
                                 style={{
-                                    backgroundColor: ORIGIN_COLORS[origin],
+                                    backgroundColor:
+                                        APPOINTMENT_ORIGIN_COLORS[origin],
                                 }}
                                 aria-hidden="true"
                             />
