@@ -1,0 +1,18 @@
+apps/api
+.git
+.github
+.claude
+docs
+node_modules
+apps/landing/node_modules
+apps/landing/.output
+e2e
+test-results
+playwright-report
+*.md
+# The sibling workspaces, except their manifests: `npm ci` needs every
+# workspace's package.json to accept the shared lockfile.
+apps/panel
+!apps/panel/package.json
+apps/dashboard
+!apps/dashboard/package.json
