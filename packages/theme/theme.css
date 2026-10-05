@@ -9,8 +9,8 @@
  *
  * Only CSS lives here: the shadcn primitives stay copied in each app and
  * pick these tokens up through their utilities (`bg-primary`, `rounded-lg`).
- * Tokens only one app uses (e.g. the dashboard's chart palette) stay in that
- * app's index.css.
+ * Every visual token lives here, even one a single app uses today (the
+ * sidebar, the chart scale): apps never redefine them in their index.css.
  *
  * Visual system: teal primary, mint support, white rounded cards, pill
  * controls, Outfit. Light is the default; dark is a neutral near-black,
@@ -24,6 +24,19 @@
     --font-heading: var(--font-sans);
     --font-sans:
         'Outfit Variable', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
     --color-ring: var(--ring);
     --color-input: var(--input);
     --color-border: var(--border);
@@ -109,6 +122,22 @@
     --status-no-show-wash: #fde9e7;
     --status-online: #b87508;
     --status-online-wash: #fdf0d6;
+    /* Teal scale, strongest first: series 1 always reads as the primary. */
+    --chart-1: #0f7f88;
+    --chart-2: #4aa6ad;
+    --chart-3: #86c9cd;
+    --chart-4: #b5dfe1;
+    --chart-5: #d9eff0;
+    /* The sidebar is a card-colored surface with the primary accents; it
+       follows .dark through the referenced tokens. */
+    --sidebar: var(--card);
+    --sidebar-foreground: var(--card-foreground);
+    --sidebar-primary: var(--primary);
+    --sidebar-primary-foreground: var(--primary-foreground);
+    --sidebar-accent: var(--accent);
+    --sidebar-accent-foreground: var(--accent-foreground);
+    --sidebar-border: var(--border);
+    --sidebar-ring: var(--ring);
     --card-shadow:
         0 1px 2px rgb(15 40 45 / 0.04), 0 18px 40px -28px rgb(15 70 80 / 0.22);
 }
@@ -150,6 +179,11 @@
     --status-no-show-wash: #3d1f1e;
     --status-online: #f2b544;
     --status-online-wash: #3a2e14;
+    --chart-1: #3fb7c0;
+    --chart-2: #2b8c94;
+    --chart-3: #1f6a70;
+    --chart-4: #174e53;
+    --chart-5: #12393c;
     --card-shadow:
         0 1px 2px rgb(0 0 0 / 0.3), 0 18px 40px -28px rgb(0 0 0 / 0.7);
 }
