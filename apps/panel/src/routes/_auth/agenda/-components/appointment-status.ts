@@ -27,41 +27,7 @@ export const RESCHEDULABLE_STATUSES: AppointmentStatus[] = [
     'confirmed',
 ];
 
-export const STATUS_LABELS: Record<AppointmentStatus, string> = {
-    scheduled: 'Agendado',
-    confirmed: 'Confirmado',
-    arrived: 'Llegó',
-    completed: 'Completado',
-    no_show: 'Ausente',
-    cancelled: 'Cancelado',
-    rescheduled: 'Reprogramado',
-};
-
-export const STATUS_VARIANTS: Record<
-    AppointmentStatus,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    scheduled: 'outline',
-    confirmed: 'secondary',
-    arrived: 'secondary',
-    completed: 'default',
-    no_show: 'destructive',
-    cancelled: 'destructive',
-    rescheduled: 'outline',
-};
-
-// Solid per-status surface for the `day` variant only; `default` (week view) keeps its translucent look unchanged.
-export const STATUS_DAY_STYLES: Record<AppointmentStatus, string> = {
-    scheduled: 'border-border bg-background text-foreground',
-    confirmed: 'border-transparent bg-secondary text-secondary-foreground',
-    arrived: 'border-transparent bg-accent text-accent-foreground',
-    completed: 'border-transparent bg-primary text-primary-foreground',
-    no_show: 'border-transparent bg-destructive/15 text-destructive',
-    cancelled: 'border-transparent bg-destructive/15 text-destructive',
-    rescheduled: 'border-border bg-background text-foreground',
-};
-
-// Menu copy names the action, not the target state; `STATUS_LABELS` stays the badge copy.
+// Menu copy names the action, not the target state; `STATUS_LABELS` (`@/lib/appointment-status`) stays the chip copy.
 export const STATUS_ACTION_LABELS: Partial<Record<AppointmentStatus, string>> =
     {
         confirmed: 'Confirmar turno',

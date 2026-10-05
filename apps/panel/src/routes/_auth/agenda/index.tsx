@@ -1,6 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
+import { AppointmentStatusLegend } from '@/features/appointment-status/AppointmentStatusLegend';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
@@ -200,6 +201,8 @@ function AgendaPage() {
                         onDayClick={handleDayClick}
                     />
                 ))}
+
+            {visibleProfessionals.length > 0 && <AppointmentStatusLegend />}
 
             <AppointmentFormDialog
                 open={formState.open}

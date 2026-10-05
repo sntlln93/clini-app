@@ -1,11 +1,8 @@
-import { Badge } from '@/components/ui/badge';
+import { AppointmentStatusChip } from '@/features/appointment-status/AppointmentStatusChip';
+import { OnlineOriginMark } from '@/features/appointment-status/OnlineOriginMark';
+import { STATUS_TONES, STRUCK_STATUSES } from '@/lib/appointment-status';
 import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
-import {
-    STATUS_DAY_STYLES,
-    STATUS_LABELS,
-    STATUS_VARIANTS,
-} from './appointment-status';
 
 export type AppointmentCardVariant = 'default' | 'day';
 
@@ -32,7 +29,8 @@ type AppointmentCardContentProps = {
     professionalLabel?: string;
 };
 
-// The visual block of an appointment, shared by the week (`default`) and day views.
+// The visual block of an appointment, shared by the week (`default`) and day
+// views: the status' soft fill with its strong color as a left bar (#235).
 export function AppointmentCardContent({
     appointment,
     variant,
@@ -44,42 +42,39 @@ export function AppointmentCardContent({
         appointment.patient_name ?? `Paciente #${appointment.patient_id}`;
     const serviceLabel =
         appointment.service_name ?? `Servicio #${appointment.service_id}`;
+    const struck = STRUCK_STATUSES.includes(appointment.status);
 
-    return variant === 'day' ? (
+    return (
         <div
+            data-status={appointment.status}
             className={cn(
-                'flex h-full flex-col gap-0.5 overflow-hidden rounded-md border p-1.5 text-left text-xs',
-                STATUS_DAY_STYLES[appointment.status],
+                'flex h-full flex-col gap-0.5 overflow-hidden rounded-lg border-l-[3px] px-2 py-1.5 text-left text-xs leading-tight text-foreground',
+                STATUS_TONES[appointment.status].block,
             )}
         >
             <div className="flex items-center justify-between gap-1">
-                <span className="font-semibold whitespace-nowrap">
+                <span className="font-medium whitespace-nowrap tabular-nums">
                     {timeLabel}
                 </span>
-                <Badge variant={STATUS_VARIANTS[appointment.status]}>
-                    {STATUS_LABELS[appointment.status]}
-                </Badge>
+                <span className="flex items-center gap-1">
+                    {appointment.origin === 'online' && <OnlineOriginMark />}
+                    <AppointmentStatusChip
+                        status={appointment.status}
+                        surface="card"
+                    />
+                </span>
             </div>
-            <span className="truncate font-medium">{patientLabel}</span>
-            {!compact && (
-                <span className="truncate text-[0.6875rem] opacity-80">
+            <span
+                className={cn('truncate font-medium', struck && 'line-through')}
+            >
+                {patientLabel}
+            </span>
+            {(variant === 'default' || !compact) && (
+                <span className="truncate text-muted-foreground">
                     {serviceLabel}
                 </span>
             )}
-        </div>
-    ) : (
-        <div className="flex h-full flex-col gap-0.5 overflow-hidden rounded-md border border-primary/30 bg-primary/10 p-1.5 text-left text-xs">
-            <div className="flex items-center justify-between gap-1">
-                <span className="font-medium">{timeLabel}</span>
-                <Badge variant={STATUS_VARIANTS[appointment.status]}>
-                    {STATUS_LABELS[appointment.status]}
-                </Badge>
-            </div>
-            <span className="truncate font-medium">{patientLabel}</span>
-            <span className="truncate text-muted-foreground">
-                {serviceLabel}
-            </span>
-            {professionalLabel && (
+            {variant === 'default' && professionalLabel && (
                 <span className="truncate text-muted-foreground">
                     {professionalLabel}
                 </span>

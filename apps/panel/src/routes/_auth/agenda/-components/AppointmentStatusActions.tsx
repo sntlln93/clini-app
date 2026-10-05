@@ -1,8 +1,9 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { STATUS_LABELS } from '@/lib/appointment-status';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { useUpdateAppointmentStatus } from '../-hooks/use-appointments';
-import { STATUS_ACTION_LABELS, STATUS_LABELS } from './appointment-status';
+import { STATUS_ACTION_LABELS } from './appointment-status';
 
 type AppointmentStatusActionsProps = {
     appointment: Appointment;
