@@ -182,6 +182,10 @@ if $landing_side; then
 fi
 
 if $e2e; then
+    # Same root-level checks as CI's e2e job, which fails on them before
+    # Playwright even starts.
+    run "prettier (write, e2e)" "raw" e2e_node npm run format
+    run "eslint (e2e)" "eslint" e2e_node npm run lint:check
     run "tsc (e2e)" "tsc" e2e_node npx tsc -p e2e --noEmit
 fi
 
