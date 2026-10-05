@@ -1,5 +1,4 @@
-import { Badge } from '@/components/ui/badge';
-import { Ban, CircleCheck, MailWarning } from 'lucide-react';
+import { StatusPill } from '@/components/StatusPill';
 
 type UserStateBadgeProps = {
     blockedAt: string | null;
@@ -12,27 +11,12 @@ export function UserStateBadge({
     emailVerifiedAt,
 }: UserStateBadgeProps) {
     if (blockedAt !== null) {
-        return (
-            <Badge variant="destructive">
-                <Ban data-icon="inline-start" />
-                Bloqueado
-            </Badge>
-        );
+        return <StatusPill tone="danger">Bloqueado</StatusPill>;
     }
 
     if (emailVerifiedAt === null) {
-        return (
-            <Badge variant="outline">
-                <MailWarning data-icon="inline-start" />
-                Sin verificar
-            </Badge>
-        );
+        return <StatusPill tone="warning">Sin verificar</StatusPill>;
     }
 
-    return (
-        <Badge variant="secondary">
-            <CircleCheck data-icon="inline-start" />
-            Activo
-        </Badge>
-    );
+    return <StatusPill tone="success">Activo</StatusPill>;
 }

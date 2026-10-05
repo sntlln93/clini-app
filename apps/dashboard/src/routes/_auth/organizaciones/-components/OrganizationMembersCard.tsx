@@ -1,9 +1,14 @@
 import { DataTable } from '@/components/DataTable';
 import { EmptyState } from '@/components/EmptyState';
+import { StatusPill } from '@/components/StatusPill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { UserStateBadge } from '@/features/status-badges/UserStateBadge';
 import { formatDate } from '@/lib/format';
-import { MEMBERSHIP_ROLE_LABELS, MEMBERSHIP_STATUS_LABELS } from '@/lib/labels';
+import {
+    MEMBERSHIP_ROLE_LABELS,
+    MEMBERSHIP_STATUS_LABELS,
+    MEMBERSHIP_STATUS_TONES,
+} from '@/lib/labels';
 import type { OrganizationMember } from '@/types/organization';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -39,7 +44,11 @@ const columns: ColumnDef<OrganizationMember, unknown>[] = [
     {
         id: 'membership',
         header: 'Membresía',
-        cell: ({ row }) => MEMBERSHIP_STATUS_LABELS[row.original.status],
+        cell: ({ row }) => (
+            <StatusPill tone={MEMBERSHIP_STATUS_TONES[row.original.status]}>
+                {MEMBERSHIP_STATUS_LABELS[row.original.status]}
+            </StatusPill>
+        ),
         meta: { className: 'hidden md:table-cell' },
     },
     {
