@@ -28,11 +28,11 @@ Cada app lo declara como dependencia (`"@clini/theme": "*"`) y lo importa desde 
 @import '@clini/theme/theme.css';
 ```
 
-Lo que es propio de una app se declara en su `index.css`, debajo del import: por ejemplo, el fondo con degradés y el `scroll-padding` de la landing, o la paleta de gráficos del dashboard.
+Todo token visual vive en el paquete, aunque hoy lo use una sola app (los del sidebar, la escala de gráficos): ninguna app redefine tokens. Debajo del import, una app declara solo estilos propios de su página que no son tokens, como el fondo con degradés y el `scroll-padding` de la landing. Cuando un valor del paquete difiere del que tenía una app, gana el del paquete.
 
 Los componentes **no** se comparten: los primitivos de shadcn siguen copiados en cada app y toman los tokens a través de sus utilidades, así que cambian solos con el tema. La lógica en TypeScript (por ejemplo, los textos de los estados) tampoco va al paquete.
 
-La landing es la primera app migrada (#252); panel y dashboard se migran en #234.
+La landing fue la primera app migrada (#252); panel y dashboard se migraron en #234 y su `index.css` quedó reducido a los imports.
 
 ## Alternativas descartadas
 
