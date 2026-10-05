@@ -4,13 +4,14 @@
 
 ## Despliegue (Dokploy)
 
-Tres aplicaciones, todas con la raíz del repo como build context:
+Cuatro aplicaciones, todas con la raíz del repo como build context:
 
 | App | Dockerfile | Build args | Notas |
 |---|---|---|---|
 | API | `apps/api/Dockerfile` | — | `entrypoint.sh` migra en cada arranque (`RUN_SEEDERS=true` también siembra; solo testing/demo). |
 | Panel | `apps/panel/Dockerfile` | `VITE_API_URL` (obligatorio) | nginx sirviendo la SPA. |
 | Dashboard de operación | `apps/dashboard/Dockerfile` | `VITE_API_URL` (obligatorio) | nginx sirviendo la SPA, con `X-Robots-Tag: noindex, nofollow`, `X-Frame-Options: DENY` y `robots.txt` que bloquea todo. |
+| Landing | `apps/landing/Dockerfile` | `VITE_PANEL_URL` (obligatorio), `VITE_CONTACT_URL` (opcional) | Servidor Node con SSR (TanStack Start + Nitro) en el puerto **3000**, no nginx. Indexable (`robots.txt` permite todo). No necesita variables de la API: no la llama. |
 
 Variables de la API que dependen de los frontends (pestaña **Environment** de la app API):
 
