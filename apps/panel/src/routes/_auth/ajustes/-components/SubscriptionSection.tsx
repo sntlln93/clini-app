@@ -1,4 +1,4 @@
-import { Badge } from '@/components/ui/badge';
+import { StatusPill, type StatusTone } from '@/components/StatusPill';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import {
@@ -19,15 +19,12 @@ type SubscriptionSectionProps = {
     confirmingPayment?: boolean;
 };
 
-const BADGE_VARIANTS: Record<
-    SubscriptionStatus,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    pending: 'secondary',
-    active: 'default',
-    grace: 'outline',
-    expired: 'destructive',
-    cancelled: 'destructive',
+const STATUS_TONES: Record<SubscriptionStatus, StatusTone> = {
+    pending: 'info',
+    active: 'success',
+    grace: 'warning',
+    expired: 'danger',
+    cancelled: 'neutral',
 };
 
 /** Null when no checkout action applies (an active subscription). */
@@ -73,9 +70,9 @@ export function SubscriptionSection({
 
             <div className="flex flex-wrap items-center gap-3">
                 {subscription ? (
-                    <Badge variant={BADGE_VARIANTS[subscription.status]}>
+                    <StatusPill tone={STATUS_TONES[subscription.status]}>
                         {SUBSCRIPTION_STATUS_LABELS[subscription.status]}
-                    </Badge>
+                    </StatusPill>
                 ) : (
                     <p className="text-sm text-muted-foreground">
                         El consultorio todavía no tiene una suscripción.

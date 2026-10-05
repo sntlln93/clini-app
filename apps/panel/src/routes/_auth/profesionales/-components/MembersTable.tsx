@@ -1,5 +1,6 @@
 import { DataTable } from '@/components/DataTable';
 import { DataTableRowActions } from '@/components/DataTableRowActions';
+import { StatusPill, type StatusTone } from '@/components/StatusPill';
 import { Badge } from '@/components/ui/badge';
 import type { Membership, MembershipRole } from '@/types/membership';
 import { useNavigate } from '@tanstack/react-router';
@@ -18,6 +19,12 @@ const STATUS_LABELS: Record<Membership['status'], string> = {
     active: 'Activo',
     inactive: 'Inactivo',
     suspended: 'Suspendido',
+};
+
+const STATUS_TONES: Record<Membership['status'], StatusTone> = {
+    active: 'success',
+    inactive: 'neutral',
+    suspended: 'warning',
 };
 
 type MembersTableProps = {
@@ -77,13 +84,9 @@ const columns: ColumnDef<Membership, unknown>[] = [
         id: 'status',
         header: 'Estado',
         cell: ({ row }) => (
-            <Badge
-                variant={
-                    row.original.status === 'active' ? 'default' : 'secondary'
-                }
-            >
+            <StatusPill tone={STATUS_TONES[row.original.status]}>
                 {STATUS_LABELS[row.original.status]}
-            </Badge>
+            </StatusPill>
         ),
     },
     {
