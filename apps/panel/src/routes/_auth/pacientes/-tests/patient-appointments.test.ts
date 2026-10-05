@@ -14,6 +14,7 @@ function buildAppointment(
         patient_id: 50,
         service_id: 100,
         status: 'scheduled',
+        origin: 'manual',
         start_at: '2026-08-13T10:00:00',
         end_at: '2026-08-13T10:30:00',
         professional_name: 'Dra. Ana Gomez',

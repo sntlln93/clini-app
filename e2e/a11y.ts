@@ -24,6 +24,8 @@ function formatViolations(violations: Result[]) {
 const KNOWN_CONTRAST_PAIRS = [
     { fgColor: '#0f7f88', bgColor: '#d9eff0' }, // accent-foreground on accent
     { fgColor: '#0f7f88', bgColor: '#f3f8f7' }, // primary on muted/secondary
+    { fgColor: '#1f9a5d', bgColor: '#ffffff' }, // status-arrived chip on card
+    { fgColor: '#1f9a5d', bgColor: '#e0f5e8' }, // success pill on its wash
 ];
 
 function isKnownContrastPair(node: Result['nodes'][number]): boolean {

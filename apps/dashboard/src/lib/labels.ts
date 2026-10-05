@@ -1,3 +1,4 @@
+import type { StatusTone } from '@/components/StatusPill';
 import type { MembershipRole, MembershipStatus } from '@/types/admin';
 import type { AdminAuditAction, AuditSubjectType } from '@/types/audit';
 import type { ActivityKind } from '@/types/overview';
@@ -36,6 +37,14 @@ export const MEMBERSHIP_STATUS_LABELS: Record<MembershipStatus, string> = {
     active: 'Activo',
     inactive: 'Inactivo',
     suspended: 'Suspendido',
+};
+
+// Same tones as the panel's members table: green active, gray inactive,
+// amber suspended.
+export const MEMBERSHIP_STATUS_TONES: Record<MembershipStatus, StatusTone> = {
+    active: 'success',
+    inactive: 'neutral',
+    suspended: 'warning',
 };
 
 export const APPOINTMENT_STATUS_LABELS: Record<AppointmentStatus, string> = {

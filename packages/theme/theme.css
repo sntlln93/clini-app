@@ -60,6 +60,7 @@
     --color-success: var(--success);
     --color-success-wash: var(--success-wash);
     --color-warning: var(--warning);
+    --color-warning-wash: var(--warning-wash);
     --color-destructive-wash: var(--destructive-wash);
     --color-status-scheduled: var(--status-scheduled);
     --color-status-scheduled-wash: var(--status-scheduled-wash);
@@ -110,6 +111,7 @@
     --success: #1f9a5d;
     --success-wash: #e0f5e8;
     --warning: #d98e0b;
+    --warning-wash: #fdf0d6;
     --status-scheduled: #6b7b7c;
     --status-scheduled-wash: #eef2f2;
     --status-confirmed: #0f7f88;
@@ -167,6 +169,7 @@
     --success: #4fcf8c;
     --success-wash: #133626;
     --warning: #f2b544;
+    --warning-wash: #3a2e14;
     --status-scheduled: #9aa8a9;
     --status-scheduled-wash: #222b2c;
     --status-confirmed: #3fb7c0;

@@ -1,16 +1,13 @@
-import { Badge } from '@/components/ui/badge';
+import { StatusPill, type StatusTone } from '@/components/StatusPill';
 import { SUBSCRIPTION_STATUS_LABELS } from '@/lib/labels';
 import type { SubscriptionStatus } from '@/types/subscription';
 
-const VARIANTS: Record<
-    SubscriptionStatus,
-    'default' | 'secondary' | 'outline' | 'destructive'
-> = {
-    pending: 'outline',
-    active: 'default',
-    grace: 'secondary',
-    expired: 'destructive',
-    cancelled: 'outline',
+const TONES: Record<SubscriptionStatus, StatusTone> = {
+    pending: 'info',
+    active: 'success',
+    grace: 'warning',
+    expired: 'danger',
+    cancelled: 'neutral',
 };
 
 /** `null` = the organization never started a subscription. */
@@ -20,12 +17,12 @@ export function SubscriptionStatusBadge({
     status: SubscriptionStatus | null;
 }) {
     if (status === null) {
-        return <Badge variant="outline">Sin suscripción</Badge>;
+        return <StatusPill tone="neutral">Sin suscripción</StatusPill>;
     }
 
     return (
-        <Badge variant={VARIANTS[status]}>
+        <StatusPill tone={TONES[status]}>
             {SUBSCRIPTION_STATUS_LABELS[status]}
-        </Badge>
+        </StatusPill>
     );
 }

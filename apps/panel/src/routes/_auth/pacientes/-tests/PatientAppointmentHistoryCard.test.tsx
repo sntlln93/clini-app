@@ -18,6 +18,7 @@ function buildAppointment(
         patient_id: 50,
         service_id: 100,
         status: 'completed',
+        origin: 'manual',
         start_at: '2026-08-03T10:00:00',
         end_at: '2026-08-03T10:30:00',
         professional_name: 'Dra. Ana Gomez',
@@ -56,6 +57,24 @@ describe('PatientAppointmentHistoryCard', () => {
         expect(screen.getByText('Dra. Ana Gomez')).toBeTruthy();
         expect(screen.getByText('Consultorio Central')).toBeTruthy();
         expect(screen.getByText('Completado')).toBeTruthy();
+    });
+
+    it('shows the status as a colored chip, and marks online bookings', async () => {
+        renderCard([
+            buildAppointment({ id: 1, status: 'no_show', origin: 'online' }),
+            buildAppointment({ id: 2, status: 'arrived' }),
+        ]);
+
+        const absent = await screen.findByText('Ausente');
+        expect(absent.closest('[data-status]')?.className).toContain(
+            'text-status-no-show',
+        );
+        expect(
+            screen.getByText('Llegó').closest('[data-status]')?.className,
+        ).toContain('text-status-arrived');
+        expect(
+            screen.getAllByRole('img', { name: 'Reserva online' }),
+        ).toHaveLength(1);
     });
 
     it("links each date to that day's agenda", async () => {

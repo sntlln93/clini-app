@@ -195,6 +195,69 @@ describe('AppointmentCard', () => {
         expect(screen.getByText('10:00–10:30')).toBeTruthy();
     });
 
+    it.each([
+        ['scheduled', 'bg-status-scheduled-wash', 'Agendado'],
+        ['confirmed', 'bg-status-confirmed-wash', 'Confirmado'],
+        ['arrived', 'bg-status-arrived-wash', 'Llegó'],
+        ['completed', 'bg-status-completed-wash', 'Completado'],
+        ['no_show', 'bg-status-no-show-wash', 'Ausente'],
+    ] as const)(
+        'paints a %s appointment with its status token in both views',
+        (status, washClass, label) => {
+            for (const variant of ['day', 'default'] as const) {
+                const { unmount } = render(
+                    <QueryClientProvider client={new QueryClient()}>
+                        <AppointmentCard
+                            appointment={buildAppointment({ status })}
+                            canUpdate={false}
+                            variant={variant}
+                            compact={false}
+                        />
+                    </QueryClientProvider>,
+                );
+                const block = screen
+                    .getByText('Juan Pérez')
+                    .closest('[data-status]');
+                expect(block?.className).toContain(washClass);
+                expect(block?.className).toContain('border-l-[3px]');
+                expect(screen.getByText(label)).toBeTruthy();
+                unmount();
+            }
+        },
+    );
+
+    it.each(['cancelled', 'rescheduled'] as const)(
+        'shows a %s appointment in gray with its label and patient struck through',
+        (status) => {
+            renderCard(buildAppointment({ status }), false, 'day');
+
+            const patient = screen.getByText('Juan Pérez');
+            expect(patient.className).toContain('line-through');
+            expect(patient.closest('[data-status]')?.className).toContain(
+                'bg-status-scheduled-wash',
+            );
+            const label = screen.getByText(
+                status === 'cancelled' ? 'Cancelado' : 'Reprogramado',
+            );
+            expect(label.className).toContain('line-through');
+        },
+    );
+
+    it('marks an online booking next to its status, and only online ones', () => {
+        renderCard(buildAppointment({ origin: 'online' }), false, 'day');
+        expect(
+            screen.getByRole('img', { name: 'Reserva online' }),
+        ).toBeTruthy();
+        expect(screen.getByText('Agendado')).toBeTruthy();
+    });
+
+    it('shows no online mark for an appointment loaded by the practice', () => {
+        renderCard(buildAppointment({ origin: 'manual' }), false, 'day');
+        expect(
+            screen.queryByRole('img', { name: 'Reserva online' }),
+        ).toBeNull();
+    });
+
     it('hides the service line in compact day mode but keeps time, patient and status', () => {
         renderCard(buildAppointment(), true, 'day', true);
 

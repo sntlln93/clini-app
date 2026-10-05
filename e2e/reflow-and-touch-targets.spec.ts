@@ -199,6 +199,11 @@ test.describe('the touch-target exemption stays narrow', () => {
     test('only inline text links on /login carry it', async ({ page }) => {
         await page.goto('/login');
         await page.waitForLoadState('networkidle');
+        // `networkidle` can resolve while the route still shows its pending
+        // skeleton; the exemption lives on the form's links.
+        await expect(
+            page.getByRole('link', { name: 'Registrate' }),
+        ).toBeVisible();
 
         const exemptElements = await page.evaluate(() =>
             Array.from(document.querySelectorAll('.touch-target-exempt')).map(

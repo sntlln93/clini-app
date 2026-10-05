@@ -62,6 +62,31 @@ describe('MembersTable', () => {
         screen.getByRole('button', { name: 'Editar' });
     });
 
+    it('gives each membership status its own color: active, suspended and inactive never look alike', async () => {
+        renderMembersTable([
+            MEMBERSHIPS[0],
+            {
+                ...MEMBERSHIPS[0],
+                id: 2,
+                user: { id: 2, name: 'Carla', email: 'carla@clini.app' },
+                status: 'suspended',
+            },
+            {
+                ...MEMBERSHIPS[0],
+                id: 3,
+                user: { id: 3, name: 'Diego', email: 'diego@clini.app' },
+                status: 'inactive',
+            },
+        ]);
+
+        const tone = (label: string) =>
+            screen.getByText(label).getAttribute('data-tone');
+        await screen.findByText('Suspendido');
+        expect(tone('Activo')).toBe('success');
+        expect(tone('Suspendido')).toBe('warning');
+        expect(tone('Inactivo')).toBe('neutral');
+    });
+
     it('navigates to the editar page from the Editar action', async () => {
         renderMembersTable(MEMBERSHIPS);
 
