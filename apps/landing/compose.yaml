@@ -1,0 +1,53 @@
+# Mirror of apps/dashboard/compose.yaml for the public landing (port 5176).
+# Pinned to the same Compose project as the root compose.yaml's `include`,
+# whether started from there or standalone.
+name: clini-app
+services:
+    # One-shot: a fresh named volume is created root-owned, which the
+    # landing service below (running as WWWUSER, not root) couldn't write
+    # into. Runs once as root before landing starts and exits.
+    landing-node-modules-init:
+        image: 'node:24-bookworm-slim'
+        volumes:
+            - 'landing_node_modules:/node_modules'
+        command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
+    landing:
+        image: 'node:24-bookworm-slim'
+        # Only apps/landing plus the root manifests are mounted (not the
+        # whole repo root): the workspace lockfile is indexed by workspace
+        # path, so npm needs both root manifests at /workspace to resolve
+        # the apps/landing workspace.
+        working_dir: /workspace
+        user: '${WWWUSER:-1000}:${WWWGROUP:-1000}'
+        depends_on:
+            landing-node-modules-init:
+                condition: service_completed_successfully
+        ports:
+            - '${LANDING_PORT:-5176}:5176'
+        environment:
+            HOME: /tmp
+        volumes:
+            - '.:/workspace/apps/landing'
+            - '../../package.json:/workspace/package.json'
+            - '../../package-lock.json:/workspace/package-lock.json'
+            # The sibling workspaces' manifests only (read-only). With every
+            # app listed in the root `workspaces`, a workspace folder missing
+            # on disk makes npm treat the lockfile as out of sync and rewrite
+            # the bind-mounted root package-lock.json without the sibling's
+            # entries. The filtered install below still installs only this
+            # workspace's dependencies.
+            - '../panel/package.json:/workspace/apps/panel/package.json:ro'
+            - '../dashboard/package.json:/workspace/apps/dashboard/package.json:ro'
+            # Overlaid on top of the bind mounts above: node_modules holds
+            # platform-specific native bindings, so it can't be shared as-is
+            # between the host (macOS) and this container (Linux).
+            - 'landing_node_modules:/workspace/node_modules'
+        networks:
+            - sail
+        command: sh -c "npm install --workspace=apps/landing --include-workspace-root=false && npm run dev --workspace=apps/landing"
+networks:
+    sail:
+        driver: bridge
+volumes:
+    landing_node_modules:
+        driver: local

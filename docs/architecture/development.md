@@ -8,7 +8,7 @@
 
 ## Docker Compose: un archivo por app + uno en la raíz
 
-Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `laravel.test` + `pgsql`), `apps/panel/compose.yaml` (`panel`) y `apps/dashboard/compose.yaml` (`dashboard`) — y el `compose.yaml` de la raíz los une vía [`include`](https://docs.docker.com/reference/compose-file/include/), como si estuvieran declarados en un solo archivo. Las rutas relativas de cada archivo incluido se resuelven contra su propia carpeta, no contra la raíz. Todos comparten un único proyecto Compose (`name: clini-app`, fijado explícitamente en `apps/api/compose.yaml`, `apps/panel/compose.yaml` y `apps/dashboard/compose.yaml`) para que no importe desde dónde se invoque — `sail` (que corre `docker compose` con cwd en `apps/api`) y `docker compose up` desde la raíz terminan operando sobre los mismos contenedores, nunca duplicados.
+Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `laravel.test` + `pgsql`), `apps/panel/compose.yaml` (`panel`), `apps/dashboard/compose.yaml` (`dashboard`) y `apps/landing/compose.yaml` (`landing`) — y el `compose.yaml` de la raíz los une vía [`include`](https://docs.docker.com/reference/compose-file/include/), como si estuvieran declarados en un solo archivo. Las rutas relativas de cada archivo incluido se resuelven contra su propia carpeta, no contra la raíz. Todos comparten un único proyecto Compose (`name: clini-app`, fijado explícitamente en `apps/api/compose.yaml`, `apps/panel/compose.yaml`, `apps/dashboard/compose.yaml` y `apps/landing/compose.yaml`) para que no importe desde dónde se invoque — `sail` (que corre `docker compose` con cwd en `apps/api`) y `docker compose up` desde la raíz terminan operando sobre los mismos contenedores, nunca duplicados.
 
 `WWWUSER`/`WWWGROUP` tienen default `1000` en los compose files de los frontends, así que `docker compose up` anda sin exportar nada primero; `sail` los pisa igual con el UID/GID real del host antes de invocar compose.
 
@@ -17,7 +17,7 @@ Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `larave
 ```bash
 git config core.hooksPath .githooks   # una vez por clon
 
-# workspace: panel + dashboard + e2e — vía container descartable, npm nunca corre bare en el host
+# workspace: panel + dashboard + landing + e2e — vía container descartable, npm nunca corre bare en el host
 docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install
 
 cp apps/api/.env.example apps/api/.env   # si no existe
@@ -25,15 +25,16 @@ docker compose up -d                     # desde la raíz del repo
 apps/api/vendor/bin/sail artisan migrate
 ```
 
-El `npm install` de arriba no hace falta para que nada *corra* — `panel` y `dashboard` gestionan cada uno su propio `node_modules` aislado (ver más abajo) y `e2e` hace lo mismo dentro de su propio container (ver Testing). Existe solo para que el editor/IDE resuelva tipos en el host.
+El `npm install` de arriba no hace falta para que nada *corra* — `panel`, `dashboard` y `landing` gestionan cada uno su propio `node_modules` aislado (ver más abajo) y `e2e` hace lo mismo dentro de su propio container (ver Testing). Existe solo para que el editor/IDE resuelva tipos en el host.
 
-Esto levanta cinco servicios en la red `sail`:
+Esto levanta seis servicios en la red `sail`:
 
 | Servicio      | URL                     | Descripción                        |
 |---------------|-------------------------|-------------------------------------|
 | `laravel.test`| http://localhost:8080   | API Laravel                         |
 | `panel`       | http://localhost:5174   | SPA React del panel de clínicas (Vite dev server) |
 | `dashboard`   | http://localhost:5175   | SPA React del dashboard de operación de la plataforma (Vite dev server) |
+| `landing`     | http://localhost:5176   | Sitio público con SSR (TanStack Start, Vite dev server) |
 | `pgsql`       | localhost:55432         | PostgreSQL                          |
 | `mailpit`     | http://localhost:8025   | UI de Mailpit (transporte de correo de dev) |
 
@@ -41,7 +42,7 @@ Detrás del profile `e2e` (no arranca con `docker compose up` normal) hay dos se
 
 El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`. Por el mismo motivo, `pgsql` expone `55432` en el host (no el `5432` estándar) — cualquier otro proyecto Postgres/Sail local que sí use `5432` (Sail lo trae como default) puede pisar el puerto y hacer fallar el contenedor. `DB_PORT` (dentro de `apps/api/.env`) sigue siendo `5432`: es el puerto interno en la red `sail`, no se toca. Configurable vía `FORWARD_DB_PORT`.
 
-Los servicios `panel` y `dashboard` montan solo su propia app más los dos manifiestos de la raíz (`package.json`, `package-lock.json`) y, en solo lectura, el `package.json` de la app hermana: con los dos workspaces declarados en la raíz, una carpeta de workspace ausente hace que npm considere el lockfile desincronizado y reescriba el `package-lock.json` montado sin las entradas de la otra app. Cada uno corre `npm install --workspace=apps/<app> --include-workspace-root=false && npm run dev --workspace=apps/<app>` al arrancar, sobre su propio volumen nombrado de `node_modules` (`panel_node_modules`, `dashboard_node_modules`). Los dos montan el mismo `package-lock.json`: con el lockfile sincronizado `npm install` no lo reescribe, así que arrancarlos juntos es seguro — después de cambiar dependencias, regenerar el lockfile primero (el `npm install` en container descartable de arriba) y recién ahí `docker compose up`.
+Los servicios `panel`, `dashboard` y `landing` montan solo su propia app más los dos manifiestos de la raíz (`package.json`, `package-lock.json`) y, en solo lectura, el `package.json` de cada app hermana: con los tres workspaces declarados en la raíz, una carpeta de workspace ausente hace que npm considere el lockfile desincronizado y reescriba el `package-lock.json` montado sin las entradas de la otra app. Cada uno corre `npm install --workspace=apps/<app> --include-workspace-root=false && npm run dev --workspace=apps/<app>` al arrancar, sobre su propio volumen nombrado de `node_modules` (`panel_node_modules`, `dashboard_node_modules`, `landing_node_modules`). Todos montan el mismo `package-lock.json`: con el lockfile sincronizado `npm install` no lo reescribe, así que arrancarlos juntos es seguro — después de cambiar dependencias, regenerar el lockfile primero (el `npm install` en container descartable de arriba) y recién ahí `docker compose up`.
 
 ### Dashboard de operación (`apps/dashboard`)
 
@@ -74,6 +75,7 @@ apps/api/vendor/bin/sail composer ...  # composer dentro del contenedor
 docker compose down                    # apagar el stack completo (desde la raíz)
 docker compose up panel                # levantar/reiniciar solo el panel
 docker compose up dashboard            # levantar/reiniciar solo el dashboard de operación
+docker compose up landing              # levantar/reiniciar solo la landing (SSR)
 apps/api/vendor/bin/sail artisan admin:create   # crear un operador del dashboard (pregunta nombre, correo y contraseña)
 ```
 
@@ -155,8 +157,13 @@ docker build -f apps/panel/Dockerfile -t clini-panel \
 # mismo esquema para el dashboard de operación
 docker build -f apps/dashboard/Dockerfile -t clini-dashboard \
   --build-arg VITE_API_URL=https://api.tu-dominio.com .
+
+# landing (SSR, servidor Node en el puerto 3000)
+docker build -f apps/landing/Dockerfile -t clini-landing \
+  --build-arg VITE_PANEL_URL=https://panel.tu-dominio.com .
+docker run --rm -p 3000:3000 clini-landing
 ```
 
-Los dos Dockerfiles de frontend copian **los dos** manifiestos de workspace (`apps/panel/package.json` y `apps/dashboard/package.json`) antes del `npm ci --workspace=apps/<app> --include-workspace-root=false`: `npm ci` rechaza un lockfile que lista un workspace cuyo `package.json` no está. Por lo mismo, cada `Dockerfile.dockerignore` excluye la app hermana salvo su `package.json`.
+Los tres Dockerfiles de frontend copian **todos** los manifiestos de workspace (`apps/panel/package.json`, `apps/dashboard/package.json` y `apps/landing/package.json`) antes del `npm ci --workspace=apps/<app> --include-workspace-root=false`: `npm ci` rechaza un lockfile que lista un workspace cuyo `package.json` no está. Por lo mismo, cada `Dockerfile.dockerignore` excluye las apps hermanas salvo su `package.json`.
 
 Estas son las mismas imágenes que Dokploy construye en despliegue (mismo Dockerfile, mismo build context).

@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Local runs hit the already-running dev stack (api via Sail on :8080, panel
-// on :5174, dashboard on :5175). CI boots all three itself via `webServer`.
+// on :5174, dashboard on :5175, landing on :5176). CI boots all four itself
+// via `webServer`.
 export default defineConfig({
     testDir: './e2e',
     timeout: 60_000,
@@ -17,7 +18,7 @@ export default defineConfig({
         { name: 'setup', testMatch: /.*\.setup\.ts$/ },
         {
             name: 'chromium',
-            testIgnore: /dashboard\//,
+            testIgnore: /(dashboard|landing)\//,
             use: { ...devices['Desktop Chrome'] },
             dependencies: ['setup'],
         },
@@ -31,6 +32,15 @@ export default defineConfig({
                 ...devices['Desktop Chrome'],
                 baseURL:
                     process.env.E2E_DASHBOARD_URL ?? 'http://localhost:5175',
+            },
+        },
+        // The public landing (server-rendered, no API calls, no session).
+        {
+            name: 'landing',
+            testMatch: /landing\/.*\.spec\.ts$/,
+            use: {
+                ...devices['Desktop Chrome'],
+                baseURL: process.env.E2E_LANDING_URL ?? 'http://localhost:5176',
             },
         },
     ],
@@ -67,6 +77,12 @@ export default defineConfig({
                   command: 'npm run dev -- --host 127.0.0.1 --port 5175',
                   cwd: 'apps/dashboard',
                   url: 'http://127.0.0.1:5175',
+                  timeout: 60_000,
+              },
+              {
+                  command: 'npm run dev -- --host 127.0.0.1 --port 5176',
+                  cwd: 'apps/landing',
+                  url: 'http://127.0.0.1:5176',
                   timeout: 60_000,
               },
           ]

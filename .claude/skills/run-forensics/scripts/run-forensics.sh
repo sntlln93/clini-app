@@ -41,6 +41,11 @@ dashboard() {
     docker compose exec -T --workdir /workspace/apps/dashboard dashboard "$@"
 }
 
+# The public landing (apps/landing/compose.yaml): same layout again.
+landing() {
+    docker compose exec -T --workdir /workspace/apps/landing landing "$@"
+}
+
 # e2e/ (root-level: shared by no single app) has no running container of its
 # own — a one-off container keeps this off the host node, which is neither a
 # pinned version nor guaranteed to be present.
@@ -62,6 +67,7 @@ down=()
 docker compose ps laravel.test 2>/dev/null | grep -q "Up" || down+=("laravel.test")
 docker compose ps panel 2>/dev/null | grep -q "Up" || down+=("panel")
 docker compose ps dashboard 2>/dev/null | grep -q "Up" || down+=("dashboard")
+docker compose ps landing 2>/dev/null | grep -q "Up" || down+=("landing")
 if [ ${#down[@]} -gt 0 ]; then
     echo "ERROR: not running: ${down[*]}. Start everything with: docker compose up -d (from the repo root)" >&2
     exit 1
@@ -83,18 +89,20 @@ files=$(
 backend=false
 frontend=false
 dashboard_side=false
+landing_side=false
 e2e=false
 grep -qE '^apps/api/.*\.php$|^apps/api/composer\.(json|lock)$|^apps/api/database/|^apps/api/routes/|^apps/api/(phpstan|phpunit|pint)\.' <<<"$files" && backend=true
 grep -qE '^apps/panel/src/.*\.(ts|tsx|js|jsx|css)$|^apps/panel/package(-lock)?\.json$|^apps/panel/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && frontend=true
 grep -qE '^apps/dashboard/src/.*\.(ts|tsx|js|jsx|css)$|^apps/dashboard/package(-lock)?\.json$|^apps/dashboard/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && dashboard_side=true
+grep -qE '^apps/landing/src/.*\.(ts|tsx|js|jsx|css)$|^apps/landing/package(-lock)?\.json$|^apps/landing/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && landing_side=true
 grep -qE '^e2e/|^playwright\.config\.ts$|^package(-lock)?\.json$' <<<"$files" && e2e=true
 
-if ! $backend && ! $frontend && ! $dashboard_side && ! $e2e; then
-    echo "No backend, frontend, dashboard or e2e changes detected — nothing to validate."
+if ! $backend && ! $frontend && ! $dashboard_side && ! $landing_side && ! $e2e; then
+    echo "No backend, frontend, dashboard, landing or e2e changes detected — nothing to validate."
     exit 0
 fi
 
-echo "Changed sides: backend=$backend frontend=$frontend dashboard=$dashboard_side e2e=$e2e (full=$FULL)"
+echo "Changed sides: backend=$backend frontend=$frontend dashboard=$dashboard_side landing=$landing_side e2e=$e2e (full=$FULL)"
 echo
 
 failures=()
@@ -167,7 +175,17 @@ if $dashboard_side; then
     run "tsc (dashboard)" "tsc" dashboard npm run typecheck
 fi
 
+if $landing_side; then
+    run "prettier (write, landing)" "raw" landing npm run format
+    run "eslint (fix, landing)" "eslint" landing npm run lint -- --max-warnings=0
+    run "tsc (landing)" "tsc" landing npm run typecheck
+fi
+
 if $e2e; then
+    # Same root-level checks as CI's e2e job, which fails on them before
+    # Playwright even starts.
+    run "prettier (write, e2e)" "raw" e2e_node npm run format
+    run "eslint (e2e)" "eslint" e2e_node npm run lint:check
     run "tsc (e2e)" "tsc" e2e_node npx tsc -p e2e --noEmit
 fi
 
@@ -175,6 +193,7 @@ if $FULL; then
     $backend && run "pest" "pest" sail php ./vendor/bin/pest --compact --colors=never
     $frontend && run "vitest" "vitest" panel npm run test -- --reporter=github-actions --no-isolate
     $dashboard_side && run "vitest (dashboard)" "vitest" dashboard npm run test -- --reporter=github-actions --no-isolate
+    $landing_side && run "vitest (landing)" "vitest" landing npm run test -- --reporter=github-actions --no-isolate
     # Playwright itself is skipped here, not because it can't run locally
     # (see `docker compose --profile e2e up e2e` in CLAUDE.md) — it's just too
     # heavy for this fast quality gate (composer install, migrate, browser
