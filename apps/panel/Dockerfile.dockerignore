@@ -10,3 +10,7 @@ e2e
 test-results
 playwright-report
 *.md
+# The sibling workspace, except its manifest: `npm ci` needs every
+# workspace's package.json to accept the shared lockfile.
+apps/dashboard
+!apps/dashboard/package.json

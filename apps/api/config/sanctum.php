@@ -39,6 +39,7 @@ return [
     |
     */
 
+    // Never add the `admin` guard here: `auth:sanctum` must not authenticate platform operators (ADR 0010).
     'guard' => ['web'],
 
     /*

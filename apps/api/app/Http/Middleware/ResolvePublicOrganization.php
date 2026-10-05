@@ -6,6 +6,7 @@ namespace App\Http\Middleware;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Exceptions\Booking\BookingOrganizationUnavailableException;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Support\CurrentOrganization;
@@ -29,6 +30,10 @@ use Symfony\Component\HttpFoundation\Response;
  * signal. A slug that matches neither throws ModelNotFoundException, which
  * the framework converts into a plain 404 before it ever reaches a
  * controller.
+ *
+ * A slug resolving (either way) to an organization suspended by a platform
+ * operator is rejected with 403 `booking.organization_unavailable`, before
+ * any booking controller runs.
  */
 class ResolvePublicOrganization
 {
@@ -39,6 +44,10 @@ class ResolvePublicOrganization
         $organization = Organization::where('slug', $slug)->first();
 
         if ($organization !== null) {
+            if ($organization->suspended_at !== null) {
+                throw new BookingOrganizationUnavailableException($organization->id);
+            }
+
             app(CurrentOrganization::class)->set($organization->id);
 
             return $next($request);
@@ -61,6 +70,12 @@ class ResolvePublicOrganization
 
         if ($membership === null) {
             throw (new ModelNotFoundException)->setModel(Membership::class);
+        }
+
+        $membershipOrganization = Organization::query()->find($membership->organization_id);
+
+        if ($membershipOrganization?->suspended_at !== null) {
+            throw new BookingOrganizationUnavailableException($membershipOrganization->id);
         }
 
         app(CurrentOrganization::class)->set($membership->organization_id);

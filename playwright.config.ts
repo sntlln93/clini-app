@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Local runs hit the already-running dev stack (api via Sail on :8080, panel
-// on :5174). CI boots both itself via `webServer`.
+// on :5174, dashboard on :5175). CI boots all three itself via `webServer`.
 export default defineConfig({
     testDir: './e2e',
     timeout: 60_000,
@@ -17,8 +17,21 @@ export default defineConfig({
         { name: 'setup', testMatch: /.*\.setup\.ts$/ },
         {
             name: 'chromium',
+            testIgnore: /dashboard\//,
             use: { ...devices['Desktop Chrome'] },
             dependencies: ['setup'],
+        },
+        // The platform dashboard: its own origin and its own operator
+        // identity, so no dependency on the panel's `setup` session — each
+        // spec logs in by itself.
+        {
+            name: 'dashboard',
+            testMatch: /dashboard\/.*\.spec\.ts$/,
+            use: {
+                ...devices['Desktop Chrome'],
+                baseURL:
+                    process.env.E2E_DASHBOARD_URL ?? 'http://localhost:5175',
+            },
         },
     ],
     webServer: process.env.CI
@@ -48,6 +61,12 @@ export default defineConfig({
                   command: 'npm run dev -- --host 127.0.0.1 --port 5174',
                   cwd: 'apps/panel',
                   url: 'http://127.0.0.1:5174',
+                  timeout: 60_000,
+              },
+              {
+                  command: 'npm run dev -- --host 127.0.0.1 --port 5175',
+                  cwd: 'apps/dashboard',
+                  url: 'http://127.0.0.1:5175',
                   timeout: 60_000,
               },
           ]

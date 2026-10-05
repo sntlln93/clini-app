@@ -2,6 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Models\Organization;
+use App\Models\PlatformAdmin;
+use App\Models\Subscription;
+use App\Models\User;
+use App\Support\CurrentOrganization;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -31,4 +36,70 @@ function mercadoPagoSignature(string $dataId, string $requestId, string $ts, str
     $manifest = 'id:'.strtolower($dataId).';request-id:'.$requestId.';ts:'.$ts.';';
 
     return 'ts='.$ts.',v1='.hash_hmac('sha256', $manifest, $secret);
+}
+
+/**
+ * Every platform-operator request must look like it comes from the
+ * dashboard: the Referer makes it Sanctum-stateful (session) *and* passes
+ * the `admin.origin` pin. Not named `fromSpa` — SanctumSpaAuthTest declares
+ * that one globally.
+ */
+function fromDashboard(): TestCase
+{
+    /** @var TestCase $test */
+    $test = test();
+
+    return $test->withHeader('Referer', 'http://localhost:5175');
+}
+
+/**
+ * Points the test's default Referer back at the panel, for a clinic request
+ * that follows an operator one in the same test: the clinic routes reject
+ * the dashboard origin (`clinic.origin`, ADR 0010).
+ */
+function fromPanel(): TestCase
+{
+    /** @var TestCase $test */
+    $test = test();
+
+    return $test->withHeader('Referer', 'http://localhost:5174');
+}
+
+/**
+ * `actingAs($admin, 'admin')` also switches the default guard to `admin`.
+ */
+function actingAsAdmin(?PlatformAdmin $admin = null): TestCase
+{
+    return fromDashboard()->actingAs($admin ?? PlatformAdmin::factory()->create(), 'admin');
+}
+
+/**
+ * What a fresh production request starts from, between chained requests of
+ * one test: no cached guard users, `web` as the default guard (an earlier
+ * `auth:admin` or `actingAs(..., 'admin')` switched it), and no tenant left
+ * in the CurrentOrganization singleton by an earlier clinic request. The
+ * session store itself is kept, like a browser cookie would keep it.
+ */
+function freshRequestState(): void
+{
+    app('auth')->shouldUse('web');
+    app('auth')->forgetGuards();
+    app(CurrentOrganization::class)->set(null);
+}
+
+/**
+ * Fills the `{organization}`, `{user}` and `{subscription}` placeholders of
+ * an admin route template (tests/Datasets/AdminRoutes.php) with real ids.
+ */
+function adminRouteUri(string $template): string
+{
+    $organization = Organization::factory()->create();
+    $subscription = Subscription::factory()->create(['organization_id' => $organization->id]);
+    $user = User::factory()->create();
+
+    return str_replace(
+        ['{organization}', '{user}', '{subscription}'],
+        [(string) $organization->id, (string) $user->id, (string) $subscription->id],
+        $template,
+    );
 }

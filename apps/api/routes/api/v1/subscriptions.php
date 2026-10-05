@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Route;
 // panel, to a fixed URL.
 Route::get('subscription/return', [SubscriptionReturnController::class, 'show']);
 
-Route::middleware(['auth:sanctum', 'organization'])->group(function (): void {
+Route::middleware(['clinic.origin', 'auth:sanctum', 'not-blocked', 'organization'])->group(function (): void {
     Route::get('subscription', [SubscriptionController::class, 'show']);
     Route::post('subscription', [SubscriptionController::class, 'store']);
 });

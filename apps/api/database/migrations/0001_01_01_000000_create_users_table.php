@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
+            // Platform-operator moderation (#232): a blocked user can't log in to the panel.
+            $table->timestamp('blocked_at')->nullable();
+            $table->string('block_reason', 500)->nullable();
             $table->string('password');
             $table->rememberToken();
             $table->string('email_verification_token')->nullable()->unique();

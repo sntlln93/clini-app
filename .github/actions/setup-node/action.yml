@@ -1,9 +1,9 @@
 name: Setup Node
-description: Node.js with the npm workspace installed (full root, or apps/panel only via the `scope` input). Single source of truth for the Node version.
+description: Node.js with the npm workspace installed (full root, or only the two frontend apps via the `scope` input). Single source of truth for the Node version.
 
 inputs:
   scope:
-    description: 'Install scope: `workspace-root` (full monorepo install) or `panel` (apps/panel only).'
+    description: 'Install scope: `workspace-root` (full monorepo install) or `frontends` (apps/panel + apps/dashboard only, no root e2e deps).'
     required: false
     default: workspace-root
 
@@ -25,8 +25,8 @@ runs:
           workspace-root)
             npm ci
             ;;
-          panel)
-            npm ci --workspace=apps/panel --include-workspace-root=false
+          frontends)
+            npm ci --workspace=apps/panel --workspace=apps/dashboard --include-workspace-root=false
             ;;
           *)
             echo "::error::Unrecognized setup-node scope: $SCOPE"

@@ -56,6 +56,17 @@ El panel lee la suscripción una vez en el loader de `_auth` y la observa con `u
 
 La sección «Suscripción» muestra, según el estado: «Se renueva automáticamente el …» (`next_payment_at`), «Pago pendiente: te quedan N días (hasta el …)», «Venció el …», «Cancelada el …» o «Esperando confirmación del pago», más «Último pago: …» si lo hay. «Suscribirse»/«Regularizar pago» queda deshabilitado con «Redirigiendo a Mercado Pago…» desde el clic hasta que el navegador sale al checkout; solo un error lo vuelve a habilitar.
 
+## Extensión manual del período de gracia
+
+Un operador de la plataforma puede extender la gracia desde el dashboard de operación (`POST /api/v1/admin/subscriptions/{id}/grace-extension`, `ExtendSubscriptionGraceAction`; ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md)). No agrega ningún estado ni `SubscriptionGraceReason` nuevo, y el webhook no cambia:
+
+- **Solo desde `grace` o `expired`** — cualquier otro estado → 409 `subscriptions.grace_extension_not_allowed` (con `context.subscription_status`).
+- **Resultado**: `status = grace`, `grace_ends_at` = el día elegido (`grace_ends_on`, `Y-m-d`) a las 23:59:59 en la zona horaria de reporte (`ADMIN_REPORTING_TIMEZONE`, por defecto `America/Argentina/Buenos_Aires`), guardado en UTC. Desde `grace` el `grace_reason` se conserva; desde `expired` pasa a `payment_failed` (una fila vencida ya solo se levanta con un cobro aprobado, exactamente esa semántica). Una fila `expired` extendida deja de estar restringida: las escrituras vuelven a funcionar.
+- **Es una extensión**: desde `grace` la nueva fecha tiene que ser estrictamente posterior al `grace_ends_at` actual → si no, 409 `subscriptions.grace_extension_not_later` (con `context.current_grace_ends_at`).
+- **Rango**: `grace_ends_on` posterior a hoy y como mucho hoy + 90 días, con «hoy» en la zona horaria de reporte de los dos lados (el selector de fecha del dashboard usa el mismo «hoy»); fuera de rango → 422.
+- Corre en una transacción con `lockForUpdate` sobre la fila, así un webhook concurrente no se intercala, y escribe en la misma transacción una fila de auditoría `subscriptions.extend_grace` con los valores anteriores y la nota del operador.
+- `subscriptions:expire-grace` sigue igual: compara `grace_ends_at <= now()`, así que respeta la nueva fecha. No se avisa a los dueños (fuera de alcance).
+
 **Vuelta del checkout** — con `?suscripcion=retorno` Ajustes refresca la suscripción y, mientras siga `pending` (el webhook puede llegar después que el navegador), muestra «Estamos confirmando tu pago con Mercado Pago…» y vuelve a consultar cada 5 s, hasta 2 minutos. Cuando deja de estar `pending` (o se agota la espera) saca el parámetro de la URL.
 
 ## Variables de entorno (`apps/api/.env`)

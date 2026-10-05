@@ -1,5 +1,5 @@
-# Root entrypoint for local dev: brings up every service (api + panel + db)
-# in one project. Each app owns its own compose file — this one only wires
+# Root entrypoint for local dev: brings up every service (api + panel +
+# dashboard + db) in one project. Each app owns its own compose file — this one only wires
 # them together via `include`, which merges services/networks as if they
 # were declared here directly (relative paths inside each included file
 # still resolve against that file's own directory, not this one).
@@ -7,13 +7,21 @@
 # `env_file` on the api entry is required because docker compose otherwise
 # looks for a `.env` next to *this* file (the repo root), not next to the
 # included one — apps/api/.env holds the real DB_DATABASE/DB_USERNAME it
-# has no fallback for. apps/panel/compose.yaml needs no env_file: every var
-# it interpolates (WWWUSER, WWWGROUP, PANEL_PORT) has a `:-default` inline,
-# and pointing it at apps/api/.env would be borrowing a file that isn't
-# semantically its own (that path is apps/panel/.env's job, for Vite).
+# has no fallback for. apps/panel/compose.yaml and apps/dashboard/compose.yaml
+# need no env_file: every var they interpolate (WWWUSER, WWWGROUP,
+# PANEL_PORT, DASHBOARD_PORT) has a `:-default` inline, and pointing them at
+# apps/api/.env would be borrowing a file that isn't semantically their own
+# (that path is each app's own .env, for Vite).
 #
-#   docker compose up            # api + panel + pgsql
-#   docker compose up panel      # just the frontend dev server
+# Both frontends bind-mount the root package-lock.json. With an in-sync
+# lockfile (and each container seeing its sibling's package.json, see the
+# app compose files) `npm install` doesn't rewrite it, so starting both at
+# once is safe — after a dependency change, regenerate the lockfile first
+# (the disposable-container `npm install` in CLAUDE.md), then `up`.
+#
+#   docker compose up              # api + panel (:5174) + dashboard (:5175) + pgsql
+#   docker compose up panel        # just the clinic panel dev server
+#   docker compose up dashboard    # just the platform dashboard dev server
 #
 # `./vendor/bin/sail` (run from apps/api) still works for artisan/pest and
 # only targets apps/api/compose.yaml (laravel.test + pgsql) — it has no
@@ -22,6 +30,7 @@ include:
     - path: apps/api/compose.yaml
       env_file: apps/api/.env
     - path: apps/panel/compose.yaml
+    - path: apps/dashboard/compose.yaml
 
 # e2e isn't a deployable app like api/panel (no Dockerfile of its own), so it
 # lives directly here rather than in its own compose file. Behind the `e2e`
@@ -86,6 +95,14 @@ services:
             DB_PASSWORD: password
             # Assertions may end up matching the Spanish UI, same as CI.
             APP_LOCALE: es
+            # Same values as the CI e2e job: the dashboard (:5175) is a
+            # second stateful SPA origin, and the only origin allowed on the
+            # admin routes. Exported env wins over apps/api/.env (Dotenv
+            # never overrides an existing variable), so a dev's local .env
+            # can't break the run.
+            FRONTEND_URL: 'http://localhost:5174,http://localhost:5175'
+            SANCTUM_STATEFUL_DOMAINS: 'localhost:5174,localhost:5175'
+            ADMIN_ALLOWED_ORIGINS: 'http://localhost:5175'
         volumes:
             - '.:/workspace'
         networks:
@@ -94,5 +111,6 @@ services:
             sh -c "cd apps/api && composer install --no-interaction --prefer-dist &&
             php artisan migrate --force && php artisan db:seed --force && cd /workspace &&
             npm install &&
+            cp -n apps/dashboard/.env.example apps/dashboard/.env &&
             npx playwright install chromium &&
             npx playwright test"

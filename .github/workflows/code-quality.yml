@@ -61,16 +61,28 @@ jobs:
       - name: ⚙️ Node.js + npm
         uses: ./.github/actions/setup-node
         with:
-          scope: panel
+          scope: frontends
 
-      - name: ✨ Prettier
+      - name: ✨ Prettier (panel)
         working-directory: apps/panel
         run: npm run format:check
 
-      - name: 🔍 ESLint
+      - name: 🔍 ESLint (panel)
         working-directory: apps/panel
         run: npm run lint:check
 
-      - name: 🛠️ TypeScript checks
+      - name: 🛠️ TypeScript checks (panel)
         working-directory: apps/panel
+        run: npm run typecheck
+
+      - name: ✨ Prettier (dashboard)
+        working-directory: apps/dashboard
+        run: npm run format:check
+
+      - name: 🔍 ESLint (dashboard)
+        working-directory: apps/dashboard
+        run: npm run lint:check
+
+      - name: 🛠️ TypeScript checks (dashboard)
+        working-directory: apps/dashboard
         run: npm run typecheck

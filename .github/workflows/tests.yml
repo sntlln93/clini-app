@@ -69,10 +69,16 @@ jobs:
       - name: ⚙️ Node.js + npm
         uses: ./.github/actions/setup-node
         with:
-          scope: panel
+          scope: frontends
 
-      - name: 🧪 Vitest
+      # GitHub Actions sets CI=true, so each parity test reads the PHP
+      # ErrorCode enum (apps/api is checked out here) and fails loudly if not.
+      - name: 🧪 Vitest (panel)
         working-directory: apps/panel
+        run: npm run test
+
+      - name: 🧪 Vitest (dashboard)
+        working-directory: apps/dashboard
         run: npm run test
 
   e2e:
@@ -102,6 +108,13 @@ jobs:
       DB_PASSWORD: password
       # Assertions may end up matching the Spanish UI
       APP_LOCALE: es
+      # The dashboard (:5175) is a second stateful SPA origin and the only
+      # origin allowed on /api/v1/admin/*. Job env wins over apps/api/.env
+      # (Dotenv never overrides an existing variable), and `php artisan serve
+      # --no-reload` passes it through to the app.
+      FRONTEND_URL: http://localhost:5174,http://localhost:5175
+      SANCTUM_STATEFUL_DOMAINS: localhost:5174,localhost:5175
+      ADMIN_ALLOWED_ORIGINS: http://localhost:5175
 
     steps:
       - name: 📥 Clone repo
@@ -135,6 +148,9 @@ jobs:
       - name: ⚡ Setup panel env
         run: cp apps/panel/.env.example apps/panel/.env
 
+      - name: ⚡ Setup dashboard env
+        run: cp apps/dashboard/.env.example apps/dashboard/.env
+
       - name: ♻️ Playwright browser cache
         uses: actions/cache@v6
         with:
@@ -149,8 +165,9 @@ jobs:
       - name: 🛠️ Type-check specs
         run: npx tsc -p e2e --noEmit
 
-      # playwright.config.ts boots both servers itself (webServer array) when
-      # CI is set — php artisan serve for the api, vite dev for the panel
+      # playwright.config.ts boots the servers itself (webServer array) when
+      # CI is set — php artisan serve for the api, vite dev for the panel and
+      # the dashboard
       - name: 🧪 E2E tests
         run: npx playwright test
 

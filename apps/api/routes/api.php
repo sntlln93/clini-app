@@ -25,10 +25,17 @@ Route::prefix('v1')->group(function (): void {
     // subscription endpoints, so it applies the auth group itself.
     require __DIR__.'/api/v1/subscriptions.php';
 
+    // Platform operators: separate `admin` session guard, never
+    // `auth:sanctum`; dashboard-origin only (ADR 0010).
+    require __DIR__.'/api/v1/admin.php';
+
     // Domain modules (#20–#24) mount here. Auth (login/register/logout/me)
     // and health stay outside this group: they run before an organization
     // can be resolved, or don't need one at all.
-    Route::middleware(['auth:sanctum', 'organization'])->group(function (): void {
+    // `not-blocked` always runs right after `auth:sanctum`, before the
+    // organization is resolved. `clinic.origin` keeps dashboard-origin
+    // scripts off every clinic route (ADR 0010).
+    Route::middleware(['clinic.origin', 'auth:sanctum', 'not-blocked', 'organization'])->group(function (): void {
         require __DIR__.'/api/v1/patients.php';
         require __DIR__.'/api/v1/catalog.php';
         require __DIR__.'/api/v1/professionals.php';

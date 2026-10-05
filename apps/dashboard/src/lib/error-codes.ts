@@ -1,0 +1,140 @@
+import type { AppError } from './api-errors';
+
+/** Public contract mirrored from `apps/api/app/Enums/ErrorCode.php`; kept in sync by `src/lib/error-code-parity.test.ts`. */
+export type ErrorCode =
+    | 'appointments.service_not_active_for_professional'
+    | 'appointments.slot_taken'
+    | 'appointments.not_cancellable_from_status'
+    | 'appointments.not_reschedulable_from_status'
+    | 'appointments.status_transition_not_allowed'
+    | 'memberships.last_active_admin'
+    | 'organizations.no_active_membership'
+    | 'patients.not_found'
+    | 'memberships.invitation_invalid_or_expired'
+    | 'auth.email_verification_invalid_or_expired'
+    | 'booking.slot_not_available'
+    | 'memberships.slug_invalid_format'
+    | 'memberships.slug_taken'
+    | 'memberships.slug_not_allowed_for_role'
+    | 'availability.slot_merge_required'
+    | 'availability.slot_already_covered'
+    | 'availability.exception_merge_required'
+    | 'availability.exception_already_covered'
+    | 'availability.exception_type_conflict'
+    | 'holidays.provider_unavailable'
+    | 'subscriptions.inactive'
+    | 'subscriptions.already_active'
+    | 'subscriptions.gateway_unavailable'
+    | 'subscriptions.webhook_signature_invalid'
+    | 'organizations.suspended'
+    | 'organizations.already_suspended'
+    | 'organizations.not_suspended'
+    | 'booking.organization_unavailable'
+    | 'auth.user_blocked'
+    | 'users.already_blocked'
+    | 'users.not_blocked'
+    | 'users.email_already_verified'
+    | 'subscriptions.grace_extension_not_allowed'
+    | 'subscriptions.grace_extension_not_later';
+
+/** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
+export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
+    'appointments.service_not_active_for_professional':
+        'El profesional no tiene este servicio activo. Elegí otro servicio o comunicate con el consultorio.',
+    'appointments.slot_taken':
+        'El profesional ya tiene un turno en ese horario.',
+    'appointments.not_cancellable_from_status':
+        'Este turno no se puede cancelar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
+    'appointments.not_reschedulable_from_status':
+        'Este turno no se puede reprogramar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
+    'appointments.status_transition_not_allowed':
+        'El turno no puede pasar a ese estado. Actualizá la página para ver las acciones disponibles según su estado actual.',
+    'memberships.last_active_admin':
+        'La organización debe mantener al menos un miembro activo con rol de propietario o administrador.',
+    'organizations.no_active_membership':
+        'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
+    'patients.not_found':
+        'No encontramos un paciente con ese documento. Revisá que esté bien escrito o creá un paciente nuevo si todavía no está registrado.',
+    'memberships.invitation_invalid_or_expired':
+        'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
+    'auth.email_verification_invalid_or_expired':
+        'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
+    'booking.slot_not_available':
+        'Ese horario ya no está disponible. Elegí otro turno.',
+    'memberships.slug_invalid_format':
+        'El link debe tener entre 3 y 50 caracteres, usando solo minúsculas, números y guiones, sin empezar, terminar ni repetir guiones.',
+    'memberships.slug_taken': 'Ese link ya está en uso. Probá con otro.',
+    'memberships.slug_not_allowed_for_role':
+        'Solo los profesionales pueden tener un link público.',
+    'availability.slot_merge_required':
+        'Ese horario se combina con otro ya cargado para ese día. Confirmá la combinación para continuar.',
+    'availability.slot_already_covered':
+        'Ese horario ya está incluido en otro que cargaste para ese día. No hace falta agregarlo.',
+    'availability.exception_merge_required':
+        'Esa excepción se combina con otra del mismo tipo. Confirmá la combinación para continuar.',
+    'availability.exception_already_covered':
+        'Ese período ya está incluido en otra excepción del mismo tipo. No hace falta agregarlo.',
+    'availability.exception_type_conflict':
+        'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
+    'holidays.provider_unavailable':
+        'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
+    'subscriptions.inactive':
+        'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, recetas y disponibilidad, y para recibir reservas online.',
+    'subscriptions.already_active':
+        'La suscripción del consultorio ya está activa. No hace falta volver a suscribirse.',
+    'subscriptions.gateway_unavailable':
+        'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
+    'subscriptions.webhook_signature_invalid':
+        'La notificación de pago no es válida.',
+    // Operator-facing copy for the platform-moderation codes; the three that
+    // describe a clinic user's own state reuse the panel's wording.
+    'organizations.suspended':
+        'La organización está suspendida. Comunicate con el soporte de Clini para regularizar la cuenta.',
+    'organizations.already_suspended':
+        'La organización ya estaba suspendida. Actualizá la página para ver su estado actual.',
+    'organizations.not_suspended':
+        'La organización ya estaba activa. Actualizá la página para ver su estado actual.',
+    'booking.organization_unavailable':
+        'Este consultorio no está recibiendo reservas online en este momento.',
+    'auth.user_blocked':
+        'Tu cuenta está bloqueada. Comunicate con el soporte de Clini.',
+    'users.already_blocked':
+        'El usuario ya estaba bloqueado. Actualizá la página para ver su estado actual.',
+    'users.not_blocked':
+        'El usuario ya estaba desbloqueado. Actualizá la página para ver su estado actual.',
+    'users.email_already_verified':
+        'El correo de este usuario ya estaba verificado.',
+    'subscriptions.grace_extension_not_allowed':
+        'Solo se puede extender la gracia de una suscripción en gracia o vencida.',
+    'subscriptions.grace_extension_not_later':
+        'Elegí una fecha posterior al fin de la gracia actual.',
+};
+
+/** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */
+const GENERIC_MESSAGES: Record<
+    Exclude<AppError['kind'], 'business'>,
+    string
+> = {
+    validation: 'Los datos ingresados no son válidos.',
+    unauthorized: 'Tu sesión no es válida. Iniciá sesión nuevamente.',
+    forbidden:
+        'No tenés permiso para acceder a esta sección del panel de operación.',
+    session_expired: 'Tu sesión expiró. Recargá la página e intentá de nuevo.',
+    rate_limited:
+        'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
+    network: 'No pudimos conectarnos. Revisá tu conexión e intentá nuevamente.',
+    unexpected: 'Ocurrió un error inesperado. Intentá nuevamente.',
+};
+
+/** Turns any `AppError` into Spanish UI copy — by `ErrorCode` for a `BusinessError`, generic otherwise. */
+export function messageForAppError(error: AppError): string {
+    if (error.kind === 'business') {
+        return ERROR_CODE_MESSAGES[error.code];
+    }
+
+    if (error.kind === 'validation') {
+        return error.serverMessage ?? GENERIC_MESSAGES.validation;
+    }
+
+    return GENERIC_MESSAGES[error.kind];
+}

@@ -9,14 +9,16 @@ use App\Contracts\Data;
 use App\Data\Memberships\InvitationAcceptanceData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
 use App\Models\Membership;
 use App\Models\MembershipInvitation;
+use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
- * Invitation validity is already enforced by AcceptInvitationRequest — this only creates the user/membership and marks the invitation accepted so its token can't be reused.
+ * Invitation validity is already enforced by AcceptInvitationRequest — this only re-checks the organization's suspension under lock, creates the user/membership and marks the invitation accepted so its token can't be reused.
  *
  * @implements Action<InvitationAcceptanceData>
  */
@@ -33,6 +35,18 @@ class AcceptInvitationAction implements Action
                 ->whereNull('accepted_at')
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            // Re-checked under a shared lock so a suspension committed after
+            // AcceptInvitationRequest validated the token can't slip through
+            // (SuspendOrganizationAction locks the row for update).
+            $organization = Organization::query()
+                ->whereKey($invitation->organization_id)
+                ->sharedLock()
+                ->first(['id', 'suspended_at']);
+
+            if ($organization?->suspended_at !== null) {
+                throw new InvitationInvalidOrExpiredException($invitation->token);
+            }
 
             $user = User::where('email', $invitation->email)->first();
 

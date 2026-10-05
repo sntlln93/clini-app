@@ -89,6 +89,8 @@ Table organizations {
   name varchar [not null]
   slug varchar [not null, unique]
   timezone varchar [not null, note: 'IANA tz, e.g. America/Argentina/Buenos_Aires']
+  suspended_at timestamp [null, note: 'Set by a platform operator: members get 403 organizations.suspended, public booking 403 booking.organization_unavailable']
+  suspension_reason varchar(500) [null, note: 'Operator note; hidden from clinic users (/me)']
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
@@ -101,6 +103,8 @@ Table users {
   name varchar [not null]
   email varchar [not null, unique]
   password varchar [not null]
+  blocked_at timestamp [null, note: 'Set by a platform operator: login 403 auth.user_blocked, an open panel session is logged out on its next request']
+  block_reason varchar(500) [null, note: 'Operator note; hidden from /me']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
@@ -440,6 +444,38 @@ Table subscription_events {
   Note: 'Idempotency log of verified provider webhook notifications: a redelivered notification id is a no-op.'
 }
 
+Table platform_admins {
+  id bigint [pk, increment]
+  name varchar [not null]
+  email varchar [not null, unique, note: 'Stored lowercased (admin:create)']
+  password varchar [not null]
+  remember_token varchar [null]
+  last_login_at timestamp [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  Note: 'Platform operators of the dashboard (apps/dashboard), session guard admin. A separate identity from users: never a tenant member, never authenticated by auth:sanctum (ADR 0010).'
+}
+
+Table admin_audit_logs {
+  id bigint [pk, increment]
+  platform_admin_id bigint [not null]
+  action varchar [not null, note: 'AdminAuditAction: auth.login, auth.logout, organizations.suspend, organizations.reactivate, users.verify_email, users.block, users.unblock, subscriptions.extend_grace']
+  subject_type varchar [null, note: 'AdminAuditSubject: organization | user | subscription; null for auth.* rows. A plain string, not a morph relation']
+  subject_id bigint [null]
+  metadata jsonb [not null, default: '{}', note: 'subject_label snapshot, reason/note, previous_* values']
+  ip varchar(45) [null]
+  created_at timestamp [not null]
+
+  indexes {
+    (subject_type, subject_id)
+    (platform_admin_id, created_at)
+    created_at
+  }
+
+  Note: 'Append-only (no updated_at). Written in the same transaction as the operator mutation it records.'
+}
+
 Ref: memberships.organization_id > organizations.id [delete: restrict]
 Ref: memberships.user_id > users.id [delete: restrict]
 
@@ -481,3 +517,4 @@ Ref: holidays.province_id > provinces.id [delete: restrict]
 Ref: organization_holidays.organization_id > organizations.id [delete: cascade]
 Ref: subscriptions.organization_id > organizations.id [delete: cascade]
 Ref: subscription_events.subscription_id > subscriptions.id [delete: set null]
+Ref: admin_audit_logs.platform_admin_id > platform_admins.id [delete: restrict]

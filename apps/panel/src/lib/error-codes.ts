@@ -25,7 +25,17 @@ export type ErrorCode =
     | 'subscriptions.inactive'
     | 'subscriptions.already_active'
     | 'subscriptions.gateway_unavailable'
-    | 'subscriptions.webhook_signature_invalid';
+    | 'subscriptions.webhook_signature_invalid'
+    | 'organizations.suspended'
+    | 'organizations.already_suspended'
+    | 'organizations.not_suspended'
+    | 'booking.organization_unavailable'
+    | 'auth.user_blocked'
+    | 'users.already_blocked'
+    | 'users.not_blocked'
+    | 'users.email_already_verified'
+    | 'subscriptions.grace_extension_not_allowed'
+    | 'subscriptions.grace_extension_not_later';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -76,6 +86,21 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
     'subscriptions.webhook_signature_invalid':
         'La notificación de pago no es válida.',
+    'organizations.suspended':
+        'La organización está suspendida. Comunicate con el soporte de Clini para regularizar la cuenta.',
+    'organizations.already_suspended': 'La organización ya está suspendida.',
+    'organizations.not_suspended': 'La organización no está suspendida.',
+    'booking.organization_unavailable':
+        'Este consultorio no está recibiendo reservas online en este momento.',
+    'auth.user_blocked':
+        'Tu cuenta está bloqueada. Comunicate con el soporte de Clini.',
+    'users.already_blocked': 'El usuario ya está bloqueado.',
+    'users.not_blocked': 'El usuario no está bloqueado.',
+    'users.email_already_verified': 'El correo del usuario ya está verificado.',
+    'subscriptions.grace_extension_not_allowed':
+        'Solo se puede extender el período de gracia de una suscripción en gracia o vencida.',
+    'subscriptions.grace_extension_not_later':
+        'La nueva fecha tiene que ser posterior al fin del período de gracia actual.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

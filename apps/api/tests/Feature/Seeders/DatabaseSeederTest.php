@@ -13,12 +13,14 @@ use App\Models\AvailabilityException;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\PlatformAdmin;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
 use App\Models\User;
 use App\Models\UserSpecialty;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\PlatformAdminSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -371,4 +373,23 @@ test('the volume memberships have no seeded availabilities', function () {
 
     expect($volumeMembershipIds)->toHaveCount(14);
     expect(Availability::whereIn('membership_id', $volumeMembershipIds)->count())->toBe(0);
+});
+
+test('seeding creates exactly one platform operator, idempotently', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+
+    $operator = PlatformAdmin::query()->sole();
+    expect($operator->email)->toBe(PlatformAdminSeeder::EMAIL);
+    expect(Hash::check('password', $operator->password))->toBeTrue();
+});
+
+test('the platform operator is never seeded in production', function () {
+    // Run directly: `db:seed` would stop to ask for confirmation in production.
+    $this->app['env'] = 'production';
+
+    $this->app->make(PlatformAdminSeeder::class)->run();
+
+    $this->app['env'] = 'testing';
+    expect(PlatformAdmin::query()->count())->toBe(0);
 });

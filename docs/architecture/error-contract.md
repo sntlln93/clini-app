@@ -16,9 +16,9 @@ Decisiones y motivación en [ADR 0009](../adr/0009-contrato-de-errores-de-domini
 }
 ```
 
-- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 9 valores de `App\Enums\ErrorCode` (tabla abajo). Renombrarlo requiere actualizar en el mismo cambio el enum espejo del panel (`apps/panel/src/lib/error-codes.ts`); el test de paridad (`apps/panel/src/lib/error-code-parity.test.ts`) lo garantiza.
-- `message`: el mensaje de la excepción, en inglés, para desarrolladores (va al log y al stack trace). **Nunca se muestra en la UI** — el panel resuelve la copy en español por `code` desde su propio catálogo (`ERROR_CODE_MESSAGES` en `error-codes.ts`).
-- `context`: lo que `publicContext()` de la excepción concreta decidió exponer. `[]` por defecto; ninguna de las 9 excepciones de este contrato expone nada hoy.
+- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 34 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
+- `message`: el mensaje de la excepción, en inglés, para desarrolladores (va al log y al stack trace). **Nunca se muestra en la UI** — cada frontend resuelve la copy en español por `code` desde su propio catálogo (`ERROR_CODE_MESSAGES` en `error-codes.ts`). El dashboard reusa la copy del panel salvo en los códigos de moderación, donde la redacta para el operador.
+- `context`: lo que `publicContext()` de la excepción concreta decidió exponer. `{}` por defecto; las excepciones que exponen algo están marcadas en la tabla.
 
 **Validación de entrada** (forma nativa de Laravel, sin cambios — 422 exclusivo de FormRequests):
 
@@ -35,19 +35,46 @@ Backend: un único `render` callback en `apps/api/bootstrap/app.php`, registrado
 
 Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios (`axios.isAxiosError`, `error.response`). Su `mapToAppError(error: unknown): AppError` clasifica cualquier error en una de siete clases que extienden `Error` (`BusinessError`, `ValidationError`, `UnauthorizedError`, `SessionExpiredError`, `RateLimitedError`, `NetworkError`, `UnexpectedError`), discriminadas por `kind`. Todo lo demás — `extractFormErrors`, `notifyError`, `QueryErrorState`, el `retry` de `query-client.ts` — trabaja sobre `AppError`, nunca sobre axios directamente; una regla de ESLint (`no-restricted-imports`) lo enforcea, exceptuando `src/lib/api.ts` (crea el cliente axios, no lee `error.response`).
 
-## Los 9 códigos
+## Los 34 códigos
 
-| código | HTTP | sitio de origen |
-|---|---|---|
-| `appointments.service_not_active_for_professional` | 409 | `BookAppointmentAction` |
-| `appointments.slot_taken` | 409 | `BookAppointmentAction` |
-| `appointments.not_cancellable_from_status` | 409 | `CancelAppointmentAction` |
-| `appointments.not_reschedulable_from_status` | 409 | `RescheduleAppointmentAction` |
-| `appointments.status_transition_not_allowed` | 409 | `TransitionAppointmentStatusAction` |
-| `memberships.last_active_admin` | 409 | `DeactivateMembershipAction` y `UpdateMembershipAction` (misma clase, misma regla) |
-| `organizations.no_active_membership` | 403 | middleware `ResolveCurrentOrganization` |
-| `patients.not_found` | 404 | `PatientController::lookup` |
-| `memberships.invitation_invalid_or_expired` | 404 | `InvitationAcceptanceController` |
+| código | HTTP | sitio de origen | `context` |
+|---|---|---|---|
+| `appointments.service_not_active_for_professional` | 409 | `BookAppointmentAction` | |
+| `appointments.slot_taken` | 409 | `BookAppointmentAction` | |
+| `appointments.not_cancellable_from_status` | 409 | `CancelAppointmentAction` | |
+| `appointments.not_reschedulable_from_status` | 409 | `RescheduleAppointmentAction` | |
+| `appointments.status_transition_not_allowed` | 409 | `TransitionAppointmentStatusAction` | |
+| `memberships.last_active_admin` | 409 | `DeactivateMembershipAction` y `UpdateMembershipAction` (misma clase, misma regla) | |
+| `memberships.invitation_invalid_or_expired` | 404 | `FindValidInvitationAction` | |
+| `memberships.slug_invalid_format` | 409 | `SetMembershipSlugAction` | |
+| `memberships.slug_taken` | 409 | `SetMembershipSlugAction` | |
+| `memberships.slug_not_allowed_for_role` | 409 | `SetMembershipSlugAction` | |
+| `organizations.no_active_membership` | 403 | middleware `ResolveCurrentOrganization` | |
+| `organizations.suspended` | 403 | middleware `ResolveCurrentOrganization` (organización suspendida por un operador) | |
+| `organizations.already_suspended` | 409 | `SuspendOrganizationAction` (dashboard) | |
+| `organizations.not_suspended` | 409 | `ReactivateOrganizationAction` (dashboard) | |
+| `patients.not_found` | 404 | `PatientController::lookup` | |
+| `auth.email_verification_invalid_or_expired` | 404 | `FindValidEmailVerificationUserAction`, `VerifyEmailAction` | |
+| `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta) y middleware `EnsureUserNotBlocked` | |
+| `booking.slot_not_available` | 409 | `AssertSlotWithinPublishedScheduleAction` | |
+| `booking.organization_unavailable` | 403 | middleware `ResolvePublicOrganization` (organización suspendida) | |
+| `availability.slot_merge_required` | 409 | `SaveAvailabilitySlotAction` | `merged` |
+| `availability.slot_already_covered` | 409 | `SaveAvailabilitySlotAction` | `covering` |
+| `availability.exception_merge_required` | 409 | `SaveAvailabilityExceptionAction` | `merged` |
+| `availability.exception_already_covered` | 409 | `SaveAvailabilityExceptionAction` | `covering` |
+| `availability.exception_type_conflict` | 409 | `SaveAvailabilityExceptionAction` | `existing_type` |
+| `holidays.provider_unavailable` | 409 | `CalendariosNacionalesService` | |
+| `subscriptions.inactive` | 409 | middleware `EnsureSubscriptionActive` | `subscription_status` |
+| `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
+| `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `MercadoPagoService` | |
+| `subscriptions.webhook_signature_invalid` | 401 | `HandleSubscriptionNotificationAction` | |
+| `subscriptions.grace_extension_not_allowed` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `subscription_status` |
+| `subscriptions.grace_extension_not_later` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `current_grace_ends_at` |
+| `users.already_blocked` | 409 | `BlockUserAction` (dashboard) | |
+| `users.not_blocked` | 409 | `UnblockUserAction` (dashboard) | |
+| `users.email_already_verified` | 409 | `VerifyUserEmailManuallyAction` (dashboard) | |
+
+Las rutas `/api/v1/admin/*` suman un rechazo que **no** es un código de dominio: `EnsureDashboardOrigin` responde un `403 {"message":"Forbidden."}` plano (sin sobre `error`) cuando el `Origin`/`Referer` del pedido no está en `ADMIN_ALLOWED_ORIGINS`. Es una aserción de seguridad, no un flujo de negocio — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
 
 ## Manejo por capa en el panel
 
