@@ -96,6 +96,16 @@ grep -qE '^apps/panel/src/.*\.(ts|tsx|js|jsx|css)$|^apps/panel/package(-lock)?\.
 grep -qE '^apps/dashboard/src/.*\.(ts|tsx|js|jsx|css)$|^apps/dashboard/package(-lock)?\.json$|^apps/dashboard/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && dashboard_side=true
 grep -qE '^apps/landing/src/.*\.(ts|tsx|js|jsx|css)$|^apps/landing/package(-lock)?\.json$|^apps/landing/(vite|vitest|tailwind|postcss|eslint)\.config' <<<"$files" && landing_side=true
 grep -qE '^e2e/|^playwright\.config\.ts$|^package(-lock)?\.json$' <<<"$files" && e2e=true
+# Shared workspace packages (packages/theme = @clini/theme) feed every
+# frontend's stylesheet: a change there re-checks all three apps, plus the
+# root Prettier run that formats packages/ (no app's own config covers it).
+packages_side=false
+if grep -qE '^packages/' <<<"$files"; then
+    packages_side=true
+    frontend=true
+    dashboard_side=true
+    landing_side=true
+fi
 
 if ! $backend && ! $frontend && ! $dashboard_side && ! $landing_side && ! $e2e; then
     echo "No backend, frontend, dashboard, landing or e2e changes detected — nothing to validate."
@@ -187,6 +197,8 @@ if $e2e; then
     run "prettier (write, e2e)" "raw" e2e_node npm run format
     run "eslint (e2e)" "eslint" e2e_node npm run lint:check
     run "tsc (e2e)" "tsc" e2e_node npx tsc -p e2e --noEmit
+elif $packages_side; then
+    run "prettier (write, packages)" "raw" e2e_node npm run format
 fi
 
 if $FULL; then
