@@ -37,4 +37,6 @@ test('the expected v1 routes are registered', function () {
     expect($uris)->toContain('api/v1/register');
     expect($uris)->toContain('api/v1/logout');
     expect($uris)->toContain('api/v1/me');
+    expect($uris)->toContain('api/v1/admin/login');
+    expect($uris)->toContain('api/v1/admin/me');
 });

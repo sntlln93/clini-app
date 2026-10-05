@@ -159,6 +159,29 @@ describe('LoginForm', () => {
         await screen.findByText('Invalid credentials.');
     });
 
+    it('renders the blocked-account copy from a 403 auth.user_blocked', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce(
+            unauthorizedError(
+                {
+                    error: {
+                        code: 'auth.user_blocked',
+                        message: 'The user is blocked.',
+                        context: {},
+                    },
+                },
+                403,
+            ),
+        );
+        renderLoginForm();
+
+        await submitValidCredentials();
+
+        await screen.findByText(
+            'Tu cuenta está bloqueada. Comunicate con el soporte de Clini.',
+        );
+        expect(screen.queryByText('The user is blocked.')).toBeNull();
+    });
+
     it('navigates to /agenda on successful login', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { id: 1, name: 'Ana', email: 'ana@clini.app' },

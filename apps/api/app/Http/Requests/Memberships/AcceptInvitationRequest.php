@@ -67,7 +67,9 @@ class AcceptInvitationRequest extends FormRequest
             ->whereNull('accepted_at')
             ->first();
 
-        if ($invitation !== null && $invitation->isExpired()) {
+        // A suspended organization's invitations are rejected with the same
+        // generic message (AcceptInvitationAction re-checks it under lock).
+        if ($invitation !== null && ($invitation->isExpired() || $invitation->organization?->suspended_at !== null)) {
             $invitation = null;
         }
 

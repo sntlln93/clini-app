@@ -27,7 +27,13 @@ class FindValidInvitationAction implements Action
             ->whereNull('accepted_at')
             ->first();
 
-        if ($invitation === null || $invitation->isExpired()) {
+        // A suspended organization's pending invitations are dead too: the
+        // same generic error, so the invitee learns nothing about the
+        // suspension (AcceptInvitationAction re-checks it under lock).
+        if ($invitation === null
+            || $invitation->isExpired()
+            || $invitation->organization?->suspended_at !== null
+        ) {
             throw new InvitationInvalidOrExpiredException($tokenHash);
         }
 

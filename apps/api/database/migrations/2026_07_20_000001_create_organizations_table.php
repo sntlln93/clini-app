@@ -18,6 +18,9 @@ return new class extends Migration
             $table->string('name');
             $table->string('slug')->unique();
             $table->string('timezone');
+            // Platform-operator moderation (#232): a suspended organization's members and public booking are rejected.
+            $table->timestamp('suspended_at')->nullable();
+            $table->string('suspension_reason', 500)->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

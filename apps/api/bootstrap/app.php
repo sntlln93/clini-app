@@ -3,10 +3,14 @@
 declare(strict_types=1);
 
 use App\Contracts\DomainError;
+use App\Http\Middleware\EnsureDashboardOrigin;
+use App\Http\Middleware\EnsureNotDashboardOrigin;
 use App\Http\Middleware\EnsureSubscriptionActive;
+use App\Http\Middleware\EnsureUserNotBlocked;
 use App\Http\Middleware\ResolveCurrentOrganization;
 use App\Http\Middleware\ResolvePublicOrganization;
 use Illuminate\Auth\AuthenticationException;
+use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -28,7 +32,16 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization' => ResolveCurrentOrganization::class,
             'public-organization' => ResolvePublicOrganization::class,
             'subscription.active' => EnsureSubscriptionActive::class,
+            'not-blocked' => EnsureUserNotBlocked::class,
+            'admin.origin' => EnsureDashboardOrigin::class,
+            'clinic.origin' => EnsureNotDashboardOrigin::class,
         ]);
+        // The origin pins must run before authentication, throttling and route
+        // model binding: a request from the wrong origin learns nothing (not
+        // whether it is authenticated, nor whether an id exists) and never
+        // consumes the admin login throttle.
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, EnsureDashboardOrigin::class);
+        $middleware->prependToPriorityList(AuthenticatesRequests::class, EnsureNotDashboardOrigin::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

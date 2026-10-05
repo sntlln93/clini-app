@@ -10,14 +10,24 @@ use App\Exceptions\Appointments\AppointmentNotReschedulableException;
 use App\Exceptions\Appointments\ServiceNotActiveForProfessionalException;
 use App\Exceptions\Appointments\SlotTakenException;
 use App\Exceptions\Appointments\StatusTransitionNotAllowedException;
+use App\Exceptions\Auth\UserBlockedException;
+use App\Exceptions\Booking\BookingOrganizationUnavailableException;
 use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
 use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Exceptions\Organizations\NoActiveMembershipException;
+use App\Exceptions\Organizations\OrganizationAlreadySuspendedException;
+use App\Exceptions\Organizations\OrganizationNotSuspendedException;
+use App\Exceptions\Organizations\OrganizationSuspendedException;
 use App\Exceptions\Patients\PatientNotFoundException;
+use App\Exceptions\Subscriptions\GraceExtensionNotAllowedException;
+use App\Exceptions\Subscriptions\GraceExtensionNotLaterException;
 use App\Exceptions\Subscriptions\SubscriptionAlreadyActiveException;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Exceptions\Subscriptions\SubscriptionInactiveException;
 use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
+use App\Exceptions\Users\EmailAlreadyVerifiedException;
+use App\Exceptions\Users\UserAlreadyBlockedException;
+use App\Exceptions\Users\UserNotBlockedException;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
@@ -41,6 +51,20 @@ dataset('domain_exceptions', fn () => [
     'SubscriptionAlreadyActiveException' => new SubscriptionAlreadyActiveException(511),
     'SubscriptionGatewayUnavailableException' => new SubscriptionGatewayUnavailableException('/preapproval/pre-secret-512', 503, providerMessage: 'provider-reason-secret-512'),
     'WebhookSignatureInvalidException' => new WebhookSignatureInvalidException('req-secret-513'),
+    'OrganizationSuspendedException' => new OrganizationSuspendedException(70514),
+    'OrganizationAlreadySuspendedException' => new OrganizationAlreadySuspendedException(70515),
+    'OrganizationNotSuspendedException' => new OrganizationNotSuspendedException(70516),
+    'BookingOrganizationUnavailableException' => new BookingOrganizationUnavailableException(70517),
+    'UserBlockedException' => new UserBlockedException(70518),
+    'UserAlreadyBlockedException' => new UserAlreadyBlockedException(70519),
+    'UserNotBlockedException' => new UserNotBlockedException(70520),
+    'EmailAlreadyVerifiedException' => new EmailAlreadyVerifiedException(70521),
+    'GraceExtensionNotAllowedException' => new GraceExtensionNotAllowedException(70522, SubscriptionStatus::Active),
+    'GraceExtensionNotLaterException' => new GraceExtensionNotLaterException(
+        70523,
+        CarbonImmutable::parse('2026-10-10T02:59:59Z'),
+        CarbonImmutable::parse('2026-10-08T02:59:59Z'),
+    ),
 ]);
 
 beforeEach(function () {
@@ -152,3 +176,25 @@ test('a ValidationException still renders the framework default shape, not the d
     $response->assertJsonStructure(['message', 'errors']);
     expect($response->json())->not->toHaveKey('error');
 });
+
+test('the platform-operator domain errors carry the documented code, status and public context', function (DomainError $exception, string $code, int $status, array $publicContext) {
+    expect($exception->errorCode()->value)->toBe($code);
+    expect($exception->httpStatus())->toBe($status);
+    expect($exception->publicContext())->toBe($publicContext);
+})->with([
+    'organization suspended' => [new OrganizationSuspendedException(1), 'organizations.suspended', 403, []],
+    'organization already suspended' => [new OrganizationAlreadySuspendedException(1), 'organizations.already_suspended', 409, []],
+    'organization not suspended' => [new OrganizationNotSuspendedException(1), 'organizations.not_suspended', 409, []],
+    'booking organization unavailable' => [new BookingOrganizationUnavailableException(1), 'booking.organization_unavailable', 403, []],
+    'user blocked' => [new UserBlockedException(1), 'auth.user_blocked', 403, []],
+    'user already blocked' => [new UserAlreadyBlockedException(1), 'users.already_blocked', 409, []],
+    'user not blocked' => [new UserNotBlockedException(1), 'users.not_blocked', 409, []],
+    'email already verified' => [new EmailAlreadyVerifiedException(1), 'users.email_already_verified', 409, []],
+    'grace extension not allowed' => [new GraceExtensionNotAllowedException(1, SubscriptionStatus::Cancelled), 'subscriptions.grace_extension_not_allowed', 409, ['subscription_status' => 'cancelled']],
+    'grace extension not later' => [
+        new GraceExtensionNotLaterException(1, CarbonImmutable::parse('2026-10-10T02:59:59Z'), CarbonImmutable::parse('2026-10-08T02:59:59Z')),
+        'subscriptions.grace_extension_not_later',
+        409,
+        ['current_grace_ends_at' => '2026-10-10T02:59:59+00:00'],
+    ],
+]);

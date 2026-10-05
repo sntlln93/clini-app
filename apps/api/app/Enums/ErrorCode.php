@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Enums;
 
 /**
- * Each case is `<module>.<rule>`; renaming one breaks the panel's mirrored catalog (`apps/panel/src/lib/error-codes.ts`) — an enum-parity test enforces they stay in sync.
+ * Each case is `<module>.<rule>`; renaming one breaks the panel's and the dashboard's mirrored catalogs (`apps/panel/src/lib/error-codes.ts`, `apps/dashboard/src/lib/error-codes.ts`) — an enum-parity test in each enforces they stay in sync.
  */
 enum ErrorCode: string
 {
@@ -33,4 +33,14 @@ enum ErrorCode: string
     case SubscriptionsAlreadyActive = 'subscriptions.already_active';
     case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';
     case SubscriptionsWebhookSignatureInvalid = 'subscriptions.webhook_signature_invalid';
+    case OrganizationsSuspended = 'organizations.suspended';
+    case OrganizationsAlreadySuspended = 'organizations.already_suspended';
+    case OrganizationsNotSuspended = 'organizations.not_suspended';
+    case BookingOrganizationUnavailable = 'booking.organization_unavailable';
+    case AuthUserBlocked = 'auth.user_blocked';
+    case UsersAlreadyBlocked = 'users.already_blocked';
+    case UsersNotBlocked = 'users.not_blocked';
+    case UsersEmailAlreadyVerified = 'users.email_already_verified';
+    case SubscriptionsGraceExtensionNotAllowed = 'subscriptions.grace_extension_not_allowed';
+    case SubscriptionsGraceExtensionNotLater = 'subscriptions.grace_extension_not_later';
 }
