@@ -1,0 +1,12 @@
+{
+  "name": "@clini/theme",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Clini design tokens (CSS only), shared by every frontend app.",
+  "exports": {
+    "./theme.css": "./theme.css"
+  },
+  "dependencies": {
+    "@fontsource-variable/outfit": "^5.2.8"
+  }
+}

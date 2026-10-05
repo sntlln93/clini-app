@@ -1,161 +1,15 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 @import 'shadcn/tailwind.css';
-@import '@fontsource-variable/outfit';
+@import '@clini/theme/theme.css';
 
-@custom-variant dark (&:is(.dark *));
-
-/*
- * Clini visual system (#234), following the Helixes reference: teal primary,
- * mint support, white rounded cards, pill controls, Outfit. Light is the
- * default; dark is a neutral near-black, never a tinted one.
- */
-@theme inline {
-    --font-heading: var(--font-sans);
-    --font-sans:
-        'Outfit Variable', 'Avenir Next', 'Segoe UI', system-ui, sans-serif;
-    --color-ring: var(--ring);
-    --color-input: var(--input);
-    --color-border: var(--border);
-    --color-destructive: var(--destructive);
-    --color-accent-foreground: var(--accent-foreground);
-    --color-accent: var(--accent);
-    --color-muted-foreground: var(--muted-foreground);
-    --color-muted: var(--muted);
-    --color-secondary-foreground: var(--secondary-foreground);
-    --color-secondary: var(--secondary);
-    --color-primary-foreground: var(--primary-foreground);
-    --color-primary: var(--primary);
-    --color-popover-foreground: var(--popover-foreground);
-    --color-popover: var(--popover);
-    --color-card-foreground: var(--card-foreground);
-    --color-card: var(--card);
-    --color-foreground: var(--foreground);
-    --color-background: var(--background);
-    --color-mint: var(--mint);
-    --color-glow: var(--glow);
-    --color-success: var(--success);
-    --color-success-wash: var(--success-wash);
-    --color-warning: var(--warning);
-    --color-destructive-wash: var(--destructive-wash);
-    --color-status-scheduled: var(--status-scheduled);
-    --color-status-scheduled-wash: var(--status-scheduled-wash);
-    --color-status-confirmed: var(--status-confirmed);
-    --color-status-confirmed-wash: var(--status-confirmed-wash);
-    --color-status-arrived: var(--status-arrived);
-    --color-status-arrived-wash: var(--status-arrived-wash);
-    --color-status-completed: var(--status-completed);
-    --color-status-completed-wash: var(--status-completed-wash);
-    --color-status-no-show: var(--status-no-show);
-    --color-status-no-show-wash: var(--status-no-show-wash);
-    --color-status-online: var(--status-online);
-    --color-status-online-wash: var(--status-online-wash);
-    --shadow-card: var(--card-shadow);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
-}
-
-:root {
-    --background: #fbfdfc;
-    --foreground: #0f1a1b;
-    --card: #ffffff;
-    --card-foreground: #0f1a1b;
-    --popover: #ffffff;
-    --popover-foreground: #0f1a1b;
-    --primary: #0f7f88;
-    --primary-foreground: #ffffff;
-    --secondary: #f3f8f7;
-    --secondary-foreground: #0f1a1b;
-    --muted: #f3f8f7;
-    --muted-foreground: #5a6b6c;
-    --accent: #d9eff0;
-    --accent-foreground: #0f7f88;
-    --destructive: #d9443f;
-    --destructive-wash: #fde9e7;
-    --border: rgb(15 26 27 / 0.1);
-    --input: rgb(15 26 27 / 0.14);
-    --ring: #0f7f88;
-    --radius: 0.875rem;
-    --mint: #dcf2e4;
-    --glow: #def3ef;
-    --success: #1f9a5d;
-    --success-wash: #e0f5e8;
-    --warning: #d98e0b;
-    --status-scheduled: #6b7b7c;
-    --status-scheduled-wash: #eef2f2;
-    --status-confirmed: #0f7f88;
-    --status-confirmed-wash: #d9eff0;
-    --status-arrived: #1f9a5d;
-    --status-arrived-wash: #e0f5e8;
-    --status-completed: #0f1a1b;
-    --status-completed-wash: #e6eaea;
-    --status-no-show: #d9443f;
-    --status-no-show-wash: #fde9e7;
-    --status-online: #b87508;
-    --status-online-wash: #fdf0d6;
-    --card-shadow:
-        0 1px 2px rgb(15 40 45 / 0.04), 0 18px 40px -28px rgb(15 70 80 / 0.22);
-}
-
-.dark {
-    --background: #0e1314;
-    --foreground: #e8eeee;
-    --card: #151b1c;
-    --card-foreground: #e8eeee;
-    --popover: #151b1c;
-    --popover-foreground: #e8eeee;
-    --primary: #3fb7c0;
-    --primary-foreground: #04201f;
-    --secondary: #1c2425;
-    --secondary-foreground: #e8eeee;
-    --muted: #1c2425;
-    --muted-foreground: #98a6a7;
-    --accent: #12393c;
-    --accent-foreground: #3fb7c0;
-    --destructive: #f07c78;
-    --destructive-wash: #3d1f1e;
-    --border: rgb(255 255 255 / 0.1);
-    --input: rgb(255 255 255 / 0.15);
-    --ring: #3fb7c0;
-    --mint: #14271f;
-    --glow: #10292a;
-    --success: #4fcf8c;
-    --success-wash: #133626;
-    --warning: #f2b544;
-    --status-scheduled: #9aa8a9;
-    --status-scheduled-wash: #222b2c;
-    --status-confirmed: #3fb7c0;
-    --status-confirmed-wash: #12393c;
-    --status-arrived: #4fcf8c;
-    --status-arrived-wash: #133626;
-    --status-completed: #e8eeee;
-    --status-completed-wash: #2a3233;
-    --status-no-show: #f07c78;
-    --status-no-show-wash: #3d1f1e;
-    --status-online: #f2b544;
-    --status-online-wash: #3a2e14;
-    --card-shadow:
-        0 1px 2px rgb(0 0 0 / 0.3), 0 18px 40px -28px rgb(0 0 0 / 0.7);
-}
-
+/* The design tokens come from @clini/theme (ADR 0012); only the landing's own
+   page chrome lives here. */
 @layer base {
-    * {
-        @apply border-border outline-ring/50;
-    }
     html {
-        @apply scroll-pt-24 font-sans;
-        color-scheme: light;
-    }
-    html.dark {
-        color-scheme: dark;
+        @apply scroll-pt-24;
     }
     body {
-        @apply bg-background text-foreground antialiased;
         background-image:
             radial-gradient(
                 60rem 32rem at 85% -6rem,
@@ -168,31 +22,5 @@
                 transparent 70%
             );
         background-repeat: no-repeat;
-    }
-    h1,
-    h2,
-    h3 {
-        text-wrap: balance;
-    }
-    :focus-visible {
-        @apply outline-2 outline-offset-2 outline-ring;
-    }
-}
-
-@utility focus-ring {
-    @apply outline-none;
-
-    &:focus-visible {
-        @apply border-ring ring-3 ring-ring/50;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
     }
 }

@@ -11,6 +11,10 @@ COPY package.json package-lock.json ./
 COPY apps/panel/package.json apps/panel/package.json
 COPY apps/dashboard/package.json apps/dashboard/package.json
 COPY apps/landing/package.json apps/landing/package.json
+# The shared workspace packages (packages/*, e.g. @clini/theme) in full,
+# not just their manifests: they're CSS-only sources the build imports
+# through the node_modules symlink `npm ci` creates.
+COPY packages packages
 RUN npm ci --workspace=apps/panel --include-workspace-root=false
 
 COPY apps/panel apps/panel

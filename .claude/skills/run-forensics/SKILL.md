@@ -26,6 +26,7 @@ Node container (no host Node dependency):
 | Frontend (`apps/panel/src/**`, `apps/panel/package.json`, build configs) | prettier (writes), eslint (fixes), tsc | + vitest |
 | Dashboard (`apps/dashboard/src/**`, `apps/dashboard/package.json`, build configs) | prettier (writes), eslint (fixes), tsc — in the `dashboard` container | + vitest |
 | Landing (`apps/landing/src/**`, `apps/landing/package.json`, build configs) | prettier (writes), eslint (fixes), tsc — in the `landing` container | + vitest |
+| Shared packages (`packages/**`, e.g. `@clini/theme`) | the Frontend, Dashboard and Landing rows together — each app's stylesheet imports them | + vitest in all three |
 | E2E (`e2e/`, `playwright.config.ts`, root `package.json`) | tsc -p e2e | (playwright is **CI-only** — a local run has no webServer boot wired up here) |
 
 ## Rules

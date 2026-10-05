@@ -17,7 +17,7 @@ Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `larave
 ```bash
 git config core.hooksPath .githooks   # una vez por clon
 
-# workspace: panel + dashboard + landing + e2e — vía container descartable, npm nunca corre bare en el host
+# workspace: panel + dashboard + landing + packages/* + e2e — vía container descartable, npm nunca corre bare en el host
 docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install
 
 cp apps/api/.env.example apps/api/.env   # si no existe
@@ -42,7 +42,9 @@ Detrás del profile `e2e` (no arranca con `docker compose up` normal) hay dos se
 
 El puerto de la API es `8080` (no `80`) para evitar conflictos con otros proyectos Sail corriendo en la misma máquina. Configurable vía `APP_PORT` en `apps/api/.env`. Por el mismo motivo, `pgsql` expone `55432` en el host (no el `5432` estándar) — cualquier otro proyecto Postgres/Sail local que sí use `5432` (Sail lo trae como default) puede pisar el puerto y hacer fallar el contenedor. `DB_PORT` (dentro de `apps/api/.env`) sigue siendo `5432`: es el puerto interno en la red `sail`, no se toca. Configurable vía `FORWARD_DB_PORT`.
 
-Los servicios `panel`, `dashboard` y `landing` montan solo su propia app más los dos manifiestos de la raíz (`package.json`, `package-lock.json`) y, en solo lectura, el `package.json` de cada app hermana: con los tres workspaces declarados en la raíz, una carpeta de workspace ausente hace que npm considere el lockfile desincronizado y reescriba el `package-lock.json` montado sin las entradas de la otra app. Cada uno corre `npm install --workspace=apps/<app> --include-workspace-root=false && npm run dev --workspace=apps/<app>` al arrancar, sobre su propio volumen nombrado de `node_modules` (`panel_node_modules`, `dashboard_node_modules`, `landing_node_modules`). Todos montan el mismo `package-lock.json`: con el lockfile sincronizado `npm install` no lo reescribe, así que arrancarlos juntos es seguro — después de cambiar dependencias, regenerar el lockfile primero (el `npm install` en container descartable de arriba) y recién ahí `docker compose up`.
+Los servicios `panel`, `dashboard` y `landing` montan su propia app, los dos manifiestos de la raíz (`package.json`, `package-lock.json`), `packages/` (ver abajo) y, en solo lectura, el `package.json` de cada app hermana, no la raíz completa: con todos los workspaces declarados en la raíz (las tres apps más `packages/*`), una carpeta de workspace ausente hace que npm considere el lockfile desincronizado y reescriba el `package-lock.json` montado sin las entradas de la otra app. Cada uno corre `npm install --workspace=apps/<app> --include-workspace-root=false && npm run dev --workspace=apps/<app>` al arrancar, sobre su propio volumen nombrado de `node_modules` (`panel_node_modules`, `dashboard_node_modules`, `landing_node_modules`). Todos montan el mismo `package-lock.json`: con el lockfile sincronizado `npm install` no lo reescribe, así que arrancarlos juntos es seguro — después de cambiar dependencias, regenerar el lockfile primero (el `npm install` en container descartable de arriba) y recién ahí `docker compose up`.
+
+Los tres montan además `packages/` completo (lectura y escritura, como la app): los paquetes compartidos del workspace (hoy `packages/theme`, `@clini/theme`, ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md)) también están en `workspaces`, así que npm necesita su `package.json`, y la app los importa desde su código. La instalación filtrada los enlaza en `node_modules` porque la app depende de ellos; Vite sigue el symlink hasta la ruta real y la vigila, así que editar `packages/theme/theme.css` en el host llega por HMR a las apps que lo importan. Agregar un paquete nuevo a `packages/` no requiere tocar los compose files.
 
 ### Dashboard de operación (`apps/dashboard`)
 
@@ -164,6 +166,6 @@ docker build -f apps/landing/Dockerfile -t clini-landing \
 docker run --rm -p 3000:3000 clini-landing
 ```
 
-Los tres Dockerfiles de frontend copian **todos** los manifiestos de workspace (`apps/panel/package.json`, `apps/dashboard/package.json` y `apps/landing/package.json`) antes del `npm ci --workspace=apps/<app> --include-workspace-root=false`: `npm ci` rechaza un lockfile que lista un workspace cuyo `package.json` no está. Por lo mismo, cada `Dockerfile.dockerignore` excluye las apps hermanas salvo su `package.json`.
+Los tres Dockerfiles de frontend copian **todos** los manifiestos de workspace (`apps/panel/package.json`, `apps/dashboard/package.json` y `apps/landing/package.json`) antes del `npm ci --workspace=apps/<app> --include-workspace-root=false`: `npm ci` rechaza un lockfile que lista un workspace cuyo `package.json` no está. Por lo mismo, cada `Dockerfile.dockerignore` excluye las apps hermanas salvo su `package.json`. Además copian `packages/` completo antes del `npm ci` (no alcanza con el manifiesto: el build importa el CSS del paquete), y ningún `.dockerignore` lo excluye salvo `packages/*/node_modules`.
 
 Estas son las mismas imágenes que Dokploy construye en despliegue (mismo Dockerfile, mismo build context).

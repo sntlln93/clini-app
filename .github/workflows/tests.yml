@@ -141,8 +141,10 @@ jobs:
           scope: workspace-root
 
       # Static checks over e2e/**/*.ts + playwright.config.ts (same scope as
-      # e2e/tsconfig.json). They run before the browser install so a style-only
-      # failure doesn't pay for Playwright's download.
+      # e2e/tsconfig.json), plus Prettier over the shared packages/**/*.css
+      # (the root config is the only one that covers them). They run before
+      # the browser install so a style-only failure doesn't pay for
+      # Playwright's download.
       - name: 🎨 Prettier
         run: npm run format:check
 
