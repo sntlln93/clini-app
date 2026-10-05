@@ -1,3 +1,5 @@
+import type { AppointmentOrigin, AppointmentStatus } from './appointment';
+
 export type DocumentType = 'dni' | 'passport' | 'insurance_id';
 
 export type Sex = 'f' | 'm' | 'u';
@@ -21,22 +23,14 @@ export type Patient = {
     created_at: string;
 };
 
-export type PatientAppointmentStatus =
-    | 'scheduled'
-    | 'confirmed'
-    | 'arrived'
-    | 'completed'
-    | 'no_show'
-    | 'cancelled'
-    | 'rescheduled';
-
 // One item of a patient's appointment history (`GET /patients/{id}/appointments`).
 export type PatientAppointmentHistoryItem = {
     id: number;
     membership_id: number;
     patient_id: number;
     service_id: number;
-    status: PatientAppointmentStatus;
+    status: AppointmentStatus;
+    origin: AppointmentOrigin;
     start_at: string;
     end_at: string;
     professional_name?: string | null;

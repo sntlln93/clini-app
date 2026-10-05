@@ -15,6 +15,7 @@ const APPOINTMENT: PatientAppointmentHistoryItem = {
     patient_id: 50,
     service_id: 100,
     status: 'confirmed',
+    origin: 'manual',
     start_at: '2026-08-20T10:00:00',
     end_at: '2026-08-20T10:30:00',
     professional_name: 'Dra. Ana Gomez',
