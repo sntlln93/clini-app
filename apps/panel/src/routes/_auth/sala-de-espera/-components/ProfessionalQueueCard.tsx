@@ -1,4 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { STATUS_TONES } from '@/lib/appointment-status';
+import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import {
     displayPatientName,
@@ -49,7 +51,16 @@ export function ProfessionalQueueCard({
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-                <div className={next ? 'rounded-lg bg-primary/10 p-4' : ''}>
+                {/* Everyone here has arrived: the box takes the `arrived` tone (#235). */}
+                <div
+                    className={cn(
+                        next &&
+                            cn(
+                                'rounded-lg border-l-[3px] p-4',
+                                STATUS_TONES.arrived.block,
+                            ),
+                    )}
+                >
                     {/* Always mounted, so a change of next patient is announced; the waiting time stays outside it to avoid a re-announcement every minute. */}
                     <div aria-live="polite" aria-atomic="true">
                         {next ? (
