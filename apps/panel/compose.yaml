@@ -14,8 +14,9 @@ services:
         command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     panel:
         image: 'node:24-bookworm-slim'
-        # Only apps/panel plus the two root manifests are mounted (not the
-        # whole repo root): the workspace lockfile is indexed by workspace
+        # Only apps/panel plus the two root manifests (and the sibling
+        # dashboard's package.json, see below) are mounted (not the whole
+        # repo root): the workspace lockfile is indexed by workspace
         # path, so npm still needs both manifests present at /workspace to
         # resolve the apps/panel workspace correctly.
         working_dir: /workspace
@@ -31,6 +32,13 @@ services:
             - '.:/workspace/apps/panel'
             - '../../package.json:/workspace/package.json'
             - '../../package-lock.json:/workspace/package-lock.json'
+            # The sibling workspace's manifest only (read-only). With both
+            # apps listed in the root `workspaces`, a workspace folder missing
+            # on disk makes npm treat the lockfile as out of sync and rewrite
+            # the bind-mounted root package-lock.json without the sibling's
+            # entries. The filtered install below still installs only this
+            # workspace's dependencies.
+            - '../dashboard/package.json:/workspace/apps/dashboard/package.json:ro'
             # Overlaid on top of the bind mounts above: node_modules holds
             # platform-specific native bindings (e.g. rolldown's), so it
             # can't be shared as-is between the host (macOS) and this

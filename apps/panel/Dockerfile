@@ -5,7 +5,11 @@ FROM node:24-bookworm-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
+# Every workspace's manifest, not just this app's: `npm ci` refuses a
+# lockfile that lists a workspace whose package.json is absent ("not in
+# sync"). The filtered install below still installs only apps/panel.
 COPY apps/panel/package.json apps/panel/package.json
+COPY apps/dashboard/package.json apps/dashboard/package.json
 RUN npm ci --workspace=apps/panel --include-workspace-root=false
 
 COPY apps/panel apps/panel
