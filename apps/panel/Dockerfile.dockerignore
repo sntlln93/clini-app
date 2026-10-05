@@ -5,6 +5,7 @@ apps/api
 docs
 node_modules
 apps/panel/node_modules
+packages/*/node_modules
 apps/panel/dist
 e2e
 test-results
@@ -16,3 +17,5 @@ apps/dashboard
 !apps/dashboard/package.json
 apps/landing
 !apps/landing/package.json
+# packages/* (the shared workspace packages, e.g. @clini/theme) must stay
+# in the context: the build imports them.

@@ -38,6 +38,13 @@ services:
             # workspace's dependencies.
             - '../panel/package.json:/workspace/apps/panel/package.json:ro'
             - '../dashboard/package.json:/workspace/apps/dashboard/package.json:ro'
+            # The shared workspace packages (packages/*, e.g. @clini/theme).
+            # Read-write like the app itself: they're source edited on the
+            # host, and the root `workspaces` lists them, so npm needs their
+            # package.json on disk too. Vite resolves them through the
+            # node_modules symlink and watches the real path, so a change
+            # here reaches the dev server by HMR.
+            - '../../packages:/workspace/packages'
             # Overlaid on top of the bind mounts above: node_modules holds
             # platform-specific native bindings, so it can't be shared as-is
             # between the host (macOS) and this container (Linux).
