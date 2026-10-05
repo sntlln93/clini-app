@@ -13,6 +13,8 @@ Cuatro aplicaciones, todas con la raíz del repo como build context:
 | Dashboard de operación | `apps/dashboard/Dockerfile` | `VITE_API_URL` (obligatorio) | nginx sirviendo la SPA, con `X-Robots-Tag: noindex, nofollow`, `X-Frame-Options: DENY` y `robots.txt` que bloquea todo. |
 | Landing | `apps/landing/Dockerfile` | `VITE_PANEL_URL` (obligatorio), `VITE_CONTACT_URL` (opcional) | Servidor Node con SSR (TanStack Start + Nitro) en el puerto **3000**, no nginx. Indexable (`robots.txt` permite todo). No necesita variables de la API: no la llama. |
 
+Los tres Dockerfiles de frontend copian `packages/` (los paquetes compartidos del workspace, hoy `@clini/theme`, ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md)) antes del `npm ci`. Por eso el build context tiene que ser la raíz del repo, y por eso un cambio que solo toca `packages/` también cambia las imágenes de los frontends que lo usan.
+
 Variables de la API que dependen de los frontends (pestaña **Environment** de la app API):
 
 - `FRONTEND_URL` — orígenes con CORS + credenciales, separados por coma. **El panel siempre primero**: el primer elemento es la URL base de los links de los mails (invitaciones, verificación de correo, retorno de la suscripción). Después, el origen del dashboard.
