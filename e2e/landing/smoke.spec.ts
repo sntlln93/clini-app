@@ -9,7 +9,9 @@ test('landing renders its content on the server', async ({ request }) => {
     const html = await response.text();
     expect(html).toContain('lang="es-AR"');
     expect(html).toContain('Tus pacientes reservan solos');
-    expect(html).toContain('Empezás gratis. Pagás cuando el consultorio crece.');
+    expect(html).toContain(
+        'Empezás gratis. Pagás cuando el consultorio crece.',
+    );
 });
 
 test('landing hydrates without errors and switches billing and theme', async ({
@@ -18,7 +20,10 @@ test('landing hydrates without errors and switches billing and theme', async ({
     await page.goto('/');
 
     await expect(
-        page.getByRole('heading', { level: 1, name: /Tus pacientes reservan solos/ }),
+        page.getByRole('heading', {
+            level: 1,
+            name: /Tus pacientes reservan solos/,
+        }),
     ).toBeVisible();
 
     // The server HTML is interactive-looking before React hydrates it: a
