@@ -19,7 +19,7 @@ clini-app/
 
 La raíz es un workspace de npm con los tres frontends (`apps/panel`, `apps/dashboard` y `apps/landing`) más los paquetes compartidos de `packages/*`, y un único `package-lock.json` (que además cubre las dependencias de Playwright de `e2e/`). No hay herramientas de monorepo JS adicionales; cada frontend se instala filtrado (`npm install|ci --workspace=apps/<app> --include-workspace-root=false`) en su contenedor de dev, en su Dockerfile y en CI, y esa instalación trae los paquetes de `packages/*` de los que la app depende.
 
-Hoy hay un solo paquete, `packages/theme` (`@clini/theme`): los tokens de diseño en CSS (paleta de claro y oscuro, `@theme inline`, colores de estado del turno, Outfit, estilos base, `focus-ring`, `prefers-reduced-motion`, mínimo táctil). Cada app lo importa desde su `src/index.css` con `@import '@clini/theme/theme.css'`. Los componentes de shadcn no se comparten: siguen copiados en cada app. La landing ya lo usa; panel y dashboard se migran en #234. Ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md).
+Hoy hay un solo paquete, `packages/theme` (`@clini/theme`): los tokens de diseño en CSS (paleta de claro y oscuro, `@theme inline`, colores de estado del turno, sidebar, escala de gráficos, Outfit, estilos base, `focus-ring`, `prefers-reduced-motion`, mínimo táctil). Cada app lo importa desde su `src/index.css` con `@import '@clini/theme/theme.css'`. Los componentes de shadcn no se comparten: siguen copiados en cada app. Lo usan las tres apps (panel y dashboard desde #234); ninguna redefine tokens en su `index.css`. Ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md).
 
 ## Backend
 
