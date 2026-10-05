@@ -1,5 +1,5 @@
 # Root entrypoint for local dev: brings up every service (api + panel +
-# dashboard + db) in one project. Each app owns its own compose file — this one only wires
+# dashboard + landing + db) in one project. Each app owns its own compose file — this one only wires
 # them together via `include`, which merges services/networks as if they
 # were declared here directly (relative paths inside each included file
 # still resolve against that file's own directory, not this one).
@@ -9,7 +9,7 @@
 # included one — apps/api/.env holds the real DB_DATABASE/DB_USERNAME it
 # has no fallback for. apps/panel/compose.yaml and apps/dashboard/compose.yaml
 # need no env_file: every var they interpolate (WWWUSER, WWWGROUP,
-# PANEL_PORT, DASHBOARD_PORT) has a `:-default` inline, and pointing them at
+# PANEL_PORT, DASHBOARD_PORT, LANDING_PORT) has a `:-default` inline, and pointing them at
 # apps/api/.env would be borrowing a file that isn't semantically their own
 # (that path is each app's own .env, for Vite).
 #
@@ -19,9 +19,10 @@
 # once is safe — after a dependency change, regenerate the lockfile first
 # (the disposable-container `npm install` in CLAUDE.md), then `up`.
 #
-#   docker compose up              # api + panel (:5174) + dashboard (:5175) + pgsql
+#   docker compose up              # api + panel (:5174) + dashboard (:5175) + landing (:5176) + pgsql
 #   docker compose up panel        # just the clinic panel dev server
 #   docker compose up dashboard    # just the platform dashboard dev server
+#   docker compose up landing      # just the public landing dev server (:5176, SSR)
 #
 # `./vendor/bin/sail` (run from apps/api) still works for artisan/pest and
 # only targets apps/api/compose.yaml (laravel.test + pgsql) — it has no
@@ -31,6 +32,7 @@ include:
       env_file: apps/api/.env
     - path: apps/panel/compose.yaml
     - path: apps/dashboard/compose.yaml
+    - path: apps/landing/compose.yaml
 
 # e2e isn't a deployable app like api/panel (no Dockerfile of its own), so it
 # lives directly here rather than in its own compose file. Behind the `e2e`
@@ -112,5 +114,6 @@ services:
             php artisan migrate --force && php artisan db:seed --force && cd /workspace &&
             npm install &&
             cp -n apps/dashboard/.env.example apps/dashboard/.env &&
+            cp -n apps/landing/.env.example apps/landing/.env &&
             npx playwright install chromium &&
             npx playwright test"

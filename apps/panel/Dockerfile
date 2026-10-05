@@ -10,6 +10,7 @@ COPY package.json package-lock.json ./
 # sync"). The filtered install below still installs only apps/panel.
 COPY apps/panel/package.json apps/panel/package.json
 COPY apps/dashboard/package.json apps/dashboard/package.json
+COPY apps/landing/package.json apps/landing/package.json
 RUN npm ci --workspace=apps/panel --include-workspace-root=false
 
 COPY apps/panel apps/panel

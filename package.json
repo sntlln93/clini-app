@@ -2,7 +2,7 @@
   "name": "clini-app",
   "private": true,
   "type": "module",
-  "workspaces": ["apps/panel", "apps/dashboard"],
+  "workspaces": ["apps/panel", "apps/dashboard", "apps/landing"],
   "scripts": {
     "test:e2e": "playwright test",
     "lint": "eslint e2e playwright.config.ts --fix",

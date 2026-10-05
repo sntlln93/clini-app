@@ -86,3 +86,15 @@ jobs:
       - name: 🛠️ TypeScript checks (dashboard)
         working-directory: apps/dashboard
         run: npm run typecheck
+
+      - name: ✨ Prettier (landing)
+        working-directory: apps/landing
+        run: npm run format:check
+
+      - name: 🔍 ESLint (landing)
+        working-directory: apps/landing
+        run: npm run lint:check
+
+      - name: 🛠️ TypeScript checks (landing)
+        working-directory: apps/landing
+        run: npm run typecheck

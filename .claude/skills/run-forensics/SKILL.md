@@ -25,6 +25,7 @@ Node container (no host Node dependency):
 | Backend (`apps/api/**/*.php`, `composer.*`, `database/`, `routes/`, `phpstan/phpunit/pint` configs) | pint (fixes), phpstan | + pest (includes Arch) |
 | Frontend (`apps/panel/src/**`, `apps/panel/package.json`, build configs) | prettier (writes), eslint (fixes), tsc | + vitest |
 | Dashboard (`apps/dashboard/src/**`, `apps/dashboard/package.json`, build configs) | prettier (writes), eslint (fixes), tsc — in the `dashboard` container | + vitest |
+| Landing (`apps/landing/src/**`, `apps/landing/package.json`, build configs) | prettier (writes), eslint (fixes), tsc — in the `landing` container | + vitest |
 | E2E (`e2e/`, `playwright.config.ts`, root `package.json`) | tsc -p e2e | (playwright is **CI-only** — a local run has no webServer boot wired up here) |
 
 ## Rules
@@ -32,7 +33,7 @@ Node container (no host Node dependency):
 - Fix every failure it reports and re-run until it prints `All checks passed.`
 - Exit code 1 means at least one tool failed; the summary line lists which.
 - Requires the full stack up (`docker compose up -d`, from the repo root);
-  the script checks `laravel.test`, `panel` and `dashboard` independently and aborts
+  the script checks `laravel.test`, `panel`, `dashboard` and `landing` independently and aborts
   early if either is down. `sail up` alone only starts the API side.
 - pint/prettier/eslint write fixes in place — review what they changed before
   staging.
