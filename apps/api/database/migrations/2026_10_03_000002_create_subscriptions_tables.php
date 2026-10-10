@@ -30,6 +30,9 @@ return new class extends Migration
             $table->timestampTz('next_payment_at')->nullable();
             // When the subscription was cancelled; null unless status = cancelled.
             $table->timestamp('cancelled_at')->nullable();
+            // End of the period already paid when an active subscription was
+            // cancelled: it keeps write access until then.
+            $table->timestamp('access_ends_at')->nullable();
             $table->timestamps();
 
             $table->index(['status', 'grace_ends_at']);

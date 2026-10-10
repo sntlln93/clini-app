@@ -1,6 +1,6 @@
 import { api } from '@/lib/api';
 import { navigateToExternalUrl } from '@/lib/external-navigation';
-import { notifyError } from '@/lib/toast';
+import { notifyError, notifySuccess } from '@/lib/toast';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,12 +10,19 @@ import {
     render,
     screen,
     waitFor,
+    within,
 } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SubscriptionSection } from '../-components/SubscriptionSection';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn() },
+    api: { get: vi.fn(), post: vi.fn(), delete: vi.fn() },
+}));
+
+const refresh = vi.fn(() => Promise.resolve());
+
+vi.mock('@/hooks/use-refresh-page-data', () => ({
+    useRefreshPageData: () => refresh,
 }));
 
 vi.mock('@/lib/external-navigation', () => ({
@@ -24,6 +31,7 @@ vi.mock('@/lib/external-navigation', () => ({
 
 vi.mock('@/lib/toast', () => ({
     notifyError: vi.fn(),
+    notifySuccess: vi.fn(),
 }));
 
 function subscription(overrides: Partial<Subscription> = {}): Subscription {
@@ -56,6 +64,10 @@ describe('SubscriptionSection', () => {
         vi.mocked(api.post).mockReset();
         vi.mocked(navigateToExternalUrl).mockReset();
         vi.mocked(notifyError).mockReset();
+        vi.mocked(notifySuccess).mockReset();
+        vi.mocked(api.delete).mockReset();
+        refresh.mockClear();
+        vi.useRealTimers();
     });
 
     it('offers the owner to subscribe when the organization never subscribed', () => {
@@ -90,7 +102,9 @@ describe('SubscriptionSection', () => {
                 'Se renueva automáticamente el 3 de noviembre de 2026',
             ),
         ).not.toBeNull();
-        expect(screen.queryByRole('button')).toBeNull();
+        expect(
+            screen.getAllByRole('button').map((button) => button.textContent),
+        ).toEqual(['Cancelar suscripción']);
     });
 
     it('falls back to a plain notice for an active subscription without a renewal date', () => {
@@ -206,6 +220,27 @@ describe('SubscriptionSection', () => {
         },
     );
 
+    it('tells until when the agenda keeps working after a cancellation within the paid period', () => {
+        renderSection(
+            subscription({
+                status: 'cancelled',
+                restricted: false,
+                cancelled_at: '2026-10-12T12:00:00+00:00',
+                access_ends_at: '2026-11-03T12:00:00+00:00',
+            }),
+        );
+
+        expect(
+            screen.getByText(
+                'Cancelada el 12 de octubre de 2026. Podés seguir usando la agenda hasta el 3 de noviembre de 2026.',
+            ),
+        ).not.toBeNull();
+        expect(screen.queryByText(/modo solo lectura/)).toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Suscribirse' }),
+        ).not.toBeNull();
+    });
+
     it('never offers the checkout to a non-owner', () => {
         renderSection(subscription({ status: 'expired', restricted: true }), {
             isOwner: false,
@@ -298,5 +333,135 @@ describe('SubscriptionSection', () => {
         expect(button.hasAttribute('disabled')).toBe(false);
         expect(button.querySelector('[data-slot="spinner"]')).toBeNull();
         expect(navigateToExternalUrl).not.toHaveBeenCalled();
+    });
+
+    describe('cancellation', () => {
+        const CANCEL = 'Cancelar suscripción';
+
+        function openConfirmation() {
+            fireEvent.click(screen.getByRole('button', { name: CANCEL }));
+
+            return screen.getByRole('alertdialog');
+        }
+
+        it.each([
+            ['active', subscription()],
+            ['grace', subscription({ status: 'grace', grace_days_left: 2 })],
+            ['expired', subscription({ status: 'expired', restricted: true })],
+        ])('offers the owner to cancel an %s subscription', (_label, value) => {
+            renderSection(value);
+
+            expect(screen.getByRole('button', { name: CANCEL })).not.toBeNull();
+        });
+
+        it.each([
+            ['no subscription', null],
+            ['a pending checkout', subscription({ status: 'pending' })],
+            [
+                'a cancelled subscription',
+                subscription({ status: 'cancelled', restricted: true }),
+            ],
+        ])('offers no cancellation for %s', (_label, value) => {
+            renderSection(value);
+
+            expect(screen.queryByRole('button', { name: CANCEL })).toBeNull();
+        });
+
+        it('never offers the cancellation to a non-owner', () => {
+            renderSection(subscription(), { isOwner: false });
+
+            expect(screen.queryByRole('button')).toBeNull();
+            expect(
+                screen.getByText(
+                    'Solo la persona dueña del consultorio puede gestionar la suscripción.',
+                ),
+            ).not.toBeNull();
+        });
+
+        it('explains that an active subscription keeps working until the paid period ends', () => {
+            vi.useFakeTimers({ now: new Date('2026-10-10T12:00:00Z') });
+            renderSection(
+                subscription({ next_payment_at: '2026-11-03T12:00:00+00:00' }),
+            );
+
+            const dialog = openConfirmation();
+
+            expect(dialog.textContent).toContain(
+                'Vas a poder seguir usando la agenda hasta el 3 de noviembre de 2026',
+            );
+            expect(dialog.textContent).toContain(
+                'Podés volver a suscribirte cuando quieras.',
+            );
+        });
+
+        it.each([
+            ['in grace', subscription({ status: 'grace', grace_days_left: 2 })],
+            [
+                'whose renewal date already passed',
+                subscription({ next_payment_at: '2026-10-01T12:00:00+00:00' }),
+            ],
+        ])(
+            'warns that cancelling a subscription %s makes the agenda read-only right away',
+            (_label, value) => {
+                vi.useFakeTimers({ now: new Date('2026-10-10T12:00:00Z') });
+                renderSection(value);
+
+                expect(openConfirmation().textContent).toContain(
+                    'la agenda queda en modo solo lectura de inmediato',
+                );
+            },
+        );
+
+        it('cancels on confirmation and refreshes the subscription', async () => {
+            vi.mocked(api.delete).mockResolvedValue({ data: {} });
+            renderSection(subscription());
+
+            fireEvent.click(
+                within(openConfirmation()).getByRole('button', {
+                    name: CANCEL,
+                }),
+            );
+
+            await waitFor(() =>
+                expect(refresh).toHaveBeenCalledWith(['subscription']),
+            );
+            expect(api.delete).toHaveBeenCalledWith('/subscription');
+            expect(notifySuccess).toHaveBeenCalledWith(
+                'Cancelaste la suscripción',
+            );
+        });
+
+        it('cancels nothing when the owner goes back', () => {
+            renderSection(subscription());
+
+            fireEvent.click(
+                within(openConfirmation()).getByRole('button', {
+                    name: 'Volver',
+                }),
+            );
+
+            expect(api.delete).not.toHaveBeenCalled();
+        });
+
+        it('reports the error and keeps the action available when the cancellation fails', async () => {
+            vi.mocked(api.delete).mockRejectedValue(new Error('network'));
+            renderSection(subscription());
+
+            fireEvent.click(
+                within(openConfirmation()).getByRole('button', {
+                    name: CANCEL,
+                }),
+            );
+
+            await waitFor(() =>
+                expect(notifyError).toHaveBeenCalledWith(
+                    expect.any(Error),
+                    'No se pudo cancelar la suscripción',
+                ),
+            );
+            expect(refresh).not.toHaveBeenCalled();
+            const button = await screen.findByRole('button', { name: CANCEL });
+            expect(button.hasAttribute('disabled')).toBe(false);
+        });
     });
 });

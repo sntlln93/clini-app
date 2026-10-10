@@ -46,4 +46,13 @@ class SubscriptionFactory extends Factory
             'grace_reason' => $reason,
         ]);
     }
+
+    public function cancelled(?\DateTimeInterface $accessEndsAt = null): static
+    {
+        return $this->state(fn (array $attributes): array => [
+            'status' => SubscriptionStatus::Cancelled,
+            'cancelled_at' => now(),
+            'access_ends_at' => $accessEndsAt,
+        ]);
+    }
 }

@@ -420,6 +420,7 @@ Table subscriptions {
   last_payment_failed_at timestamp [null]
   next_payment_at timestamptz [null, note: 'Provider next scheduled charge (preapproval next_payment_date), shown as the renewal date']
   cancelled_at timestamp [null, note: 'When the subscription was cancelled; set only while status = cancelled, cleared on reactivation']
+  access_ends_at timestamp [null, note: 'End of the period an active subscription had already paid when cancelled; writes stay allowed until then. Cleared on reactivation']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 

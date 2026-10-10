@@ -1,15 +1,5 @@
+import { formatSubscriptionDate } from '@/lib/subscription';
 import type { Subscription } from '@/types/subscription';
-
-const DATE_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
-
-/** e.g. «3 de noviembre de 2026». */
-export function formatSubscriptionDate(iso: string): string {
-    return DATE_FORMAT.format(new Date(iso));
-}
 
 function daysLeft(days: number): string {
     return days === 1 ? 'te queda 1 día' : `te quedan ${days} días`;
@@ -21,6 +11,17 @@ function graceDetail(subscription: Subscription): string {
     return subscription.grace_ends_at
         ? `Pago pendiente: ${days} (hasta el ${formatSubscriptionDate(subscription.grace_ends_at)})`
         : `Pago pendiente: ${days}`;
+}
+
+function cancelledDetail(subscription: Subscription): string {
+    const cancelled = subscription.cancelled_at
+        ? `Cancelada el ${formatSubscriptionDate(subscription.cancelled_at)}`
+        : 'Suscripción cancelada';
+
+    // Still within the period it had already paid when it was cancelled.
+    return !subscription.restricted && subscription.access_ends_at
+        ? `${cancelled}. Podés seguir usando la agenda hasta el ${formatSubscriptionDate(subscription.access_ends_at)}.`
+        : cancelled;
 }
 
 /** One line describing where the subscription stands, with its relevant date. */
@@ -38,9 +39,7 @@ export function subscriptionStatusDetail(subscription: Subscription): string {
                 ? `Venció el ${formatSubscriptionDate(subscription.grace_ends_at)}`
                 : 'Suscripción vencida';
         case 'cancelled':
-            return subscription.cancelled_at
-                ? `Cancelada el ${formatSubscriptionDate(subscription.cancelled_at)}`
-                : 'Suscripción cancelada';
+            return cancelledDetail(subscription);
         case 'pending':
             return 'Esperando confirmación del pago';
     }

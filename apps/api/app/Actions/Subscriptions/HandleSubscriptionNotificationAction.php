@@ -191,25 +191,32 @@ final class HandleSubscriptionNotificationAction implements Action
      * Every applied preapproval also refreshes the next charge date, whatever
      * the transition (a cancelled one has no next charge).
      *
-     * `cancelled_at` records when the row was first cancelled: a repeated
-     * cancellation keeps it, and reactivating the row clears it.
+     * `cancelled_at` records when the row was first cancelled, and
+     * `access_ends_at` the end of the period an active row had already paid
+     * (see Subscription::paidThrough()): a repeated cancellation — including
+     * the provider confirming one made from the panel — keeps both, and
+     * reactivating the row clears them.
      */
     private function applySubscription(Subscription $subscription, ProviderSubscriptionData $resource): ?Subscription
     {
-        $subscription->next_payment_at = $resource->status === SubscriptionStatus::Cancelled ? null : $resource->nextPaymentAt;
-
         if ($resource->status === SubscriptionStatus::Cancelled) {
+            $alreadyCancelled = $subscription->status === SubscriptionStatus::Cancelled;
+
             $subscription->update([
                 'status' => SubscriptionStatus::Cancelled,
                 'grace_ends_at' => null,
                 'grace_reason' => null,
-                'cancelled_at' => $subscription->status === SubscriptionStatus::Cancelled
+                'cancelled_at' => $alreadyCancelled
                     ? ($subscription->cancelled_at ?? CarbonImmutable::now())
                     : CarbonImmutable::now(),
+                'access_ends_at' => $alreadyCancelled ? $subscription->access_ends_at : $subscription->paidThrough($resource->nextPaymentAt),
+                'next_payment_at' => null,
             ]);
 
             return null;
         }
+
+        $subscription->next_payment_at = $resource->nextPaymentAt;
 
         if ($resource->paused) {
             return $this->enterGrace($subscription, SubscriptionGraceReason::Paused) ? $subscription : null;
@@ -226,6 +233,7 @@ final class HandleSubscriptionNotificationAction implements Action
                 'grace_ends_at' => null,
                 'grace_reason' => null,
                 'cancelled_at' => null,
+                'access_ends_at' => null,
             ]);
 
             return null;
@@ -279,6 +287,7 @@ final class HandleSubscriptionNotificationAction implements Action
                 'grace_ends_at' => null,
                 'grace_reason' => null,
                 'cancelled_at' => null,
+                'access_ends_at' => null,
                 'last_payment_at' => $lastPaymentAt !== null && $lastPaymentAt->greaterThan($chargedAt) ? $lastPaymentAt : $chargedAt,
                 'next_payment_at' => $preapproval->nextPaymentAt ?? $subscription->next_payment_at,
             ]);

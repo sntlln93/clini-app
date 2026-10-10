@@ -11,14 +11,4 @@ enum SubscriptionStatus: string
     case Grace = 'grace';
     case Expired = 'expired';
     case Cancelled = 'cancelled';
-
-    /**
-     * Expired/cancelled organizations keep read access only: writes on
-     * appointments, clinical notes, prescriptions, availability and public
-     * booking are rejected (see EnsureSubscriptionActive).
-     */
-    public function restrictsWrites(): bool
-    {
-        return $this === self::Expired || $this === self::Cancelled;
-    }
 }

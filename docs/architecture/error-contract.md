@@ -66,10 +66,11 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `holidays.provider_unavailable` | 409 | `CalendariosNacionalesService` | |
 | `subscriptions.inactive` | 409 | middleware `EnsureSubscriptionActive` | `subscription_status` |
 | `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
-| `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `MercadoPagoService` | |
+| `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `CancelSubscriptionAction`, `MercadoPagoService` | |
 | `subscriptions.webhook_signature_invalid` | 401 | `HandleSubscriptionNotificationAction` | |
 | `subscriptions.grace_extension_not_allowed` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `subscription_status` |
 | `subscriptions.grace_extension_not_later` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `current_grace_ends_at` |
+| `subscriptions.not_cancellable` | 409 | `CancelSubscriptionAction` | `subscription_status` (null sin suscripción) |
 | `users.already_blocked` | 409 | `BlockUserAction` (dashboard) | |
 | `users.not_blocked` | 409 | `UnblockUserAction` (dashboard) | |
 | `users.email_already_verified` | 409 | `VerifyUserEmailManuallyAction` (dashboard) | |

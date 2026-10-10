@@ -14,4 +14,5 @@ Route::get('subscription/return', [SubscriptionReturnController::class, 'show'])
 Route::middleware(['clinic.origin', 'auth:sanctum', 'not-blocked', 'organization'])->group(function (): void {
     Route::get('subscription', [SubscriptionController::class, 'show']);
     Route::post('subscription', [SubscriptionController::class, 'store']);
+    Route::delete('subscription', [SubscriptionController::class, 'destroy']);
 });

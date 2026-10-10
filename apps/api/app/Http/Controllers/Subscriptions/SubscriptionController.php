@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Subscriptions;
 
+use App\Actions\Subscriptions\CancelSubscriptionAction;
 use App\Actions\Subscriptions\StartSubscriptionCheckoutAction;
+use App\Data\Subscriptions\SubscriptionCancellationData;
 use App\Data\Subscriptions\SubscriptionCheckoutData;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\Subscriptions\SubscriptionResource;
@@ -46,5 +48,14 @@ class SubscriptionController extends Controller
         ));
 
         return response()->json(['data' => ['init_point' => $initPoint]]);
+    }
+
+    public function destroy(CancelSubscriptionAction $action, CurrentOrganization $currentOrganization): SubscriptionResource
+    {
+        Gate::authorize('delete', Subscription::class);
+
+        return new SubscriptionResource($action->handle(new SubscriptionCancellationData(
+            organizationId: $currentOrganization->getOrFail(),
+        )));
     }
 }
