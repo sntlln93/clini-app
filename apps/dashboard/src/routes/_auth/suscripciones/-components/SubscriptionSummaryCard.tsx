@@ -64,7 +64,9 @@ export function SubscriptionSummaryCard({
                             className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b py-2"
                         >
                             <dt className="text-muted-foreground">{label}</dt>
-                            <dd className="min-w-0 font-medium">{value}</dd>
+                            <dd className="min-w-0 font-medium tabular-nums">
+                                {value}
+                            </dd>
                         </div>
                     ))}
                 </dl>

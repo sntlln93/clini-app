@@ -105,7 +105,7 @@ function AuditoriaPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Auditoría</h1>
+            <h1 className="text-2xl tracking-tight">Auditoría</h1>
             <AuditLogFilters
                 values={filters}
                 admins={admins}

@@ -17,7 +17,7 @@ export function KpiCard({ title, value, details = [], hint }: KpiCardProps) {
                 <CardTitle className="text-muted-foreground">{title}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-1">
-                <p className="text-3xl font-semibold tabular-nums">{value}</p>
+                <p className="text-3xl tracking-tight tabular-nums">{value}</p>
                 {details.map((detail, index) => (
                     <p key={index} className="text-xs text-muted-foreground">
                         {detail}

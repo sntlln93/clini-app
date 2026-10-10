@@ -59,7 +59,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
                     <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                         <ShieldCheck className="size-5" aria-hidden="true" />
                     </span>
-                    <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
+                    <h1 className="text-2xl tracking-tight">Iniciar sesión</h1>
                     <p className="text-sm text-muted-foreground">
                         Panel de operación de Clini
                     </p>

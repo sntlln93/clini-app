@@ -57,7 +57,7 @@ export function SubjectAuditCard({
                                             · {log.platform_admin.name}
                                         </span>
                                     </p>
-                                    <p className="text-xs text-muted-foreground">
+                                    <p className="text-xs text-muted-foreground tabular-nums">
                                         {formatDateTime(log.created_at)}
                                     </p>
                                     {note && (

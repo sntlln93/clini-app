@@ -85,7 +85,7 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
     return (
         <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
             <dt className="text-muted-foreground">{label}</dt>
-            <dd className="font-medium">{children}</dd>
+            <dd className="font-medium tabular-nums">{children}</dd>
         </div>
     );
 }

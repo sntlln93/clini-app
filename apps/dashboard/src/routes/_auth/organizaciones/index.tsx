@@ -106,7 +106,7 @@ function OrganizacionesPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Organizaciones</h1>
+            <h1 className="text-2xl tracking-tight">Organizaciones</h1>
             <OrganizationFilters
                 values={filters}
                 onChange={handleFiltersChange}

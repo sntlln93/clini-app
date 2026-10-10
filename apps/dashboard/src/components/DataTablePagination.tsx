@@ -64,7 +64,7 @@ export function DataTablePagination({
 
     return (
         <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground tabular-nums">
                 Página {currentPage} de {lastPage} ({total} {label})
             </p>
             <Pagination className="mx-0 w-auto">
@@ -82,6 +82,7 @@ export function DataTablePagination({
                             <PaginationItem key={`page-${item.page}`}>
                                 <PaginationLink
                                     isActive={item.page === currentPage}
+                                    className="tabular-nums"
                                     onClick={() => onPageChange(item.page)}
                                 >
                                     {item.page}

@@ -11,7 +11,7 @@ const columns: ColumnDef<SubscriptionEvent, unknown>[] = [
         id: 'created_at',
         header: 'Fecha',
         cell: ({ row }) => formatDateTime(row.original.created_at),
-        meta: { className: 'whitespace-nowrap' },
+        meta: { className: 'whitespace-nowrap tabular-nums' },
     },
     {
         id: 'type',

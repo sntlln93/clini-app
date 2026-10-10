@@ -43,19 +43,23 @@ const columns: ColumnDef<AdminSubscription, unknown>[] = [
         id: 'grace',
         header: 'Fin de la gracia',
         cell: ({ row }) => graceLabel(row.original),
-        meta: { className: 'whitespace-nowrap' },
+        meta: { className: 'whitespace-nowrap tabular-nums' },
     },
     {
         id: 'last_payment_at',
         header: 'Último pago',
         cell: ({ row }) => formatDateTime(row.original.last_payment_at),
-        meta: { className: 'hidden md:table-cell whitespace-nowrap' },
+        meta: {
+            className: 'hidden md:table-cell whitespace-nowrap tabular-nums',
+        },
     },
     {
         id: 'updated_at',
         header: 'Actualizada',
         cell: ({ row }) => formatDateTime(row.original.updated_at),
-        meta: { className: 'hidden lg:table-cell whitespace-nowrap' },
+        meta: {
+            className: 'hidden lg:table-cell whitespace-nowrap tabular-nums',
+        },
     },
 ];
 
