@@ -17,46 +17,8 @@ function formatViolations(violations: Result[]) {
         .join('\n\n');
 }
 
-// Temporary (#254): light-theme pairs of the @clini/theme palette that fall
-// short of AA. Only these exact foreground/background pairs are ignored, so
-// any other contrast regression still fails. Remove once #254 fixes the
-// palette in packages/theme.
-const KNOWN_CONTRAST_PAIRS = [
-    { fgColor: '#0f7f88', bgColor: '#d9eff0' }, // accent-foreground on accent
-    { fgColor: '#0f7f88', bgColor: '#f3f8f7' }, // primary on muted/secondary
-    { fgColor: '#1f9a5d', bgColor: '#ffffff' }, // status-arrived chip on card
-    { fgColor: '#1f9a5d', bgColor: '#e0f5e8' }, // success pill on its wash
-];
-
-function isKnownContrastPair(node: Result['nodes'][number]): boolean {
-    return node.any.some((check) => {
-        const data = check.data as { fgColor?: string; bgColor?: string };
-        return KNOWN_CONTRAST_PAIRS.some(
-            (pair) =>
-                pair.fgColor === data?.fgColor &&
-                pair.bgColor === data?.bgColor,
-        );
-    });
-}
-
-function withoutKnownContrastPairs(violations: Result[]): Result[] {
-    return violations
-        .map((violation) =>
-            violation.id === 'color-contrast'
-                ? {
-                      ...violation,
-                      nodes: violation.nodes.filter(
-                          (node) => !isKnownContrastPair(node),
-                      ),
-                  }
-                : violation,
-        )
-        .filter((violation) => violation.nodes.length > 0);
-}
-
 /**
- * Runs an axe-core scan of the current page and fails on any violation
- * (except the known palette contrast pairs above).
+ * Runs an axe-core scan of the current page and fails on any violation.
  */
 export async function runA11yScan(page: Page, view: string): Promise<void> {
     // Both real CI and this containerized profile run the panel via `vite
@@ -73,8 +35,7 @@ export async function runA11yScan(page: Page, view: string): Promise<void> {
         document.querySelector('.TanStackRouterDevtools')?.remove();
     });
 
-    const results = await new AxeBuilder({ page }).analyze();
-    const violations = withoutKnownContrastPairs(results.violations);
+    const { violations } = await new AxeBuilder({ page }).analyze();
 
     expect(
         violations,
