@@ -8,20 +8,28 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Memberships\MembershipSlugData;
 use App\Enums\MembershipRole;
+use App\Enums\PlanFeature;
 use App\Exceptions\Memberships\MembershipSlugInvalidFormatException;
 use App\Exceptions\Memberships\MembershipSlugNotAllowedForRoleException;
 use App\Exceptions\Memberships\MembershipSlugTakenException;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Support\OrganizationPlan;
 use Illuminate\Support\Facades\DB;
 
 /**
  * Owns the membership public-slug rule: professional-only, format validated here (not in a FormRequest), uniqueness checked in-app rather than via a Postgres UNIQUE constraint (ADR 0004); a null/empty slug just clears it.
  *
+ * Setting one is a paid-plan function (#237); clearing it never is, and a link set before a downgrade keeps resolving.
+ *
  * @implements Action<MembershipSlugData>
  */
 class SetMembershipSlugAction implements Action
 {
+    public function __construct(
+        private readonly OrganizationPlan $plans,
+    ) {}
+
     private const SLUG_PATTERN = '/^[a-z0-9]+(-[a-z0-9]+)*$/';
 
     private const MIN_LENGTH = 3;
@@ -52,6 +60,8 @@ class SetMembershipSlugAction implements Action
 
                 return $membership;
             }
+
+            $this->plans->ensureIncludes($membership->organization_id, PlanFeature::ProfessionalBookingLinks);
 
             if (! $this->hasValidFormat($slug)) {
                 throw new MembershipSlugInvalidFormatException($membership->id, $slug);

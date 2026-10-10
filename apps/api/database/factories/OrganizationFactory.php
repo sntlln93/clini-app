@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\Plan;
 use App\Enums\Province;
 use App\Models\Address;
 use App\Models\City;
@@ -13,6 +14,10 @@ use Illuminate\Support\Str;
 
 /**
  * No address by default, so no province either; see `inProvince()`.
+ *
+ * No assigned plan by default, so like a real one it is on Free unless a
+ * subscription grants Practice; `center()` assigns every function with no
+ * limits, for tests about something other than plans.
  *
  * @extends Factory<Organization>
  */
@@ -32,6 +37,11 @@ class OrganizationFactory extends Factory
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1, 999999),
             'timezone' => 'America/Argentina/Buenos_Aires',
         ];
+    }
+
+    public function center(): static
+    {
+        return $this->state(fn (array $attributes): array => ['assigned_plan' => Plan::Center]);
     }
 
     /**

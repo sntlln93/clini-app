@@ -16,7 +16,7 @@ test('a guest gets 401 on PATCH /memberships/me/slug', function () {
 });
 
 test('a professional sets a valid slug: 200, persisted on their own membership, and the response exposes slug', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
 
     $response = $this->actingAs($membership->user)->patchJson('/api/v1/memberships/me/slug', [
@@ -30,7 +30,7 @@ test('a professional sets a valid slug: 200, persisted on their own membership, 
 });
 
 test('invalid slug formats return 409 memberships.slug_invalid_format, never 422', function (string $invalidSlug) {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
 
     $response = $this->actingAs($membership->user)->patchJson('/api/v1/memberships/me/slug', [
@@ -49,7 +49,7 @@ test('invalid slug formats return 409 memberships.slug_invalid_format, never 422
 ]);
 
 test('a slug equal to an existing organizations.slug returns 409 memberships.slug_taken', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $takenOrganization = Organization::factory()->create(['slug' => 'consultorio-salud']);
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
 
@@ -62,9 +62,9 @@ test('a slug equal to an existing organizations.slug returns 409 memberships.slu
 });
 
 test('a slug already used by another membership in a different organization returns 409 memberships.slug_taken', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
-    $otherOrganization = Organization::factory()->create();
+    $otherOrganization = Organization::factory()->center()->create();
     Membership::factory()->professional()->create([
         'organization_id' => $otherOrganization->id,
         'slug' => 'dr-gomez',
@@ -79,7 +79,7 @@ test('a slug already used by another membership in a different organization retu
 });
 
 test('re-saving the membership\'s own current slug returns 200: a membership never collides with itself', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create([
         'organization_id' => $organization->id,
         'slug' => 'dr-gomez',
@@ -95,7 +95,7 @@ test('re-saving the membership\'s own current slug returns 200: a membership nev
 });
 
 test('sending slug null or an empty string clears the slug and returns 200', function (?string $clearingValue) {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create([
         'organization_id' => $organization->id,
         'slug' => 'dr-gomez',
@@ -114,7 +114,7 @@ test('sending slug null or an empty string clears the slug and returns 200', fun
 ]);
 
 test('a membership without the professional role gets 409 memberships.slug_not_allowed_for_role', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->staff()->create(['organization_id' => $organization->id]);
 
     $response = $this->actingAs($membership->user)->patchJson('/api/v1/memberships/me/slug', [
@@ -126,7 +126,7 @@ test('a membership without the professional role gets 409 memberships.slug_not_a
 });
 
 test('the endpoint only ever touches the caller\'s own membership', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $otherMembership = Membership::factory()->professional()->create([
         'organization_id' => $organization->id,
@@ -143,7 +143,7 @@ test('the endpoint only ever touches the caller\'s own membership', function () 
 });
 
 test('a slug longer than 50 characters returns 422', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membership = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
 
     $response = $this->actingAs($membership->user)->patchJson('/api/v1/memberships/me/slug', [
@@ -155,7 +155,7 @@ test('a slug longer than 50 characters returns 422', function () {
 });
 
 test('two concurrent claims for the same slug are serialized by the advisory lock: the second fails with 409, exactly one membership keeps it', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $membershipA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     // Same organization as membershipA: the CurrentOrganization singleton isn't reset between the two actingAs() calls in this test, so a different-organization membership would spuriously 403 here — a test-setup artefact, not something the race itself needs.
     $membershipB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);

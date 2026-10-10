@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Admin;
 
+use App\Enums\Plan;
 use App\Enums\SubscriptionStatus;
 use App\Models\Organization;
 use App\Models\Subscription;
@@ -13,7 +14,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Organization list item. Expects `active_members_count` (withCount) and
- * the `subscription` relation to be loaded.
+ * the `subscription` relation to be loaded (the plan derives from it).
  *
  * @mixin Organization
  */
@@ -48,6 +49,8 @@ class AdminOrganizationResource extends JsonResource
 
         /** @var CarbonImmutable|null $suspendedAt */
         $suspendedAt = $organization->suspended_at;
+        /** @var Plan|null $assignedPlan */
+        $assignedPlan = $organization->assigned_plan;
 
         return [
             'id' => $organization->id,
@@ -58,6 +61,8 @@ class AdminOrganizationResource extends JsonResource
             'suspended_at' => $suspendedAt?->toIso8601String(),
             'suspension_reason' => $organization->suspension_reason,
             'active_members_count' => $this->countAttribute('active_members_count'),
+            'plan' => $organization->plan()->value,
+            'assigned_plan' => $assignedPlan?->value,
         ];
     }
 

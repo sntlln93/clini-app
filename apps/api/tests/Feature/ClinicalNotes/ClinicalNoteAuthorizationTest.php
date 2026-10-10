@@ -13,7 +13,7 @@ afterEach(function () {
 });
 
 test('a professional gets 403 on index for an appointment booked to another professional of the same organization', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $professionalA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $professionalB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -26,7 +26,7 @@ test('a professional gets 403 on index for an appointment booked to another prof
 });
 
 test('a professional gets 403 on store for another professional\'s appointment', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $professionalA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $professionalB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -40,7 +40,7 @@ test('a professional gets 403 on store for another professional\'s appointment',
 });
 
 test('a professional gets 403, not 404, on update of a note they did not author, in their own organization', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $professionalA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $professionalB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -59,7 +59,7 @@ test('a professional gets 403, not 404, on update of a note they did not author,
 });
 
 test('a professional gets 403, not 404, on destroy of a note they did not author, in their own organization', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $professionalA = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $professionalB = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -77,7 +77,7 @@ test('a professional gets 403, not 404, on destroy of a note they did not author
 });
 
 test('an owner membership gets 403 on index, store, update and destroy over another membership\'s appointment/notes', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $owner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
     $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -103,7 +103,7 @@ test('an owner membership gets 403 on index, store, update and destroy over anot
 });
 
 test('an admin membership gets 403 on index, store, update and destroy over another membership\'s appointment/notes', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $admin = Membership::factory()->admin()->create(['organization_id' => $organization->id]);
     $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -129,7 +129,7 @@ test('an admin membership gets 403 on index, store, update and destroy over anot
 });
 
 test('a staff membership gets 403 on index, store, update and destroy over another membership\'s appointment/notes', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $staff = Membership::factory()->staff()->create(['organization_id' => $organization->id]);
     $professional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -172,8 +172,8 @@ test('a staff membership gets 403 on index, store, update and destroy over anoth
 // and get scoped out (404) instead of exercising the real, first-request
 // production behavior (403) that both cases are meant to cover.
 test('a note belonging to another organization returns 403 on update', function () {
-    $membership = Membership::factory()->create();
-    $otherOrgMembership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
+    $otherOrgMembership = Membership::factory()->onPaidPlan()->create();
     $otherOrgAppointment = Appointment::factory()->create([
         'organization_id' => $otherOrgMembership->organization_id,
         'membership_id' => $otherOrgMembership->id,
@@ -190,8 +190,8 @@ test('a note belonging to another organization returns 403 on update', function 
 });
 
 test('a note belonging to another organization returns 403 on destroy', function () {
-    $membership = Membership::factory()->create();
-    $otherOrgMembership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
+    $otherOrgMembership = Membership::factory()->onPaidPlan()->create();
     $otherOrgAppointment = Appointment::factory()->create([
         'organization_id' => $otherOrgMembership->organization_id,
         'membership_id' => $otherOrgMembership->id,
@@ -207,7 +207,7 @@ test('a note belonging to another organization returns 403 on destroy', function
 });
 
 test('a guest gets 401 on index, store, update and destroy', function () {
-    $membership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
     $appointment = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,

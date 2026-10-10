@@ -110,6 +110,15 @@ test('subscription counts include none and sum to the live organizations, and MR
     ]);
 });
 
+test('MRR adds the amount each paying subscription charges, the base price for one with none stored', function () {
+    $fixture = overviewFixture();
+    $fixture['active']->subscription()->withoutGlobalScope('organization')->update(['amount' => 25000]);
+
+    expect(actingAsAdmin()->getJson('/api/v1/admin/overview')->json('data.kpis.mrr'))->toBe([
+        'amount' => 40000, 'currency' => 'ARS', 'paying_subscriptions' => 2, 'plan_amount' => 15000,
+    ]);
+});
+
 test('the series has one zero-filled point per local day, ascending, bucketed in the reporting timezone', function () {
     overviewFixture();
 

@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\AppointmentStatus;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\Plan;
 use App\Enums\Province;
 use App\Enums\SubscriptionStatus;
 use Database\Factories\OrganizationFactory;
@@ -24,9 +25,10 @@ use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
- * `suspended_at`/`suspension_reason` are written only by the operator
- * Actions (forceFill), never mass-assigned; the reason stays hidden so the
- * clinic `/me` payload — which serializes this model — never exposes it.
+ * `suspended_at`/`suspension_reason` and `assigned_plan` are written only by
+ * the operator Actions (forceFill), never mass-assigned; the reason stays
+ * hidden so the clinic `/me` payload — which serializes this model — never
+ * exposes it.
  */
 #[Fillable(['name', 'slug', 'timezone'])]
 #[Hidden(['suspension_reason'])]
@@ -42,6 +44,7 @@ class Organization extends Model
     {
         return [
             'suspended_at' => 'immutable_datetime',
+            'assigned_plan' => Plan::class,
         ];
     }
 
@@ -215,6 +218,17 @@ class Organization extends Model
         $status = SubscriptionStatus::from($state);
 
         return $query->whereHas('subscription', fn (Builder $query) => $query->withoutGlobalScope('organization')->where('status', $status));
+    }
+
+    /**
+     * Needs `subscription` loaded (withAdminListing does it).
+     */
+    public function plan(): Plan
+    {
+        /** @var Plan|null $assigned */
+        $assigned = $this->assigned_plan;
+
+        return Plan::resolve($assigned, $this->subscription);
     }
 
     /**

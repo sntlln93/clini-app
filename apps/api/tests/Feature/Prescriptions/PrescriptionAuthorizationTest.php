@@ -22,7 +22,7 @@ function validPrescriptionPayload(): array
 }
 
 test('a membership that is not the booked professional gets 403 on every endpoint', function (string $role) {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $intruder = Membership::factory()->{$role}()->create(['organization_id' => $organization->id]);
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -44,7 +44,7 @@ test('a membership that is not the booked professional gets 403 on every endpoin
 })->with(['professional', 'owner', 'admin', 'staff']);
 
 test('another professional of the same organization does not see the author\'s prescriptions in the patient listing', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $viewer = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $appointment = Appointment::factory()->create([
@@ -61,7 +61,7 @@ test('another professional of the same organization does not see the author\'s p
 // One HTTP call per test: see ClinicalNoteAuthorizationTest for why
 // CurrentOrganization surviving across simulated requests matters here.
 test('a prescription belonging to another organization returns 403 on show', function () {
-    $membership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
     $prescription = Prescription::factory()->create();
 
     $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
@@ -69,7 +69,7 @@ test('a prescription belonging to another organization returns 403 on show', fun
 });
 
 test('a prescription belonging to another organization returns 403 on update', function () {
-    $membership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
     $prescription = Prescription::factory()->create();
 
     $this->actingAs($membership->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", validPrescriptionPayload())
@@ -77,7 +77,7 @@ test('a prescription belonging to another organization returns 403 on update', f
 });
 
 test('another organization\'s prescriptions never leak into the patient listing', function () {
-    $membership = Membership::factory()->create();
+    $membership = Membership::factory()->onPaidPlan()->create();
     $prescription = Prescription::factory()->create();
 
     $this->actingAs($membership->user)->getJson("/api/v1/patients/{$prescription->patient_id}/prescriptions")

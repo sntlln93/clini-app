@@ -10,11 +10,15 @@ use App\Contracts\SubscriptionGateway;
 use App\Data\Subscriptions\ProviderSubscriptionData;
 use App\Data\Subscriptions\SubscriptionCheckoutData;
 use App\Data\Subscriptions\SubscriptionSignupData;
+use App\Enums\Plan;
 use App\Enums\SubscriptionStatus;
+use App\Exceptions\Plans\CenterPlanAssignedException;
 use App\Exceptions\Subscriptions\SubscriptionAlreadyActiveException;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Models\Organization;
 use App\Models\Subscription;
+use App\Support\OrganizationPlan;
+use App\Support\PracticePricing;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,6 +38,11 @@ use Illuminate\Support\Facades\DB;
  * read-only) with the replacement preapproval stored, and the webhook lifts
  * it once that preapproval is authorized or charged.
  *
+ * A new provider subscription charges the Practice price for the
+ * organization's current active professionals (stored as `amount`); later
+ * changes go through SyncSubscriptionAmountAction. An organization on
+ * Center is billed outside the platform and can't check out.
+ *
  * Runs under a lock on the organization row so two concurrent checkout
  * starts (two owners, two tabs) can't both create a provider subscription
  * and orphan one of them; the row's subscription is re-read under that lock.
@@ -44,6 +53,8 @@ final class StartSubscriptionCheckoutAction implements Action
 {
     public function __construct(
         private readonly SubscriptionGateway $gateway,
+        private readonly OrganizationPlan $plans,
+        private readonly PracticePricing $pricing,
     ) {}
 
     /**
@@ -53,6 +64,10 @@ final class StartSubscriptionCheckoutAction implements Action
     {
         return DB::transaction(function () use ($dto): string {
             $organization = Organization::query()->lockForUpdate()->findOrFail($dto->organizationId);
+
+            if ($organization->assigned_plan === Plan::Center) {
+                throw new CenterPlanAssignedException($organization->id);
+            }
 
             $subscription = Subscription::withoutGlobalScope('organization')
                 ->where('organization_id', $organization->id)
@@ -79,10 +94,14 @@ final class StartSubscriptionCheckoutAction implements Action
                 }
             }
 
+            $amount = $this->pricing->monthlyAmount($this->plans->activeProfessionals($organization->id));
+
             $created = $this->gateway->createSubscription(new SubscriptionSignupData(
                 externalReference: (string) $organization->id,
                 payerEmail: $dto->payerEmail,
                 reason: 'Suscripción Clini — '.$organization->name,
+                amount: $amount,
+                currency: $this->pricing->currency(),
             ));
 
             if ($created->initPoint === null) {
@@ -95,6 +114,7 @@ final class StartSubscriptionCheckoutAction implements Action
                     'provider' => $this->gateway->provider(),
                     'provider_subscription_id' => $created->id,
                     'status' => $status ?? SubscriptionStatus::Pending,
+                    'amount' => $amount,
                 ],
             );
 

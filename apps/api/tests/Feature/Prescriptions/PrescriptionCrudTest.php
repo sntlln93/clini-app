@@ -45,7 +45,7 @@ function prescriptionPayload(array $overrides = []): array
 }
 
 test('store on one\'s own appointment returns 201 and persists the prescription with ordered items', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
 
     $response = $this->actingAs($membership->user)
@@ -69,9 +69,9 @@ test('store on one\'s own appointment returns 201 and persists the prescription 
 });
 
 test('store ignores ownership fields sent in the payload', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
-    $other = Membership::factory()->create();
+    $other = Membership::factory()->onPaidPlan()->create();
     $otherPatient = Patient::factory()->create();
 
     $response = $this->actingAs($membership->user)
@@ -90,7 +90,7 @@ test('store ignores ownership fields sent in the payload', function () {
 });
 
 test('store accepts a prescription without diagnosis', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
 
     $this->actingAs($membership->user)
@@ -100,7 +100,7 @@ test('store accepts a prescription without diagnosis', function () {
 });
 
 test('store returns 422 when items are missing or empty', function (mixed $items) {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
 
     $this->actingAs($membership->user)
@@ -115,7 +115,7 @@ test('store returns 422 when items are missing or empty', function (mixed $items
 ]);
 
 test('store returns 422 for an invalid item', function (array $item, string $field) {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
 
     $this->actingAs($membership->user)
@@ -140,7 +140,7 @@ test('store returns 422 for an invalid item', function (array $item, string $fie
 ]);
 
 test('index returns only the acting membership\'s prescriptions for that appointment', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
     $otherAppointment = prescriptionOwnAppointment($membership);
     $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
@@ -154,7 +154,7 @@ test('index returns only the acting membership\'s prescriptions for that appoint
 });
 
 test('show returns the printable fields: patient identity and author name/specialties', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $patient = Patient::factory()->create(['name' => 'Juana Pérez', 'document_number' => '30111222']);
     $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
     $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
@@ -176,7 +176,7 @@ test('show returns the printable fields: patient identity and author name/specia
 });
 
 test('update replaces diagnosis and items, keeping issued_at', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
     $prescription = Prescription::factory()->create([
         'appointment_id' => $appointment->id,
@@ -203,7 +203,7 @@ test('update replaces diagnosis and items, keeping issued_at', function () {
 });
 
 test('update returns 422 when the items list is emptied', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
     $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
 
@@ -215,7 +215,7 @@ test('update returns 422 when the items list is emptied', function () {
 });
 
 test('the patient listing returns only the acting membership\'s prescriptions for that patient', function () {
-    $membership = Membership::factory()->professional()->create();
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $colleague = Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
     $patient = Patient::factory()->create();
     $otherPatient = Patient::factory()->create();

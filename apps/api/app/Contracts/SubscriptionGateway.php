@@ -42,6 +42,13 @@ interface SubscriptionGateway
     public function cancelSubscription(string $id): void;
 
     /**
+     * Sets the amount of the subscription's next charges.
+     *
+     * @throws SubscriptionGatewayUnavailableException
+     */
+    public function updateSubscriptionAmount(string $id, int $amount, string $currency): void;
+
+    /**
      * Null when the provider reports that the payment doesn't exist (for
      * these credentials): a definitive answer, not a failure to retry.
      *

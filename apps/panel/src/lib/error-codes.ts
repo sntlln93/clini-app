@@ -36,7 +36,12 @@ export type ErrorCode =
     | 'users.email_already_verified'
     | 'subscriptions.grace_extension_not_allowed'
     | 'subscriptions.grace_extension_not_later'
-    | 'subscriptions.not_cancellable';
+    | 'subscriptions.not_cancellable'
+    | 'plans.feature_unavailable'
+    | 'plans.professional_limit_exceeded'
+    | 'plans.center_assigned'
+    | 'plans.assignment_unchanged'
+    | 'plans.subscription_live';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -104,6 +109,16 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La nueva fecha tiene que ser posterior al fin del período de gracia actual.',
     'subscriptions.not_cancellable':
         'La suscripción no tiene cobros activos para cancelar. Actualizá la página para ver su estado vigente.',
+    'plans.feature_unavailable':
+        'Tu plan no incluye esta función. Pasá a Consultorio desde Ajustes para usarla.',
+    'plans.professional_limit_exceeded':
+        'El plan Gratis incluye un solo profesional activo y tu consultorio tiene más. La agenda queda en solo lectura hasta que pases a Consultorio o desactives profesionales.',
+    'plans.center_assigned':
+        'Tu consultorio está en el plan Centro, que se gestiona con el equipo de Clini.',
+    'plans.assignment_unchanged':
+        'La organización ya tiene ese plan asignado. Actualizá la página para ver su plan vigente.',
+    'plans.subscription_live':
+        'La organización tiene una suscripción que todavía puede cobrar. Primero hay que cancelarla.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

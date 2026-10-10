@@ -10,6 +10,7 @@ use App\Data\Memberships\MembershipUpdateData;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Exceptions\Memberships\LastActiveAdminException;
+use App\Jobs\Subscriptions\SyncSubscriptionAmountJob;
 use App\Models\Membership;
 use Illuminate\Support\Facades\DB;
 
@@ -50,6 +51,10 @@ class DeactivateMembershipAction implements Action
             ]);
 
             $membership->delete();
+
+            if ($status === MembershipStatus::Active && in_array(MembershipRole::Professional, $roles, true)) {
+                SyncSubscriptionAmountJob::dispatch($membership->organization_id);
+            }
 
             return $membership;
         });

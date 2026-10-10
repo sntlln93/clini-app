@@ -8,23 +8,27 @@ use App\Enums\SubscriptionStatus;
 use App\Exceptions\Subscriptions\SubscriptionInactiveException;
 use App\Models\Subscription;
 use App\Support\CurrentOrganization;
+use App\Support\OrganizationPlan;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The single enforcement point of the read-only restriction (#28): applied
- * to the write routes of appointments, clinical notes, prescriptions,
- * availability and public booking, it rejects the request with a 409 when
- * the current organization's subscription is expired, or cancelled past
- * the period it already paid for. Reads are never wrapped by it.
+ * The single enforcement point of the read-only restriction: applied to the
+ * write routes of appointments, clinical notes, prescriptions, availability
+ * and public booking, it rejects the request with a 409 when the current
+ * organization's subscription expired (#28), or when it has more active
+ * professionals than its plan allows (#237). Reads are never wrapped by it.
  *
  * Runs after `organization`/`public-organization`, which populate
- * CurrentOrganization. An organization with no subscription row at all is
- * not restricted (trial policy is a future issue).
+ * CurrentOrganization.
  */
 class EnsureSubscriptionActive
 {
+    public function __construct(
+        private readonly OrganizationPlan $plans,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $organizationId = app(CurrentOrganization::class)->get();
@@ -40,6 +44,8 @@ class EnsureSubscriptionActive
 
                 throw new SubscriptionInactiveException($organizationId, $status);
             }
+
+            $this->plans->ensureWithinProfessionalLimit($organizationId);
         }
 
         return $next($request);

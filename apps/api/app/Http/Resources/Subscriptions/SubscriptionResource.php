@@ -35,6 +35,7 @@ class SubscriptionResource extends JsonResource
             'next_payment_at' => $subscription->next_payment_at?->toIso8601String(),
             'cancelled_at' => $subscription->cancelled_at?->toIso8601String(),
             'access_ends_at' => $subscription->access_ends_at?->toIso8601String(),
+            'amount' => $subscription->amount,
         ];
     }
 

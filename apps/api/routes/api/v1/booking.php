@@ -13,6 +13,6 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('booking/{slug}')->middleware('public-organization')->group(function (): void {
     Route::get('/', [PublicBookingController::class, 'show']);
     Route::get('/slots', [PublicBookingController::class, 'slots']);
-    // Blocked like the panel's own writes while the subscription is expired/cancelled (#28).
+    // Blocked like the panel's own writes (#28, #237).
     Route::post('/appointments', [PublicBookingController::class, 'store'])->middleware('subscription.active');
 });

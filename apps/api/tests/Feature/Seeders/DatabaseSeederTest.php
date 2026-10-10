@@ -17,6 +17,7 @@ use App\Models\PlatformAdmin;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
+use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserSpecialty;
 use Database\Seeders\DatabaseSeeder;
@@ -55,6 +56,18 @@ test('the two fixture organizations exist by slug', function () {
 
     expect($clinicaModelo->name)->toBe('Clínica Modelo');
     expect($consultorioDos->name)->toBe('Consultorio Dos');
+});
+
+test('the fixture organizations cover Center and Practice, and Practice never reaches Mercado Pago', function () {
+    $this->seed(DatabaseSeeder::class);
+
+    $plans = Organization::query()
+        ->with(['subscription' => fn ($query) => $query->withoutGlobalScope('organization')])
+        ->get()
+        ->mapWithKeys(fn (Organization $organization): array => [$organization->slug => $organization->plan()->value]);
+
+    expect($plans->all())->toEqual(['clinica-modelo' => 'center', 'consultorio-dos' => 'practice']);
+    expect(Subscription::withoutGlobalScope('organization')->sole()->provider_subscription_id)->toBeNull();
 });
 
 test('every documented user has the expected membership per organization', function () {

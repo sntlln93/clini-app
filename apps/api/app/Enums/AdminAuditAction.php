@@ -14,6 +14,7 @@ enum AdminAuditAction: string
     case AuthLogout = 'auth.logout';
     case OrganizationSuspended = 'organizations.suspend';
     case OrganizationReactivated = 'organizations.reactivate';
+    case OrganizationPlanAssigned = 'organizations.assign_plan';
     case UserEmailVerified = 'users.verify_email';
     case UserBlocked = 'users.block';
     case UserUnblocked = 'users.unblock';
