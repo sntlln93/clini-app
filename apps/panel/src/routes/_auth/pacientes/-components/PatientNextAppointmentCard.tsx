@@ -55,7 +55,7 @@ export function PatientNextAppointmentCard({
             <CardContent>
                 {appointment ? (
                     <div className="space-y-1 text-sm">
-                        <p className="text-base font-medium first-letter:uppercase">
+                        <p className="text-base font-medium tabular-nums first-letter:uppercase">
                             {formatNextAppointment(appointment.start_at)}
                         </p>
                         <p className="text-muted-foreground">

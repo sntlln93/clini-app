@@ -98,7 +98,7 @@ export function ClinicalNotesDialog({
                         >
                             <p className="whitespace-pre-wrap">{note.body}</p>
                             <div className="mt-2 flex items-center justify-between gap-2">
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-muted-foreground tabular-nums">
                                     {formatTimestamp(note.updated_at)}
                                 </span>
                                 {!restricted && (

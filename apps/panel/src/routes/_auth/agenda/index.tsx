@@ -136,7 +136,7 @@ function AgendaPage() {
         <div className="space-y-6">
             <div className="flex flex-wrap items-start justify-between gap-4">
                 <div className="space-y-1">
-                    <h1 className="text-2xl font-semibold">Agenda</h1>
+                    <h1 className="text-2xl tracking-tight">Agenda</h1>
                     <p className="text-sm text-muted-foreground">
                         Turnos agendados por profesional.
                     </p>
@@ -157,52 +157,60 @@ function AgendaPage() {
                 />
             )}
 
-            <AgendaToolbar
-                date={date}
-                view={view}
-                onPrev={navigation.onPrev}
-                onNext={navigation.onNext}
-                onToday={navigation.onToday}
-                onViewChange={navigation.onViewChange}
-                onDateSelect={navigation.updateDate}
-                showCancelled={showCancelled}
-                onShowCancelledChange={navigation.onShowCancelledChange}
-            />
+            {/* The landing's agenda card: title and view switch on top, the grid, and the legend as its footer. */}
+            <section
+                aria-label="Turnos"
+                className="min-w-0 overflow-hidden rounded-3xl border bg-card shadow-card"
+            >
+                <AgendaToolbar
+                    date={date}
+                    view={view}
+                    onPrev={navigation.onPrev}
+                    onNext={navigation.onNext}
+                    onToday={navigation.onToday}
+                    onViewChange={navigation.onViewChange}
+                    onDateSelect={navigation.updateDate}
+                    showCancelled={showCancelled}
+                    onShowCancelledChange={navigation.onShowCancelledChange}
+                />
 
-            {professionals.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                    Todavía no hay profesionales en esta organización.
-                </p>
-            )}
+                {professionals.length === 0 && (
+                    <p className="px-5 pb-5 text-sm text-muted-foreground">
+                        Todavía no hay profesionales en esta organización.
+                    </p>
+                )}
 
-            {noneVisibleFromFilter && (
-                <p className="text-sm text-muted-foreground">
-                    No hay profesionales seleccionados en el filtro.
-                </p>
-            )}
+                {noneVisibleFromFilter && (
+                    <p className="px-5 pb-5 text-sm text-muted-foreground">
+                        No hay profesionales seleccionados en el filtro.
+                    </p>
+                )}
 
-            {visibleProfessionals.length > 0 &&
-                (view === 'day' ? (
-                    <AgendaDayView
-                        date={date}
-                        professionals={visibleProfessionals}
-                        appointments={appointments}
-                        canUpdate={canUpdate}
-                        canCreate={canCreate}
-                        onCellClick={handleCellClick}
-                    />
-                ) : (
-                    <AgendaWeekView
-                        weekStart={rangeStart}
-                        professionals={visibleProfessionals}
-                        appointments={appointments}
-                        canUpdate={canUpdate}
-                        canCreate={canCreate}
-                        onDayClick={handleDayClick}
-                    />
-                ))}
+                {visibleProfessionals.length > 0 &&
+                    (view === 'day' ? (
+                        <AgendaDayView
+                            date={date}
+                            professionals={visibleProfessionals}
+                            appointments={appointments}
+                            canUpdate={canUpdate}
+                            canCreate={canCreate}
+                            onCellClick={handleCellClick}
+                        />
+                    ) : (
+                        <AgendaWeekView
+                            weekStart={rangeStart}
+                            professionals={visibleProfessionals}
+                            appointments={appointments}
+                            canUpdate={canUpdate}
+                            canCreate={canCreate}
+                            onDayClick={handleDayClick}
+                        />
+                    ))}
 
-            {visibleProfessionals.length > 0 && <AppointmentStatusLegend />}
+                {visibleProfessionals.length > 0 && (
+                    <AppointmentStatusLegend className="px-5 pt-3 pb-5" />
+                )}
+            </section>
 
             <AppointmentFormDialog
                 open={formState.open}

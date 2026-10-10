@@ -18,7 +18,7 @@ function Field({ label, value }: { label: string; value: string }) {
     return (
         <div>
             <dt className="text-xs text-muted-foreground">{label}</dt>
-            <dd className="text-sm font-medium">{value}</dd>
+            <dd className="text-sm font-medium tabular-nums">{value}</dd>
         </div>
     );
 }

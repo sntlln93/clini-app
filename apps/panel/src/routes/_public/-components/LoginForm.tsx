@@ -53,7 +53,7 @@ export function LoginForm({ redirectTo }: LoginFormProps) {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-semibold">Iniciar sesión</h1>
+                    <h1 className="text-2xl tracking-tight">Iniciar sesión</h1>
                     <p className="text-sm text-muted-foreground">
                         Ingresá tus datos para continuar
                     </p>

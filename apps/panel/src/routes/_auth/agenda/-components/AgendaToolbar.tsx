@@ -39,50 +39,69 @@ export function AgendaToolbar({
 }: AgendaToolbarProps) {
     const showCancelledId = useId();
 
-    // Shared by both views: a way back to today plus the full date, since the day strip alone shows neither month nor year.
+    // Shared by both views: a way back to today; the full date is the card title, since the day strip alone shows neither month nor year.
     const todayButton = (
         <Button variant="outline" size="sm" onClick={onToday}>
             Hoy
         </Button>
     );
+    // The agenda card's title, as in the landing's agenda example.
     const dateLabel = (
-        <span className="min-w-0 text-sm font-medium capitalize">
+        <h2 className="min-w-0 text-lg font-medium tabular-nums first-letter:uppercase">
             {DATE_LABEL_FORMAT.format(date)}
-        </span>
+        </h2>
+    );
+    const viewOption = (mode: AgendaViewMode, label: string) => (
+        <Button
+            variant={view === mode ? 'default' : 'outline'}
+            size="sm"
+            aria-pressed={view === mode}
+            className="px-3.5"
+            onClick={() => onViewChange(mode)}
+        >
+            {label}
+        </Button>
     );
 
     return (
-        <div className="flex flex-wrap items-center justify-between gap-3">
-            {view === 'day' ? (
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <AgendaDayStrip date={date} onDateSelect={onDateSelect} />
-                    {todayButton}
-                    {dateLabel}
-                </div>
-            ) : (
-                <div className="flex min-w-0 flex-wrap items-center gap-1">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={onPrev}
-                        aria-label="Período anterior"
-                    >
-                        <ChevronLeftIcon />
-                    </Button>
-                    {todayButton}
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={onNext}
-                        aria-label="Período siguiente"
-                    >
-                        <ChevronRightIcon />
-                    </Button>
-                    <span className="ml-2 min-w-0">{dateLabel}</span>
-                </div>
-            )}
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-5 py-4">
+            {dateLabel}
+            <div role="group" aria-label="Vista" className="flex gap-1.5">
+                {viewOption('day', 'Día')}
+                {viewOption('week', 'Semana')}
+            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 lg:ml-auto">
+                {view === 'day' ? (
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
+                        <AgendaDayStrip
+                            date={date}
+                            onDateSelect={onDateSelect}
+                        />
+                        {todayButton}
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={onPrev}
+                            aria-label="Período anterior"
+                        >
+                            <ChevronLeftIcon />
+                        </Button>
+                        {todayButton}
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={onNext}
+                            aria-label="Período siguiente"
+                        >
+                            <ChevronRightIcon />
+                        </Button>
+                    </div>
+                )}
+
                 <div className="flex items-center gap-2">
                     <Switch
                         id={showCancelledId}
@@ -90,23 +109,6 @@ export function AgendaToolbar({
                         onCheckedChange={onShowCancelledChange}
                     />
                     <Label htmlFor={showCancelledId}>Mostrar cancelados</Label>
-                </div>
-
-                <div className="flex items-center gap-1 rounded-lg border p-0.5">
-                    <Button
-                        variant={view === 'day' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => onViewChange('day')}
-                    >
-                        Día
-                    </Button>
-                    <Button
-                        variant={view === 'week' ? 'secondary' : 'ghost'}
-                        size="sm"
-                        onClick={() => onViewChange('week')}
-                    >
-                        Semana
-                    </Button>
                 </div>
             </div>
         </div>

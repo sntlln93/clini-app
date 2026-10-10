@@ -56,7 +56,7 @@ export function PatientPrescriptionsCard({
                                 ))}
                             </ul>
                             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
-                                <span>
+                                <span className="tabular-nums">
                                     {formatDate(prescription.issued_at)}
                                 </span>
                                 <Link

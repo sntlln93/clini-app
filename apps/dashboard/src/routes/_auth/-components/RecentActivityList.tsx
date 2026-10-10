@@ -86,7 +86,7 @@ export function RecentActivityList({
                                         </span>
                                     )}
                                 </span>
-                                <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground">
+                                <span className="ml-auto text-xs whitespace-nowrap text-muted-foreground tabular-nums">
                                     {formatDateTime(item.occurred_at)}
                                 </span>
                             </li>

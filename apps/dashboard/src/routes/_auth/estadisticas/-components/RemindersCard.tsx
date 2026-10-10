@@ -24,7 +24,9 @@ export function RemindersCard({
                 <CardTitle>Recordatorios</CardTitle>
                 <CardDescription>
                     Programados en el período · tasa de fallas{' '}
-                    {formatPercent(reminders.failure_rate)}
+                    <span className="tabular-nums">
+                        {formatPercent(reminders.failure_rate)}
+                    </span>
                 </CardDescription>
             </CardHeader>
             <CardContent>

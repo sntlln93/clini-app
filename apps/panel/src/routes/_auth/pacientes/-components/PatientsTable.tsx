@@ -65,12 +65,13 @@ const columns: ColumnDef<Patient, unknown>[] = [
         header: 'Documento',
         cell: ({ row }) =>
             `${DOCUMENT_TYPE_LABELS[row.original.document_type]} ${row.original.document_number}`,
+        meta: { className: 'tabular-nums' },
     },
     {
         id: 'phone',
         header: 'Teléfono',
         cell: ({ row }) => row.original.phone ?? '—',
-        meta: { className: 'hidden md:table-cell' },
+        meta: { className: 'hidden md:table-cell tabular-nums' },
     },
     {
         id: 'insurance',

@@ -52,7 +52,9 @@ const columns: ColumnDef<AdminOrganization, unknown>[] = [
         id: 'created_at',
         header: 'Alta',
         cell: ({ row }) => formatDate(row.original.created_at),
-        meta: { className: 'hidden lg:table-cell whitespace-nowrap' },
+        meta: {
+            className: 'hidden lg:table-cell whitespace-nowrap tabular-nums',
+        },
     },
 ];
 

@@ -66,7 +66,7 @@ export function RegisterForm() {
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-semibold">Crear cuenta</h1>
+                    <h1 className="text-2xl tracking-tight">Crear cuenta</h1>
                     <p className="text-sm text-muted-foreground">
                         Registrá tu consultorio en Clini
                     </p>

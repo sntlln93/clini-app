@@ -88,7 +88,7 @@ export function BookingSelectionStep({
     return (
         <div className="space-y-4">
             <div className="space-y-1">
-                <h1 className="text-xl font-semibold">Reservar turno</h1>
+                <h1 className="text-xl tracking-tight">Reservar turno</h1>
                 <p className="text-sm text-muted-foreground">
                     Elegí especialidad, profesional y prestación.
                 </p>

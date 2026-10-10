@@ -58,7 +58,7 @@ function EstadisticasPage() {
     return (
         <div className="space-y-6">
             <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">Estadísticas</h1>
+                <h1 className="text-2xl tracking-tight">Estadísticas</h1>
                 <p className="text-sm text-muted-foreground">
                     Del {formatLocalDate(period.from)} al{' '}
                     {formatLocalDate(period.to)}

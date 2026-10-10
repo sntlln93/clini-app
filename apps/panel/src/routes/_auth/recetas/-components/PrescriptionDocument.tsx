@@ -40,7 +40,10 @@ export function PrescriptionDocument({
                     )}
                 </div>
                 <p className="text-sm">
-                    Fecha: <time>{formatDate(prescription.issued_at)}</time>
+                    Fecha:{' '}
+                    <time className="tabular-nums">
+                        {formatDate(prescription.issued_at)}
+                    </time>
                 </p>
             </header>
 
@@ -64,7 +67,7 @@ export function PrescriptionDocument({
             </section>
 
             <section aria-label="Medicamentos" className="space-y-3">
-                <h2 className="text-base font-semibold">Rp/</h2>
+                <h2 className="text-base font-medium">Rp/</h2>
                 <ol className="list-decimal space-y-3 pl-5 text-sm">
                     {prescription.items.map((item) => (
                         <li key={item.id} className="wrap-break-word">

@@ -16,7 +16,7 @@ export function CardErrorState({
     return (
         <div className="space-y-4 text-center">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold">{title}</h1>
+                <h1 className="text-2xl tracking-tight">{title}</h1>
                 <p role="alert" className="text-sm text-muted-foreground">
                     {message}
                 </p>

@@ -44,7 +44,7 @@ export function BookingDayNavigator({
                         <ChevronLeftIcon data-icon="inline-start" />
                         Día anterior
                     </Button>
-                    <p className="min-w-0 text-center text-sm font-medium first-letter:uppercase">
+                    <p className="min-w-0 text-center text-sm font-medium tabular-nums first-letter:uppercase">
                         {formatLongIsoDate(date)}
                     </p>
                     <Button

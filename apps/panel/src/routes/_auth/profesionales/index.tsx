@@ -89,7 +89,7 @@ function ProfesionalesPage() {
     return (
         <div className="space-y-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
-                <h1 className="text-2xl font-semibold">Profesionales</h1>
+                <h1 className="text-2xl tracking-tight">Profesionales</h1>
                 <Button
                     render={<Link to="/profesionales/nuevo" />}
                     nativeButton={false}

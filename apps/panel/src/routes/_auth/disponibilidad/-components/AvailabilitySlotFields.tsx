@@ -44,7 +44,7 @@ export function AvailabilitySlotFields({
                                     <Input
                                         type="time"
                                         disabled={!canManage}
-                                        className="w-28"
+                                        className="w-28 tabular-nums"
                                         {...field}
                                     />
                                 }

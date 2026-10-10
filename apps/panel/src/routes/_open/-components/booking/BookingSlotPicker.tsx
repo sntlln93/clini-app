@@ -40,7 +40,7 @@ export function BookingSlotPicker({
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between gap-2">
-                <h1 className="text-lg font-semibold">Elegí día y horario</h1>
+                <h1 className="text-lg tracking-tight">Elegí día y horario</h1>
                 <Button variant="ghost" size="sm" onClick={onBack}>
                     Volver
                 </Button>
@@ -88,7 +88,7 @@ export function BookingSlotPicker({
             )}
 
             {date && slots.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 tabular-nums">
                     {slots.map((slot) => (
                         <Button
                             key={slot.start_at}

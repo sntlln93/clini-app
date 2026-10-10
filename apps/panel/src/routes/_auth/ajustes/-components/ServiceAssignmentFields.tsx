@@ -57,7 +57,7 @@ export function ServiceAssignmentFields({
                     min={1}
                     step={1}
                     disabled={!canManage}
-                    className="w-24"
+                    className="w-24 tabular-nums"
                     value={duration}
                     aria-invalid={!durationValid}
                     aria-describedby={
@@ -84,7 +84,7 @@ export function ServiceAssignmentFields({
                     inputMode="decimal"
                     placeholder="15.000,00"
                     disabled={!canManage}
-                    className="w-32"
+                    className="w-32 tabular-nums"
                     value={price}
                     aria-invalid={!priceValid}
                     aria-describedby={priceHintId}
@@ -94,7 +94,7 @@ export function ServiceAssignmentFields({
                     id={priceHintId}
                     className={
                         priceValid
-                            ? 'text-xs text-muted-foreground'
+                            ? 'text-xs text-muted-foreground tabular-nums'
                             : 'text-xs text-destructive'
                     }
                 >

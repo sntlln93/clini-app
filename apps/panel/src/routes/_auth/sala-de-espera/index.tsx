@@ -39,13 +39,16 @@ function WaitingRoomPage() {
     return (
         <div className="space-y-6">
             <div className="space-y-1">
-                <h1 className="text-3xl font-semibold">Sala de espera</h1>
+                <h1 className="text-3xl tracking-tight">Sala de espera</h1>
                 <p className="text-base text-muted-foreground">
                     Pacientes que ya llegaron hoy, por profesional.
                 </p>
                 <p className="text-sm text-muted-foreground">
                     Actualizado a las{' '}
-                    <time dateTime={new Date(updatedAt).toISOString()}>
+                    <time
+                        className="tabular-nums"
+                        dateTime={new Date(updatedAt).toISOString()}
+                    >
                         {formatClockTime(updatedAt)}
                     </time>
                 </p>

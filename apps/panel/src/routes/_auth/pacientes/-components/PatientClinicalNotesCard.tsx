@@ -84,7 +84,9 @@ export function PatientClinicalNotesCard({
                             <p className="whitespace-pre-wrap">{note.body}</p>
                             <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                                 <span>{note.author_name ?? '—'}</span>
-                                <span>{formatTimestamp(note.created_at)}</span>
+                                <span className="tabular-nums">
+                                    {formatTimestamp(note.created_at)}
+                                </span>
                             </div>
                         </div>
                     ))

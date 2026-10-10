@@ -93,7 +93,7 @@ function SuscripcionesPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Suscripciones</h1>
+            <h1 className="text-2xl tracking-tight">Suscripciones</h1>
             <SubscriptionFilters
                 values={filters}
                 onChange={handleFiltersChange}

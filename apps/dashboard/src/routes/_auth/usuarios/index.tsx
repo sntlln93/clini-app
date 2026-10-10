@@ -105,7 +105,7 @@ function UsuariosPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Usuarios</h1>
+            <h1 className="text-2xl tracking-tight">Usuarios</h1>
             <UserFilters values={filters} onChange={handleFiltersChange} />
             <UsersTable users={data.data} empty={empty} />
             <DataTablePagination
