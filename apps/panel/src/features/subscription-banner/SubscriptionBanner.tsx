@@ -2,6 +2,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import {
     SUBSCRIPTION_SECTION_ID,
+    formatSubscriptionDate,
     scrollToSubscriptionSection,
 } from '@/lib/subscription';
 import type { Subscription } from '@/types/subscription';
@@ -32,6 +33,14 @@ function bannerCopy(
                     'Podés consultar los turnos existentes, pero no crear ni modificar turnos, notas clínicas, recetas ni disponibilidad, ni recibir reservas online, hasta regularizar el pago.',
             };
         case 'cancelled':
+            // Still within the period it had already paid when it was cancelled.
+            if (!subscription.restricted && subscription.access_ends_at) {
+                return {
+                    title: 'Cancelaste la suscripción.',
+                    description: `La agenda sigue funcionando hasta el ${formatSubscriptionDate(subscription.access_ends_at)}. Después queda en modo solo lectura, salvo que vuelvas a suscribirte.`,
+                };
+            }
+
             return {
                 title: 'Suscripción cancelada: la agenda está en modo solo lectura.',
                 description:
@@ -42,7 +51,7 @@ function bannerCopy(
     }
 }
 
-/** Panel-wide notice for a subscription in grace, expired or cancelled; renders nothing otherwise. */
+/** Panel-wide notice for a subscription in grace, expired or cancelled (still within its paid period or not); renders nothing otherwise. */
 export function SubscriptionBanner({ subscription }: SubscriptionBannerProps) {
     const copy = subscription ? bannerCopy(subscription) : null;
 

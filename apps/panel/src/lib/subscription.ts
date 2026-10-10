@@ -62,6 +62,38 @@ export function formatSubscriptionDate(iso: string): string {
     return DATE_FORMAT.format(new Date(iso));
 }
 
+/**
+ * Statuses whose provider subscription can still charge, so the owner can
+ * cancel it (`DELETE /subscription`); the API answers 409 for the rest.
+ */
+export function isSubscriptionCancellable(
+    subscription: Subscription | null,
+): subscription is Subscription {
+    return (
+        subscription?.status === 'active' ||
+        subscription?.status === 'grace' ||
+        subscription?.status === 'expired'
+    );
+}
+
+/**
+ * Until when cancelling right now keeps the agenda writable: an active
+ * subscription's renewal date, if still ahead — the API's own rule, used here
+ * for copy only. Null when cancelling makes it read-only right away.
+ */
+export function paidPeriodEnd(
+    subscription: Subscription,
+    now: Date = new Date(),
+): string | null {
+    const renewal = subscription.next_payment_at;
+
+    return subscription.status === 'active' &&
+        renewal !== null &&
+        new Date(renewal).getTime() > now.getTime()
+        ? renewal
+        : null;
+}
+
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
     pending: 'Pendiente',
     active: 'Activa',

@@ -13,6 +13,17 @@ function graceDetail(subscription: Subscription): string {
         : `Pago pendiente: ${days}`;
 }
 
+function cancelledDetail(subscription: Subscription): string {
+    const cancelled = subscription.cancelled_at
+        ? `Cancelada el ${formatSubscriptionDate(subscription.cancelled_at)}`
+        : 'Suscripción cancelada';
+
+    // Still within the period it had already paid when it was cancelled.
+    return !subscription.restricted && subscription.access_ends_at
+        ? `${cancelled}. Podés seguir usando la agenda hasta el ${formatSubscriptionDate(subscription.access_ends_at)}.`
+        : cancelled;
+}
+
 /** One line describing where the subscription stands, with its relevant date. */
 export function subscriptionStatusDetail(subscription: Subscription): string {
     switch (subscription.status) {
@@ -28,9 +39,7 @@ export function subscriptionStatusDetail(subscription: Subscription): string {
                 ? `Venció el ${formatSubscriptionDate(subscription.grace_ends_at)}`
                 : 'Suscripción vencida';
         case 'cancelled':
-            return subscription.cancelled_at
-                ? `Cancelada el ${formatSubscriptionDate(subscription.cancelled_at)}`
-                : 'Suscripción cancelada';
+            return cancelledDetail(subscription);
         case 'pending':
             return 'Esperando confirmación del pago';
     }

@@ -46,6 +46,7 @@ const GRACE_SUBSCRIPTION: Subscription = {
     last_payment_failed_at: '2026-10-03T12:00:00+00:00',
     next_payment_at: null,
     cancelled_at: null,
+    access_ends_at: null,
 };
 
 function mockApiGet(

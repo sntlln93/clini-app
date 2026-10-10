@@ -4,9 +4,11 @@ import { Spinner } from '@/components/ui/spinner';
 import {
     SUBSCRIPTION_SECTION_ID,
     SUBSCRIPTION_STATUS_LABELS,
+    isSubscriptionCancellable,
 } from '@/lib/subscription';
 import type { Subscription, SubscriptionStatus } from '@/types/subscription';
 import { useStartSubscription } from '../-hooks/use-start-subscription';
+import { CancelSubscriptionButton } from './CancelSubscriptionButton';
 import {
     lastPaymentDetail,
     subscriptionStatusDetail,
@@ -96,6 +98,10 @@ export function SubscriptionSection({
                         )}
                     </Button>
                 )}
+
+                {isOwner && isSubscriptionCancellable(subscription) && (
+                    <CancelSubscriptionButton subscription={subscription} />
+                )}
             </div>
 
             {confirmingPayment && (
@@ -122,7 +128,7 @@ export function SubscriptionSection({
                 </p>
             )}
 
-            {label && !isOwner && (
+            {(label || isSubscriptionCancellable(subscription)) && !isOwner && (
                 <p className="text-sm text-muted-foreground">
                     Solo la persona dueña del consultorio puede gestionar la
                     suscripción.

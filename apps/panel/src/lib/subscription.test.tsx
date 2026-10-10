@@ -1,5 +1,10 @@
 import { api } from '@/lib/api';
-import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
+import {
+    isSubscriptionCancellable,
+    paidPeriodEnd,
+    subscriptionQueryOptions,
+    useSubscription,
+} from '@/lib/subscription';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -43,5 +48,57 @@ describe('useSubscription', () => {
 
         expect(result.current).toBeUndefined();
         expect(api.get).not.toHaveBeenCalled();
+    });
+});
+
+describe('isSubscriptionCancellable', () => {
+    it.each([
+        ['active', true],
+        ['grace', true],
+        ['expired', true],
+        ['pending', false],
+        ['cancelled', false],
+    ] as const)('is %s → %s', (status, expected) => {
+        expect(isSubscriptionCancellable(buildSubscription(status))).toBe(
+            expected,
+        );
+    });
+
+    it('is false without a subscription', () => {
+        expect(isSubscriptionCancellable(null)).toBe(false);
+    });
+});
+
+describe('paidPeriodEnd', () => {
+    const now = new Date('2026-10-10T12:00:00Z');
+
+    it('is the renewal date of an active subscription still ahead', () => {
+        expect(
+            paidPeriodEnd(
+                buildSubscription('active', {
+                    next_payment_at: '2026-11-03T12:00:00+00:00',
+                }),
+                now,
+            ),
+        ).toBe('2026-11-03T12:00:00+00:00');
+    });
+
+    it.each([
+        ['an active one with no renewal date', buildSubscription('active')],
+        [
+            'an active one whose renewal date passed',
+            buildSubscription('active', {
+                next_payment_at: '2026-10-10T12:00:00+00:00',
+            }),
+        ],
+        [
+            'one in grace, which owes its current period',
+            buildSubscription('grace', {
+                next_payment_at: '2026-11-03T12:00:00+00:00',
+            }),
+        ],
+        ['an expired one', buildSubscription('expired')],
+    ])('is null for %s', (_label, subscription) => {
+        expect(paidPeriodEnd(subscription, now)).toBeNull();
     });
 });

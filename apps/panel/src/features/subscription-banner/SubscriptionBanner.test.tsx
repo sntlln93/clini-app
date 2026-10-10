@@ -118,6 +118,41 @@ describe('SubscriptionBanner', () => {
         );
     });
 
+    it('tells until when the agenda keeps working after a cancellation within the paid period', () => {
+        render(
+            <SubscriptionBanner
+                subscription={subscription({
+                    status: 'cancelled',
+                    restricted: false,
+                    access_ends_at: '2026-11-03T12:00:00+00:00',
+                })}
+            />,
+        );
+
+        const banner = screen.getByRole('alert');
+        expect(banner.textContent).toContain('Cancelaste la suscripción.');
+        expect(banner.textContent).toContain(
+            'La agenda sigue funcionando hasta el 3 de noviembre de 2026.',
+        );
+        expect(banner.textContent).not.toContain('modo solo lectura:');
+    });
+
+    it('announces the read-only mode once the paid period of a cancellation is over', () => {
+        render(
+            <SubscriptionBanner
+                subscription={subscription({
+                    status: 'cancelled',
+                    restricted: true,
+                    access_ends_at: '2026-10-03T12:00:00+00:00',
+                })}
+            />,
+        );
+
+        expect(screen.getByRole('alert').textContent).toContain(
+            'Suscripción cancelada: la agenda está en modo solo lectura',
+        );
+    });
+
     it.each(['grace', 'expired', 'cancelled'] as const)(
         'links a %s subscription to the Suscripción section of Ajustes',
         (status) => {

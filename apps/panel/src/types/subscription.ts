@@ -13,4 +13,9 @@ export type Subscription = {
     next_payment_at: string | null;
     /** When the subscription was cancelled; null unless `cancelled`. */
     cancelled_at: string | null;
+    /**
+     * End of the period an active subscription had already paid when it was
+     * cancelled: it keeps write access until then. Null unless `cancelled`.
+     */
+    access_ends_at: string | null;
 };
