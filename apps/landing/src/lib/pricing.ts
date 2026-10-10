@@ -1,9 +1,13 @@
-// The proposed plans (#237). Prices are in ARS, the annual one with a 40%
-// discount (#240). None of this is enforced by the API yet.
+// Consultorio's reference prices in ARS, the ones the API charges since
+// #237 (`config/plans.php`): the base covers 5 professionals and each one
+// past them adds the extra amount. Annual billing with a 40% discount is
+// still a proposal (#240).
 export type Billing = 'monthly' | 'annual';
 
 export const ANNUAL_DISCOUNT = 0.4;
 export const CONSULTORIO_MONTHLY = 15_000;
+export const CONSULTORIO_INCLUDED_PROFESSIONALS = 5;
+export const CONSULTORIO_EXTRA_PROFESSIONAL = 5_000;
 
 const ars = new Intl.NumberFormat('es-AR', {
     style: 'currency',

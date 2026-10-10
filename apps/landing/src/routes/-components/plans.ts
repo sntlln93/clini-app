@@ -37,7 +37,7 @@ export const PLANS: Plan[] = [
         audience:
             'Compartís el consultorio, tenés recepción o ya no te alcanzan 40 turnos.',
         features: [
-            yes('Hasta 5 profesionales'),
+            yes('5 profesionales incluidos, sin tope'),
             yes('Turnos sin límite'),
             yes('Equipo con roles: administración, profesionales y recepción'),
             yes('Sala de espera en vivo'),
@@ -50,7 +50,8 @@ export const PLANS: Plan[] = [
         id: 'centro',
         badge: 'Centro médico',
         name: 'Centro',
-        audience: 'Son más de 5 profesionales, o atienden en más de una sede.',
+        audience:
+            'Atienden en más de una sede, o necesitan dominio propio y un servidor dedicado.',
         features: [
             yes('Todo lo de Consultorio'),
             yes('Profesionales sin límite'),
@@ -75,7 +76,10 @@ export const COMPARE: CompareGroup[] = [
     {
         title: 'Agenda y reservas',
         rows: [
-            { label: 'Profesionales', values: ['1', 'Hasta 5', 'Sin límite'] },
+            {
+                label: 'Profesionales',
+                values: ['1', '5 incluidos, sin tope', 'Sin límite'],
+            },
             {
                 label: 'Turnos por mes',
                 values: ['40', 'Sin límite', 'Sin límite'],
