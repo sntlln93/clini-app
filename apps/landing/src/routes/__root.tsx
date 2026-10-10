@@ -22,7 +22,7 @@ export const Route = createRootRoute({
             },
             { title: TITLE },
             { name: 'description', content: DESCRIPTION },
-            { name: 'theme-color', content: '#0f7f88' },
+            { name: 'theme-color', content: '#0d7179' },
             { property: 'og:type', content: 'website' },
             { property: 'og:locale', content: 'es_AR' },
             { property: 'og:title', content: TITLE },

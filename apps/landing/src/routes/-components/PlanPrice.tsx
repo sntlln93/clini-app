@@ -30,7 +30,7 @@ function note(planId: PlanId, billing: Billing, base: number): string {
 }
 
 export function PlanPrice({ planId, billing, base, featured }: PlanPriceProps) {
-    const muted = featured ? 'opacity-80' : 'text-muted-foreground';
+    const muted = featured ? 'opacity-85' : 'text-muted-foreground';
 
     return (
         <div>
