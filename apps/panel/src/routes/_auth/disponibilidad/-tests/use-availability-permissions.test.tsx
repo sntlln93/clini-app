@@ -1,7 +1,10 @@
+import { planQueryOptions } from '@/lib/plan';
 import { sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildPlan } from '@/tests/fixtures/plan';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import { buildSubscription } from '@/tests/fixtures/subscription';
+import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
@@ -11,8 +14,14 @@ import { useAvailabilityPermissions } from '../-hooks/use-availability-permissio
 
 const OWN_PROFESSIONAL = buildProfessional();
 
-function renderPermissions(subscription: Subscription | null | undefined) {
+function renderPermissions(
+    subscription: Subscription | null | undefined,
+    plan?: Plan,
+) {
     const queryClient = new QueryClient();
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     queryClient.setQueryData(sessionQueryOptions.queryKey, {
         id: 10,
         name: 'Dra. Ana López',
@@ -97,5 +106,28 @@ describe('useAvailabilityPermissions read-only reason', () => {
         }).result.current;
 
         expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBe('permission');
+    });
+});
+
+describe('useAvailabilityPermissions under a plan', () => {
+    it('reports the plan as the reason on Free over its professional limit', () => {
+        const permissions = renderPermissions(
+            null,
+            buildPlan('free', { active_professionals: 2 }),
+        );
+
+        expect(permissions.canManage(OWN_PROFESSIONAL)).toBe(false);
+        expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBe('plan');
+    });
+
+    it('keeps the subscription as the reason when it expired, whatever the plan', () => {
+        const permissions = renderPermissions(
+            buildSubscription('expired'),
+            buildPlan('free', { active_professionals: 2 }),
+        );
+
+        expect(permissions.readOnlyReason(OWN_PROFESSIONAL)).toBe(
+            'subscription',
+        );
     });
 });

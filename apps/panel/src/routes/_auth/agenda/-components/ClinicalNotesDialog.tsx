@@ -43,7 +43,7 @@ export function ClinicalNotesDialog({
     const notesQuery = useClinicalNotes(appointmentId, open);
     const { data: notes, isLoading } = notesQuery;
     const remove = useDeleteClinicalNote(appointmentId);
-    // Read-only while the subscription is expired/cancelled (#28).
+    // Read-only while writes are restricted (#28, #237).
     const restricted = useWritesRestricted();
     const fetchErrorMessage = notesQuery.isError
         ? extractFormErrors(notesQuery.error).message

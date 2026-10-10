@@ -13,14 +13,19 @@ function graceDetail(subscription: Subscription): string {
         : `Pago pendiente: ${days}`;
 }
 
-function cancelledDetail(subscription: Subscription, now: Date): string {
+function cancelledDetail(
+    subscription: Subscription,
+    now: Date,
+    assignedByPlatform: boolean,
+): string {
     const cancelled = subscription.cancelled_at
         ? `Cancelada el ${formatSubscriptionDate(subscription.cancelled_at)}`
         : 'Suscripción cancelada';
 
     // Still within the period it had already paid when it was cancelled;
-    // after it the organization is on Free.
-    return subscription.access_ends_at &&
+    // after it the organization is on Free — unless Centro is assigned.
+    return !assignedByPlatform &&
+        subscription.access_ends_at &&
         new Date(subscription.access_ends_at).getTime() > now.getTime()
         ? `${cancelled}. Seguís en el plan Consultorio hasta el ${formatSubscriptionDate(subscription.access_ends_at)}.`
         : cancelled;
@@ -30,6 +35,7 @@ function cancelledDetail(subscription: Subscription, now: Date): string {
 export function subscriptionStatusDetail(
     subscription: Subscription,
     now: Date = new Date(),
+    assignedByPlatform: boolean = false,
 ): string {
     switch (subscription.status) {
         case 'active':
@@ -44,7 +50,7 @@ export function subscriptionStatusDetail(
                 ? `Venció el ${formatSubscriptionDate(subscription.grace_ends_at)}`
                 : 'Suscripción vencida';
         case 'cancelled':
-            return cancelledDetail(subscription, now);
+            return cancelledDetail(subscription, now, assignedByPlatform);
         case 'pending':
             return 'Esperando confirmación del pago';
     }

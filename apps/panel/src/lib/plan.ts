@@ -32,16 +32,27 @@ export function usePlanIncludes(feature: PlanFeature): boolean {
     return planIncludes(usePlan(), feature);
 }
 
+/** Why the read-only modules are read-only, so the copy can name the fix: pay (`subscription`) or change plan / deactivate professionals (`plan`). */
+export type WritesRestriction = 'subscription' | 'plan';
+
+export function useWritesRestriction(): WritesRestriction | null {
+    const subscription = useSubscription();
+    const plan = usePlan();
+
+    if (subscription?.restricted) {
+        return 'subscription';
+    }
+
+    return plan?.restricted ? 'plan' : null;
+}
+
 /**
  * Whether the write affordances of the read-only modules (agenda, clinical
  * notes, prescriptions, availability) must be hidden: an expired
  * subscription, or more active professionals than the plan allows.
  */
 export function useWritesRestricted(): boolean {
-    const subscription = useSubscription();
-    const plan = usePlan();
-
-    return (subscription?.restricted ?? false) || (plan?.restricted ?? false);
+    return useWritesRestriction() !== null;
 }
 
 export const PLAN_LABELS: Record<PlanId, string> = {

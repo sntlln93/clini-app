@@ -25,6 +25,7 @@ function daysLeftLabel(days: number): string {
 function subscriptionCopy(
     subscription: Subscription,
     now: Date,
+    assignedByPlatform: boolean,
 ): BannerCopy | null {
     switch (subscription.status) {
         case 'grace':
@@ -41,8 +42,11 @@ function subscriptionCopy(
                 restricted: true,
             };
         case 'cancelled':
-            // Only while the period it had already paid lasts; after it the organization is on Free.
+            // Only while the period it had already paid lasts; after it the
+            // organization is on Free — unless Centro is assigned, which
+            // doesn't depend on the subscription.
             if (
+                !assignedByPlatform &&
                 subscription.access_ends_at &&
                 new Date(subscription.access_ends_at).getTime() > now.getTime()
             ) {
@@ -79,7 +83,11 @@ export function SubscriptionBanner({
     now = new Date(),
 }: SubscriptionBannerProps) {
     const fromSubscription = subscription
-        ? subscriptionCopy(subscription, now)
+        ? subscriptionCopy(
+              subscription,
+              now,
+              plan?.assigned_by_platform ?? false,
+          )
         : null;
     const copy =
         fromSubscription?.restricted || !plan

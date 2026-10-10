@@ -1,6 +1,8 @@
 import { api } from '@/lib/api';
+import { planQueryOptions } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import { notifySuccess } from '@/lib/toast';
+import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -154,6 +156,31 @@ describe('PatientClinicalNotesCard', () => {
             ).toBeTruthy();
         },
     );
+
+    it('names the plan limit, not the subscription, when Free has more active professionals than it allows', async () => {
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(
+            planQueryOptions.queryKey,
+            buildPlan('free', { active_professionals: 2 }),
+        );
+
+        renderCard({
+            notes: [buildNote({ body: 'Nota previa.' })],
+            todaysAppointmentId: 77,
+            queryClient,
+        });
+
+        await screen.findByText('Nota previa.');
+        expect(
+            screen.queryByRole('button', { name: 'Agregar nota' }),
+        ).toBeNull();
+        expect(
+            screen.getByText(
+                /El plan Gratis incluye un solo profesional activo/,
+            ),
+        ).toBeTruthy();
+        expect(screen.queryByText(/Tu suscripción no está activa/)).toBeNull();
+    });
 
     it("submitting the form posts the typed body against today's appointment and the list refreshes", async () => {
         const queryClient = new QueryClient();

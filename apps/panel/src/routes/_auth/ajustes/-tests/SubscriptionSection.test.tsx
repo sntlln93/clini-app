@@ -532,6 +532,26 @@ describe('SubscriptionSection', () => {
             ).toContain('$ 20.000 por mes');
         });
 
+        it('on Centro, dates a cancelled subscription without promising Consultorio or Gratis', () => {
+            vi.useFakeTimers({ toFake: ['Date'] });
+            vi.setSystemTime(new Date('2026-10-20T12:00:00+00:00'));
+            renderSection(
+                subscription({
+                    status: 'cancelled',
+                    cancelled_at: '2026-10-12T12:00:00+00:00',
+                    access_ends_at: '2026-11-03T12:00:00+00:00',
+                }),
+                { plan: buildPlan('center') },
+            );
+
+            expect(
+                screen.getByText('Cancelada el 12 de octubre de 2026'),
+            ).not.toBeNull();
+            expect(
+                screen.queryByText(/Seguís en el plan Consultorio/),
+            ).toBeNull();
+        });
+
         it('offers no checkout on Centro, which the Clini team manages', () => {
             renderSection(null, { plan: buildPlan('center') });
 

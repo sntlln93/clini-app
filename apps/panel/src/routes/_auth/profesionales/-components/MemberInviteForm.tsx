@@ -14,7 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { useInviteMember } from '../-hooks/use-invite-member';
-import { InvitePlanNote } from './InvitePlanNote';
+import { MemberPlanNote } from './MemberPlanNote';
 import { MemberRoleFields } from './MemberRoleFields';
 import {
     inviteMemberSchema,
@@ -114,7 +114,7 @@ export function MemberInviteForm() {
                     warnOnOwner
                 />
 
-                <InvitePlanNote roles={roles} />
+                <MemberPlanNote gainedRoles={roles} />
 
                 <div className="flex gap-2">
                     <Button

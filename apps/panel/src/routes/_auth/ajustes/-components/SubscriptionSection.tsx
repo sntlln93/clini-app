@@ -132,7 +132,13 @@ export function SubscriptionSection({
 
             {subscription && (
                 <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>{subscriptionStatusDetail(subscription)}</p>
+                    <p>
+                        {subscriptionStatusDetail(
+                            subscription,
+                            new Date(),
+                            plan?.assigned_by_platform ?? false,
+                        )}
+                    </p>
                     {lastPayment && <p>{lastPayment}</p>}
                 </div>
             )}

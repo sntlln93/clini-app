@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { InvitePlanNote } from '../-components/InvitePlanNote';
+import { MemberPlanNote } from '../-components/MemberPlanNote';
+import { gainedActiveRoles } from '../-components/member-plan';
 
 vi.mock('@tanstack/react-router', () => ({
     Link: ({ children, to }: { children: ReactNode; to: string }) => (
@@ -22,7 +23,7 @@ function renderNote(plan: Plan | undefined, roles: MembershipRole[]) {
 
     return render(
         <QueryClientProvider client={queryClient}>
-            <InvitePlanNote roles={roles} />
+            <MemberPlanNote gainedRoles={roles} />
         </QueryClientProvider>,
     );
 }
@@ -32,8 +33,8 @@ function plainText(container: HTMLElement): string {
     return (container.textContent ?? '').replace(/\s/g, ' ');
 }
 
-describe('InvitePlanNote', () => {
-    it('explains Free invites a single professional and no team, linking to the plans', () => {
+describe('MemberPlanNote', () => {
+    it('explains Free allows a single professional and no team, linking to the plans', () => {
         renderNote(buildPlan('free'), ['professional']);
 
         expect(
@@ -53,7 +54,7 @@ describe('InvitePlanNote', () => {
         );
 
         expect(plainText(container)).toContain(
-            'tu suscripción pasa a $ 20.000 por mes desde el próximo cobro: 6 profesionales activos, con 5 incluidos.',
+            'Con este profesional, tu suscripción pasa a $ 20.000 por mes desde el próximo cobro: 6 profesionales activos, con 5 incluidos.',
         );
     });
 
@@ -74,9 +75,51 @@ describe('InvitePlanNote', () => {
             ['professional'],
         ],
         ['with the plan not loaded', undefined, ['professional']],
+        ['when nothing is gained', buildPlan('free'), []],
     ] as const)('renders nothing %s', (_label, plan, roles) => {
         const { container } = renderNote(plan, [...roles]);
 
         expect(container.innerHTML).toBe('');
+    });
+});
+
+describe('gainedActiveRoles', () => {
+    it.each([
+        [
+            'adding the professional role',
+            { roles: ['staff'], status: 'active' },
+            ['staff', 'professional'],
+            'active',
+            ['professional'],
+        ],
+        [
+            'reactivating a professional',
+            { roles: ['professional'], status: 'inactive' },
+            ['professional'],
+            'active',
+            ['professional'],
+        ],
+        [
+            'keeping the same roles',
+            { roles: ['professional', 'staff'], status: 'active' },
+            ['professional', 'staff'],
+            'active',
+            [],
+        ],
+        [
+            'suspending',
+            { roles: ['staff'], status: 'active' },
+            ['staff', 'professional'],
+            'suspended',
+            [],
+        ],
+    ] as const)('%s', (_label, membership, roles, status, expected) => {
+        expect(
+            gainedActiveRoles(
+                { roles: [...membership.roles], status: membership.status },
+                [...roles],
+                status,
+            ),
+        ).toEqual(expected);
     });
 });

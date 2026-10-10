@@ -126,6 +126,18 @@ describe('SubscriptionBanner', () => {
         },
     );
 
+    it('never tells a Centro organization it will drop to Gratis when its cancelled subscription runs out', () => {
+        const { container } = renderBanner(
+            subscription({
+                status: 'cancelled',
+                access_ends_at: '2026-11-03T12:00:00+00:00',
+            }),
+            buildPlan('center'),
+        );
+
+        expect(container.innerHTML).toBe('');
+    });
+
     it('announces the read-only mode on Free with more active professionals than its limit', () => {
         renderBanner(
             subscription({ status: 'cancelled' }),

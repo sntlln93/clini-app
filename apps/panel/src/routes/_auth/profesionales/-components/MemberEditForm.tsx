@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
@@ -12,7 +12,9 @@ import {
     useUpdateMembership,
 } from '../-hooks/use-update-membership';
 import { MemberDangerZone } from './MemberDangerZone';
+import { MemberPlanNote } from './MemberPlanNote';
 import { MemberRoleFields, MemberStatusField } from './MemberRoleFields';
+import { gainedActiveRoles } from './member-plan';
 import { memberEditSchema, type MemberEditFormValues } from './member-schemas';
 
 type MemberEditFormProps = {
@@ -34,6 +36,12 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
             status: membership.status,
         },
     });
+
+    const [roles, status] = useWatch({
+        control: form.control,
+        name: ['roles', 'status'],
+    });
+    const gainedRoles = gainedActiveRoles(membership, roles, status);
 
     const { mutateAsync, isPending } = useUpdateMembership(membership.id);
     const {
@@ -80,6 +88,8 @@ export function MemberEditForm({ membership }: MemberEditFormProps) {
 
                     <MemberRoleFields control={form.control} name="roles" />
                     <MemberStatusField control={form.control} name="status" />
+
+                    <MemberPlanNote gainedRoles={gainedRoles} />
 
                     <div className="flex gap-2">
                         <Button

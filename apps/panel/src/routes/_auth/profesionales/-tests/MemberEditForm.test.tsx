@@ -1,5 +1,8 @@
 import { api } from '@/lib/api';
+import { planQueryOptions } from '@/lib/plan';
+import { buildPlan } from '@/tests/fixtures/plan';
 import type { Membership } from '@/types/membership';
+import type { Plan } from '@/types/plan';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -38,8 +41,14 @@ function serverError() {
     return { isAxiosError: true, response: { status: 500, data: {} } };
 }
 
-function renderMemberEditForm(membership: Membership = MEMBERSHIP) {
+function renderMemberEditForm(
+    membership: Membership = MEMBERSHIP,
+    plan?: Plan,
+) {
     const queryClient = new QueryClient();
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
@@ -135,6 +144,23 @@ describe('MemberEditForm', () => {
                 status: 'suspended',
             }),
         );
+    });
+
+    it('shows the new Consultorio amount before reactivating a sixth professional', async () => {
+        renderMemberEditForm(
+            { ...MEMBERSHIP, roles: ['professional'], status: 'inactive' },
+            buildPlan('practice', { active_professionals: 5 }),
+        );
+        await screen.findByRole('button', { name: 'Guardar cambios' });
+        expect(screen.queryByText(/tu suscripción pasa a/)).toBeNull();
+
+        fireEvent.click(screen.getByRole('radio', { name: 'Activo' }));
+
+        expect(
+            (
+                await screen.findByText(/tu suscripción pasa a/)
+            ).textContent?.replace(/\s/g, ' '),
+        ).toContain('$ 20.000 por mes');
     });
 
     it('keeps roles as a multi-select: several roles stay checked at the same time', async () => {
