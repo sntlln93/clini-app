@@ -15,6 +15,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 
 beforeEach(function () {
     configureMercadoPago();
@@ -39,6 +40,16 @@ function amountsSent(): array
         ->map(fn (array $pair): int => $pair[0]['auto_recurring']['transaction_amount'])
         ->values()
         ->all();
+}
+
+/** Kept local (not MercadoPagoWebhookTest's helper) so the file runs alone and in parallel. */
+function signedWebhook(string $type, string $dataId): TestResponse
+{
+    return test()->postJson(
+        "/api/v1/webhooks/mercadopago?data.id={$dataId}&type={$type}",
+        ['id' => 'n-'.$dataId, 'type' => $type, 'action' => 'updated', 'data' => ['id' => $dataId]],
+        ['x-signature' => mercadoPagoSignature($dataId, 'req-'.$dataId, '1704908010'), 'x-request-id' => 'req-'.$dataId],
+    );
 }
 
 function practiceWithProfessionals(int $count, array $subscription = []): Membership
@@ -129,7 +140,7 @@ test('a change that leaves the amount where it was never calls the provider', fu
     Http::assertNothingSent();
 });
 
-test('the amount is never synced for a subscription that can no longer charge, nor on Center', function (array $subscription, bool $center) {
+test('the amount is never synced for a subscription with no preapproval, nor on Center', function (array $subscription, bool $center) {
     fakeAmountUpdates();
     $owner = practiceWithProfessionals(7, $subscription);
     if ($center) {
@@ -141,10 +152,68 @@ test('the amount is never synced for a subscription that can no longer charge, n
     Http::assertNothingSent();
     expect($result?->amount)->toBe(15000);
 })->with([
-    'cancelled' => [['status' => SubscriptionStatus::Cancelled], false],
     'no provider subscription' => [['provider_subscription_id' => null], false],
     'center' => [[], true],
 ]);
+
+test('a cancelled subscription whose preapproval the provider reports cancelled is never repriced', function () {
+    Http::fake(['api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'cancelled'])]);
+    $owner = practiceWithProfessionals(7, ['status' => SubscriptionStatus::Cancelled]);
+
+    app(SyncSubscriptionAmountAction::class)->handle(new SubscriptionAmountSyncData($owner->organization_id));
+
+    expect(amountsSent())->toBe([]);
+    expect(Subscription::query()->withoutGlobalScope('organization')->sole()->amount)->toBe(15000);
+});
+
+test('a re-subscription still cancelled locally reprices its live replacement preapproval when professionals change', function () {
+    Http::fake(['api.mercadopago.com/preapproval/pre-2' => Http::response(['id' => 'pre-2', 'status' => 'pending'])]);
+    $owner = practiceWithProfessionals(7, [
+        'status' => SubscriptionStatus::Cancelled,
+        'provider_subscription_id' => 'pre-2',
+        'amount' => 25000,
+        'access_ends_at' => now()->addDays(10),
+    ]);
+    $extra = Membership::query()->withoutGlobalScope('organization')
+        ->where('organization_id', $owner->organization_id)->activeProfessional()->latest('id')->limit(2)->get();
+
+    foreach ($extra as $membership) {
+        $this->actingAs($owner->user)->deleteJson("/api/v1/memberships/{$membership->id}")->assertSuccessful();
+    }
+
+    expect(amountsSent())->toBe([20000, 15000]);
+    expect(Subscription::query()->withoutGlobalScope('organization')->sole()->amount)->toBe(15000);
+});
+
+test('the webhook confirming a checkout reprices it when the active professionals changed since it started', function (string $type, array $responses) {
+    Http::fake(array_map(fn (array $body) => Http::response($body), $responses));
+    $owner = practiceWithProfessionals(5, ['status' => SubscriptionStatus::Pending, 'amount' => 25000]);
+
+    $resource = $type === 'subscription_preapproval' ? 'pre-1' : '7001';
+    signedWebhook($type, $resource)->assertOk();
+
+    $subscription = Subscription::query()->withoutGlobalScope('organization')->sole();
+    expect($subscription->status)->toBe(SubscriptionStatus::Active);
+    expect(amountsSent())->toBe([15000]);
+    expect($subscription->amount)->toBe(15000);
+})->with([
+    'preapproval authorized' => ['subscription_preapproval', [
+        'api.mercadopago.com/preapproval/pre-1' => ['id' => 'pre-1', 'status' => 'authorized'],
+    ]],
+    'first charge approved' => ['subscription_authorized_payment', [
+        'api.mercadopago.com/authorized_payments/7001' => ['id' => 7001, 'preapproval_id' => 'pre-1', 'status' => 'processed', 'payment' => ['status' => 'approved'], 'debit_date' => '2026-10-03T09:00:00.000-03:00'],
+        'api.mercadopago.com/preapproval/pre-1' => ['id' => 'pre-1', 'status' => 'authorized'],
+    ]],
+]);
+
+test('the webhook leaves a confirmed checkout alone when its amount still matches', function () {
+    Http::fake(['api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'authorized'])]);
+    practiceWithProfessionals(5, ['status' => SubscriptionStatus::Pending]);
+
+    signedWebhook('subscription_preapproval', 'pre-1')->assertOk();
+
+    expect(amountsSent())->toBe([]);
+});
 
 test('a provider failure leaves the stored amount for the queued job to retry', function () {
     Http::fake(['api.mercadopago.com/preapproval/*' => Http::sequence()->push(['message' => 'boom'], 500)->push(['id' => 'pre-1'], 200)]);
