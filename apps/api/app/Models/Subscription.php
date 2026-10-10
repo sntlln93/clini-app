@@ -7,6 +7,7 @@ namespace App\Models;
 use App\Enums\SubscriptionGraceReason;
 use App\Enums\SubscriptionStatus;
 use App\Support\Concerns\BelongsToOrganization;
+use Carbon\CarbonImmutable;
 use Database\Factories\SubscriptionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at'])]
+#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at', 'access_ends_at'])]
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
@@ -38,7 +39,49 @@ class Subscription extends Model
             'last_payment_failed_at' => 'immutable_datetime',
             'next_payment_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
+            'access_ends_at' => 'immutable_datetime',
         ];
+    }
+
+    /**
+     * Expired, or cancelled with no paid period left: writes on appointments,
+     * clinical notes, prescriptions, availability and public booking are
+     * rejected (see EnsureSubscriptionActive).
+     */
+    public function restrictsWrites(): bool
+    {
+        /** @var SubscriptionStatus $status */
+        $status = $this->status;
+        /** @var CarbonImmutable|null $accessEndsAt */
+        $accessEndsAt = $this->access_ends_at;
+
+        return match ($status) {
+            SubscriptionStatus::Expired => true,
+            SubscriptionStatus::Cancelled => $accessEndsAt === null || ! $accessEndsAt->isFuture(),
+            default => false,
+        };
+    }
+
+    /**
+     * End of the period already paid, kept as `access_ends_at` on
+     * cancellation: an active subscription's next charge date, if still
+     * ahead. Null for any other status — a grace or expired one owes its
+     * current period.
+     *
+     * The stored date lags a renewal until its payment webhook lands (or
+     * stays stale if refreshing it failed), so the provider's own date, when
+     * known, wins if later: an owner who just paid never loses the period.
+     */
+    public function paidThrough(?CarbonImmutable $providerNextPaymentAt = null): ?CarbonImmutable
+    {
+        /** @var CarbonImmutable|null $storedNextPaymentAt */
+        $storedNextPaymentAt = $this->next_payment_at;
+
+        $nextPaymentAt = $storedNextPaymentAt !== null && $providerNextPaymentAt !== null
+            ? $storedNextPaymentAt->max($providerNextPaymentAt)
+            : $storedNextPaymentAt ?? $providerNextPaymentAt;
+
+        return $this->status === SubscriptionStatus::Active && $nextPaymentAt?->isFuture() ? $nextPaymentAt : null;
     }
 
     /**

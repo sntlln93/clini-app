@@ -147,6 +147,58 @@ test('a repeated cancellation keeps the original cancellation date', function ()
     expect($subscription->fresh()->cancelled_at?->toDateTimeString())->toBe('2026-10-01 09:00:00');
 });
 
+test('a cancellation from Mercado Pago keeps an active subscription writable until its paid period ends', function () {
+    fakePreapproval('pre-1', 'cancelled');
+    $subscription = Subscription::factory()->renewingAt(now()->addDays(20))->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->access_ends_at?->toDateTimeString())->toBe('2026-10-23 12:00:00');
+    expect($subscription->next_payment_at)->toBeNull();
+    expect($subscription->restrictsWrites())->toBeFalse();
+});
+
+test('a cancellation from Mercado Pago keeps the period it reports as paid when the stored renewal date lags behind', function () {
+    fakePreapproval('pre-1', 'cancelled', '2026-11-03T09:00:00.000-03:00');
+    $subscription = Subscription::factory()->renewingAt(now()->subHour())->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    expect($subscription->fresh()->access_ends_at?->toDateTimeString())->toBe('2026-11-03 12:00:00');
+});
+
+test('a cancellation from Mercado Pago makes an unpaid subscription read-only right away', function (SubscriptionStatus $status) {
+    fakePreapproval('pre-1', 'cancelled');
+    $subscription = Subscription::factory()->withStatus($status)->renewingAt(now()->addDays(20))->create(['provider_subscription_id' => 'pre-1']);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->access_ends_at)->toBeNull();
+    expect($subscription->restrictsWrites())->toBeTrue();
+})->with([
+    'pending' => SubscriptionStatus::Pending,
+    'grace' => SubscriptionStatus::Grace,
+    'expired' => SubscriptionStatus::Expired,
+]);
+
+test('the provider confirming a cancellation made from the panel keeps its dates', function () {
+    fakePreapproval('pre-1', 'cancelled');
+    $subscription = Subscription::factory()->cancelled(now()->addDays(20))->create([
+        'provider_subscription_id' => 'pre-1',
+        'cancelled_at' => '2026-10-03 11:00:00',
+    ]);
+
+    postMercadoPagoNotification('subscription_preapproval', 'pre-1')->assertOk();
+
+    $subscription->refresh();
+    expect($subscription->status)->toBe(SubscriptionStatus::Cancelled);
+    expect($subscription->cancelled_at?->toDateTimeString())->toBe('2026-10-03 11:00:00');
+    expect($subscription->access_ends_at?->toDateTimeString())->toBe('2026-10-23 12:00:00');
+});
+
 test('a pending replacement preapproval keeps the cancellation date of a cancelled subscription', function () {
     fakePreapproval('pre-2', 'pending', '2026-11-20T12:00:00.000-03:00');
     $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
@@ -393,6 +445,7 @@ test('re-subscribing after a cancellation activates the org once the new preappr
         'organization_id' => $owner->organization_id,
         'provider_subscription_id' => 'pre-1',
         'cancelled_at' => '2026-10-01 09:00:00',
+        'access_ends_at' => '2026-10-20 09:00:00',
     ]);
 
     $this->actingAs($owner->user)->postJson('/api/v1/subscription')->assertOk();
@@ -406,6 +459,7 @@ test('re-subscribing after a cancellation activates the org once the new preappr
     expect($subscription->status)->toBe(SubscriptionStatus::Active);
     expect($subscription->last_payment_at?->toDateTimeString())->toBe('2026-10-03 12:00:00');
     expect($subscription->cancelled_at)->toBeNull();
+    expect($subscription->access_ends_at)->toBeNull();
 });
 
 test('an authorized replacement preapproval activates a cancelled subscription', function () {
@@ -413,6 +467,7 @@ test('an authorized replacement preapproval activates a cancelled subscription',
     $subscription = Subscription::factory()->withStatus(SubscriptionStatus::Cancelled)->create([
         'provider_subscription_id' => 'pre-2',
         'cancelled_at' => '2026-10-01 09:00:00',
+        'access_ends_at' => '2026-10-20 09:00:00',
     ]);
 
     postMercadoPagoNotification('subscription_preapproval', 'pre-2')->assertOk();
@@ -420,6 +475,7 @@ test('an authorized replacement preapproval activates a cancelled subscription',
     $subscription->refresh();
     expect($subscription->status)->toBe(SubscriptionStatus::Active);
     expect($subscription->cancelled_at)->toBeNull();
+    expect($subscription->access_ends_at)->toBeNull();
 });
 
 test('the same notification delivered twice is processed once', function () {

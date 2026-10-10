@@ -45,7 +45,7 @@ test('the list exposes the operator shape, including grace_days_left and restric
     expect(array_keys($item))->toEqualCanonicalizing([
         'id', 'organization', 'provider', 'provider_subscription_id', 'status', 'restricted', 'grace_ends_at',
         'grace_days_left', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at',
-        'cancelled_at', 'created_at', 'updated_at',
+        'cancelled_at', 'access_ends_at', 'created_at', 'updated_at',
     ]);
     expect($item['id'])->toBe($subscription->id);
     expect($item['organization']['name'])->toBe('Consultorio Gracia');

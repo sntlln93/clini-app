@@ -43,4 +43,5 @@ enum ErrorCode: string
     case UsersEmailAlreadyVerified = 'users.email_already_verified';
     case SubscriptionsGraceExtensionNotAllowed = 'subscriptions.grace_extension_not_allowed';
     case SubscriptionsGraceExtensionNotLater = 'subscriptions.grace_extension_not_later';
+    case SubscriptionsNotCancellable = 'subscriptions.not_cancellable';
 }

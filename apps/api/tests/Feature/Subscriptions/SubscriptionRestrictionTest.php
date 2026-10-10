@@ -25,9 +25,10 @@ afterEach(function () {
  * optionally under a subscription in `$status` (null = no subscription row
  * at all).
  *
+ * @param  array<string, mixed>  $subscriptionAttributes
  * @return array{membership: Membership, appointment: Appointment, availability: Availability, exception: AvailabilityException, note: ClinicalNote, prescription: Prescription}
  */
-function restrictionFixture(?SubscriptionStatus $status): array
+function restrictionFixture(?SubscriptionStatus $status, array $subscriptionAttributes = []): array
 {
     $organization = Organization::factory()->create(['slug' => 'consultorio-restringido-'.fake()->unique()->numberBetween(1, 999999)]);
     $membership = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
@@ -38,7 +39,7 @@ function restrictionFixture(?SubscriptionStatus $status): array
     $scope = ['organization_id' => $organization->id, 'membership_id' => $membership->id];
 
     if ($status !== null) {
-        Subscription::factory()->withStatus($status)->create(['organization_id' => $organization->id]);
+        Subscription::factory()->withStatus($status)->create(['organization_id' => $organization->id, ...$subscriptionAttributes]);
     }
 
     return [
@@ -85,8 +86,8 @@ function gatedWrites(array $fixture): array
     ];
 }
 
-test('every appointment, clinical note, prescription, availability and public booking write returns 409 when the subscription is restricted', function (SubscriptionStatus $status) {
-    $fixture = restrictionFixture($status);
+test('every appointment, clinical note, prescription, availability and public booking write returns 409 when the subscription is restricted', function (SubscriptionStatus $status, array $attributes) {
+    $fixture = restrictionFixture($status, $attributes);
     $membership = $fixture['membership'];
 
     foreach (gatedWrites($fixture) as $label => [$method, $uri]) {
@@ -97,12 +98,13 @@ test('every appointment, clinical note, prescription, availability and public bo
         expect($response->json('error.context.subscription_status'))->toBe($status->value, $label);
     }
 })->with([
-    'expired' => SubscriptionStatus::Expired,
-    'cancelled' => SubscriptionStatus::Cancelled,
+    'expired' => [SubscriptionStatus::Expired, []],
+    'cancelled' => [SubscriptionStatus::Cancelled, []],
+    'cancelled, paid period over' => fn () => [SubscriptionStatus::Cancelled, ['access_ends_at' => now()->subMinute()]],
 ]);
 
-test('writes are not restricted without a subscription row, or while pending, active or in grace', function (?SubscriptionStatus $status) {
-    $fixture = restrictionFixture($status);
+test('writes are not restricted without a subscription row, while pending, active or in grace, or cancelled within its paid period', function (?SubscriptionStatus $status, array $attributes) {
+    $fixture = restrictionFixture($status, $attributes);
     $membership = $fixture['membership'];
 
     foreach (gatedWrites($fixture) as $label => [$method, $uri]) {
@@ -114,10 +116,11 @@ test('writes are not restricted without a subscription row, or while pending, ac
         expect($errorCode)->not->toBe(ErrorCode::SubscriptionsInactive->value, $label);
     }
 })->with([
-    'no subscription' => null,
-    'pending' => SubscriptionStatus::Pending,
-    'active' => SubscriptionStatus::Active,
-    'grace' => SubscriptionStatus::Grace,
+    'no subscription' => [null, []],
+    'pending' => [SubscriptionStatus::Pending, []],
+    'active' => [SubscriptionStatus::Active, []],
+    'grace' => [SubscriptionStatus::Grace, []],
+    'cancelled, paid period left' => fn () => [SubscriptionStatus::Cancelled, ['access_ends_at' => now()->addDay()]],
 ]);
 
 test('an active subscription books an appointment end to end', function () {
