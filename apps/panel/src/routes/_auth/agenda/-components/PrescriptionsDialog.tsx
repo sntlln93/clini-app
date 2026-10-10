@@ -8,8 +8,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { extractFormErrors } from '@/lib/form-errors';
-import { useSubscriptionRestricted } from '@/lib/subscription';
+import { usePlanIncludes, useWritesRestricted } from '@/lib/plan';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
@@ -40,8 +41,10 @@ export function PrescriptionsDialog({
     const appointmentId = appointment?.id ?? null;
     const query = usePrescriptions(appointmentId, open);
     const { data: prescriptions, isLoading } = query;
-    // Read-only while the subscription is expired/cancelled (#28); printing stays available.
-    const restricted = useSubscriptionRestricted();
+    // Read-only while writes are restricted (#28) or the plan leaves
+    // prescriptions out (#237); listing and printing stay available.
+    const includedInPlan = usePlanIncludes('prescriptions');
+    const restricted = useWritesRestricted() || !includedInPlan;
     const fetchErrorMessage = query.isError
         ? extractFormErrors(query.error).message
         : null;
@@ -133,6 +136,13 @@ export function PrescriptionsDialog({
                         </div>
                     ))}
                 </div>
+
+                {!includedInPlan && (
+                    <PlanFeatureNote>
+                        Emitir recetas es parte del plan Consultorio. Las que ya
+                        emitiste siguen disponibles para imprimir.
+                    </PlanFeatureNote>
+                )}
 
                 {!restricted && (
                     <PrescriptionForm

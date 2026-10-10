@@ -3,6 +3,7 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
+import { planQueryOptions, usePlan } from '@/lib/plan';
 import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute } from '@tanstack/react-router';
@@ -60,12 +61,18 @@ export const Route = createFileRoute('/_auth/ajustes/')({
         );
 
         // No active membership means no organization to bill.
-        const subscription = session.membership
-            ? await context.queryClient.ensureQueryData({
-                  ...subscriptionQueryOptions,
-                  revalidateIfStale: true,
-              })
-            : null;
+        const [subscription, plan] = session.membership
+            ? await Promise.all([
+                  context.queryClient.ensureQueryData({
+                      ...subscriptionQueryOptions,
+                      revalidateIfStale: true,
+                  }),
+                  context.queryClient.ensureQueryData({
+                      ...planQueryOptions,
+                      revalidateIfStale: true,
+                  }),
+              ])
+            : [null, undefined];
 
         const assignments = canManageProfessionals
             ? await loadProfessionalAssignments(
@@ -82,6 +89,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             userId: session.id,
             hasOrganization: Boolean(session.membership),
             subscription,
+            plan,
             isOwner: (session.roles ?? []).includes('owner'),
             canManageProfessionals,
             catalogSpecialties,
@@ -102,6 +110,7 @@ function AjustesPage() {
         userId,
         hasOrganization,
         subscription: loaderSubscription,
+        plan: loaderPlan,
         isOwner,
         canManageProfessionals,
         catalogSpecialties,
@@ -119,6 +128,7 @@ function AjustesPage() {
     const liveSubscription = useSubscription();
     const subscription =
         liveSubscription !== undefined ? liveSubscription : loaderSubscription;
+    const plan = usePlan() ?? loaderPlan;
     const { suscripcion } = Route.useSearch();
     const confirmingPayment = useCheckoutReturn(
         suscripcion === 'retorno',
@@ -151,6 +161,7 @@ function AjustesPage() {
                     <Separator />
                     <SubscriptionSection
                         subscription={subscription}
+                        plan={plan}
                         isOwner={isOwner}
                         confirmingPayment={confirmingPayment}
                     />

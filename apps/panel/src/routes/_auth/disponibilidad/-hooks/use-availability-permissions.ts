@@ -1,5 +1,5 @@
+import { useWritesRestricted } from '@/lib/plan';
 import { useSession } from '@/lib/session';
-import { useSubscriptionRestricted } from '@/lib/subscription';
 import type { Professional } from '@/types/professional';
 
 /** Why a professional's availability renders read-only, so the page can say so instead of just disabling everything. */
@@ -11,7 +11,7 @@ export type AvailabilityReadOnlyReason = 'subscription' | 'permission';
  */
 export function useAvailabilityPermissions() {
     const { data: session } = useSession();
-    const restricted = useSubscriptionRestricted();
+    const restricted = useWritesRestricted();
     const permissions = session?.permissions ?? [];
 
     const canManageOrgWide = permissions.includes('availability.manage');

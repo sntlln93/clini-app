@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useSubscriptionRestricted } from '@/lib/subscription';
+import { useWritesRestricted } from '@/lib/plan';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { useState } from 'react';
 import { AddClinicalNoteForm } from './AddClinicalNoteForm';
@@ -35,7 +35,7 @@ export function PatientClinicalNotesCard({
     const [showForm, setShowForm] = useState(false);
     // Clinical-note writes are read-only while the subscription is
     // expired/cancelled (#28); the backend still enforces it.
-    const restricted = useSubscriptionRestricted();
+    const restricted = useWritesRestricted();
     const canAddNote = todaysAppointmentId !== null && !restricted;
     const unavailableReason = restricted
         ? 'Tu suscripción no está activa: las notas clínicas son de solo lectura.'

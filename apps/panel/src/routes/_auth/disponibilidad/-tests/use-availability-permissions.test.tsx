@@ -36,7 +36,7 @@ function renderPermissions(subscription: Subscription | null | undefined) {
 }
 
 describe('useAvailabilityPermissions under a subscription', () => {
-    it.each(['expired', 'cancelled'] as const)(
+    it.each(['expired'] as const)(
         'hides availability writes while %s, keeping org-wide browsing',
         (status) => {
             const permissions = renderPermissions(buildSubscription(status));

@@ -1,7 +1,9 @@
 import { api } from '@/lib/api';
 import { navigateToExternalUrl } from '@/lib/external-navigation';
 import { notifyError, notifySuccess } from '@/lib/toast';
+import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
+import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -40,7 +42,11 @@ function subscription(overrides: Partial<Subscription> = {}): Subscription {
 
 function renderSection(
     value: Subscription | null,
-    { isOwner = true, confirmingPayment = false } = {},
+    {
+        isOwner = true,
+        confirmingPayment = false,
+        plan = undefined as Plan | undefined,
+    } = {},
 ) {
     const queryClient = new QueryClient({
         defaultOptions: { mutations: { retry: false } },
@@ -50,6 +56,7 @@ function renderSection(
         <QueryClientProvider client={queryClient}>
             <SubscriptionSection
                 subscription={value}
+                plan={plan}
                 isOwner={isOwner}
                 confirmingPayment={confirmingPayment}
             />
@@ -58,6 +65,11 @@ function renderSection(
 }
 
 const REDIRECTING = 'Redirigiendo a Mercado Pago…';
+
+/** Intl's currency format separates the sign with a non-breaking space. */
+function plainText(element: HTMLElement): string {
+    return (element.textContent ?? '').replace(/\s/g, ' ');
+}
 
 describe('SubscriptionSection', () => {
     beforeEach(() => {
@@ -79,16 +91,16 @@ describe('SubscriptionSection', () => {
             ),
         ).not.toBeNull();
         expect(
-            screen.getByRole('button', { name: 'Suscribirse' }),
+            screen.getByRole('button', { name: 'Pasar a Consultorio' }),
         ).not.toBeNull();
     });
 
     it('is the anchor the panel banner links to', () => {
         renderSection(null);
 
-        expect(screen.getByRole('region', { name: 'Suscripción' }).id).toBe(
-            'suscripcion',
-        );
+        expect(
+            screen.getByRole('region', { name: 'Plan y suscripción' }).id,
+        ).toBe('suscripcion');
     });
 
     it('shows an active subscription with its renewal date and without any checkout action', () => {
@@ -137,7 +149,7 @@ describe('SubscriptionSection', () => {
             screen.getByText('Esperando confirmación del pago'),
         ).not.toBeNull();
         expect(
-            screen.getByRole('button', { name: 'Suscribirse' }),
+            screen.getByRole('button', { name: 'Pasar a Consultorio' }),
         ).not.toBeNull();
     });
 
@@ -192,22 +204,10 @@ describe('SubscriptionSection', () => {
             'Suscripción vencida',
             'Regularizar pago',
         ],
-        [
-            'cancelled',
-            { cancelled_at: '2026-10-12T12:00:00+00:00' },
-            'Cancelada',
-            'Cancelada el 12 de octubre de 2026',
-            'Suscribirse',
-        ],
     ] as const)(
         'shows a %s subscription as read-only, dated',
-        (label, overrides, badge, detail, action) => {
-            const status = label.startsWith('expired')
-                ? 'expired'
-                : 'cancelled';
-            renderSection(
-                subscription({ status, restricted: true, ...overrides }),
-            );
+        (_label, overrides, badge, detail, action) => {
+            renderSection(subscription({ status: 'expired', ...overrides }));
 
             expect(screen.getByText(badge)).not.toBeNull();
             expect(screen.getByText(detail)).not.toBeNull();
@@ -220,11 +220,12 @@ describe('SubscriptionSection', () => {
         },
     );
 
-    it('tells until when the agenda keeps working after a cancellation within the paid period', () => {
+    it('tells until when Consultorio lasts after a cancellation within the paid period', () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-10-20T12:00:00+00:00'));
         renderSection(
             subscription({
                 status: 'cancelled',
-                restricted: false,
                 cancelled_at: '2026-10-12T12:00:00+00:00',
                 access_ends_at: '2026-11-03T12:00:00+00:00',
             }),
@@ -232,13 +233,32 @@ describe('SubscriptionSection', () => {
 
         expect(
             screen.getByText(
-                'Cancelada el 12 de octubre de 2026. Podés seguir usando la agenda hasta el 3 de noviembre de 2026.',
+                'Cancelada el 12 de octubre de 2026. Seguís en el plan Consultorio hasta el 3 de noviembre de 2026.',
             ),
         ).not.toBeNull();
         expect(screen.queryByText(/modo solo lectura/)).toBeNull();
         expect(
-            screen.getByRole('button', { name: 'Suscribirse' }),
+            screen.getByRole('button', { name: 'Pasar a Consultorio' }),
         ).not.toBeNull();
+    });
+
+    it('shows a cancelled subscription past its paid period as dated only, never read-only: the organization is on Free', () => {
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(new Date('2026-11-04T12:00:00+00:00'));
+        renderSection(
+            subscription({
+                status: 'cancelled',
+                cancelled_at: '2026-10-12T12:00:00+00:00',
+                access_ends_at: '2026-11-03T12:00:00+00:00',
+            }),
+            { plan: buildPlan('free') },
+        );
+
+        expect(
+            screen.getByText('Cancelada el 12 de octubre de 2026'),
+        ).not.toBeNull();
+        expect(screen.queryByText(/modo solo lectura/)).toBeNull();
+        expect(screen.getByText('Gratis')).not.toBeNull();
     });
 
     it('never offers the checkout to a non-owner', () => {
@@ -299,7 +319,9 @@ describe('SubscriptionSection', () => {
         );
         renderSection(null);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Suscribirse' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Pasar a Consultorio' }),
+        );
 
         const button = await screen.findByRole('button', { name: REDIRECTING });
         expect(button.hasAttribute('disabled')).toBe(true);
@@ -387,7 +409,7 @@ describe('SubscriptionSection', () => {
             const dialog = openConfirmation();
 
             expect(dialog.textContent).toContain(
-                'Vas a poder seguir usando la agenda hasta el 3 de noviembre de 2026',
+                'Seguís en el plan Consultorio hasta el 3 de noviembre de 2026',
             );
             expect(dialog.textContent).toContain(
                 'Podés volver a suscribirte cuando quieras.',
@@ -401,13 +423,13 @@ describe('SubscriptionSection', () => {
                 subscription({ next_payment_at: '2026-10-01T12:00:00+00:00' }),
             ],
         ])(
-            'warns that cancelling a subscription %s makes the agenda read-only right away',
+            'warns that cancelling a subscription %s moves the organization to Free right away',
             (_label, value) => {
                 vi.useFakeTimers({ now: new Date('2026-10-10T12:00:00Z') });
                 renderSection(value);
 
                 expect(openConfirmation().textContent).toContain(
-                    'la agenda queda en modo solo lectura de inmediato',
+                    'tu consultorio pasa al plan Gratis de inmediato',
                 );
             },
         );
@@ -423,7 +445,10 @@ describe('SubscriptionSection', () => {
             );
 
             await waitFor(() =>
-                expect(refresh).toHaveBeenCalledWith(['subscription']),
+                expect(refresh).toHaveBeenCalledWith(
+                    ['subscription'],
+                    ['plan'],
+                ),
             );
             expect(api.delete).toHaveBeenCalledWith('/subscription');
             expect(notifySuccess).toHaveBeenCalledWith(
@@ -462,6 +487,59 @@ describe('SubscriptionSection', () => {
             expect(refresh).not.toHaveBeenCalled();
             const button = await screen.findByRole('button', { name: CANCEL });
             expect(button.hasAttribute('disabled')).toBe(false);
+        });
+    });
+
+    describe('plan', () => {
+        it('shows Free with what Consultorio adds and its price, offering the change to the owner', () => {
+            renderSection(null, { plan: buildPlan('free') });
+
+            expect(screen.getByText('Gratis')).not.toBeNull();
+            expect(
+                plainText(
+                    screen.getByText(/Consultorio suma equipo con roles/),
+                ),
+            ).toContain(
+                '$ 15.000 por mes con 5 profesionales incluidos y $ 5.000 por cada profesional adicional',
+            );
+            expect(
+                screen.getByRole('button', { name: 'Pasar a Consultorio' }),
+            ).not.toBeNull();
+            expect(
+                screen.queryByText(
+                    'El consultorio todavía no tiene una suscripción.',
+                ),
+            ).toBeNull();
+        });
+
+        it('shows the monthly amount Consultorio charges with the active professionals', () => {
+            renderSection(subscription({ amount: 25000 }), {
+                plan: buildPlan('practice', { active_professionals: 7 }),
+            });
+
+            expect(
+                plainText(screen.getByText(/Tu suscripción es de/)),
+            ).toContain('$ 25.000 por mes, con 7 profesionales activos');
+        });
+
+        it('computes the amount with the API formula when none is stored yet', () => {
+            renderSection(subscription(), {
+                plan: buildPlan('practice', { active_professionals: 6 }),
+            });
+
+            expect(
+                plainText(screen.getByText(/Tu suscripción es de/)),
+            ).toContain('$ 20.000 por mes');
+        });
+
+        it('offers no checkout on Centro, which the Clini team manages', () => {
+            renderSection(null, { plan: buildPlan('center') });
+
+            expect(screen.getByText('Centro')).not.toBeNull();
+            expect(
+                screen.getByText(/lo gestiona el equipo de Clini/),
+            ).not.toBeNull();
+            expect(screen.queryByRole('button')).toBeNull();
         });
     });
 });

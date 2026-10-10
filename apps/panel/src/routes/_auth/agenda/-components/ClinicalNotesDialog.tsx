@@ -10,7 +10,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { extractFormErrors } from '@/lib/form-errors';
-import { useSubscriptionRestricted } from '@/lib/subscription';
+import { useWritesRestricted } from '@/lib/plan';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
@@ -44,7 +44,7 @@ export function ClinicalNotesDialog({
     const { data: notes, isLoading } = notesQuery;
     const remove = useDeleteClinicalNote(appointmentId);
     // Read-only while the subscription is expired/cancelled (#28).
-    const restricted = useSubscriptionRestricted();
+    const restricted = useWritesRestricted();
     const fetchErrorMessage = notesQuery.isError
         ? extractFormErrors(notesQuery.error).message
         : null;

@@ -50,6 +50,16 @@ const SLOT: AvailableSlot = {
     end_at: '2026-08-03T13:30:00.000000Z',
 };
 
+function businessError(code: string, context: Record<string, unknown> = {}) {
+    return {
+        isAxiosError: true,
+        response: {
+            status: 409,
+            data: { error: { code, message: 'Internal message.', context } },
+        },
+    };
+}
+
 function slotNotAvailableError() {
     return {
         isAxiosError: true,
@@ -260,6 +270,41 @@ describe('BookingPatientForm validation and submission', () => {
             screen.queryByText('Ese horario se acaba de ocupar. Elegí otro.'),
         ).toBeNull();
     });
+
+    it.each([
+        [
+            'an expired subscription',
+            businessError('subscriptions.inactive', {
+                subscription_status: 'expired',
+            }),
+        ],
+        [
+            'a plan over its professional limit',
+            businessError('plans.professional_limit_exceeded', {
+                plan: 'free',
+                professional_limit: 1,
+                active_professionals: 2,
+            }),
+        ],
+    ])(
+        'asks the patient to contact the practice, never naming the plan, for %s',
+        async (_label, error) => {
+            vi.mocked(api.post).mockRejectedValueOnce(error);
+            await goToPatientForm();
+
+            fillValidPatientData();
+            fireEvent.click(
+                screen.getByRole('button', { name: 'Confirmar turno' }),
+            );
+
+            expect(
+                await screen.findByText(
+                    'El consultorio no está tomando reservas online en este momento. Comunicate directamente con el consultorio para pedir un turno.',
+                ),
+            ).not.toBeNull();
+            expect(screen.queryByText(/plan|suscripción|Ajustes/i)).toBeNull();
+        },
+    );
 
     it('keeps the typed data when the patient goes back to the grid by hand', async () => {
         await goToPatientForm();

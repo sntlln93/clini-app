@@ -18,6 +18,24 @@ export function isSlotUnavailableError(error: unknown): boolean {
 }
 
 /**
+ * The organization isn't taking online bookings: its subscription expired,
+ * or it has more professionals than its plan allows. The patient is never
+ * told which, nor shown the copy written for the clinic (#237).
+ */
+export function isBookingClosedError(error: unknown): boolean {
+    const appError = mapToAppError(error);
+
+    return (
+        appError.kind === 'business' &&
+        (appError.code === 'subscriptions.inactive' ||
+            appError.code === 'plans.professional_limit_exceeded')
+    );
+}
+
+export const BOOKING_CLOSED_MESSAGE =
+    'El consultorio no está tomando reservas online en este momento. Comunicate directamente con el consultorio para pedir un turno.';
+
+/**
  * The user stays on the page after submit, so the loader-fed slots list must
  * refresh (ADR 0007) — also when the slot turns out to be taken, since the
  * patient is sent back to that same grid.

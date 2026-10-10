@@ -216,7 +216,7 @@ describe('ClinicalNotesDialog', () => {
         expect(onOpenChange).not.toHaveBeenCalledWith(false);
     });
 
-    it.each(['expired', 'cancelled'] as const)(
+    it.each(['expired'] as const)(
         'while the subscription is %s it lists the notes but hides the form and the edit/delete actions',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({

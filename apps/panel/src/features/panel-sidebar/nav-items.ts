@@ -1,3 +1,4 @@
+import type { PlanFeature } from '@/types/plan';
 import { Armchair, Calendar, Clock, Stethoscope, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -7,11 +8,18 @@ export type NavItem = {
     icon: ComponentType<{ className?: string }>;
     /** Absent = always visible; when set, the item renders only if the session holds that permission. */
     permission?: string;
+    /** When set, the item renders only if the organization's plan includes it (#237). */
+    feature?: PlanFeature;
 };
 
 export const navItems: NavItem[] = [
     { label: 'Agenda', to: '/agenda', icon: Calendar },
-    { label: 'Sala de espera', to: '/sala-de-espera', icon: Armchair },
+    {
+        label: 'Sala de espera',
+        to: '/sala-de-espera',
+        icon: Armchair,
+        feature: 'waiting_room',
+    },
     { label: 'Pacientes', to: '/pacientes', icon: Users },
     {
         label: 'Profesionales',

@@ -1,7 +1,10 @@
 import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { usePersistedState } from '@/hooks/use-persisted-state';
+import { planQueryOptions } from '@/lib/plan';
 import { sessionQueryOptions } from '@/lib/session';
+import { buildPlan } from '@/tests/fixtures/plan';
+import type { Plan } from '@/types/plan';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -22,8 +25,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PanelSidebar } from './PanelSidebar';
 import { isNavItemActive, navItems } from './nav-items';
 
-function renderSidebarAt(path: string, permissions?: string[]) {
+function renderSidebarAt(path: string, permissions?: string[], plan?: Plan) {
     const queryClient = new QueryClient();
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     queryClient.setQueryData(sessionQueryOptions.queryKey, {
         id: 1,
         name: 'Ana Ejemplo',
@@ -142,6 +148,26 @@ describe('PanelSidebar permission gating', () => {
 });
 
 describe('sidebar collapse toggle', () => {
+    it('hides Sala de espera on a plan without the waiting room', async () => {
+        renderSidebarAt('/agenda', undefined, buildPlan('free'));
+
+        await screen.findByRole('link', { name: 'Agenda' });
+        expect(
+            screen.queryByRole('link', { name: 'Sala de espera' }),
+        ).toBeNull();
+    });
+
+    it.each([
+        ['a paid plan', buildPlan('practice')],
+        ['the plan not loaded', undefined],
+    ])('renders Sala de espera with %s', async (_label, plan) => {
+        renderSidebarAt('/agenda', undefined, plan);
+
+        expect(
+            await screen.findByRole('link', { name: 'Sala de espera' }),
+        ).toBeTruthy();
+    });
+
     it('persists the toggled open state', () => {
         render(<CollapseHarness />);
         const trigger = screen.getByRole('button', { name: /toggle sidebar/i });

@@ -1,5 +1,7 @@
 import { api } from '@/lib/api';
+import { buildPlan } from '@/tests/fixtures/plan';
 import type { Membership } from '@/types/membership';
+import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -34,8 +36,11 @@ const loader = Route.options.loader as (opts: {
     ownMembership: Membership | null;
     hasOrganization: boolean;
     subscription: Subscription | null;
+    plan: Plan | undefined;
     isOwner: boolean;
 }>;
+
+const PLAN = buildPlan('practice');
 
 const GRACE_SUBSCRIPTION: Subscription = {
     status: 'grace',
@@ -47,6 +52,7 @@ const GRACE_SUBSCRIPTION: Subscription = {
     next_payment_at: null,
     cancelled_at: null,
     access_ends_at: null,
+    amount: null,
 };
 
 function mockApiGet(
@@ -66,6 +72,9 @@ function mockApiGet(
         }
         if (url === '/subscription') {
             return Promise.resolve({ data: { data: subscription } });
+        }
+        if (url === '/plan') {
+            return Promise.resolve({ data: { data: PLAN } });
         }
         if (url === '/memberships') {
             return Promise.resolve({ data: { data: PROFESSIONALS } });
@@ -149,7 +158,7 @@ describe('/ajustes loader subscription', () => {
         vi.mocked(api.get).mockReset();
     });
 
-    it('returns the subscription and whether the caller is the owner', async () => {
+    it('returns the subscription, the plan and whether the caller is the owner', async () => {
         mockApiGet(
             {
                 id: 10,
@@ -169,6 +178,7 @@ describe('/ajustes loader subscription', () => {
         expect(result).toMatchObject({
             hasOrganization: true,
             subscription: GRACE_SUBSCRIPTION,
+            plan: PLAN,
             isOwner: true,
         });
     });
@@ -187,6 +197,7 @@ describe('/ajustes loader subscription', () => {
         });
 
         expect(api.get).not.toHaveBeenCalledWith('/subscription');
+        expect(api.get).not.toHaveBeenCalledWith('/plan');
         expect(result).toMatchObject({
             hasOrganization: false,
             subscription: null,

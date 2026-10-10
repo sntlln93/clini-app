@@ -45,7 +45,7 @@ describe('useCheckoutReturn', () => {
 
         expect(result.current).toBe(true);
         expect(refresh).toHaveBeenCalledTimes(1);
-        expect(refresh).toHaveBeenCalledWith(['subscription']);
+        expect(refresh).toHaveBeenCalledWith(['subscription'], ['plan']);
 
         vi.advanceTimersByTime(CHECKOUT_RETURN_POLL_MS * 2);
 

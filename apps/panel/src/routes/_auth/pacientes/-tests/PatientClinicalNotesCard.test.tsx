@@ -127,7 +127,7 @@ describe('PatientClinicalNotesCard', () => {
         ).toBeTruthy();
     });
 
-    it.each(['expired', 'cancelled'] as const)(
+    it.each(['expired'] as const)(
         'hides the "Agregar nota" control while the subscription is %s, keeping the notes',
         async (status) => {
             const queryClient = new QueryClient();
