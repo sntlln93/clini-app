@@ -44,11 +44,13 @@ type ReasonDialogProps = {
     title: string;
     description: string;
     submitLabel: string;
+    /** `default` for an action that grants rather than takes away (e.g. assigning Centro). */
+    submitVariant?: 'default' | 'destructive';
     /** Rejects with the request error; 409/422 copy lands in the form. */
     onSubmit: (reason: string) => Promise<unknown>;
 };
 
-/** A destructive moderation action that requires a written "Motivo" (3..500 chars), stored in the audit trail. */
+/** A moderation action that requires a written "Motivo" (3..500 chars), stored in the audit trail. */
 export function ReasonDialog({
     trigger,
     open,
@@ -56,6 +58,7 @@ export function ReasonDialog({
     title,
     description,
     submitLabel,
+    submitVariant = 'destructive',
     onSubmit,
 }: ReasonDialogProps) {
     const form = useForm<ReasonFormValues>({
@@ -132,7 +135,7 @@ export function ReasonDialog({
                             </Button>
                             <Button
                                 type="submit"
-                                variant="destructive"
+                                variant={submitVariant}
                                 disabled={isSubmitting}
                             >
                                 {isSubmitting && (

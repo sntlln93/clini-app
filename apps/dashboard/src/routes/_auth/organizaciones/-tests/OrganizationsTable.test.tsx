@@ -13,6 +13,8 @@ const BASE: AdminOrganization = {
     suspended_at: null,
     suspension_reason: null,
     active_members_count: 3,
+    plan: 'practice',
+    assigned_plan: null,
     subscription: { status: 'active', grace_ends_at: null },
 };
 

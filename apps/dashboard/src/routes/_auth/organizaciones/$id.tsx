@@ -52,6 +52,8 @@ function OrganizacionDetallePage() {
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <OrganizationUsageCard usage={organization.usage} />
                 <OrganizationSubscriptionCard
+                    plan={organization.plan}
+                    assignedPlan={organization.assigned_plan}
                     subscription={organization.subscription}
                 />
             </div>

@@ -27,8 +27,10 @@ export type AdminSubscription = {
     last_payment_failed_at: string | null;
     next_payment_at: string | null;
     cancelled_at: string | null;
-    /** End of the period a cancelled subscription had already paid: writes stay enabled until then. */
+    /** End of the period a cancelled subscription had already paid: it stays on Consultorio until then (#237). */
     access_ends_at: string | null;
+    /** Monthly amount last set at Mercado Pago, in whole pesos. */
+    amount: number | null;
     created_at: string;
     updated_at: string;
 };

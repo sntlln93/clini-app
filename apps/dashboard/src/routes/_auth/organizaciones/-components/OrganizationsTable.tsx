@@ -2,6 +2,7 @@ import { DataTable } from '@/components/DataTable';
 import { OrganizationStateBadge } from '@/features/status-badges/OrganizationStateBadge';
 import { SubscriptionStatusBadge } from '@/features/status-badges/SubscriptionStatusBadge';
 import { formatDate, formatNumber } from '@/lib/format';
+import { PLAN_LABELS } from '@/lib/labels';
 import type { AdminOrganization } from '@/types/organization';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -32,6 +33,11 @@ const columns: ColumnDef<AdminOrganization, unknown>[] = [
         cell: ({ row }) => (
             <OrganizationStateBadge suspendedAt={row.original.suspended_at} />
         ),
+    },
+    {
+        id: 'plan',
+        header: 'Plan',
+        cell: ({ row }) => PLAN_LABELS[row.original.plan],
     },
     {
         id: 'subscription',
