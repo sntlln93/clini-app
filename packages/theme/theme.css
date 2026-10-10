@@ -15,6 +15,9 @@
  * Visual system: teal primary, mint support, white rounded cards, pill
  * controls, Outfit. Light is the default; dark is a neutral near-black,
  * never a tinted one.
+ *
+ * Every color pair the apps render meets WCAG AA in both themes (#254):
+ * apps/panel/src/tests/theme-contrast.test.ts checks it against this file.
  */
 @import '@fontsource-variable/outfit';
 
@@ -92,44 +95,46 @@
     --card-foreground: #0f1a1b;
     --popover: #ffffff;
     --popover-foreground: #0f1a1b;
-    --primary: #0f7f88;
+    --primary: #0d7179;
     --primary-foreground: #ffffff;
     --secondary: #f3f8f7;
     --secondary-foreground: #0f1a1b;
     --muted: #f3f8f7;
     --muted-foreground: #5a6b6c;
     --accent: #d9eff0;
-    --accent-foreground: #0f7f88;
-    --destructive: #d9443f;
+    --accent-foreground: #0d7179;
+    --destructive: #ab302b;
     --destructive-wash: #fde9e7;
     --border: rgb(15 26 27 / 0.1);
     --input: rgb(15 26 27 / 0.14);
-    --ring: #0f7f88;
+    --ring: #0d7179;
     --radius: 0.875rem;
     --mint: #dcf2e4;
     --glow: #def3ef;
-    --success: #1f9a5d;
+    --success: #197b4a;
     --success-wash: #e0f5e8;
-    --warning: #d98e0b;
+    --warning: #b97709;
     --warning-wash: #fdf0d6;
-    --status-scheduled: #6b7b7c;
+    --status-scheduled: #5d6b6c;
     --status-scheduled-wash: #eef2f2;
-    --status-confirmed: #0f7f88;
+    --status-confirmed: #0d7179;
     --status-confirmed-wash: #d9eff0;
-    --status-arrived: #1f9a5d;
+    --status-arrived: #197b4a;
     --status-arrived-wash: #e0f5e8;
     --status-completed: #0f1a1b;
     --status-completed-wash: #e6eaea;
-    --status-no-show: #d9443f;
+    --status-no-show: #ab302b;
     --status-no-show-wash: #fde9e7;
-    --status-online: #b87508;
+    --status-online: #8f5a06;
     --status-online-wash: #fdf0d6;
-    /* Teal scale, strongest first: series 1 always reads as the primary. */
-    --chart-1: #0f7f88;
-    --chart-2: #4aa6ad;
-    --chart-3: #86c9cd;
-    --chart-4: #b5dfe1;
-    --chart-5: #d9eff0;
+    /* Teal scale: series 1 is the primary, and each series alternates
+       lightness with its neighbor (2:1 apart) so adjacent series stay
+       distinguishable; all of them reach 3:1 on the card. */
+    --chart-1: #0d7179;
+    --chart-2: #073a3e;
+    --chart-3: #549ba0;
+    --chart-4: #0a555b;
+    --chart-5: #3b8c93;
     /* The sidebar is a card-colored surface with the primary accents; it
        follows .dark through the referenced tokens. */
     --sidebar: var(--card);
@@ -159,7 +164,7 @@
     --muted-foreground: #98a6a7;
     --accent: #12393c;
     --accent-foreground: #3fb7c0;
-    --destructive: #f07c78;
+    --destructive: #f8aeaa;
     --destructive-wash: #3d1f1e;
     --border: rgb(255 255 255 / 0.1);
     --input: rgb(255 255 255 / 0.15);
@@ -178,15 +183,15 @@
     --status-arrived-wash: #133626;
     --status-completed: #e8eeee;
     --status-completed-wash: #2a3233;
-    --status-no-show: #f07c78;
+    --status-no-show: #f8aeaa;
     --status-no-show-wash: #3d1f1e;
     --status-online: #f2b544;
     --status-online-wash: #3a2e14;
     --chart-1: #3fb7c0;
-    --chart-2: #2b8c94;
-    --chart-3: #1f6a70;
-    --chart-4: #174e53;
-    --chart-5: #12393c;
+    --chart-2: #2d757a;
+    --chart-3: #98d9dd;
+    --chart-4: #348f96;
+    --chart-5: #72cad1;
     --card-shadow:
         0 1px 2px rgb(0 0 0 / 0.3), 0 18px 40px -28px rgb(0 0 0 / 0.7);
 }
@@ -219,7 +224,7 @@
     @apply outline-none;
 
     &:focus-visible {
-        @apply border-ring ring-3 ring-ring/50;
+        @apply border-ring ring-3 ring-ring/75;
     }
 }
 
