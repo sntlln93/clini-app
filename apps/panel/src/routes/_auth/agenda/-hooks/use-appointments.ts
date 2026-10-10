@@ -2,6 +2,10 @@ import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
+import {
+    useAppointmentChangeQueryKeys,
+    useRefreshPlanOnFullMonth,
+} from '@/lib/plan';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 import { queryOptions, useMutation } from '@tanstack/react-query';
@@ -60,6 +64,8 @@ export function appointmentsQueryOptions(range: AppointmentsRange) {
 
 export function useCreateAppointment() {
     const refreshPageData = useRefreshPageData();
+    const refreshKeys = useAppointmentChangeQueryKeys();
+    const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
     const mutation = useMutation({
         mutationFn: (payload: CreateAppointmentPayload) =>
@@ -75,8 +81,9 @@ export function useCreateAppointment() {
             notifySuccess(
                 `Turno creado para el ${formatAppointmentMoment(payload.startAt)}.`,
             );
-            return refreshPageData(['appointments']);
+            return refreshPageData(...refreshKeys);
         },
+        onError: refreshPlanOnFullMonth,
     });
 
     const { message, errors } = mutation.error
@@ -111,6 +118,7 @@ export function useUpdateAppointmentStatus() {
 
 export function useCancelAppointment() {
     const refreshPageData = useRefreshPageData();
+    const refreshKeys = useAppointmentChangeQueryKeys();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -125,7 +133,7 @@ export function useCancelAppointment() {
             }),
         onSuccess: () => {
             notifySuccess('Turno cancelado.');
-            return refreshPageData(['appointments']);
+            return refreshPageData(...refreshKeys);
         },
     });
 
@@ -138,6 +146,8 @@ export function useCancelAppointment() {
 
 export function useRescheduleAppointment() {
     const refreshPageData = useRefreshPageData();
+    const refreshKeys = useAppointmentChangeQueryKeys();
+    const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
     const mutation = useMutation({
         mutationFn: ({
@@ -160,8 +170,9 @@ export function useRescheduleAppointment() {
             notifySuccess(
                 `Turno reprogramado para el ${formatAppointmentMoment(startAt)}.`,
             );
-            return refreshPageData(['appointments']);
+            return refreshPageData(...refreshKeys);
         },
+        onError: refreshPlanOnFullMonth,
     });
 
     const { message, errors } = mutation.error

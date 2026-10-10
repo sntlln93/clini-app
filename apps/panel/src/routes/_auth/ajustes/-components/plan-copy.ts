@@ -25,7 +25,7 @@ export function planDetail(
 ): string {
     switch (plan.plan) {
         case 'free':
-            return `Incluye 1 profesional, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas y un link de reservas para cada profesional: ${practicePriceDetail(plan.practice_pricing)}.`;
+            return `Incluye 1 profesional, hasta ${plan.appointment_limit ?? 40} turnos por mes, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas y un link de reservas para cada profesional: ${practicePriceDetail(plan.practice_pricing)}.`;
         case 'practice': {
             const amount =
                 subscription?.amount ??

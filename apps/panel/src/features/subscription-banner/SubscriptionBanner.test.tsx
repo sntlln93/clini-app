@@ -163,6 +163,59 @@ describe('SubscriptionBanner', () => {
         );
     });
 
+    it.each([
+        [
+            'below the warning threshold on Free',
+            buildPlan('free', { appointments_this_month: 34 }),
+        ],
+        [
+            'a paid plan, however many appointments',
+            buildPlan('practice', { appointments_this_month: 120 }),
+        ],
+    ])('says nothing about the monthly appointments for %s', (_label, plan) => {
+        const { container } = renderBanner(null, plan);
+
+        expect(container.innerHTML).toBe('');
+    });
+
+    it('warns from the 35th appointment of the month on Free, offering Consultorio', () => {
+        renderBanner(null, buildPlan('free', { appointments_this_month: 35 }));
+
+        const banner = screen.getByRole('alert');
+        expect(banner.textContent).toContain(
+            'Ya cargaste 35 de los 40 turnos de este mes.',
+        );
+        expect(banner.textContent).toContain('Pasá a Consultorio');
+        expect(banner.getAttribute('class')).not.toContain('destructive');
+        expect(
+            screen.getByRole('link', { name: 'Ver plan' }).getAttribute('href'),
+        ).toBe('/ajustes#suscripcion');
+    });
+
+    it('says the month is full at the limit, without calling the agenda read-only', () => {
+        renderBanner(null, buildPlan('free', { appointments_this_month: 40 }));
+
+        const banner = screen.getByRole('alert');
+        expect(banner.textContent).toContain(
+            'Llegaste a los 40 turnos de este mes que incluye el plan Gratis.',
+        );
+        expect(banner.textContent).not.toContain('solo lectura');
+    });
+
+    it('keeps the professional limit notice over the monthly appointments', () => {
+        renderBanner(
+            null,
+            buildPlan('free', {
+                active_professionals: 2,
+                appointments_this_month: 38,
+            }),
+        );
+
+        expect(screen.getByRole('alert').textContent).toContain(
+            'un solo profesional activo',
+        );
+    });
+
     it('scrolls the section into view when it is already on screen', () => {
         const section = document.createElement('section');
         section.id = 'suscripcion';
