@@ -91,6 +91,7 @@ Table organizations {
   timezone varchar [not null, note: 'IANA tz, e.g. America/Argentina/Buenos_Aires']
   suspended_at timestamp [null, note: 'Set by a platform operator: members get 403 organizations.suspended, public booking 403 booking.organization_unavailable']
   suspension_reason varchar(500) [null, note: 'Operator note; hidden from clinic users (/me)']
+  assigned_plan varchar [null, note: 'Plan assigned by a platform operator outside self-service billing: center, or null to derive it from the subscription (ADR 0014)']
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
@@ -420,11 +421,12 @@ Table subscriptions {
   last_payment_failed_at timestamp [null]
   next_payment_at timestamptz [null, note: 'Provider next scheduled charge (preapproval next_payment_date), shown as the renewal date']
   cancelled_at timestamp [null, note: 'When the subscription was cancelled; set only while status = cancelled, cleared on reactivation']
-  access_ends_at timestamp [null, note: 'End of the period an active subscription had already paid when cancelled; writes stay allowed until then. Cleared on reactivation']
+  access_ends_at timestamp [null, note: 'End of the period an active subscription had already paid when cancelled; it stays on Practice until then, on Free after it. Cleared on reactivation']
+  amount integer [null, note: 'Monthly amount last set at the provider, in whole pesos: base + extra professionals (config/plans.php)']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
-  Note: 'SaaS subscription of an organization (CU-30, #28). No row = unrestricted. expired/cancelled make appointment, clinical note, prescription, availability and public booking writes read-only (409 subscriptions.inactive).'
+  Note: 'SaaS subscription of an organization (CU-30, #28). It grants the Practice plan while active, in grace, expired or cancelled with paid time left; no row = Free (ADR 0014). expired makes appointment, clinical note, prescription, availability and public booking writes read-only (409 subscriptions.inactive).'
 }
 
 Table subscription_events {
@@ -461,7 +463,7 @@ Table platform_admins {
 Table admin_audit_logs {
   id bigint [pk, increment]
   platform_admin_id bigint [not null]
-  action varchar [not null, note: 'AdminAuditAction: auth.login, auth.logout, organizations.suspend, organizations.reactivate, users.verify_email, users.block, users.unblock, subscriptions.extend_grace']
+  action varchar [not null, note: 'AdminAuditAction: auth.login, auth.logout, organizations.suspend, organizations.reactivate, organizations.assign_plan, users.verify_email, users.block, users.unblock, subscriptions.extend_grace']
   subject_type varchar [null, note: 'AdminAuditSubject: organization | user | subscription; null for auth.* rows. A plain string, not a morph relation']
   subject_id bigint [null]
   metadata jsonb [not null, default: '{}', note: 'subject_label snapshot, reason/note, previous_* values']

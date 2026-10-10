@@ -11,13 +11,40 @@
 | Binding | `AppServiceProvider::$bindings` |
 | Modelo | `subscriptions` (una por organización) + `subscription_events` (log de idempotencia del webhook) |
 | Estados | `SubscriptionStatus`: `pending`, `active`, `grace`, `expired`, `cancelled` |
-| Restricción | middleware `subscription.active` (`EnsureSubscriptionActive`) |
+| Restricción | middlewares `subscription.active` (`EnsureSubscriptionActive`: vencida o límite de profesionales) y `plan.feature` (`EnsurePlanIncludes`) |
 | Vencimiento | comando diario `subscriptions:expire-grace` (`routes/console.php`) |
 | Avisos | `SubscriptionGraceStartedNotification`, `SubscriptionExpiredNotification` (mail, en cola, a los dueños) |
 
+## Planes (#237, ADR 0014)
+
+La suscripción define el plan de la organización, que se calcula y no se guarda (`Plan::resolve()`, `App\Support\OrganizationPlan`):
+
+| Plan | Cuándo | Qué incluye |
+|---|---|---|
+| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo; sin equipo, sala de espera, recetas ni link por profesional |
+| Consultorio (`practice`) | suscripción `active`, `grace`, `expired` o `cancelled` con `access_ends_at` futuro | todo, sin tope de profesionales |
+| Centro (`center`) | `organizations.assigned_plan = center`, lo asigna un operador | todo; se cobra por fuera de la plataforma |
+
+- **Precio de Consultorio** (`config/plans.php`): `MERCADOPAGO_PLAN_AMOUNT` cubre `PLAN_PRACTICE_INCLUDED_PROFESSIONALS` (5) profesionales activos (membresías activas con rol `professional`), y cada uno por encima suma `PLAN_PRACTICE_EXTRA_PROFESSIONAL_AMOUNT`.
+  - El checkout crea el preapproval con el monto del momento y lo guarda en `subscriptions.amount`.
+  - Aceptar una invitación, cambiar el rol o el estado de un miembro o desactivarlo encola `SyncSubscriptionAmountJob`. El job recalcula el monto y, si cambió, hace `PUT /preapproval/{id}` con `auto_recurring.transaction_amount`. Rige desde el próximo cobro, sin prorrateo.
+  - El job es idempotente y reintenta (5 intentos, de 1 minuto a 1 hora). No toca una suscripción cancelada, una sin preapproval ni una organización en Centro.
+  - El overview del dashboard suma esos montos para el MRR.
+- **Controles en la API** (409 `plans.feature_unavailable` con `context.plan` y `context.feature`):
+  - el middleware `plan.feature:<feature>` en las escrituras de recetas y en `GET /waiting-room`;
+  - `OrganizationPlan::ensureAllowsMember()` al invitar, al aceptar (con lock de la organización) y al editar miembros: solo se validan los roles que la membresía **gana**;
+  - `ensureIncludes()` al definir un link por profesional. Borrar el link siempre se permite, y uno creado antes de bajar de plan sigue resolviendo.
+- **Límite de profesionales:** Gratis con más profesionales activos que el límite responde 409 `plans.professional_limit_exceeded` en el mismo grupo `subscription.active` que la suscripción vencida. Nadie se desactiva solo.
+- **Centro:** `PUT /api/v1/admin/organizations/{id}/plan` (`{"assigned_plan": "center" | null, "reason": "…"}`) lo asigna o lo quita.
+  - Queda auditado como `organizations.assign_plan`.
+  - Responde 409 `plans.subscription_live` si la suscripción todavía puede cobrar (`active`, `grace`, `expired`) y `plans.assignment_unchanged` si no cambia nada.
+  - Un checkout en Centro responde 409 `plans.center_assigned`.
+
 ## Endpoints
 
-- `GET /api/v1/subscription` — cualquier miembro activo. `{"data": null}` si la organización nunca se suscribió; si no, `status`, `restricted`, `grace_ends_at`, `grace_days_left`, `last_payment_at`, `last_payment_failed_at`, `next_payment_at` (próximo cobro según Mercado Pago, la fecha de renovación) `cancelled_at` (fecha de la cancelación; solo en una fila `cancelled` — un intento de volver a suscribirse no la cambia, y se limpia al reactivarse) y `access_ends_at` (fin del período ya pago de una suscripción cancelada estando `active`; hasta esa fecha `restricted` es `false`. Se limpia al reactivarse).
+- `GET /api/v1/plan` — cualquier miembro activo. `plan`, `assigned_by_platform`, `features` (las cuatro funciones, `true`/`false`), `professional_limit` (`null` sin límite), `active_professionals`, `restricted` (más profesionales activos que el límite) y `practice_pricing` (`base_amount`, `included_professionals`, `extra_professional_amount`, `currency`).
+
+- `GET /api/v1/subscription` — cualquier miembro activo. `{"data": null}` si la organización nunca se suscribió; si no, `status`, `restricted`, `grace_ends_at`, `grace_days_left`, `last_payment_at`, `last_payment_failed_at`, `next_payment_at` (próximo cobro según Mercado Pago, la fecha de renovación) `cancelled_at` (fecha de la cancelación; solo en una fila `cancelled` — un intento de volver a suscribirse no la cambia, y se limpia al reactivarse) y `access_ends_at` (fin del período ya pago de una suscripción cancelada estando `active`: hasta esa fecha sigue en Consultorio y después pasa a Gratis. Se limpia al reactivarse) y `amount` (monto mensual que se fijó en Mercado Pago).
 - `POST /api/v1/subscription` — **solo dueño** (rol `owner`; 403 para el resto). Devuelve `{"data": {"init_point": "<url>"}}` y el panel redirige ahí.
   - Sin suscripción, `cancelled` o `expired` → crea un preapproval nuevo (`payer_email` = email del dueño, `reason` = `Suscripción Clini — <organización>`, mensual, `external_reference` = id de la organización). Si el preapproval anterior todavía no está cancelado en Mercado Pago (una organización vencida suele seguir con reintentos de cobro), se cancela (`PUT /preapproval/{id}` con `status=cancelled`) para que nunca haya dos suscripciones cobrando — recién **después** de crear el nuevo y apuntar la fila a él: si la creación falla, el preapproval anterior sigue vivo y la fila no cambia, y el webhook `cancelled` del anterior ya no encuentra una fila que cancelar. El estado local **no** se levanta: una organización vencida sigue en solo lectura hasta que el webhook confirme el pago.
   - `pending` o `grace` → reutiliza el preapproval existente (su `init_point`), para no generar una segunda suscripción que cobre doble. Excepción: si ese preapproval está `paused` en Mercado Pago ya no cobra, así que se crea uno nuevo y luego se cancela el anterior (la fila sigue en `grace` hasta que el webhook confirme el pago).
@@ -53,13 +80,27 @@
 
 ## Restricción (solo lectura)
 
-Con estado `expired`, o `cancelled` sin período pago por delante (`access_ends_at` nulo o ya pasado), todas las escrituras de turnos (alta, estado, cancelación, reprogramación), notas clínicas, recetas, disponibilidad semanal, excepciones y la reserva online pública responden 409 `subscriptions.inactive` (con `context.subscription_status`). Las lecturas siguen permitidas. Una organización **sin fila** de suscripción no se restringe (las organizaciones existentes/seed siguen funcionando; la política de prueba gratuita queda para otro issue).
+Con estado `expired`, todas las escrituras de turnos (alta, estado, cancelación, reprogramación), notas clínicas, recetas, disponibilidad semanal, excepciones y la reserva online pública responden 409 `subscriptions.inactive` (con `context.subscription_status`). Las lecturas siguen permitidas.
+
+Una suscripción `cancelled` ya no restringe nada (#237): mientras dure su período pago la organización sigue en Consultorio, y después pasa a Gratis, con las restricciones de ese plan (ver Planes). Una organización sin suscripción está en Gratis.
 
 La regla vive en `Subscription::restrictsWrites()` (la usan el middleware y el `restricted` del recurso), y se compara con la hora actual: el fin del período pago no necesita ningún comando programado. Se aplica en un solo lugar: el middleware `subscription.active`, agrupando las rutas de escritura en `routes/api/v1/{appointments,availability,clinical-notes,prescriptions,booking}.php`. Una ruta de escritura nueva en esos módulos tiene que entrar en ese grupo.
 
-El panel lee la suscripción una vez en el loader de `_auth` y la observa con `useSubscription()`: muestra el banner (gracia / vencida / cancelada, con «Ver suscripción» que lleva a `/ajustes#suscripcion`), la sección «Suscripción» en Ajustes y oculta las acciones de alta/edición en agenda, notas clínicas, recetas y disponibilidad. El backend sigue siendo la fuente de verdad.
+El panel lee la suscripción y el plan una vez en el loader de `_auth` y los observa con `useSubscription()` y `usePlan()`.
+- **Banner:** gracia, vencida, el período pago de una cancelación, o Gratis por encima del límite de profesionales, con «Ver plan», que lleva a `/ajustes#suscripcion`.
+- **Ajustes:** la sección «Plan y suscripción».
+- **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda, notas clínicas, recetas y disponibilidad.
+- **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; las recetas se pueden ver e imprimir pero no emitir; invitar y el link por profesional muestran el límite.
+- **Reserva online:** ante una suscripción vencida o el límite excedido, el paciente ve un mensaje genérico que le pide contactar al consultorio, nunca el motivo.
 
-La sección «Suscripción» muestra, según el estado: «Se renueva automáticamente el …» (`next_payment_at`), «Pago pendiente: te quedan N días (hasta el …)», «Venció el …», «Cancelada el …» (con «Podés seguir usando la agenda hasta el …» mientras dure el período pago) o «Esperando confirmación del pago», más «Último pago: …» si lo hay. Al dueño, con la suscripción `active`, `grace` o `expired`, le ofrece «Cancelar suscripción»: una confirmación explica que Mercado Pago deja de cobrar, hasta cuándo sigue funcionando la agenda (o que queda en solo lectura de inmediato) y qué deja de poder hacerse. Mientras dura el período pago de una cancelación, el banner avisa «Cancelaste la suscripción.» con la fecha, sin el estilo de error. «Suscribirse»/«Regularizar pago» queda deshabilitado con «Redirigiendo a Mercado Pago…» desde el clic hasta que el navegador sale al checkout; solo un error lo vuelve a habilitar.
+El backend sigue siendo la fuente de verdad.
+
+La sección «Plan y suscripción» muestra el plan actual y qué incluye:
+- en Gratis, qué suma Consultorio y a qué precio;
+- en Consultorio, el monto mensual (`amount`, o la fórmula si todavía no hay uno guardado) con los profesionales activos;
+- en Centro, que lo gestiona el equipo de Clini, sin botones de checkout.
+
+Además muestra, según el estado: «Se renueva automáticamente el …» (`next_payment_at`), «Pago pendiente: te quedan N días (hasta el …)», «Venció el …», «Cancelada el …» (con «Seguís en el plan Consultorio hasta el …» mientras dure el período pago) o «Esperando confirmación del pago», más «Último pago: …» si lo hay. Al dueño, con la suscripción `active`, `grace` o `expired`, le ofrece «Cancelar suscripción»: una confirmación explica que Mercado Pago deja de cobrar, hasta cuándo sigue en Consultorio (o que pasa a Gratis de inmediato) y qué deja de poder hacerse en Gratis. Mientras dura el período pago de una cancelación, el banner avisa «Cancelaste la suscripción.» con la fecha, sin el estilo de error. «Pasar a Consultorio»/«Regularizar pago» queda deshabilitado con «Redirigiendo a Mercado Pago…» desde el clic hasta que el navegador sale al checkout; solo un error lo vuelve a habilitar.
 
 ## Extensión manual del período de gracia
 
@@ -81,8 +122,10 @@ Un operador de la plataforma puede extender la gracia desde el dashboard de oper
 | `MERCADOPAGO_ACCESS_TOKEN` | Access token de la aplicación. En sandbox es el `APP_USR-…` que muestra la página *Credenciales de prueba* de la aplicación: pertenece al vendedor de prueba (ver abajo). Server-side, nunca va al panel. |
 | `MERCADOPAGO_PUBLIC_KEY` | Public key de la aplicación. Hoy no se usa (no hay checkout embebido); queda configurada para el cobro de consultas (#29). |
 | `MERCADOPAGO_WEBHOOK_SECRET` | Clave secreta de la sección Webhooks de la aplicación. Sin ella, todo webhook se rechaza con 401. |
-| `MERCADOPAGO_PLAN_AMOUNT` | Precio mensual en pesos enteros (ej. `15000`). |
+| `MERCADOPAGO_PLAN_AMOUNT` | Precio base mensual de Consultorio en pesos enteros (ej. `15000`), con los profesionales incluidos. |
 | `MERCADOPAGO_PLAN_CURRENCY` | Moneda; `ARS` por defecto. |
+| `PLAN_PRACTICE_INCLUDED_PROFESSIONALS` | Profesionales activos que cubre el precio base; `5` por defecto. |
+| `PLAN_PRACTICE_EXTRA_PROFESSIONAL_AMOUNT` | Monto mensual por cada profesional activo por encima de los incluidos (ej. `5000`); `0` por defecto. |
 | `MERCADOPAGO_BACK_URL` | URL a la que Mercado Pago devuelve al pagador. Por defecto `${APP_URL}/api/v1/subscription/return`, la ruta de la API que redirige al panel (`/ajustes?suscripcion=retorno`); se puede sobrescribir. Mercado Pago exige una URL `https` pública. |
 
 Nunca commitear valores reales: `.env.example` los deja vacíos.
@@ -111,6 +154,8 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 ## Fuera de alcance / pendientes
 
 - **Web Push** para los avisos de gracia/vencimiento (no existe infraestructura de push todavía): por ahora solo mail.
-- Pricing y planes (solo el monto/moneda configurables de arriba), prueba gratuita y cobro de consultas (#29, que reutiliza este adapter). Cuando existan los planes (#237), una cancelación que termina su período pago pasa al plan Gratis en lugar de quedar en solo lectura.
+- Prueba gratuita de Consultorio y cobro de consultas (#29, que reutiliza este adapter).
+- Límite mensual de turnos de Gratis (#238), marca Clini en la reserva (#239), pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
+- Precio de Centro: se cobra por fuera de la plataforma y no se modela.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
 - Volver a suscribirse durante el período pago de una cancelación crea un preapproval nuevo que cobra desde la autorización, sin descontar los días que quedaban (`auto_recurring.start_date` no se usa).
