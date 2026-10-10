@@ -132,7 +132,7 @@ export function BookingSelectionStep({
                     value={
                         selection.professional
                             ? String(selection.professional)
-                            : undefined
+                            : null
                     }
                     placeholder="Seleccioná un profesional"
                     onValueChange={(value) =>
@@ -156,11 +156,7 @@ export function BookingSelectionStep({
                     id={serviceTriggerId}
                     label="Prestación"
                     items={serviceItems}
-                    value={
-                        selection.service
-                            ? String(selection.service)
-                            : undefined
-                    }
+                    value={selection.service ? String(selection.service) : null}
                     placeholder="Seleccioná una prestación"
                     onValueChange={(value) =>
                         onChange({ ...selection, service: Number(value) })

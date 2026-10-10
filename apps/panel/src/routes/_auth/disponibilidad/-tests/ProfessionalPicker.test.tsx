@@ -1,7 +1,7 @@
 import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Professional } from '@/types/professional';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ProfessionalPicker } from '../-components/ProfessionalPicker';
 
 const PROFESSIONAL = buildProfessional({ id: 3 });
@@ -33,6 +33,32 @@ describe('ProfessionalPicker', () => {
 
         expect(screen.getByRole('combobox').textContent).toContain(
             'Seleccioná un profesional',
+        );
+    });
+
+    it('stays controlled when a professional gets selected after mounting empty', () => {
+        const consoleError = vi.spyOn(console, 'error');
+        const { rerender } = render(
+            <ProfessionalPicker
+                professionals={[PROFESSIONAL]}
+                selectedId={null}
+                onSelect={() => {}}
+            />,
+        );
+
+        rerender(
+            <ProfessionalPicker
+                professionals={[PROFESSIONAL]}
+                selectedId={3}
+                onSelect={() => {}}
+            />,
+        );
+
+        expect(screen.getByRole('combobox').textContent).toContain(
+            'Dra. Ana López',
+        );
+        expect(consoleError).not.toHaveBeenCalledWith(
+            expect.stringContaining('uncontrolled value state of Select'),
         );
     });
 
