@@ -55,7 +55,7 @@ Sitio público de Clini en `apps/landing`. Cuenta el producto, muestra los plane
 
 - Mismo stack y convenciones que panel y dashboard, pero **con SSR**: TanStack Start sobre Vite, servido por Nitro como servidor Node. Ver [ADR 0011](../adr/0011-landing-con-ssr-en-tanstack-start.md).
 - `VITE_PANEL_URL` (build arg) es el origen del panel. `VITE_CONTACT_URL` (opcional) es el contacto comercial del plan Centro.
-- Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: el límite de 40 turnos (#238), la marca Clini y la página de reservas con marca propia (#239), el pago anual (#240) y las funciones exclusivas de Centro (#242 a #246).
+- Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: la marca Clini y la página de reservas con marca propia (#239), el pago anual (#240) y las funciones exclusivas de Centro (#242 a #246).
 
 ## Infraestructura
 

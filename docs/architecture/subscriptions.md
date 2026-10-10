@@ -21,7 +21,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
 
 | Plan | Cuándo | Qué incluye |
 |---|---|---|
-| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo; sin equipo, sala de espera, recetas ni link por profesional |
+| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo y 40 turnos por mes; sin equipo, sala de espera, recetas ni link por profesional |
 | Consultorio (`practice`) | suscripción `active`, `grace`, `expired` o `cancelled` con `access_ends_at` futuro | todo, sin tope de profesionales |
 | Centro (`center`) | `organizations.assigned_plan = center`, lo asigna un operador | todo; se cobra por fuera de la plataforma |
 
@@ -35,6 +35,10 @@ La suscripción define el plan de la organización, que se calcula y no se guard
   - `OrganizationPlan::ensureAllowsMember()` al invitar, al aceptar (con lock de la organización) y al editar miembros: solo se validan los roles que la membresía **gana**;
   - `ensureIncludes()` al definir un link por profesional. Borrar el link siempre se permite, y uno creado antes de bajar de plan sigue resolviendo.
 - **Límite de profesionales:** Gratis con más profesionales activos que el límite responde 409 `plans.professional_limit_exceeded` en el mismo grupo `subscription.active` que la suscripción vencida. Nadie se desactiva solo.
+- **Límite de turnos (#238):** Gratis acepta hasta 40 turnos por mes. Se cuentan por la fecha del turno, en la zona horaria de la organización, sin los cancelados ni los reprogramados.
+  - `BookAppointmentAction` lo controla bajo un lock de la organización, tanto para la carga manual como para la reserva online y la reprogramación. El turno 41 responde 409 `plans.appointment_limit_reached` (`context.appointment_limit`, `context.month`).
+  - Al llegar a 35, los dueños reciben `AppointmentLimitApproachingNotification` por mail, una sola vez por mes (`appointment_limit_warnings`, con clave única por organización y mes).
+  - No hay reinicio programado: el mes siguiente simplemente cuenta desde cero.
 - **Centro:** `PUT /api/v1/admin/organizations/{id}/plan` (`{"assigned_plan": "center" | null, "reason": "…"}`) lo asigna o lo quita.
   - Queda auditado como `organizations.assign_plan`.
   - Responde 409 `plans.subscription_live` si la suscripción todavía puede cobrar (`active`, `grace`, `expired`) y `plans.assignment_unchanged` si no cambia nada.
@@ -42,7 +46,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
 
 ## Endpoints
 
-- `GET /api/v1/plan` — cualquier miembro activo. `plan`, `assigned_by_platform`, `features` (las cuatro funciones, `true`/`false`), `professional_limit` (`null` sin límite), `active_professionals`, `restricted` (más profesionales activos que el límite) y `practice_pricing` (`base_amount`, `included_professionals`, `extra_professional_amount`, `currency`).
+- `GET /api/v1/plan` — cualquier miembro activo. `plan`, `assigned_by_platform`, `features` (las cuatro funciones, `true`/`false`), `professional_limit` (`null` sin límite), `active_professionals`, `restricted` (más profesionales activos que el límite), `appointment_limit` y `appointment_warning_threshold` (`null` sin límite), `appointments_this_month` (el mes actual, en la zona horaria de la organización) y `practice_pricing` (`base_amount`, `included_professionals`, `extra_professional_amount`, `currency`).
 
 - `GET /api/v1/subscription` — cualquier miembro activo. `{"data": null}` si la organización nunca se suscribió; si no, `status`, `restricted`, `grace_ends_at`, `grace_days_left`, `last_payment_at`, `last_payment_failed_at`, `next_payment_at` (próximo cobro según Mercado Pago, la fecha de renovación) `cancelled_at` (fecha de la cancelación; solo en una fila `cancelled` — un intento de volver a suscribirse no la cambia, y se limpia al reactivarse) y `access_ends_at` (fin del período ya pago de una suscripción cancelada estando `active`: hasta esa fecha sigue en Consultorio y después pasa a Gratis. Se limpia al reactivarse) y `amount` (monto mensual que se fijó en Mercado Pago).
 - `POST /api/v1/subscription` — **solo dueño** (rol `owner`; 403 para el resto). Devuelve `{"data": {"init_point": "<url>"}}` y el panel redirige ahí.
@@ -87,11 +91,11 @@ Una suscripción `cancelled` ya no restringe nada (#237): mientras dure su perí
 La regla vive en `Subscription::restrictsWrites()` (la usan el middleware y el `restricted` del recurso), y se compara con la hora actual: el fin del período pago no necesita ningún comando programado. Se aplica en un solo lugar: el middleware `subscription.active`, agrupando las rutas de escritura en `routes/api/v1/{appointments,availability,clinical-notes,prescriptions,booking}.php`. Una ruta de escritura nueva en esos módulos tiene que entrar en ese grupo.
 
 El panel lee la suscripción y el plan una vez en el loader de `_auth` y los observa con `useSubscription()` y `usePlan()`.
-- **Banner:** gracia, vencida, el período pago de una cancelación, o Gratis por encima del límite de profesionales, con «Ver plan», que lleva a `/ajustes#suscripcion`.
+- **Banner:** gracia, vencida, el período pago de una cancelación, Gratis por encima del límite de profesionales, o Gratis con 35 turnos o más en el mes actual. Muestra «Ver plan», que lleva a `/ajustes#suscripcion`. Crear, reprogramar o cancelar un turno en Gratis refresca el plan, así que el contador del banner se actualiza.
 - **Ajustes:** la sección «Plan y suscripción».
 - **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda, notas clínicas, recetas y disponibilidad.
 - **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; las recetas se pueden ver e imprimir pero no emitir; invitar y el link por profesional muestran el límite.
-- **Reserva online:** ante una suscripción vencida o el límite excedido, el paciente ve un mensaje genérico que le pide contactar al consultorio, nunca el motivo.
+- **Reserva online:** ante una suscripción vencida o el límite de profesionales excedido, el paciente ve un mensaje genérico que le pide contactar al consultorio, nunca el motivo. Si el mes del turno está lleno, el mensaje le propone elegir otro mes o contactar al consultorio, sin nombrar el plan.
 
 El backend sigue siendo la fuente de verdad.
 
@@ -155,7 +159,8 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 
 - **Web Push** para los avisos de gracia/vencimiento (no existe infraestructura de push todavía): por ahora solo mail.
 - Prueba gratuita de Consultorio y cobro de consultas (#29, que reutiliza este adapter).
-- Límite mensual de turnos de Gratis (#238), marca Clini en la reserva (#239), pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
+- Comprar turnos extra sueltos (#238 lo deja fuera). La grilla pública sigue mostrando horarios de un mes lleno: el rechazo llega al confirmar.
+- Marca Clini en la reserva (#239), pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
 - Precio de Centro: se cobra por fuera de la plataforma y no se modela.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
 - Volver a suscribirse durante el período pago de una cancelación crea un preapproval nuevo que cobra desde la autorización, sin descontar los días que quedaban (`auto_recurring.start_date` no se usa).

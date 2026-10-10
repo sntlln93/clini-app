@@ -32,6 +32,23 @@ export function isBookingClosedError(error: unknown): boolean {
     );
 }
 
+/**
+ * The appointment's month is full for the organization's plan (#238). Other
+ * months may still be open, so the patient is pointed there or to the
+ * practice, never told why.
+ */
+export function isMonthFullError(error: unknown): boolean {
+    const appError = mapToAppError(error);
+
+    return (
+        appError.kind === 'business' &&
+        appError.code === 'plans.appointment_limit_reached'
+    );
+}
+
+export const MONTH_FULL_MESSAGE =
+    'No quedan turnos online para ese mes. Elegí una fecha de otro mes o comunicate directamente con el consultorio para pedir un turno.';
+
 export const BOOKING_CLOSED_MESSAGE =
     'El consultorio no está tomando reservas online en este momento. Comunicate directamente con el consultorio para pedir un turno.';
 

@@ -16,6 +16,7 @@ final readonly class PlanOverviewData implements Data
         public Plan $plan,
         public bool $assignedByPlatform,
         public int $activeProfessionals,
+        public int $appointmentsThisMonth,
     ) {}
 
     /**
@@ -27,6 +28,7 @@ final readonly class PlanOverviewData implements Data
             'plan' => $this->plan->value,
             'assigned_by_platform' => $this->assignedByPlatform,
             'active_professionals' => $this->activeProfessionals,
+            'appointments_this_month' => $this->appointmentsThisMonth,
         ];
     }
 }

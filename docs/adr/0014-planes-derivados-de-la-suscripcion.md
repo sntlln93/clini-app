@@ -49,6 +49,14 @@ Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 
 **Las organizaciones existentes:** no hay tráfico real todavía, así que no hay migración de datos. Con la regla de arriba, una organización con suscripción activa queda en Consultorio y una sin suscripción queda en Gratis. El seed deja Clínica Modelo en Centro y Consultorio Dos en Consultorio.
 
+**Límite de turnos de Gratis (#238).** Gratis incluye 40 turnos por mes (`Plan::monthlyAppointmentLimit()`), y a los 35 se avisa (`appointmentWarningThreshold()`):
+- **El mes es el del turno, no el de la carga.** Se cuenta por `start_at`, en la zona horaria de la organización, sin los `cancelled` ni los `rescheduled`, que liberan su lugar igual que liberan el slot (ADR 0004). El contador se reinicia solo al cambiar el mes, sin comando programado.
+- **El control vive en `BookAppointmentAction`**, el único camino de escritura de turnos (ADR 0004). En un plan con límite, además del lock del profesional, la Action toma un advisory lock de la organización (namespace 25), siempre en ese orden, así que no puede haber deadlock. Un turno de más responde 409 `plans.appointment_limit_reached`, con `appointment_limit` y `month` en el contexto.
+  - Reprogramar dentro del mismo mes no suma, así que se permite siempre, aunque el mes ya esté por encima del límite (por ejemplo, después de bajar a Gratis). Reprogramar a otro mes que ya está lleno se rechaza y no cambia nada.
+  - La reserva online hace el mismo control antes de registrar al paciente (después de los suyos de servicio y horario), para que un mes lleno no deje un paciente vinculado sin turno. Ese control previo no es el que vale ante la concurrencia.
+- **El aviso sale una sola vez por mes.** Cuando la cuenta del mes llega al umbral, la Action inserta una fila en `appointment_limit_warnings`, con clave única (organización, mes), dentro de la misma transacción y bajo el mismo lock. Solo si la fila es nueva manda `AppointmentLimitApproachingNotification` a los dueños, después del commit. Si la cuenta baja y vuelve a subir, el aviso no se repite.
+- **El paciente nunca ve el motivo.** El contexto del error no nombra el plan, y la página de reservas lo traduce a un mensaje que le propone otro mes o contactar al consultorio. En el panel, el mensaje ofrece pasar a Consultorio. `GET /plan` devuelve `appointments_this_month` (el mes actual), así que el banner del panel aparece desde los 35. El panel vuelve a leer el plan después de cada alta, reprogramación o cancelación en Gratis, y ante un 409 por mes lleno.
+
 ## Alternativas descartadas
 
 - **Guardar el plan en una columna que el webhook y el comando de vencimiento actualicen.** Duplica el estado que ya tiene la suscripción y obliga a un job programado para el fin del período pago. Calcularlo contra la hora actual sigue la misma idea que `restrictsWrites()` en #261.
@@ -56,6 +64,9 @@ Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 - **Dejar en solo lectura toda organización cancelada**, como hasta ahora. Una organización que deja de pagar quedaría peor que una que nunca pagó, y no habría forma de pasar a Gratis.
 - **Ajustar el monto en Mercado Pago dentro de la misma transacción del cambio de membresía.** Una caída del proveedor impediría aceptar una invitación o desactivar a alguien. El job con reintentos separa las dos cosas.
 - **Prorratear el cambio de monto en el mes en curso:** agrega cálculo y cobros sueltos que Mercado Pago no resuelve con el preapproval.
+- **Contar los turnos por fecha de carga:** el dueño ve la agenda por la fecha del turno, y un turno cargado a fin de mes para el mes siguiente consumiría el mes equivocado.
+- **Controlar el límite en un middleware**, como el de profesionales: no conoce la fecha del turno ni corre bajo el lock, así que dos reservas simultáneas podrían ocupar el turno 40.
+- **Guardar el último mes avisado en una columna de `organizations`:** el aviso es por el mes del turno, que puede ser uno futuro. Alternar entre dos meses volvería a mandar el aviso del primero.
 
 ## Consecuencias
 
@@ -63,7 +74,6 @@ Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 - **Una ruta de escritura nueva** de agenda, notas, recetas o disponibilidad tiene que entrar en el grupo `subscription.active`, que ahora también aplica el límite de profesionales.
 - **`OrganizationFactory` crea organizaciones sin plan asignado**, es decir en Gratis, igual que en producción. Los tests de funciones pagas que no tratan sobre planes usan `Organization::factory()->center()` o `Membership::factory()->onPaidPlan()`.
 - **Fuera de este ADR**, cada uno en su issue:
-  - el límite de turnos de Gratis (#238);
   - la marca Clini en la reserva (#239);
   - el pago anual (#240);
   - las funciones exclusivas de Centro (#242 a #245).

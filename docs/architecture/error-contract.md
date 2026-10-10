@@ -16,7 +16,7 @@ Decisiones y motivación en [ADR 0009](../adr/0009-contrato-de-errores-de-domini
 }
 ```
 
-- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 40 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
+- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 41 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
 - `message`: el mensaje de la excepción, en inglés, para desarrolladores (va al log y al stack trace). **Nunca se muestra en la UI** — cada frontend resuelve la copy en español por `code` desde su propio catálogo (`ERROR_CODE_MESSAGES` en `error-codes.ts`). El dashboard reusa la copy del panel salvo en los códigos de moderación, donde la redacta para el operador.
 - `context`: lo que `publicContext()` de la excepción concreta decidió exponer. `{}` por defecto; las excepciones que exponen algo están marcadas en la tabla.
 
@@ -35,7 +35,7 @@ Backend: un único `render` callback en `apps/api/bootstrap/app.php`, registrado
 
 Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios (`axios.isAxiosError`, `error.response`). Su `mapToAppError(error: unknown): AppError` clasifica cualquier error en una de siete clases que extienden `Error` (`BusinessError`, `ValidationError`, `UnauthorizedError`, `SessionExpiredError`, `RateLimitedError`, `NetworkError`, `UnexpectedError`), discriminadas por `kind`. Todo lo demás — `extractFormErrors`, `notifyError`, `QueryErrorState`, el `retry` de `query-client.ts` — trabaja sobre `AppError`, nunca sobre axios directamente; una regla de ESLint (`no-restricted-imports`) lo enforcea, exceptuando `src/lib/api.ts` (crea el cliente axios, no lee `error.response`).
 
-## Los 40 códigos
+## Los 41 códigos
 
 | código | HTTP | sitio de origen | `context` |
 |---|---|---|---|
@@ -73,6 +73,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `subscriptions.not_cancellable` | 409 | `CancelSubscriptionAction` | `subscription_status` (null sin suscripción) |
 | `plans.feature_unavailable` | 409 | middleware `EnsurePlanIncludes` (`plan.feature`), `OrganizationPlan` (invitar, aceptar, editar miembros, link por profesional) | `plan`, `feature` |
 | `plans.professional_limit_exceeded` | 409 | middleware `EnsureSubscriptionActive` (Gratis con más profesionales activos que el límite) | `plan`, `professional_limit`, `active_professionals` |
+| `plans.appointment_limit_reached` | 409 | `BookAppointmentAction` y el control previo de `BookOnlineAppointmentAction` (Gratis con el mes del turno lleno) | `appointment_limit`, `month` |
 | `plans.center_assigned` | 409 | `StartSubscriptionCheckoutAction` | |
 | `plans.assignment_unchanged` | 409 | `AssignOrganizationPlanAction` (dashboard) | |
 | `plans.subscription_live` | 409 | `AssignOrganizationPlanAction` (dashboard) | `subscription_status` |

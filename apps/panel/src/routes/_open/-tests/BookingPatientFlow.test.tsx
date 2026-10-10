@@ -306,6 +306,30 @@ describe('BookingPatientForm validation and submission', () => {
         },
     );
 
+    it('points the patient to another month or the practice when the month is full, never naming the plan', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce(
+            businessError('plans.appointment_limit_reached', {
+                appointment_limit: 40,
+                month: '2026-08',
+            }),
+        );
+        await goToPatientForm();
+
+        fillValidPatientData();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        expect(
+            await screen.findByText(
+                'No quedan turnos online para ese mes. Elegí una fecha de otro mes o comunicate directamente con el consultorio para pedir un turno.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.queryByText(/plan|suscripción|Ajustes|límite/i),
+        ).toBeNull();
+    });
+
     it('keeps the typed data when the patient goes back to the grid by hand', async () => {
         await goToPatientForm();
         fillValidPatientData();

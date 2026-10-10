@@ -49,4 +49,5 @@ enum ErrorCode: string
     case PlansCenterAssigned = 'plans.center_assigned';
     case PlansAssignmentUnchanged = 'plans.assignment_unchanged';
     case PlansSubscriptionLive = 'plans.subscription_live';
+    case PlansAppointmentLimitReached = 'plans.appointment_limit_reached';
 }

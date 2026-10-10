@@ -41,7 +41,8 @@ export type ErrorCode =
     | 'plans.professional_limit_exceeded'
     | 'plans.center_assigned'
     | 'plans.assignment_unchanged'
-    | 'plans.subscription_live';
+    | 'plans.subscription_live'
+    | 'plans.appointment_limit_reached';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -125,6 +126,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La organización ya tiene ese plan asignado. Actualizá la página para ver su plan vigente.',
     'plans.subscription_live':
         'La organización tiene una suscripción de Mercado Pago que todavía puede cobrar. La persona dueña tiene que cancelarla antes de pasar a Centro.',
+    'plans.appointment_limit_reached':
+        'La organización llegó al límite de turnos del mes que incluye su plan.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

@@ -14,6 +14,12 @@ export type Plan = {
     active_professionals: number;
     /** More active professionals than the limit: the agenda is read-only. */
     restricted: boolean;
+    /** Appointments per calendar month the plan allows (#238); null for no limit. */
+    appointment_limit: number | null;
+    /** The month's count from which the panel warns; null for no limit. */
+    appointment_warning_threshold: number | null;
+    /** Current month, in the organization's timezone, without cancelled or rescheduled ones. */
+    appointments_this_month: number;
     practice_pricing: {
         base_amount: number;
         included_professionals: number;

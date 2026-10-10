@@ -1,5 +1,8 @@
 import { api } from '@/lib/api';
+import { planQueryOptions } from '@/lib/plan';
 import { notifySuccess } from '@/lib/toast';
+import { buildPlan } from '@/tests/fixtures/plan';
+import type { Plan } from '@/types/plan';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
@@ -27,10 +30,13 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     return { ...actual, useRouter: () => ({ invalidate }) };
 });
 
-function renderWithClient<T>(hook: () => T) {
+function renderWithClient<T>(hook: () => T, plan?: Plan) {
     const queryClient = new QueryClient({
         defaultOptions: { mutations: { retry: false } },
     });
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries');
     const wrapper = ({ children }: { children: ReactNode }) =>
         createElement(QueryClientProvider, { client: queryClient }, children);
@@ -148,5 +154,93 @@ describe('useRescheduleAppointment / useCancelAppointment', () => {
             .catch(() => {});
 
         expect(notifySuccess).not.toHaveBeenCalled();
+    });
+});
+
+describe("on Free, which counts the month's appointments (#238)", () => {
+    beforeEach(() => {
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.patch).mockReset();
+    });
+
+    it('refreshes the plan after creating, rescheduling or cancelling an appointment', async () => {
+        vi.mocked(api.post).mockResolvedValue({ data: {} });
+        vi.mocked(api.patch).mockResolvedValue({ data: {} });
+        const free = buildPlan('free');
+        const create = renderWithClient(useCreateAppointment, free);
+        const reschedule = renderWithClient(useRescheduleAppointment, free);
+        const cancel = renderWithClient(useCancelAppointment, free);
+
+        await create.result.current.mutateAsync(PAYLOAD);
+        await reschedule.result.current.mutateAsync({
+            appointmentId: 7,
+            startAt: '2026-08-10T17:30:00.000Z',
+        });
+        await cancel.result.current.mutateAsync({ appointmentId: 7 });
+
+        for (const { invalidateQueries } of [create, reschedule, cancel]) {
+            expect(invalidateQueries).toHaveBeenCalledWith({
+                queryKey: ['plan'],
+                refetchType: 'all',
+            });
+        }
+    });
+
+    it('refreshes the plan when the server says the month is full, so the banner catches up', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 409,
+                data: {
+                    error: {
+                        code: 'plans.appointment_limit_reached',
+                        message: 'Internal message.',
+                        context: { appointment_limit: 40, month: '2026-01' },
+                    },
+                },
+            },
+        });
+        const { result, invalidateQueries } = renderWithClient(
+            useCreateAppointment,
+            buildPlan('free'),
+        );
+
+        await result.current.mutateAsync(PAYLOAD).catch(() => {});
+
+        await waitFor(() =>
+            expect(invalidateQueries).toHaveBeenCalledWith({
+                queryKey: ['plan'],
+                refetchType: 'all',
+            }),
+        );
+        expect(invalidate).not.toHaveBeenCalled();
+    });
+
+    it('offers Consultorio when the month is full', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 409,
+                data: {
+                    error: {
+                        code: 'plans.appointment_limit_reached',
+                        message: 'Internal message.',
+                        context: { appointment_limit: 40, month: '2026-01' },
+                    },
+                },
+            },
+        });
+        const { result } = renderWithClient(
+            useCreateAppointment,
+            buildPlan('free'),
+        );
+
+        await result.current.mutateAsync(PAYLOAD).catch(() => {});
+
+        await waitFor(() =>
+            expect(result.current.message).toBe(
+                'Llegaste al límite de turnos del mes que incluye el plan Gratis. Pasá a Consultorio desde Ajustes para seguir cargando turnos.',
+            ),
+        );
     });
 });

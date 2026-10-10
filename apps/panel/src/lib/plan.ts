@@ -1,7 +1,9 @@
 import { api } from '@/lib/api';
+import { mapToAppError } from '@/lib/api-errors';
 import { useSubscription } from '@/lib/subscription';
 import type { Plan, PlanFeature, PlanId } from '@/types/plan';
-import { queryOptions, useQuery } from '@tanstack/react-query';
+import type { QueryKey } from '@tanstack/react-query';
+import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 
 export const planQueryOptions = queryOptions({
     queryKey: ['plan'],
@@ -30,6 +32,41 @@ export function planIncludes(
 
 export function usePlanIncludes(feature: PlanFeature): boolean {
     return planIncludes(usePlan(), feature);
+}
+
+/**
+ * What a change to the agenda refreshes besides the page: the plan too when
+ * it counts the month's appointments (#238), so the banner stays current.
+ */
+export function useAppointmentChangeQueryKeys(): QueryKey[] {
+    const plan = usePlan();
+
+    return plan && plan.appointment_limit !== null
+        ? [['appointments'], planQueryOptions.queryKey]
+        : [['appointments']];
+}
+
+/**
+ * A 409 for a full month means the cached count is behind (bookings from
+ * elsewhere): refetches the plan so the banner catches up. No-op for any
+ * other error.
+ */
+export function useRefreshPlanOnFullMonth(): (error: unknown) => Promise<void> {
+    const queryClient = useQueryClient();
+
+    return async (error) => {
+        const appError = mapToAppError(error);
+
+        if (
+            appError.kind === 'business' &&
+            appError.code === 'plans.appointment_limit_reached'
+        ) {
+            await queryClient.invalidateQueries({
+                queryKey: planQueryOptions.queryKey,
+                refetchType: 'all',
+            });
+        }
+    };
 }
 
 /** Why the read-only modules are read-only, so the copy can name the fix: pay (`subscription`) or change plan / deactivate professionals (`plan`). */

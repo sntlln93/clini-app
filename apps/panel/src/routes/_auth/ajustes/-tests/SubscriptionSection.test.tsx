@@ -503,6 +503,11 @@ describe('SubscriptionSection', () => {
                 '$ 15.000 por mes con 5 profesionales incluidos y $ 5.000 por cada profesional adicional',
             );
             expect(
+                plainText(
+                    screen.getByText(/Consultorio suma equipo con roles/),
+                ),
+            ).toContain('Incluye 1 profesional, hasta 40 turnos por mes,');
+            expect(
                 screen.getByRole('button', { name: 'Pasar a Consultorio' }),
             ).not.toBeNull();
             expect(

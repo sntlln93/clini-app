@@ -2,6 +2,7 @@ import {
     planIncludes,
     planQueryOptions,
     practiceMonthlyAmount,
+    useAppointmentChangeQueryKeys,
     useWritesRestricted,
 } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
@@ -66,6 +67,37 @@ describe('useWritesRestricted', () => {
         ['nothing loaded', undefined, undefined, false],
     ])('is %s → %s', (_label, subscription, plan, expected) => {
         expect(restrictedWith(subscription, plan)).toBe(expected);
+    });
+});
+
+describe('useAppointmentChangeQueryKeys', () => {
+    function keysWith(plan: Plan | undefined) {
+        const queryClient = new QueryClient();
+        if (plan) {
+            queryClient.setQueryData(planQueryOptions.queryKey, plan);
+        }
+
+        return renderHook(() => useAppointmentChangeQueryKeys(), {
+            wrapper: ({ children }: { children: ReactNode }) => (
+                <QueryClientProvider client={queryClient}>
+                    {children}
+                </QueryClientProvider>
+            ),
+        }).result.current;
+    }
+
+    it("refreshes the plan too on Free, which counts the month's appointments", () => {
+        expect(keysWith(buildPlan('free'))).toEqual([
+            ['appointments'],
+            ['plan'],
+        ]);
+    });
+
+    it.each([
+        ['a paid plan', buildPlan('practice')],
+        ['no plan loaded', undefined],
+    ])('refreshes only the appointments on %s', (_label, plan) => {
+        expect(keysWith(plan)).toEqual([['appointments']]);
     });
 });
 

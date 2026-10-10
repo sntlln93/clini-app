@@ -20,6 +20,9 @@ export function buildPlan(plan: PlanId, overrides: Partial<Plan> = {}): Plan {
         restricted:
             professionalLimit !== null &&
             activeProfessionals > professionalLimit,
+        appointment_limit: paid ? null : 40,
+        appointment_warning_threshold: paid ? null : 35,
+        appointments_this_month: 0,
         practice_pricing: {
             base_amount: 15000,
             included_professionals: 5,

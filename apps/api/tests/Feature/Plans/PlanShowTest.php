@@ -35,6 +35,9 @@ test('a new organization with no subscription is on Free, with every paid functi
             'professional_limit' => 1,
             'active_professionals' => 0,
             'restricted' => false,
+            'appointment_limit' => 40,
+            'appointment_warning_threshold' => 35,
+            'appointments_this_month' => 0,
             'practice_pricing' => [
                 'base_amount' => 15000,
                 'included_professionals' => 5,
@@ -53,7 +56,8 @@ test('the plan follows the subscription: Practice while it grants access, Free o
         ->assertOk()
         ->assertJsonPath('data.plan', $plan)
         ->assertJsonPath('data.features.prescriptions', $plan === 'practice')
-        ->assertJsonPath('data.professional_limit', $plan === 'practice' ? null : 1);
+        ->assertJsonPath('data.professional_limit', $plan === 'practice' ? null : 1)
+        ->assertJsonPath('data.appointment_limit', $plan === 'practice' ? null : 40);
 })->with([
     'active' => [SubscriptionStatus::Active, [], 'practice'],
     'grace' => [SubscriptionStatus::Grace, [], 'practice'],
@@ -75,6 +79,8 @@ test('an operator-assigned Center wins over the subscription and lifts every lim
         ->assertJsonPath('data.assigned_by_platform', true)
         ->assertJsonPath('data.features.team', true)
         ->assertJsonPath('data.professional_limit', null)
+        ->assertJsonPath('data.appointment_limit', null)
+        ->assertJsonPath('data.appointment_warning_threshold', null)
         ->assertJsonPath('data.active_professionals', 1);
 });
 

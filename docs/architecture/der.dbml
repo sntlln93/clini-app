@@ -409,6 +409,19 @@ Table reminders {
   Note: 'Patient reminder for an appointment. A polymorphic recipient (User or Patient, CU-29) is deferred to a future decoupled notifications module (CU-27/28).'
 }
 
+Table appointment_limit_warnings {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  month date [not null, note: 'First day of the month, in the organization timezone']
+  created_at timestamp [not null]
+
+  indexes {
+    (organization_id, month) [unique]
+  }
+
+  Note: 'One row per organization and month whose Free-plan warning (35 of 40 appointments, #238) was sent; the unique key makes it once per month.'
+}
+
 Table subscriptions {
   id bigint [pk, increment]
   organization_id bigint [not null, unique]
@@ -519,5 +532,6 @@ Ref: addresses.city_id > cities.id [delete: restrict]
 Ref: holidays.province_id > provinces.id [delete: restrict]
 Ref: organization_holidays.organization_id > organizations.id [delete: cascade]
 Ref: subscriptions.organization_id > organizations.id [delete: cascade]
+Ref: appointment_limit_warnings.organization_id > organizations.id [delete: cascade]
 Ref: subscription_events.subscription_id > subscriptions.id [delete: set null]
 Ref: admin_audit_logs.platform_admin_id > platform_admins.id [delete: restrict]

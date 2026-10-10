@@ -8,7 +8,9 @@ import { useForm } from 'react-hook-form';
 import {
     BOOKING_CLOSED_MESSAGE,
     isBookingClosedError,
+    isMonthFullError,
     isSlotUnavailableError,
+    MONTH_FULL_MESSAGE,
     useConfirmBooking,
 } from '../../-hooks/use-confirm-booking';
 import { BookingPatientFormFields } from './BookingPatientFormFields';
@@ -67,6 +69,11 @@ export function BookingPatientForm({
 
             if (isBookingClosedError(error)) {
                 form.setError('root', { message: BOOKING_CLOSED_MESSAGE });
+                return;
+            }
+
+            if (isMonthFullError(error)) {
+                form.setError('root', { message: MONTH_FULL_MESSAGE });
                 return;
             }
 

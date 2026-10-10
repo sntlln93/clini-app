@@ -39,4 +39,20 @@ enum Plan: string
     {
         return $this === self::Free ? 1 : null;
     }
+
+    /**
+     * Appointments per calendar month the plan allows (#238); null for no limit.
+     */
+    public function monthlyAppointmentLimit(): ?int
+    {
+        return $this === self::Free ? 40 : null;
+    }
+
+    /**
+     * The month's appointment count that triggers the owner's warning.
+     */
+    public function appointmentWarningThreshold(): ?int
+    {
+        return $this === self::Free ? 35 : null;
+    }
 }
