@@ -37,7 +37,7 @@ export function ProfessionalPicker({
             <Label htmlFor={triggerId}>Profesional</Label>
             <Select
                 items={professionalItems}
-                value={selectedId !== null ? String(selectedId) : undefined}
+                value={selectedId !== null ? String(selectedId) : null}
                 onValueChange={(value) => onSelect(Number(value))}
             >
                 <SelectTrigger id={triggerId} className="w-full sm:w-64">
