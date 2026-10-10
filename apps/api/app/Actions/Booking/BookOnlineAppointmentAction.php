@@ -16,6 +16,7 @@ use App\Enums\AppointmentOrigin;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\ProfessionalService;
+use App\Support\OrganizationPlan;
 
 /**
  * The scoped Membership::query()->findOrFail 404s a cross-org membership_id
@@ -25,7 +26,9 @@ use App\Models\ProfessionalService;
  * SlotTakenException. When no active ProfessionalService exists, the
  * pre-check returns rather than raising, so the downstream 409 is
  * ServiceNotActiveForProfessionalException, not masked by one of this
- * action's own.
+ * action's own. The monthly appointment limit (#238) is pre-checked here
+ * only so a full month doesn't register the patient first; the check that
+ * holds under concurrency is BookAppointmentAction's.
  *
  * @implements Action<OnlineBookingData>
  */
@@ -35,6 +38,7 @@ class BookOnlineAppointmentAction implements Action
         private readonly AssertSlotWithinPublishedScheduleAction $assertSlotWithinPublishedSchedule,
         private readonly RegisterPatientAction $registerPatient,
         private readonly BookAppointmentAction $bookAppointment,
+        private readonly OrganizationPlan $plans,
     ) {}
 
     /**
@@ -90,5 +94,7 @@ class BookOnlineAppointmentAction implements Action
             startAt: $dto->startAt,
             durationMinutes: $professionalService->duration_minutes,
         ));
+
+        $this->plans->ensureWithinAppointmentLimit($dto->organizationId, $this->plans->of($dto->organizationId), $dto->startAt);
     }
 }

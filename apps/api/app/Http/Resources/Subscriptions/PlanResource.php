@@ -12,7 +12,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * `restricted`: more active professionals than the plan allows, which makes
- * the agenda read-only (EnsureSubscriptionActive). `practice_pricing` lets
+ * the agenda read-only (EnsureSubscriptionActive). `appointments_this_month`
+ * counts the current month in the organization's timezone, against
+ * `appointment_limit` (#238). `practice_pricing` lets
  * the panel show what Practice costs before an owner changes plan or adds
  * a professional.
  *
@@ -42,6 +44,9 @@ class PlanResource extends JsonResource
             'professional_limit' => $limit,
             'active_professionals' => $overview->activeProfessionals,
             'restricted' => $limit !== null && $overview->activeProfessionals > $limit,
+            'appointment_limit' => $overview->plan->monthlyAppointmentLimit(),
+            'appointment_warning_threshold' => $overview->plan->appointmentWarningThreshold(),
+            'appointments_this_month' => $overview->appointmentsThisMonth,
             'practice_pricing' => [
                 'base_amount' => $pricing->baseAmount(),
                 'included_professionals' => $pricing->includedProfessionals(),

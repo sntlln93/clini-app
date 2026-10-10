@@ -5,14 +5,18 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Data\Subscriptions\PlanOverviewData;
+use App\Enums\AppointmentStatus;
 use App\Enums\MembershipRole;
 use App\Enums\Plan;
 use App\Enums\PlanFeature;
+use App\Exceptions\Plans\PlanAppointmentLimitReachedException;
 use App\Exceptions\Plans\PlanFeatureUnavailableException;
 use App\Exceptions\Plans\PlanProfessionalLimitExceededException;
+use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Subscription;
+use Carbon\CarbonImmutable;
 
 /**
  * Resolves an organization's plan (Plan::resolve) and enforces it on the
@@ -43,6 +47,7 @@ final class OrganizationPlan
             plan: $this->of($organizationId),
             assignedByPlatform: $assigned !== null,
             activeProfessionals: $this->activeProfessionals($organizationId),
+            appointmentsThisMonth: $this->appointmentsInMonth($organizationId, $this->monthOf($organizationId, CarbonImmutable::now())),
         );
     }
 
@@ -115,6 +120,57 @@ final class OrganizationPlan
 
         if ($active > $limit) {
             throw new PlanProfessionalLimitExceededException($organizationId, $plan, $limit, $active);
+        }
+    }
+
+    /**
+     * Start of the calendar month holding `$at`, in the organization's
+     * timezone: the unit of the monthly appointment limit (#238).
+     */
+    public function monthOf(int $organizationId, CarbonImmutable $at): CarbonImmutable
+    {
+        /** @var string $timezone */
+        $timezone = Organization::query()->whereKey($organizationId)->value('timezone') ?? config('app.timezone');
+
+        return $at->setTimezone($timezone)->startOfMonth();
+    }
+
+    /**
+     * Appointments starting within the month, counted by their date
+     * rather than by when they were booked. Cancelled and rescheduled ones
+     * free their place, as they free their slot (ADR 0004).
+     */
+    public function appointmentsInMonth(int $organizationId, CarbonImmutable $month): int
+    {
+        /** @var string $storageTimezone */
+        $storageTimezone = config('app.timezone');
+
+        return Appointment::withoutGlobalScope('organization')
+            ->where('organization_id', $organizationId)
+            ->whereNotIn('status', [AppointmentStatus::Cancelled, AppointmentStatus::Rescheduled])
+            ->where('start_at', '>=', $month->setTimezone($storageTimezone))
+            ->where('start_at', '<', $month->addMonth()->setTimezone($storageTimezone))
+            ->count();
+    }
+
+    /**
+     * Not race-safe on its own: BookAppointmentAction calls it under the
+     * organization's lock.
+     *
+     * @throws PlanAppointmentLimitReachedException
+     */
+    public function ensureWithinAppointmentLimit(int $organizationId, Plan $plan, CarbonImmutable $startAt): void
+    {
+        $limit = $plan->monthlyAppointmentLimit();
+
+        if ($limit === null) {
+            return;
+        }
+
+        $month = $this->monthOf($organizationId, $startAt);
+
+        if ($this->appointmentsInMonth($organizationId, $month) >= $limit) {
+            throw new PlanAppointmentLimitReachedException($organizationId, $plan, $limit, $month->format('Y-m'));
         }
     }
 }
