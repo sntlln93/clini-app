@@ -13,17 +13,6 @@ const ANONYMOUS_SESSION_PROBE_ISSUES = {
     ],
 };
 
-test.describe('/login (anonymous)', () => {
-    test.use({ expectedIssues: ANONYMOUS_SESSION_PROBE_ISSUES });
-
-    test('has no unexpected accessibility violations', async ({ page }) => {
-        await page.goto('/login');
-        await page.waitForLoadState('networkidle');
-
-        await runA11yScan(page, '/login');
-    });
-});
-
 // `networkidle` alone can resolve before the SPA has rendered the page (the
 // guard and loaders are still settling), and axe then scans an empty shell —
 // no landmark, no heading. Wait for the page's own landmark and title first.
@@ -34,81 +23,102 @@ async function waitForPage(page: Page, heading: string) {
     ).toBeVisible();
 }
 
-test.describe('authenticated views', () => {
-    test.use({ storageState: STORAGE_STATE });
+// Each view in both themes: the panel follows the system preference until the
+// user picks one in Ajustes, so the emulated color scheme switches it.
+for (const colorScheme of ['light', 'dark'] as const) {
+    test.describe(`${colorScheme} theme`, () => {
+        test.use({ colorScheme });
 
-    test('/ (dashboard) has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Agenda');
+        test.describe('/login (anonymous)', () => {
+            test.use({ expectedIssues: ANONYMOUS_SESSION_PROBE_ISSUES });
 
-        await runA11yScan(page, '/');
+            test('has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/login');
+                await page.waitForLoadState('networkidle');
+
+                await runA11yScan(page, '/login');
+            });
+        });
+
+        test.describe('authenticated views', () => {
+            test.use({ storageState: STORAGE_STATE });
+
+            test('/ (dashboard) has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Agenda');
+
+                await runA11yScan(page, '/');
+            });
+
+            test('/agenda has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/agenda');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Agenda');
+
+                await runA11yScan(page, '/agenda');
+            });
+
+            test('/pacientes has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/pacientes');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Pacientes');
+
+                await runA11yScan(page, '/pacientes');
+            });
+
+            test('/profesionales has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/profesionales');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Profesionales');
+
+                await runA11yScan(page, '/profesionales');
+            });
+
+            test('/disponibilidad has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/disponibilidad');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Disponibilidad');
+
+                await runA11yScan(page, '/disponibilidad');
+            });
+
+            test('/ajustes has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/ajustes');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Ajustes');
+
+                await runA11yScan(page, '/ajustes');
+            });
+
+            test('the "Nuevo turno" appointment form dialog has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/agenda');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Agenda');
+
+                await page.getByRole('button', { name: 'Nuevo turno' }).click();
+                await expect(
+                    page.getByRole('dialog', { name: 'Nuevo turno' }),
+                ).toBeVisible();
+
+                await runA11yScan(page, '/agenda#nuevo-turno');
+            });
+        });
     });
-
-    test('/agenda has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/agenda');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Agenda');
-
-        await runA11yScan(page, '/agenda');
-    });
-
-    test('/pacientes has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/pacientes');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Pacientes');
-
-        await runA11yScan(page, '/pacientes');
-    });
-
-    test('/profesionales has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/profesionales');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Profesionales');
-
-        await runA11yScan(page, '/profesionales');
-    });
-
-    test('/disponibilidad has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/disponibilidad');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Disponibilidad');
-
-        await runA11yScan(page, '/disponibilidad');
-    });
-
-    test('/ajustes has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/ajustes');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Ajustes');
-
-        await runA11yScan(page, '/ajustes');
-    });
-
-    test('the "Nuevo turno" appointment form dialog has no unexpected accessibility violations', async ({
-        page,
-    }) => {
-        await page.goto('/agenda');
-        await page.waitForLoadState('networkidle');
-        await waitForPage(page, 'Agenda');
-
-        await page.getByRole('button', { name: 'Nuevo turno' }).click();
-        await expect(
-            page.getByRole('dialog', { name: 'Nuevo turno' }),
-        ).toBeVisible();
-
-        await runA11yScan(page, '/agenda#nuevo-turno');
-    });
-});
+}
