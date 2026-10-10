@@ -23,8 +23,9 @@ class MembershipInvitationFactory extends Factory
      */
     public function definition(): array
     {
+        // Invites staff, which only a paid plan allows (#237).
         return [
-            'organization_id' => Organization::factory(),
+            'organization_id' => Organization::factory()->center(),
             'email' => fake()->unique()->safeEmail(),
             'roles' => [MembershipRole::Staff],
             'token' => Hash::make(Str::random(40)),

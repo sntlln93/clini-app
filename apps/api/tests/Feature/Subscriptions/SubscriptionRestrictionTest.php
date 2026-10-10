@@ -86,7 +86,7 @@ function gatedWrites(array $fixture): array
     ];
 }
 
-test('every appointment, clinical note, prescription, availability and public booking write returns 409 when the subscription is restricted', function (SubscriptionStatus $status, array $attributes) {
+test('every appointment, clinical note, prescription, availability and public booking write returns 409 when the subscription expired', function (SubscriptionStatus $status, array $attributes) {
     $fixture = restrictionFixture($status, $attributes);
     $membership = $fixture['membership'];
 
@@ -99,11 +99,9 @@ test('every appointment, clinical note, prescription, availability and public bo
     }
 })->with([
     'expired' => [SubscriptionStatus::Expired, []],
-    'cancelled' => [SubscriptionStatus::Cancelled, []],
-    'cancelled, paid period over' => fn () => [SubscriptionStatus::Cancelled, ['access_ends_at' => now()->subMinute()]],
 ]);
 
-test('writes are not restricted without a subscription row, while pending, active or in grace, or cancelled within its paid period', function (?SubscriptionStatus $status, array $attributes) {
+test('writes are not restricted without a subscription row, while pending, active or in grace, or once cancelled (#237: on Free after its paid period)', function (?SubscriptionStatus $status, array $attributes) {
     $fixture = restrictionFixture($status, $attributes);
     $membership = $fixture['membership'];
 
@@ -121,6 +119,8 @@ test('writes are not restricted without a subscription row, while pending, activ
     'active' => [SubscriptionStatus::Active, []],
     'grace' => [SubscriptionStatus::Grace, []],
     'cancelled, paid period left' => fn () => [SubscriptionStatus::Cancelled, ['access_ends_at' => now()->addDay()]],
+    'cancelled, paid period over' => fn () => [SubscriptionStatus::Cancelled, ['access_ends_at' => now()->subMinute()]],
+    'cancelled with no paid period' => [SubscriptionStatus::Cancelled, []],
 ]);
 
 test('an active subscription books an appointment end to end', function () {

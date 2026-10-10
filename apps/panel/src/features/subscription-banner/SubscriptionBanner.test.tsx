@@ -1,4 +1,6 @@
+import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
+import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { fireEvent, render, screen } from '@testing-library/react';
 import type { MouseEventHandler, ReactNode } from 'react';
@@ -36,6 +38,17 @@ function subscription(overrides: Partial<Subscription> = {}): Subscription {
     return buildSubscription(overrides.status ?? 'active', overrides);
 }
 
+const NOW = new Date('2026-10-10T12:00:00+00:00');
+
+function renderBanner(
+    value: Subscription | null | undefined,
+    plan: Plan | undefined = buildPlan('practice'),
+) {
+    return render(
+        <SubscriptionBanner subscription={value} plan={plan} now={NOW} />,
+    );
+}
+
 describe('SubscriptionBanner', () => {
     it.each([
         ['no subscription', null],
@@ -43,22 +56,13 @@ describe('SubscriptionBanner', () => {
         ['active', subscription()],
         ['pending', subscription({ status: 'pending' })],
     ])('renders nothing for %s', (_label, value) => {
-        const { container } = render(
-            <SubscriptionBanner subscription={value} />,
-        );
+        const { container } = renderBanner(value);
 
         expect(container.innerHTML).toBe('');
     });
 
     it('warns about the pending payment and the days left during grace', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'grace',
-                    grace_days_left: 5,
-                })}
-            />,
-        );
+        renderBanner(subscription({ status: 'grace', grace_days_left: 5 }));
 
         expect(screen.getByRole('alert').textContent).toContain(
             'Tu suscripción tiene un pago pendiente.',
@@ -67,21 +71,12 @@ describe('SubscriptionBanner', () => {
             'Te quedan 5 días',
         );
         expect(
-            screen
-                .getByRole('link', { name: 'Ver suscripción' })
-                .getAttribute('href'),
+            screen.getByRole('link', { name: 'Ver plan' }).getAttribute('href'),
         ).toBe('/ajustes#suscripcion');
     });
 
     it('uses the singular for the last day of grace', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'grace',
-                    grace_days_left: 1,
-                })}
-            />,
-        );
+        renderBanner(subscription({ status: 'grace', grace_days_left: 1 }));
 
         expect(screen.getByRole('alert').textContent).toContain(
             'Te queda 1 día',
@@ -89,86 +84,84 @@ describe('SubscriptionBanner', () => {
     });
 
     it('announces the read-only mode once expired', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'expired',
-                    restricted: true,
-                })}
-            />,
-        );
+        renderBanner(subscription({ status: 'expired' }));
 
         expect(screen.getByRole('alert').textContent).toContain(
             'Suscripción vencida: la agenda está en modo solo lectura',
         );
     });
 
-    it('announces the read-only mode once cancelled', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'cancelled',
-                    restricted: true,
-                })}
-            />,
-        );
-
-        expect(screen.getByRole('alert').textContent).toContain(
-            'Suscripción cancelada: la agenda está en modo solo lectura',
-        );
-    });
-
-    it('tells until when the agenda keeps working after a cancellation within the paid period', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'cancelled',
-                    restricted: false,
-                    access_ends_at: '2026-11-03T12:00:00+00:00',
-                })}
-            />,
+    it('tells until when Consultorio lasts after a cancellation within the paid period', () => {
+        renderBanner(
+            subscription({
+                status: 'cancelled',
+                access_ends_at: '2026-11-03T12:00:00+00:00',
+            }),
         );
 
         const banner = screen.getByRole('alert');
         expect(banner.textContent).toContain('Cancelaste la suscripción.');
         expect(banner.textContent).toContain(
-            'La agenda sigue funcionando hasta el 3 de noviembre de 2026.',
+            'Seguís en el plan Consultorio hasta el 3 de noviembre de 2026.',
         );
-        expect(banner.textContent).not.toContain('modo solo lectura:');
+        expect(banner.textContent).toContain('pasa al plan Gratis');
+        expect(banner.textContent).not.toContain('solo lectura');
     });
 
-    it('announces the read-only mode once the paid period of a cancellation is over', () => {
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
+    it.each([
+        ['with its paid period over', '2026-10-03T12:00:00+00:00'],
+        ['with no paid period', null],
+    ])(
+        'renders nothing for a cancelled subscription %s: the organization is on Free',
+        (_label, accessEndsAt) => {
+            const { container } = renderBanner(
+                subscription({
                     status: 'cancelled',
-                    restricted: true,
-                    access_ends_at: '2026-10-03T12:00:00+00:00',
-                })}
-            />,
+                    access_ends_at: accessEndsAt,
+                }),
+                buildPlan('free'),
+            );
+
+            expect(container.innerHTML).toBe('');
+        },
+    );
+
+    it('never tells a Centro organization it will drop to Gratis when its cancelled subscription runs out', () => {
+        const { container } = renderBanner(
+            subscription({
+                status: 'cancelled',
+                access_ends_at: '2026-11-03T12:00:00+00:00',
+            }),
+            buildPlan('center'),
+        );
+
+        expect(container.innerHTML).toBe('');
+    });
+
+    it('announces the read-only mode on Free with more active professionals than its limit', () => {
+        renderBanner(
+            subscription({ status: 'cancelled' }),
+            buildPlan('free', { active_professionals: 3 }),
+        );
+
+        const banner = screen.getByRole('alert');
+        expect(banner.textContent).toContain(
+            'El plan Gratis incluye un solo profesional activo y tu consultorio tiene 3.',
+        );
+        expect(banner.textContent).toContain('modo solo lectura');
+        expect(banner.getAttribute('class')).toContain('destructive');
+    });
+
+    it('keeps the expiry notice over the professional limit: paying lifts both', () => {
+        renderBanner(
+            subscription({ status: 'expired' }),
+            buildPlan('free', { active_professionals: 3 }),
         );
 
         expect(screen.getByRole('alert').textContent).toContain(
-            'Suscripción cancelada: la agenda está en modo solo lectura',
+            'Suscripción vencida',
         );
     });
-
-    it.each(['grace', 'expired', 'cancelled'] as const)(
-        'links a %s subscription to the Suscripción section of Ajustes',
-        (status) => {
-            render(
-                <SubscriptionBanner
-                    subscription={subscription({ status, grace_days_left: 2 })}
-                />,
-            );
-
-            expect(
-                screen
-                    .getByRole('link', { name: 'Ver suscripción' })
-                    .getAttribute('href'),
-            ).toBe('/ajustes#suscripcion');
-        },
-    );
 
     it('scrolls the section into view when it is already on screen', () => {
         const section = document.createElement('section');
@@ -176,15 +169,8 @@ describe('SubscriptionBanner', () => {
         section.scrollIntoView = vi.fn();
         document.body.appendChild(section);
 
-        render(
-            <SubscriptionBanner
-                subscription={subscription({
-                    status: 'expired',
-                    restricted: true,
-                })}
-            />,
-        );
-        fireEvent.click(screen.getByRole('link', { name: 'Ver suscripción' }));
+        renderBanner(subscription({ status: 'expired' }));
+        fireEvent.click(screen.getByRole('link', { name: 'Ver plan' }));
 
         expect(section.scrollIntoView).toHaveBeenCalled();
         section.remove();

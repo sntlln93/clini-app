@@ -4,6 +4,7 @@ import type { AvailabilityReadOnlyReason } from '../-hooks/use-availability-perm
 const MESSAGES: Record<AvailabilityReadOnlyReason, string> = {
     subscription:
         'Solo lectura: la suscripción no está activa, así que no se pueden hacer cambios.',
+    plan: 'Solo lectura: el plan Gratis incluye un solo profesional activo. Pasá a Consultorio o desactivá profesionales para hacer cambios.',
     permission:
         'Solo lectura: no tenés permiso para editar la disponibilidad de este profesional.',
 };

@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Subscriptions\PlanController;
 use App\Http\Controllers\Subscriptions\SubscriptionController;
 use App\Http\Controllers\Subscriptions\SubscriptionReturnController;
 use Illuminate\Support\Facades\Route;
@@ -12,6 +13,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('subscription/return', [SubscriptionReturnController::class, 'show']);
 
 Route::middleware(['clinic.origin', 'auth:sanctum', 'not-blocked', 'organization'])->group(function (): void {
+    Route::get('plan', [PlanController::class, 'show']);
     Route::get('subscription', [SubscriptionController::class, 'show']);
     Route::post('subscription', [SubscriptionController::class, 'store']);
     Route::delete('subscription', [SubscriptionController::class, 'destroy']);

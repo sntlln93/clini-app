@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -14,6 +14,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { useInviteMember } from '../-hooks/use-invite-member';
+import { MemberPlanNote } from './MemberPlanNote';
 import { MemberRoleFields } from './MemberRoleFields';
 import {
     inviteMemberSchema,
@@ -34,6 +35,8 @@ export function MemberInviteForm() {
         resolver: zodResolver(inviteMemberSchema),
         defaultValues: DEFAULT_VALUES,
     });
+
+    const roles = useWatch({ control: form.control, name: 'roles' });
 
     async function onSubmit(values: InviteMemberFormValues) {
         try {
@@ -110,6 +113,8 @@ export function MemberInviteForm() {
                     name="roles"
                     warnOnOwner
                 />
+
+                <MemberPlanNote gainedRoles={roles} />
 
                 <div className="flex gap-2">
                     <Button

@@ -5,63 +5,102 @@ import {
     formatSubscriptionDate,
     scrollToSubscriptionSection,
 } from '@/lib/subscription';
+import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { Link } from '@tanstack/react-router';
 import { CircleAlert } from 'lucide-react';
 
 type SubscriptionBannerProps = {
     subscription: Subscription | null | undefined;
+    plan: Plan | undefined;
+    now?: Date;
 };
+
+type BannerCopy = { title: string; description: string; restricted: boolean };
 
 function daysLeftLabel(days: number): string {
     return days === 1 ? 'Te queda 1 día' : `Te quedan ${days} días`;
 }
 
-function bannerCopy(
+function subscriptionCopy(
     subscription: Subscription,
-): { title: string; description: string } | null {
+    now: Date,
+    assignedByPlatform: boolean,
+): BannerCopy | null {
     switch (subscription.status) {
         case 'grace':
             return {
                 title: 'Tu suscripción tiene un pago pendiente.',
                 description: `${daysLeftLabel(subscription.grace_days_left ?? 0)} para regularizarlo antes de que la agenda quede en modo solo lectura.`,
+                restricted: false,
             };
         case 'expired':
             return {
                 title: 'Suscripción vencida: la agenda está en modo solo lectura.',
                 description:
                     'Podés consultar los turnos existentes, pero no crear ni modificar turnos, notas clínicas, recetas ni disponibilidad, ni recibir reservas online, hasta regularizar el pago.',
+                restricted: true,
             };
         case 'cancelled':
-            // Still within the period it had already paid when it was cancelled.
-            if (!subscription.restricted && subscription.access_ends_at) {
+            // Only while the period it had already paid lasts; after it the
+            // organization is on Free — unless Centro is assigned, which
+            // doesn't depend on the subscription.
+            if (
+                !assignedByPlatform &&
+                subscription.access_ends_at &&
+                new Date(subscription.access_ends_at).getTime() > now.getTime()
+            ) {
                 return {
                     title: 'Cancelaste la suscripción.',
-                    description: `La agenda sigue funcionando hasta el ${formatSubscriptionDate(subscription.access_ends_at)}. Después queda en modo solo lectura, salvo que vuelvas a suscribirte.`,
+                    description: `Seguís en el plan Consultorio hasta el ${formatSubscriptionDate(subscription.access_ends_at)}. Después tu consultorio pasa al plan Gratis, salvo que vuelvas a suscribirte.`,
+                    restricted: false,
                 };
             }
 
-            return {
-                title: 'Suscripción cancelada: la agenda está en modo solo lectura.',
-                description:
-                    'Podés consultar los turnos existentes. Volvé a suscribirte para crear o modificar turnos, notas clínicas, recetas y disponibilidad, y para recibir reservas online.',
-            };
+            return null;
         default:
             return null;
     }
 }
 
-/** Panel-wide notice for a subscription in grace, expired or cancelled (still within its paid period or not); renders nothing otherwise. */
-export function SubscriptionBanner({ subscription }: SubscriptionBannerProps) {
-    const copy = subscription ? bannerCopy(subscription) : null;
+function planCopy(plan: Plan): BannerCopy | null {
+    if (!plan.restricted) {
+        return null;
+    }
 
-    if (!copy || !subscription) {
+    return {
+        title: `El plan Gratis incluye ${plan.professional_limit === 1 ? 'un solo profesional activo' : `${plan.professional_limit} profesionales activos`} y tu consultorio tiene ${plan.active_professionals}.`,
+        description:
+            'La agenda queda en modo solo lectura hasta que pases a Consultorio o desactives profesionales.',
+        restricted: true,
+    };
+}
+
+/** Panel-wide notice for a subscription in grace, expired or within the paid period of a cancellation, or for more active professionals than the plan allows; renders nothing otherwise. */
+export function SubscriptionBanner({
+    subscription,
+    plan,
+    now = new Date(),
+}: SubscriptionBannerProps) {
+    const fromSubscription = subscription
+        ? subscriptionCopy(
+              subscription,
+              now,
+              plan?.assigned_by_platform ?? false,
+          )
+        : null;
+    const copy =
+        fromSubscription?.restricted || !plan
+            ? fromSubscription
+            : (planCopy(plan) ?? fromSubscription);
+
+    if (!copy) {
         return null;
     }
 
     return (
         <Alert
-            variant={subscription.restricted ? 'destructive' : 'default'}
+            variant={copy.restricted ? 'destructive' : 'default'}
             className="mb-4 print:hidden"
         >
             <CircleAlert />
@@ -74,7 +113,7 @@ export function SubscriptionBanner({ subscription }: SubscriptionBannerProps) {
                     onClick={scrollToSubscriptionSection}
                     className={buttonVariants({ size: 'sm', variant: 'link' })}
                 >
-                    Ver suscripción
+                    Ver plan
                 </Link>
             </AlertDescription>
         </Alert>

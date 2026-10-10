@@ -17,6 +17,16 @@ describe('PricingSection', () => {
         within(consultorioCard()).getByText(/\$15\.000/);
     });
 
+    it('prices Consultorio like the panel charges it: 5 professionals included, then each extra one (#237)', () => {
+        render(<PricingSection />);
+
+        const card = within(consultorioCard());
+        card.getByText(
+            'Incluye 5 profesionales. Cada profesional adicional suma $5.000 por mes.',
+        );
+        card.getByText('5 profesionales incluidos, sin tope');
+    });
+
     it('applies the annual discount when switching to annual', () => {
         render(<PricingSection />);
 

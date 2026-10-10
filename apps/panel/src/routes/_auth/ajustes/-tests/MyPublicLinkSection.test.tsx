@@ -1,9 +1,13 @@
 import { api } from '@/lib/api';
+import { planQueryOptions } from '@/lib/plan';
 import { useSession } from '@/lib/session';
 import { notifyError, notifySuccess } from '@/lib/toast';
+import { buildPlan } from '@/tests/fixtures/plan';
 import type { Membership } from '@/types/membership';
+import type { Plan } from '@/types/plan';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MyPublicLinkSection } from '../-components/MyPublicLinkSection';
 
@@ -22,7 +26,14 @@ const invalidate = vi.fn();
 vi.mock('@tanstack/react-router', async (importOriginal) => {
     const actual =
         await importOriginal<typeof import('@tanstack/react-router')>();
-    return { ...actual, useRouter: () => ({ invalidate }) };
+    return {
+        ...actual,
+        useRouter: () => ({ invalidate }),
+        // PlanFeatureNote's link to Ajustes, rendered outside a router here.
+        Link: ({ children, to }: { children: ReactNode; to: string }) => (
+            <a href={to}>{children}</a>
+        ),
+    };
 });
 
 function membershipWithSlug(slug: string | null): Membership {
@@ -38,8 +49,11 @@ function membershipWithSlug(slug: string | null): Membership {
     };
 }
 
-function renderSection(membership: Membership) {
+function renderSection(membership: Membership, plan?: Plan) {
     const queryClient = new QueryClient();
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     render(
         <QueryClientProvider client={queryClient}>
             <MyPublicLinkSection membership={membership} />
@@ -282,5 +296,42 @@ describe('MyPublicLinkSection', () => {
                 `${window.location.origin}/reservar/carla-p`,
             ),
         );
+    });
+
+    describe('on a plan without professional booking links', () => {
+        it('explains it and never saves a new link', () => {
+            renderSection(membershipWithSlug(null), buildPlan('free'));
+
+            expect(
+                screen.getByText(/no incluye links de reserva por profesional/),
+            ).not.toBeNull();
+            fireEvent.change(screen.getByLabelText('Link'), {
+                target: { value: 'dra-lopez' },
+            });
+
+            expect(
+                (
+                    screen.getByRole('button', {
+                        name: 'Guardar',
+                    }) as HTMLButtonElement
+                ).disabled,
+            ).toBe(true);
+        });
+
+        it('still removes a link set before the downgrade', async () => {
+            vi.mocked(api.patch).mockResolvedValue({ data: { data: {} } });
+            renderSection(membershipWithSlug('dra-previa'), buildPlan('free'));
+
+            fireEvent.change(screen.getByLabelText('Link'), {
+                target: { value: '' },
+            });
+            fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+            await waitFor(() =>
+                expect(api.patch).toHaveBeenCalledWith('/memberships/me/slug', {
+                    slug: null,
+                }),
+            );
+        });
     });
 });

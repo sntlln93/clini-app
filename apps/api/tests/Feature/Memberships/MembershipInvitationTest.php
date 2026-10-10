@@ -31,7 +31,7 @@ function tokenFromAcceptanceUrl(string $acceptanceUrl): string
 
 test('inviting creates an invitation for the active organization, stores only the token hash, and dispatches the mail', function () {
     Mail::fake();
-    $owner = Membership::factory()->owner()->create();
+    $owner = Membership::factory()->onPaidPlan()->owner()->create();
 
     $response = $this->actingAs($owner->user)->postJson('/api/v1/memberships/invitations', [
         'email' => 'invitee@example.com',
@@ -58,7 +58,7 @@ test('inviting creates an invitation for the active organization, stores only th
 
 test('inviting the same email again invalidates the previous pending invitation', function () {
     Mail::fake();
-    $owner = Membership::factory()->owner()->create();
+    $owner = Membership::factory()->onPaidPlan()->owner()->create();
 
     $this->actingAs($owner->user)->postJson('/api/v1/memberships/invitations', [
         'email' => 'invitee@example.com',
@@ -85,7 +85,7 @@ test('inviting the same email again invalidates the previous pending invitation'
 });
 
 test('a user without MembershipsManage permission gets 403 when inviting', function () {
-    $staff = Membership::factory()->staff()->create();
+    $staff = Membership::factory()->onPaidPlan()->staff()->create();
 
     $this->actingAs($staff->user)->postJson('/api/v1/memberships/invitations', [
         'email' => 'invitee@example.com',
@@ -102,8 +102,8 @@ test('a guest gets 401 when inviting', function () {
 
 test('inviting never accepts organization_id from the payload', function () {
     Mail::fake();
-    $owner = Membership::factory()->owner()->create();
-    $otherOrganization = Organization::factory()->create();
+    $owner = Membership::factory()->onPaidPlan()->owner()->create();
+    $otherOrganization = Organization::factory()->center()->create();
 
     $this->actingAs($owner->user)->postJson('/api/v1/memberships/invitations', [
         'organization_id' => $otherOrganization->id,
@@ -180,7 +180,7 @@ test('showing an already-accepted token returns the invitation domain error', fu
 });
 
 test('accepting with an unknown email creates the user and an active membership with the invited roles, in the inviting organization only', function () {
-    $organization = Organization::factory()->create();
+    $organization = Organization::factory()->center()->create();
     $rawToken = Str::random(40);
     MembershipInvitation::factory()->create([
         'organization_id' => $organization->id,

@@ -5,6 +5,7 @@ export const AUDIT_ACTIONS = [
     'auth.logout',
     'organizations.suspend',
     'organizations.reactivate',
+    'organizations.assign_plan',
     'users.verify_email',
     'users.block',
     'users.unblock',

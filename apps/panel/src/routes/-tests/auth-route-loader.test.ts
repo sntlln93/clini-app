@@ -31,6 +31,7 @@ const EXPIRED_SUBSCRIPTION: Subscription = {
     next_payment_at: null,
     cancelled_at: null,
     access_ends_at: null,
+    amount: null,
 };
 
 // Narrowed from the loader union to a plain callable, since this route always passes a plain async function.

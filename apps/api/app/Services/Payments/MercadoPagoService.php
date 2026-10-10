@@ -59,8 +59,8 @@ final class MercadoPagoService implements SubscriptionGateway
             'auto_recurring' => [
                 'frequency' => 1,
                 'frequency_type' => 'months',
-                'transaction_amount' => $this->planAmount(),
-                'currency_id' => $this->configString('plan_currency', 'ARS'),
+                'transaction_amount' => $signup->amount,
+                'currency_id' => $signup->currency,
             ],
             'back_url' => $this->configString('back_url'),
             'status' => 'pending',
@@ -84,6 +84,18 @@ final class MercadoPagoService implements SubscriptionGateway
 
         $this->send($endpoint, fn (PendingRequest $request): Response => $request->put(self::BASE_URL.$endpoint, [
             'status' => 'cancelled',
+        ]));
+    }
+
+    public function updateSubscriptionAmount(string $id, int $amount, string $currency): void
+    {
+        $endpoint = '/preapproval/'.rawurlencode($id);
+
+        $this->send($endpoint, fn (PendingRequest $request): Response => $request->put(self::BASE_URL.$endpoint, [
+            'auto_recurring' => [
+                'transaction_amount' => $amount,
+                'currency_id' => $currency,
+            ],
         ]));
     }
 
@@ -328,13 +340,6 @@ final class MercadoPagoService implements SubscriptionGateway
         } catch (InvalidFormatException) {
             return null;
         }
-    }
-
-    private function planAmount(): int
-    {
-        $amount = Config::get('services.mercadopago.plan_amount');
-
-        return is_numeric($amount) ? (int) $amount : 0;
     }
 
     private function configString(string $key, string $default = ''): string

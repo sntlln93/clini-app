@@ -24,6 +24,7 @@ const CANCELLED: AdminSubscription = {
     next_payment_at: null,
     cancelled_at: '2026-10-10T12:00:00+00:00',
     access_ends_at: '2026-11-03T12:00:00+00:00',
+    amount: null,
     created_at: '2026-09-01T12:00:00+00:00',
     updated_at: '2026-10-10T12:00:00+00:00',
 };

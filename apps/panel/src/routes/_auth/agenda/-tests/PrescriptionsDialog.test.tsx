@@ -1,7 +1,10 @@
 import { api } from '@/lib/api';
+import { planQueryOptions } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
+import type { Plan } from '@/types/plan';
 import type { Prescription } from '@/types/prescription';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -67,8 +70,15 @@ function buildPrescription(
     };
 }
 
-function renderDialog(open: boolean = true, subscription?: Subscription) {
+function renderDialog(
+    open: boolean = true,
+    subscription?: Subscription,
+    plan?: Plan,
+) {
     const queryClient = new QueryClient();
+    if (plan) {
+        queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
     if (subscription !== undefined) {
         queryClient.setQueryData(
             subscriptionQueryOptions.queryKey,
@@ -288,7 +298,7 @@ describe('PrescriptionsDialog', () => {
         );
     });
 
-    it.each(['expired', 'cancelled'] as const)(
+    it.each(['expired'] as const)(
         'while the subscription is %s it keeps the print link but hides the form and the edit action',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({
@@ -305,4 +315,24 @@ describe('PrescriptionsDialog', () => {
             expect(screen.queryByLabelText('Medicamento')).toBeNull();
         },
     );
+
+    it("on a plan without prescriptions it keeps them printable, explains why it can't issue them and hides the form", async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [buildPrescription()] },
+        });
+        renderDialog(true, undefined, buildPlan('free'));
+
+        await screen.findByText('Amoxicilina × 2');
+        expect(screen.getByRole('link', { name: 'Imprimir' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+        expect(screen.queryByLabelText('Medicamento')).toBeNull();
+        expect(
+            screen.getByText(/Emitir recetas es parte del plan Consultorio/),
+        ).toBeTruthy();
+        expect(
+            screen
+                .getByRole('link', { name: 'Ver planes' })
+                .getAttribute('href'),
+        ).toBe('/ajustes#suscripcion');
+    });
 });

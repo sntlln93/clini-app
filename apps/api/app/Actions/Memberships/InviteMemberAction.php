@@ -9,21 +9,30 @@ use App\Contracts\Data;
 use App\Data\Memberships\MembershipInvitationData;
 use App\Mail\Memberships\MembershipInvitationMail;
 use App\Models\MembershipInvitation;
+use App\Support\OrganizationPlan;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
 /**
  * Invalidates any pending invitation for the same org+email before issuing a new one, so resending never leaves two valid tokens; the row stores only the token's hash, never the plaintext.
  *
+ * The plan's member rules (#237) are checked here and again, under lock, when the invitation is accepted.
+ *
  * @implements Action<MembershipInvitationData>
  */
 class InviteMemberAction implements Action
 {
+    public function __construct(
+        private readonly OrganizationPlan $plans,
+    ) {}
+
     /**
      * @param  MembershipInvitationData  $dto
      */
     public function handle(Data $dto): MembershipInvitation
     {
+        $this->plans->ensureAllowsMember($dto->organizationId, $dto->roles);
+
         MembershipInvitation::query()
             ->where('organization_id', $dto->organizationId)
             ->where('email', $dto->email)

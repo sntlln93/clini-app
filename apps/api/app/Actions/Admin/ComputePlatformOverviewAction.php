@@ -16,6 +16,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Support\PracticePricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -37,6 +38,7 @@ class ComputePlatformOverviewAction implements Action
 
     public function __construct(
         private readonly ListRecentPlatformActivityAction $listRecentActivity,
+        private readonly PracticePricing $pricing,
     ) {}
 
     /**
@@ -130,23 +132,25 @@ class ComputePlatformOverviewAction implements Action
     }
 
     /**
-     * Estimated monthly recurring revenue: subscriptions still paying
-     * (active + grace) times the single plan's price.
+     * Estimated monthly recurring revenue: the amount of every subscription
+     * still paying (active + grace), or the Practice base price for one
+     * with no stored amount.
      *
      * @return array<string, int|string>
      */
     private function mrr(): array
     {
-        $planAmount = config()->integer('services.mercadopago.plan_amount');
+        $planAmount = $this->pricing->baseAmount();
 
-        $paying = Subscription::withoutGlobalScope('organization')
+        $amounts = Subscription::withoutGlobalScope('organization')
             ->ofLiveOrganization()
             ->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::Grace])
-            ->count();
+            ->pluck('amount');
+        $paying = $amounts->count();
 
         return [
-            'amount' => $paying * $planAmount,
-            'currency' => config()->string('services.mercadopago.plan_currency', 'ARS'),
+            'amount' => $amounts->sum(fn (mixed $amount): int => is_numeric($amount) ? (int) $amount : $planAmount),
+            'currency' => $this->pricing->currency(),
             'paying_subscriptions' => $paying,
             'plan_amount' => $planAmount,
         ];

@@ -1,7 +1,9 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
+import { planIncludes, planQueryOptions } from '@/lib/plan';
 import { createFileRoute } from '@tanstack/react-router';
 import { formatClockTime, todayRange } from './-components/waiting-room';
 import { WaitingRoomBoard } from './-components/WaitingRoomBoard';
@@ -15,6 +17,15 @@ import {
 export const Route = createFileRoute('/_auth/sala-de-espera/')({
     head: () => titleHead('Sala de espera'),
     loader: async ({ context }) => {
+        // A plan without the waiting room (Free) gets an explanation instead
+        // of a read the API would reject (#237).
+        const plan =
+            await context.queryClient.ensureQueryData(planQueryOptions);
+
+        if (!planIncludes(plan, 'waiting_room')) {
+            return { available: false as const };
+        }
+
         const range = todayRange();
         const [professionals, appointments] = await Promise.all([
             ensureScopedProfessionals(context.queryClient),
@@ -25,7 +36,12 @@ export const Route = createFileRoute('/_auth/sala-de-espera/')({
             context.queryClient.getQueryState(waitingRoomQueryKey(range))
                 ?.dataUpdatedAt || Date.now();
 
-        return { professionals, appointments, updatedAt };
+        return {
+            available: true as const,
+            professionals,
+            appointments,
+            updatedAt,
+        };
     },
     pendingComponent: () => <ListSkeleton rows={4} />,
     errorComponent: RouteErrorState,
@@ -33,7 +49,30 @@ export const Route = createFileRoute('/_auth/sala-de-espera/')({
 });
 
 function WaitingRoomPage() {
-    const { professionals, appointments, updatedAt } = Route.useLoaderData();
+    const data = Route.useLoaderData();
+
+    if (!data.available) {
+        return (
+            <div className="space-y-4">
+                <h1 className="text-3xl tracking-tight">Sala de espera</h1>
+                <PlanFeatureNote>
+                    La sala de espera en vivo es parte del plan Consultorio.
+                </PlanFeatureNote>
+            </div>
+        );
+    }
+
+    return <WaitingRoomScreen {...data} />;
+}
+
+function WaitingRoomScreen({
+    professionals,
+    appointments,
+    updatedAt,
+}: Omit<
+    Extract<ReturnType<typeof Route.useLoaderData>, { available: true }>,
+    'available'
+>) {
     useWaitingRoomAutoRefresh();
 
     return (

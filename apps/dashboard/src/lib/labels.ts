@@ -1,6 +1,7 @@
 import type { StatusTone } from '@/components/StatusPill';
 import type { MembershipRole, MembershipStatus } from '@/types/admin';
 import type { AdminAuditAction, AuditSubjectType } from '@/types/audit';
+import type { OrganizationPlan } from '@/types/organization';
 import type { ActivityKind } from '@/types/overview';
 import type {
     AppointmentOrigin,
@@ -80,10 +81,17 @@ export const AUDIT_ACTION_LABELS: Record<AdminAuditAction, string> = {
     'auth.logout': 'Cerró sesión',
     'organizations.suspend': 'Suspendió una organización',
     'organizations.reactivate': 'Reactivó una organización',
+    'organizations.assign_plan': 'Cambió el plan de una organización',
     'users.verify_email': 'Verificó un correo',
     'users.block': 'Bloqueó un usuario',
     'users.unblock': 'Desbloqueó un usuario',
     'subscriptions.extend_grace': 'Extendió un período de gracia',
+};
+
+export const PLAN_LABELS: Record<OrganizationPlan, string> = {
+    free: 'Gratis',
+    practice: 'Consultorio',
+    center: 'Centro',
 };
 
 export const AUDIT_SUBJECT_LABELS: Record<AuditSubjectType, string> = {

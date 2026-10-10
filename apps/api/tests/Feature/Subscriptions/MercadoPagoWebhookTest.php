@@ -169,7 +169,7 @@ test('a cancellation from Mercado Pago keeps the period it reports as paid when 
     expect($subscription->fresh()->access_ends_at?->toDateTimeString())->toBe('2026-11-03 12:00:00');
 });
 
-test('a cancellation from Mercado Pago makes an unpaid subscription read-only right away', function (SubscriptionStatus $status) {
+test('a cancellation from Mercado Pago moves an unpaid subscription to Free right away, without restricting it', function (SubscriptionStatus $status) {
     fakePreapproval('pre-1', 'cancelled');
     $subscription = Subscription::factory()->withStatus($status)->renewingAt(now()->addDays(20))->create(['provider_subscription_id' => 'pre-1']);
 
@@ -177,7 +177,8 @@ test('a cancellation from Mercado Pago makes an unpaid subscription read-only ri
 
     $subscription->refresh();
     expect($subscription->access_ends_at)->toBeNull();
-    expect($subscription->restrictsWrites())->toBeTrue();
+    expect($subscription->grantsPaidPlan())->toBeFalse();
+    expect($subscription->restrictsWrites())->toBeFalse();
 })->with([
     'pending' => SubscriptionStatus::Pending,
     'grace' => SubscriptionStatus::Grace,

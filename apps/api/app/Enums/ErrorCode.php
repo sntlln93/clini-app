@@ -44,4 +44,9 @@ enum ErrorCode: string
     case SubscriptionsGraceExtensionNotAllowed = 'subscriptions.grace_extension_not_allowed';
     case SubscriptionsGraceExtensionNotLater = 'subscriptions.grace_extension_not_later';
     case SubscriptionsNotCancellable = 'subscriptions.not_cancellable';
+    case PlansFeatureUnavailable = 'plans.feature_unavailable';
+    case PlansProfessionalLimitExceeded = 'plans.professional_limit_exceeded';
+    case PlansCenterAssigned = 'plans.center_assigned';
+    case PlansAssignmentUnchanged = 'plans.assignment_unchanged';
+    case PlansSubscriptionLive = 'plans.subscription_live';
 }

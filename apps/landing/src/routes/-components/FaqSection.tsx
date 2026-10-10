@@ -24,7 +24,7 @@ const QUESTIONS = [
     },
     {
         q: '¿Sirve para un centro médico con muchos profesionales?',
-        a: 'Sí. Si son más de 5 profesionales o atienden en varias sedes, el plan Centro se arma a medida: migramos tus datos y capacitamos al equipo.',
+        a: 'Sí. Consultorio no tiene tope de profesionales: incluye 5 y cada uno adicional suma $5.000 por mes. Si atienden en varias sedes o necesitan dominio propio, el plan Centro se arma a medida: migramos tus datos y capacitamos al equipo.',
     },
 ];
 

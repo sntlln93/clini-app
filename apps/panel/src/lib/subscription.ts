@@ -23,20 +23,6 @@ export function useSubscription(): Subscription | null | undefined {
     return data;
 }
 
-export function isSubscriptionRestricted(
-    subscription: Subscription | null | undefined,
-): boolean {
-    return subscription?.restricted ?? false;
-}
-
-/**
- * Whether the write affordances of the read-only modules (agenda, clinical
- * notes, prescriptions, availability) must be hidden.
- */
-export function useSubscriptionRestricted(): boolean {
-    return isSubscriptionRestricted(useSubscription());
-}
-
 /** Anchor of Ajustes' subscription section, the target of the panel banner's link. */
 export const SUBSCRIPTION_SECTION_ID = 'suscripcion';
 

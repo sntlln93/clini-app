@@ -21,6 +21,9 @@ return new class extends Migration
             // Platform-operator moderation (#232): a suspended organization's members and public booking are rejected.
             $table->timestamp('suspended_at')->nullable();
             $table->string('suspension_reason', 500)->nullable();
+            // A plan an operator assigned outside self-service billing (only
+            // `center` today, #237); null derives it from the subscription.
+            $table->string('assigned_plan')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

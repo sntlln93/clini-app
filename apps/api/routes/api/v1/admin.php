@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\OrganizationController;
+use App\Http\Controllers\Admin\OrganizationPlanController;
 use App\Http\Controllers\Admin\OrganizationSuspensionController;
 use App\Http\Controllers\Admin\OverviewController;
 use App\Http\Controllers\Admin\PlatformAdminController;
@@ -34,6 +35,7 @@ Route::prefix('admin')->middleware('admin.origin')->group(function (): void {
         Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
         Route::post('organizations/{organization}/suspension', [OrganizationSuspensionController::class, 'store']);
         Route::delete('organizations/{organization}/suspension', [OrganizationSuspensionController::class, 'destroy']);
+        Route::put('organizations/{organization}/plan', [OrganizationPlanController::class, 'update']);
         Route::get('users', [UserController::class, 'index']);
         Route::get('users/{user}', [UserController::class, 'show']);
         Route::post('users/{user}/block', [UserBlockController::class, 'store']);

@@ -7,21 +7,26 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { SubscriptionStatusBadge } from '@/features/status-badges/SubscriptionStatusBadge';
-import { formatDateTime } from '@/lib/format';
-import { GRACE_REASON_LABELS } from '@/lib/labels';
+import { formatCurrencyARS, formatDateTime } from '@/lib/format';
+import { GRACE_REASON_LABELS, PLAN_LABELS } from '@/lib/labels';
+import type { OrganizationPlan } from '@/types/organization';
 import type { AdminSubscription } from '@/types/subscription';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 
 export function OrganizationSubscriptionCard({
+    plan,
+    assignedPlan,
     subscription,
 }: {
+    plan: OrganizationPlan;
+    assignedPlan: 'center' | null;
     subscription: AdminSubscription | null;
 }) {
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Suscripción</CardTitle>
+                <CardTitle>Plan y suscripción</CardTitle>
                 {subscription && (
                     <CardAction>
                         <Button
@@ -41,12 +46,23 @@ export function OrganizationSubscriptionCard({
                 )}
             </CardHeader>
             <CardContent>
+                <dl className="divide-y">
+                    <Row label="Plan">
+                        {PLAN_LABELS[plan]}
+                        {assignedPlan !== null && ' (asignado por Clini)'}
+                    </Row>
+                    {subscription?.amount != null && (
+                        <Row label="Monto mensual">
+                            {formatCurrencyARS(subscription.amount)}
+                        </Row>
+                    )}
+                </dl>
                 {subscription === null ? (
-                    <p className="text-muted-foreground">
+                    <p className="pt-2 text-muted-foreground">
                         Esta organización nunca inició una suscripción.
                     </p>
                 ) : (
-                    <dl className="divide-y">
+                    <dl className="divide-y border-t">
                         <Row label="Estado">
                             <SubscriptionStatusBadge
                                 status={subscription.status}

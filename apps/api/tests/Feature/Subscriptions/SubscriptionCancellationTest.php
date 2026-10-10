@@ -102,7 +102,7 @@ test('cancelling keeps the stored renewal date when it is later than the provide
         ->assertJsonPath('data.access_ends_at', '2026-10-30T12:00:00+00:00');
 });
 
-test('a cancelled subscription becomes read-only once its paid period ends', function () {
+test('a cancelled subscription keeps Practice until its paid period ends, then the organization is on Free', function () {
     fakeCancellablePreapproval('pre-1');
     $owner = Membership::factory()->owner()->create();
     Subscription::factory()->renewingAt(now()->addDays(20))->create([
@@ -113,18 +113,15 @@ test('a cancelled subscription becomes read-only once its paid period ends', fun
     $this->actingAs($owner->user)->deleteJson('/api/v1/subscription')->assertOk();
 
     Date::setTestNow('2026-10-30 11:59:59');
-    $this->actingAs($owner->user)->getJson('/api/v1/subscription')->assertJsonPath('data.restricted', false);
-    $this->actingAs($owner->user)->postJson('/api/v1/appointments', [])->assertStatus(422);
+    $this->actingAs($owner->user)->getJson('/api/v1/plan')->assertJsonPath('data.plan', 'practice');
 
     Date::setTestNow('2026-10-30 12:00:00');
-    $this->actingAs($owner->user)->getJson('/api/v1/subscription')->assertJsonPath('data.restricted', true);
-    $this->actingAs($owner->user)->postJson('/api/v1/appointments', [])
-        ->assertStatus(409)
-        ->assertJsonPath('error.code', ErrorCode::SubscriptionsInactive->value)
-        ->assertJsonPath('error.context.subscription_status', 'cancelled');
+    $this->actingAs($owner->user)->getJson('/api/v1/plan')->assertJsonPath('data.plan', 'free');
+    $this->actingAs($owner->user)->getJson('/api/v1/subscription')->assertJsonPath('data.restricted', false);
+    $this->actingAs($owner->user)->postJson('/api/v1/appointments', [])->assertStatus(422);
 });
 
-test('cancelling an unpaid subscription makes it read-only right away', function (Closure $state) {
+test('cancelling an unpaid subscription moves the organization to Free right away', function (Closure $state) {
     fakeCancellablePreapproval('pre-1');
     $owner = Membership::factory()->owner()->create();
     $subscription = $state(Subscription::factory())->create([
@@ -135,9 +132,11 @@ test('cancelling an unpaid subscription makes it read-only right away', function
     $this->actingAs($owner->user)->deleteJson('/api/v1/subscription')
         ->assertOk()
         ->assertJsonPath('data.status', 'cancelled')
-        ->assertJsonPath('data.restricted', true)
+        ->assertJsonPath('data.restricted', false)
         ->assertJsonPath('data.access_ends_at', null)
         ->assertJsonPath('data.grace_ends_at', null);
+
+    $this->actingAs($owner->user)->getJson('/api/v1/plan')->assertJsonPath('data.plan', 'free');
 
     expect(preapprovalCancellationSent('pre-1'))->toBeTrue();
     expect($subscription->fresh()->grace_reason)->toBeNull();

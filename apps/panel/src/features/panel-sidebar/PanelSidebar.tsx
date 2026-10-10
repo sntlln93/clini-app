@@ -12,6 +12,7 @@ import {
     useSidebar,
 } from '@/components/ui/sidebar';
 import { ProfileMenu } from '@/features/profile-menu/ProfileMenu';
+import { planIncludes, usePlan } from '@/lib/plan';
 import { useSession } from '@/lib/session';
 import { Link, useLocation } from '@tanstack/react-router';
 import { Stethoscope } from 'lucide-react';
@@ -22,8 +23,11 @@ export function PanelSidebar() {
     const { isMobile, setOpenMobile } = useSidebar();
     const { data: session } = useSession();
     const permissions = session?.permissions ?? [];
+    const plan = usePlan();
     const visibleNavItems = navItems.filter(
-        (item) => !item.permission || permissions.includes(item.permission),
+        (item) =>
+            (!item.permission || permissions.includes(item.permission)) &&
+            (!item.feature || planIncludes(plan, item.feature)),
     );
     // The mobile drawer would otherwise stay open over the new page. On click
     // rather than on route change: it also closes when tapping the current page.

@@ -30,9 +30,10 @@ export function useUpdateMembership(membershipId: number) {
                     payload,
                 )
                 .then((response) => response.data.data),
-        // Navigates back to the list on success, whose loader refetches, so a plain invalidate is enough; errors render inline in the form.
+        // Navigates back to the list on success, whose loader refetches, so a plain invalidate is enough (the plan's professional count is re-read by the `_auth` loader); errors render inline in the form.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            queryClient.invalidateQueries({ queryKey: ['plan'] });
             notifySuccess('Cambios guardados');
         },
     });
@@ -53,6 +54,7 @@ export function useDeactivateMembership() {
         // Its error already renders inline in the «Zona de peligro» section (MemberDangerZone), so no error toast.
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            queryClient.invalidateQueries({ queryKey: ['plan'] });
             notifySuccess('Miembro dado de baja');
         },
     });

@@ -3,13 +3,9 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
+import { planQueryOptions, usePlan } from '@/lib/plan';
 import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
-import type {
-    ProfessionalService,
-    ProfessionalSpecialty,
-    UserSpecialty,
-} from '@/types/professional';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
@@ -18,13 +14,12 @@ import { ProfessionalServicesSection } from './-components/ProfessionalServicesS
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
 import { SubscriptionSection } from './-components/SubscriptionSection';
 import { ThemeToggle } from './-components/ThemeToggle';
+import { loadProfessionalAssignments } from './-hooks/load-professional-assignments';
 import {
     catalogServicesQueryOptions,
     catalogSpecialtiesQueryOptions,
 } from './-hooks/use-catalog';
 import { useCheckoutReturn } from './-hooks/use-checkout-return';
-import { professionalServicesQueryOptions } from './-hooks/use-professional-services';
-import { professionalSpecialtiesQueryOptions } from './-hooks/use-professional-specialties';
 import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
 // `retorno`: the browser is back from the Mercado Pago checkout (the API's
@@ -66,66 +61,35 @@ export const Route = createFileRoute('/_auth/ajustes/')({
         );
 
         // No active membership means no organization to bill.
-        const subscription = session.membership
-            ? await context.queryClient.ensureQueryData({
-                  ...subscriptionQueryOptions,
-                  revalidateIfStale: true,
-              })
-            : null;
+        const [subscription, plan] = session.membership
+            ? await Promise.all([
+                  context.queryClient.ensureQueryData({
+                      ...subscriptionQueryOptions,
+                      revalidateIfStale: true,
+                  }),
+                  context.queryClient.ensureQueryData({
+                      ...planQueryOptions,
+                      revalidateIfStale: true,
+                  }),
+              ])
+            : [null, undefined];
 
-        const credentialsByMembership: Record<number, UserSpecialty[]> = {};
-        const assignedSpecialtiesByMembership: Record<
-            number,
-            ProfessionalSpecialty[]
-        > = {};
-        const assignedServicesByMembership: Record<
-            number,
-            ProfessionalService[]
-        > = {};
-
-        if (canManageProfessionals) {
-            const [perMembershipSpecialties, perMembershipServices] =
-                await Promise.all([
-                    Promise.all(
-                        professionals.map((membership) =>
-                            Promise.all([
-                                context.queryClient.ensureQueryData(
-                                    userSpecialtiesQueryOptions(
-                                        membership.user.id,
-                                    ),
-                                ),
-                                context.queryClient.ensureQueryData(
-                                    professionalSpecialtiesQueryOptions(
-                                        membership.id,
-                                    ),
-                                ),
-                            ]),
-                        ),
-                    ),
-                    Promise.all(
-                        professionals.map((membership) =>
-                            context.queryClient.ensureQueryData(
-                                professionalServicesQueryOptions(membership.id),
-                            ),
-                        ),
-                    ),
-                ]);
-
-            professionals.forEach((membership, index) => {
-                const [credentials, assignedSpecialties] =
-                    perMembershipSpecialties[index];
-                credentialsByMembership[membership.user.id] = credentials;
-                assignedSpecialtiesByMembership[membership.id] =
-                    assignedSpecialties;
-                assignedServicesByMembership[membership.id] =
-                    perMembershipServices[index];
-            });
-        }
+        const assignments = canManageProfessionals
+            ? await loadProfessionalAssignments(
+                  context.queryClient,
+                  professionals,
+              )
+            : {
+                  credentialsByMembership: {},
+                  assignedSpecialtiesByMembership: {},
+                  assignedServicesByMembership: {},
+              };
 
         return {
             userId: session.id,
             hasOrganization: Boolean(session.membership),
             subscription,
+            plan,
             isOwner: (session.roles ?? []).includes('owner'),
             canManageProfessionals,
             catalogSpecialties,
@@ -133,9 +97,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             mySpecialties,
             professionals,
             ownMembership: session.membership ?? null,
-            credentialsByMembership,
-            assignedSpecialtiesByMembership,
-            assignedServicesByMembership,
+            ...assignments,
         };
     },
     pendingComponent: () => <ListSkeleton />,
@@ -148,6 +110,7 @@ function AjustesPage() {
         userId,
         hasOrganization,
         subscription: loaderSubscription,
+        plan: loaderPlan,
         isOwner,
         canManageProfessionals,
         catalogSpecialties,
@@ -165,6 +128,7 @@ function AjustesPage() {
     const liveSubscription = useSubscription();
     const subscription =
         liveSubscription !== undefined ? liveSubscription : loaderSubscription;
+    const plan = usePlan() ?? loaderPlan;
     const { suscripcion } = Route.useSearch();
     const confirmingPayment = useCheckoutReturn(
         suscripcion === 'retorno',
@@ -197,6 +161,7 @@ function AjustesPage() {
                     <Separator />
                     <SubscriptionSection
                         subscription={subscription}
+                        plan={plan}
                         isOwner={isOwner}
                         confirmingPayment={confirmingPayment}
                     />

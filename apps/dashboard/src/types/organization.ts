@@ -1,6 +1,8 @@
 import type { MembershipRole, MembershipStatus, UserRef } from './admin';
 import type { AdminSubscription, SubscriptionStatus } from './subscription';
 
+export type OrganizationPlan = 'free' | 'practice' | 'center';
+
 /** Contract §3.4 — list item. */
 export type AdminOrganization = {
     id: number;
@@ -11,6 +13,10 @@ export type AdminOrganization = {
     suspended_at: string | null;
     suspension_reason: string | null;
     active_members_count: number;
+    /** Effective plan: Centro if assigned, else Consultorio while a subscription grants it, else Gratis (#237). */
+    plan: OrganizationPlan;
+    /** Centro, assigned by an operator; null leaves the plan to the subscription. */
+    assigned_plan: 'center' | null;
     subscription: {
         status: SubscriptionStatus;
         grace_ends_at: string | null;

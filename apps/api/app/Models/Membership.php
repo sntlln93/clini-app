@@ -132,4 +132,17 @@ class Membership extends Model
                 ->orWhere('email', 'ilike', "%{$term}%");
         });
     }
+
+    /**
+     * Active memberships holding the professional role: the count a plan's
+     * professional limit and the Practice price are measured against.
+     *
+     * @param  Builder<Membership>  $query
+     * @return Builder<Membership>
+     */
+    public function scopeActiveProfessional(Builder $query): Builder
+    {
+        return $query->where('status', MembershipStatus::Active)
+            ->whereJsonContains('roles', MembershipRole::Professional->value);
+    }
 }

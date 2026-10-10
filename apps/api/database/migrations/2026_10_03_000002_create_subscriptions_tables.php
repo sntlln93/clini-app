@@ -9,9 +9,8 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * `subscriptions` holds one SaaS subscription per organization. An
-     * organization with no row is unrestricted (trial policy is a future
-     * issue). `subscription_events` logs every verified provider webhook
+     * `subscriptions` holds one SaaS subscription per organization; one
+     * with no row is on the Free plan (#237). `subscription_events` logs every verified provider webhook
      * notification by its own id, so a redelivered notification is a no-op.
      */
     public function up(): void
@@ -33,6 +32,8 @@ return new class extends Migration
             // End of the period already paid when an active subscription was
             // cancelled: it keeps write access until then.
             $table->timestamp('access_ends_at')->nullable();
+            // Monthly amount last set at the provider, in whole pesos.
+            $table->unsignedInteger('amount')->nullable();
             $table->timestamps();
 
             $table->index(['status', 'grace_ends_at']);

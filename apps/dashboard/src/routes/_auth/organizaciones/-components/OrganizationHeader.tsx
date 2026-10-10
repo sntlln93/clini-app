@@ -3,6 +3,7 @@ import { OrganizationStateBadge } from '@/features/status-badges/OrganizationSta
 import { formatDate, formatDateTime } from '@/lib/format';
 import type { AdminOrganizationDetail } from '@/types/organization';
 import { Ban } from 'lucide-react';
+import { CenterPlanDialog } from './CenterPlanDialog';
 import { ReactivateOrganizationDialog } from './ReactivateOrganizationDialog';
 import { SuspendOrganizationDialog } from './SuspendOrganizationDialog';
 
@@ -31,15 +32,21 @@ export function OrganizationHeader({
                         {formatDate(organization.created_at)}
                     </p>
                 </div>
-                {suspended ? (
-                    <ReactivateOrganizationDialog
+                <div className="flex flex-wrap gap-2">
+                    <CenterPlanDialog
                         organizationId={organization.id}
+                        assigned={organization.assigned_plan === 'center'}
                     />
-                ) : (
-                    <SuspendOrganizationDialog
-                        organizationId={organization.id}
-                    />
-                )}
+                    {suspended ? (
+                        <ReactivateOrganizationDialog
+                            organizationId={organization.id}
+                        />
+                    ) : (
+                        <SuspendOrganizationDialog
+                            organizationId={organization.id}
+                        />
+                    )}
+                </div>
             </header>
             {suspended && (
                 <Alert variant="destructive">

@@ -9,7 +9,8 @@ use Illuminate\Support\Facades\Route;
 Route::get('memberships/{membership}/availabilities', [AvailabilityController::class, 'index']);
 Route::get('availability-exceptions', [AvailabilityExceptionController::class, 'index']);
 
-// Writes are read-only while the subscription is expired/cancelled (#28).
+// Writes are read-only while the subscription is expired (#28) or the
+// organization exceeds its plan's professional limit (#237).
 Route::middleware('subscription.active')->group(function (): void {
     Route::post('memberships/{membership}/availabilities', [AvailabilityController::class, 'store']);
     Route::patch('availabilities/{availability}', [AvailabilityController::class, 'update']);

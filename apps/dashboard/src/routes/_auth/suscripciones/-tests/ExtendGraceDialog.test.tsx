@@ -41,6 +41,7 @@ const SUBSCRIPTION: AdminSubscription = {
     next_payment_at: null,
     cancelled_at: null,
     access_ends_at: null,
+    amount: null,
     created_at: '2026-09-01T12:00:00+00:00',
     updated_at: '2026-10-01T12:00:00+00:00',
 };

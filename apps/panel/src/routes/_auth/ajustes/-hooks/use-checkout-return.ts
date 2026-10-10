@@ -1,4 +1,5 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
+import { planQueryOptions } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import { useNavigate } from '@tanstack/react-router';
 import { useCallback, useEffect, useRef } from 'react';
@@ -29,7 +30,10 @@ export function useCheckoutReturn(
 
     useEffect(() => {
         if (returning) {
-            void refresh(subscriptionQueryOptions.queryKey);
+            void refresh(
+                subscriptionQueryOptions.queryKey,
+                planQueryOptions.queryKey,
+            );
         }
     }, [returning, refresh]);
 
@@ -54,7 +58,10 @@ export function useCheckoutReturn(
                 return;
             }
 
-            void refresh(subscriptionQueryOptions.queryKey);
+            void refresh(
+                subscriptionQueryOptions.queryKey,
+                planQueryOptions.queryKey,
+            );
         }, CHECKOUT_RETURN_POLL_MS);
 
         return () => window.clearInterval(timer);

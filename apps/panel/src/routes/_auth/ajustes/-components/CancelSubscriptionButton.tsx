@@ -9,14 +9,14 @@ type CancelSubscriptionButtonProps = {
     subscription: Subscription;
 };
 
-const READ_ONLY_DETAIL =
-    'podés consultar los turnos, pero no crear ni modificar turnos, notas clínicas, recetas ni disponibilidad, ni recibir reservas online.';
+const FREE_PLAN_DETAIL =
+    'no vas a poder invitar miembros, usar la sala de espera, emitir recetas ni definir links de reserva por profesional, y si hay más de un profesional activo la agenda queda en modo solo lectura. No se borra ningún dato.';
 
 function confirmationCopy(subscription: Subscription): string {
     const paidUntil = paidPeriodEnd(subscription);
     const consequence = paidUntil
-        ? `Vas a poder seguir usando la agenda hasta el ${formatSubscriptionDate(paidUntil)}, el final del período que ya pagaste. Después queda en modo solo lectura: ${READ_ONLY_DETAIL}`
-        : `Como no hay un período pago en curso, la agenda queda en modo solo lectura de inmediato: ${READ_ONLY_DETAIL}`;
+        ? `Seguís en el plan Consultorio hasta el ${formatSubscriptionDate(paidUntil)}, el final del período que ya pagaste. Después tu consultorio pasa al plan Gratis: ${FREE_PLAN_DETAIL}`
+        : `Como no hay un período pago en curso, tu consultorio pasa al plan Gratis de inmediato: ${FREE_PLAN_DETAIL}`;
 
     return `Mercado Pago deja de cobrar la suscripción. ${consequence} Podés volver a suscribirte cuando quieras.`;
 }

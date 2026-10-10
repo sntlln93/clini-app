@@ -15,7 +15,10 @@ export type Subscription = {
     cancelled_at: string | null;
     /**
      * End of the period an active subscription had already paid when it was
-     * cancelled: it keeps write access until then. Null unless `cancelled`.
+     * cancelled: it stays on Consultorio until then, and on Free after it
+     * (#237). Null unless `cancelled`.
      */
     access_ends_at: string | null;
+    /** Monthly amount last set at Mercado Pago, in whole pesos. */
+    amount: number | null;
 };

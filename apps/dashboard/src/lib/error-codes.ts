@@ -36,7 +36,12 @@ export type ErrorCode =
     | 'users.email_already_verified'
     | 'subscriptions.grace_extension_not_allowed'
     | 'subscriptions.grace_extension_not_later'
-    | 'subscriptions.not_cancellable';
+    | 'subscriptions.not_cancellable'
+    | 'plans.feature_unavailable'
+    | 'plans.professional_limit_exceeded'
+    | 'plans.center_assigned'
+    | 'plans.assignment_unchanged'
+    | 'plans.subscription_live';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -111,6 +116,15 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Elegí una fecha posterior al fin de la gracia actual.',
     'subscriptions.not_cancellable':
         'La suscripción no tiene cobros activos para cancelar.',
+    'plans.feature_unavailable':
+        'El plan de la organización no incluye esta función.',
+    'plans.professional_limit_exceeded':
+        'La organización tiene más profesionales activos de los que su plan permite.',
+    'plans.center_assigned': 'La organización está en el plan Centro.',
+    'plans.assignment_unchanged':
+        'La organización ya tiene ese plan asignado. Actualizá la página para ver su plan vigente.',
+    'plans.subscription_live':
+        'La organización tiene una suscripción de Mercado Pago que todavía puede cobrar. La persona dueña tiene que cancelarla antes de pasar a Centro.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

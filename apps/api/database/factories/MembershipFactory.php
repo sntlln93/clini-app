@@ -35,6 +35,15 @@ class MembershipFactory extends Factory
     /**
      * @return $this
      */
+    /**
+     * In a new organization on Center, for tests of paid-plan functions
+     * that aren't about plans themselves.
+     */
+    public function onPaidPlan(): static
+    {
+        return $this->state(fn (array $attributes): array => ['organization_id' => Organization::factory()->center()]);
+    }
+
     public function owner(): static
     {
         return $this->withRoles(MembershipRole::Owner);

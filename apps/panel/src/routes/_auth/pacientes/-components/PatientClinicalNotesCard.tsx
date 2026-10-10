@@ -7,7 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
-import { useSubscriptionRestricted } from '@/lib/subscription';
+import { useWritesRestriction, type WritesRestriction } from '@/lib/plan';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { useState } from 'react';
 import { AddClinicalNoteForm } from './AddClinicalNoteForm';
@@ -27,18 +27,24 @@ function formatTimestamp(iso: string): string {
     });
 }
 
+const READ_ONLY_REASONS: Record<WritesRestriction, string> = {
+    subscription:
+        'Tu suscripción no está activa: las notas clínicas son de solo lectura.',
+    plan: 'El plan Gratis incluye un solo profesional activo: las notas clínicas son de solo lectura hasta que pases a Consultorio o desactives profesionales.',
+};
+
 export function PatientClinicalNotesCard({
     patientId,
     notes,
     todaysAppointmentId,
 }: PatientClinicalNotesCardProps) {
     const [showForm, setShowForm] = useState(false);
-    // Clinical-note writes are read-only while the subscription is
-    // expired/cancelled (#28); the backend still enforces it.
-    const restricted = useSubscriptionRestricted();
-    const canAddNote = todaysAppointmentId !== null && !restricted;
-    const unavailableReason = restricted
-        ? 'Tu suscripción no está activa: las notas clínicas son de solo lectura.'
+    // Clinical-note writes are read-only while writes are restricted (#28,
+    // #237); the backend still enforces it.
+    const restriction = useWritesRestriction();
+    const canAddNote = todaysAppointmentId !== null && restriction === null;
+    const unavailableReason = restriction
+        ? READ_ONLY_REASONS[restriction]
         : todaysAppointmentId === null
           ? 'Podés agregar notas cuando tengas un turno con este paciente hoy.'
           : null;

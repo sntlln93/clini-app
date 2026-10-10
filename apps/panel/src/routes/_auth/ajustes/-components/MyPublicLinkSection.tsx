@@ -1,6 +1,8 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
+import { usePlanIncludes } from '@/lib/plan';
 import type { Membership } from '@/types/membership';
 import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
@@ -26,6 +28,8 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
     }
 
     const { mutate, isPending } = useUpdateMyPublicLink();
+    // Free can't set a link, but can still remove one set before a downgrade.
+    const canSetLink = usePlanIncludes('professional_booking_links');
 
     const savedSlug = membership.slug ?? '';
     const trimmedSlug = slug.trim();
@@ -45,6 +49,13 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
                     consultorio. Dejalo vacío y guardá para quitar el link.
                 </p>
             </div>
+
+            {!canSetLink && (
+                <PlanFeatureNote>
+                    El plan Gratis no incluye links de reserva por profesional:
+                    tus pacientes reservan con el link del consultorio.
+                </PlanFeatureNote>
+            )}
 
             <div className="flex flex-wrap items-end gap-3">
                 <div className="min-w-48 flex-1 space-y-1">
@@ -71,7 +82,11 @@ export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
                 <Button
                     type="button"
                     size="sm"
-                    disabled={isPending || !isDirty}
+                    disabled={
+                        isPending ||
+                        !isDirty ||
+                        (!canSetLink && trimmedSlug !== '')
+                    }
                     onClick={handleSave}
                 >
                     Guardar

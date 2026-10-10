@@ -19,12 +19,8 @@ export function waitingRoomQueryOptions(range: WaitingRoomRange) {
         queryKey: waitingRoomQueryKey(range),
         queryFn: () =>
             api
-                .get<{ data: Appointment[] }>('/appointments', {
-                    params: {
-                        from: range.from,
-                        to: range.to,
-                        status: 'arrived',
-                    },
+                .get<{ data: Appointment[] }>('/waiting-room', {
+                    params: { from: range.from, to: range.to },
                 })
                 .then((response) => response.data.data),
     });

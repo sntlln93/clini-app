@@ -6,9 +6,11 @@ import {
     SUBSCRIPTION_STATUS_LABELS,
     isSubscriptionCancellable,
 } from '@/lib/subscription';
+import type { Plan } from '@/types/plan';
 import type { Subscription, SubscriptionStatus } from '@/types/subscription';
 import { useStartSubscription } from '../-hooks/use-start-subscription';
 import { CancelSubscriptionButton } from './CancelSubscriptionButton';
+import { PlanSummary } from './PlanSummary';
 import {
     lastPaymentDetail,
     subscriptionStatusDetail,
@@ -16,6 +18,8 @@ import {
 
 type SubscriptionSectionProps = {
     subscription: Subscription | null;
+    /** Undefined when it couldn't be read: the section falls back to the subscription alone. */
+    plan: Plan | undefined;
     isOwner: boolean;
     /** Back from the checkout, waiting for the provider to confirm the payment. */
     confirmingPayment?: boolean;
@@ -29,8 +33,15 @@ const STATUS_TONES: Record<SubscriptionStatus, StatusTone> = {
     cancelled: 'neutral',
 };
 
-/** Null when no checkout action applies (an active subscription). */
-function actionLabel(subscription: Subscription | null): string | null {
+/** Null when no checkout action applies: an active subscription, or Centro, billed outside the panel. */
+function actionLabel(
+    subscription: Subscription | null,
+    plan: Plan | undefined,
+): string | null {
+    if (plan?.plan === 'center') {
+        return null;
+    }
+
     switch (subscription?.status) {
         case 'active':
             return null;
@@ -38,17 +49,18 @@ function actionLabel(subscription: Subscription | null): string | null {
         case 'expired':
             return 'Regularizar pago';
         default:
-            return 'Suscribirse';
+            return 'Pasar a Consultorio';
     }
 }
 
 export function SubscriptionSection({
     subscription,
+    plan,
     isOwner,
     confirmingPayment = false,
 }: SubscriptionSectionProps) {
     const { start, isRedirecting } = useStartSubscription();
-    const label = actionLabel(subscription);
+    const label = actionLabel(subscription, plan);
     const lastPayment = subscription ? lastPaymentDetail(subscription) : null;
 
     return (
@@ -62,13 +74,15 @@ export function SubscriptionSection({
                     id={`${SUBSCRIPTION_SECTION_ID}-title`}
                     className="text-sm font-medium"
                 >
-                    Suscripción
+                    Plan y suscripción
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                    La suscripción mensual del consultorio se cobra con Mercado
-                    Pago.
+                    El plan define qué funciones tiene el consultorio. El plan
+                    Consultorio se cobra todos los meses con Mercado Pago.
                 </p>
             </div>
+
+            {plan && <PlanSummary plan={plan} subscription={subscription} />}
 
             <div className="flex flex-wrap items-center gap-3">
                 {subscription ? (
@@ -76,9 +90,11 @@ export function SubscriptionSection({
                         {SUBSCRIPTION_STATUS_LABELS[subscription.status]}
                     </StatusPill>
                 ) : (
-                    <p className="text-sm text-muted-foreground">
-                        El consultorio todavía no tiene una suscripción.
-                    </p>
+                    !plan && (
+                        <p className="text-sm text-muted-foreground">
+                            El consultorio todavía no tiene una suscripción.
+                        </p>
+                    )
                 )}
 
                 {label && isOwner && (
@@ -116,7 +132,13 @@ export function SubscriptionSection({
 
             {subscription && (
                 <div className="space-y-1 text-sm text-muted-foreground">
-                    <p>{subscriptionStatusDetail(subscription)}</p>
+                    <p>
+                        {subscriptionStatusDetail(
+                            subscription,
+                            new Date(),
+                            plan?.assigned_by_platform ?? false,
+                        )}
+                    </p>
                     {lastPayment && <p>{lastPayment}</p>}
                 </div>
             )}

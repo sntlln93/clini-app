@@ -6,6 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
 import {
+    BOOKING_CLOSED_MESSAGE,
+    isBookingClosedError,
     isSlotUnavailableError,
     useConfirmBooking,
 } from '../../-hooks/use-confirm-booking';
@@ -60,6 +62,11 @@ export function BookingPatientForm({
             // The hook already refreshed the slots by now, so the wizard can send the patient straight back to an up-to-date grid.
             if (isSlotUnavailableError(error)) {
                 onSlotUnavailable(values.patient);
+                return;
+            }
+
+            if (isBookingClosedError(error)) {
+                form.setError('root', { message: BOOKING_CLOSED_MESSAGE });
                 return;
             }
 

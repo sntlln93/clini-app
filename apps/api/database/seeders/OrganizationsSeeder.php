@@ -6,12 +6,15 @@ namespace Database\Seeders;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\Plan;
 use App\Enums\Province as ProvinceSlug;
+use App\Enums\SubscriptionStatus;
 use App\Models\Address;
 use App\Models\City;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Province;
+use App\Models\Subscription;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -27,6 +30,10 @@ use Illuminate\Support\Facades\Hash;
  * (province_id, name) key on cities and the addressable on addresses, so a
  * repeated `php artisan db:seed` never duplicates rows. See
  * docs/architecture/development.md for the full credentials table.
+ *
+ * Plans (#237): A is on Center, assigned by an operator; B is on Practice
+ * through an active subscription with no provider subscription behind it,
+ * so nothing ever calls Mercado Pago for it. A new registration is on Free.
  */
 class OrganizationsSeeder extends Seeder
 {
@@ -75,6 +82,18 @@ class OrganizationsSeeder extends Seeder
             ['name' => 'Consultorio Dos', 'timezone' => 'America/Argentina/Cordoba'],
         );
         $this->seedAddress($organizationB, ProvinceSlug::Cordoba, 'Córdoba', 'Av. Colón 500', 'X5000');
+
+        $organizationA->forceFill(['assigned_plan' => Plan::Center])->save();
+        Subscription::withoutGlobalScope('organization')->firstOrCreate(
+            ['organization_id' => $organizationB->id],
+            [
+                'provider' => Subscription::PROVIDER_MERCADOPAGO,
+                'provider_subscription_id' => null,
+                'status' => SubscriptionStatus::Active,
+                'amount' => 15000,
+                'next_payment_at' => now()->addDays(20)->startOfDay(),
+            ],
+        );
 
         // Shared across both organizations: the "one user with a
         // membership in both orgs" fixture case.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Contracts\DomainError;
 use App\Http\Middleware\EnsureDashboardOrigin;
 use App\Http\Middleware\EnsureNotDashboardOrigin;
+use App\Http\Middleware\EnsurePlanIncludes;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserNotBlocked;
 use App\Http\Middleware\ResolveCurrentOrganization;
@@ -32,6 +33,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'organization' => ResolveCurrentOrganization::class,
             'public-organization' => ResolvePublicOrganization::class,
             'subscription.active' => EnsureSubscriptionActive::class,
+            'plan.feature' => EnsurePlanIncludes::class,
             'not-blocked' => EnsureUserNotBlocked::class,
             'admin.origin' => EnsureDashboardOrigin::class,
             'clinic.origin' => EnsureNotDashboardOrigin::class,

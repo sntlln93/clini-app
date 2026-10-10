@@ -1,6 +1,8 @@
 import {
     annualSavings,
     annualTotal,
+    CONSULTORIO_EXTRA_PROFESSIONAL,
+    CONSULTORIO_INCLUDED_PROFESSIONALS,
     formatArs,
     monthlyPrice,
     type Billing,
@@ -26,7 +28,7 @@ function note(planId: PlanId, billing: Billing, base: number): string {
     }
     return billing === 'annual'
         ? `Un pago de ${formatArs(annualTotal(base))} por año. Ahorrás ${formatArs(annualSavings(base))}.`
-        : 'Precio final por consultorio. Lo mismo con 1 que con 5 profesionales.';
+        : `Incluye ${CONSULTORIO_INCLUDED_PROFESSIONALS} profesionales. Cada profesional adicional suma ${formatArs(CONSULTORIO_EXTRA_PROFESSIONAL)} por mes.`;
 }
 
 export function PlanPrice({ planId, billing, base, featured }: PlanPriceProps) {

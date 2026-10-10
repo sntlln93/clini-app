@@ -17,7 +17,7 @@ beforeEach(function () {
     Http::preventStrayRequests();
 });
 
-test('createSubscription posts a monthly preapproval with the configured plan and returns its init_point', function () {
+test('createSubscription posts a monthly preapproval for the given amount and returns its init_point', function () {
     Http::fake([
         'api.mercadopago.com/preapproval' => Http::response([
             'id' => 'pre-123',
@@ -30,6 +30,8 @@ test('createSubscription posts a monthly preapproval with the configured plan an
         externalReference: '42',
         payerEmail: 'duena@example.com',
         reason: 'Suscripción Clini — Consultorio Uno',
+        amount: 20000,
+        currency: 'ARS',
     ));
 
     expect($created->id)->toBe('pre-123');
@@ -47,9 +49,19 @@ test('createSubscription posts a monthly preapproval with the configured plan an
         && $request['auto_recurring'] === [
             'frequency' => 1,
             'frequency_type' => 'months',
-            'transaction_amount' => 15000,
+            'transaction_amount' => 20000,
             'currency_id' => 'ARS',
         ]);
+});
+
+test('updateSubscriptionAmount puts only the new amount of the next charges', function () {
+    Http::fake(['api.mercadopago.com/preapproval/pre-1' => Http::response(['id' => 'pre-1', 'status' => 'authorized'])]);
+
+    app(MercadoPagoService::class)->updateSubscriptionAmount('pre-1', 25000, 'ARS');
+
+    Http::assertSent(fn (Request $request): bool => $request->method() === 'PUT'
+        && $request->url() === 'https://api.mercadopago.com/preapproval/pre-1'
+        && $request->data() === ['auto_recurring' => ['transaction_amount' => 25000, 'currency_id' => 'ARS']]);
 });
 
 test('fetchSubscription maps the preapproval status into the domain vocabulary', function (string $raw, ?SubscriptionStatus $expected, bool $paused) {
@@ -145,6 +157,8 @@ test('a rejected request carries the provider error reason into the log context'
             externalReference: '42',
             payerEmail: 'duena@example.com',
             reason: 'Suscripción Clini — Consultorio Uno',
+            amount: 15000,
+            currency: 'ARS',
         ));
     } catch (SubscriptionGatewayUnavailableException $exception) {
         expect($exception->logContext())->toBe([
@@ -185,10 +199,11 @@ test('a 404 on creating or cancelling a preapproval still throws SubscriptionGat
     $service = app(MercadoPagoService::class);
 
     match ($operation) {
-        'create' => $service->createSubscription(new SubscriptionSignupData('42', 'duena@example.com', 'Suscripción')),
+        'create' => $service->createSubscription(new SubscriptionSignupData('42', 'duena@example.com', 'Suscripción', 15000, 'ARS')),
         'cancel' => $service->cancelSubscription('pre-1'),
+        'update amount' => $service->updateSubscriptionAmount('pre-1', 15000, 'ARS'),
     };
-})->with(['create', 'cancel'])->throws(SubscriptionGatewayUnavailableException::class);
+})->with(['create', 'cancel', 'update amount'])->throws(SubscriptionGatewayUnavailableException::class);
 
 test('a payload without an id throws SubscriptionGatewayUnavailableException', function () {
     Http::fake([

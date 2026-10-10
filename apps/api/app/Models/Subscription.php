@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at', 'access_ends_at'])]
+#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at', 'access_ends_at', 'amount'])]
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
@@ -40,15 +40,27 @@ class Subscription extends Model
             'next_payment_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
             'access_ends_at' => 'immutable_datetime',
+            'amount' => 'integer',
         ];
     }
 
     /**
-     * Expired, or cancelled with no paid period left: writes on appointments,
-     * clinical notes, prescriptions, availability and public booking are
-     * rejected (see EnsureSubscriptionActive).
+     * Expired: writes on appointments, clinical notes, prescriptions,
+     * availability and public booking are rejected until the owner pays
+     * (see EnsureSubscriptionActive). A cancelled subscription never
+     * restricts: once its paid period ends the organization is on Free.
      */
     public function restrictsWrites(): bool
+    {
+        return $this->status === SubscriptionStatus::Expired;
+    }
+
+    /**
+     * Whether the organization is on Practice through this subscription:
+     * paid or still owing its current period, or cancelled with paid time
+     * left (`access_ends_at`). A pending checkout grants nothing yet.
+     */
+    public function grantsPaidPlan(): bool
     {
         /** @var SubscriptionStatus $status */
         $status = $this->status;
@@ -56,9 +68,9 @@ class Subscription extends Model
         $accessEndsAt = $this->access_ends_at;
 
         return match ($status) {
-            SubscriptionStatus::Expired => true,
-            SubscriptionStatus::Cancelled => $accessEndsAt === null || ! $accessEndsAt->isFuture(),
-            default => false,
+            SubscriptionStatus::Active, SubscriptionStatus::Grace, SubscriptionStatus::Expired => true,
+            SubscriptionStatus::Cancelled => $accessEndsAt?->isFuture() === true,
+            SubscriptionStatus::Pending => false,
         };
     }
 

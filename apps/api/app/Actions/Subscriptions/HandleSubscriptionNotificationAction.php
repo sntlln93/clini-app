@@ -16,10 +16,13 @@ use App\Enums\SubscriptionPaymentOutcome;
 use App\Enums\SubscriptionStatus;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
+use App\Jobs\Subscriptions\SyncSubscriptionAmountJob;
 use App\Models\Organization;
 use App\Models\Subscription;
 use App\Models\SubscriptionEvent;
 use App\Notifications\Subscriptions\SubscriptionGraceStartedNotification;
+use App\Support\OrganizationPlan;
+use App\Support\PracticePricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -41,12 +44,19 @@ use Illuminate\Support\Facades\Notification;
  * Notifications for a subscription this app doesn't know (by
  * provider_subscription_id) are logged and otherwise ignored.
  *
+ * A pending or cancelled row that becomes active was priced when its
+ * checkout started; if the active professionals changed since, its amount
+ * is synced (SyncSubscriptionAmountJob, after commit). A row with no stored
+ * amount predates per-professional pricing and is left alone.
+ *
  * @implements Action<SubscriptionNotificationData>
  */
 final class HandleSubscriptionNotificationAction implements Action
 {
     public function __construct(
         private readonly SubscriptionGateway $gateway,
+        private readonly OrganizationPlan $plans,
+        private readonly PracticePricing $pricing,
     ) {}
 
     /**
@@ -228,6 +238,7 @@ final class HandleSubscriptionNotificationAction implements Action
             || in_array($subscription->status, [SubscriptionStatus::Pending, SubscriptionStatus::Cancelled], true);
 
         if ($resource->status === SubscriptionStatus::Active && $confirmable) {
+            $this->syncAmountIfStale($subscription);
             $subscription->update([
                 'status' => SubscriptionStatus::Active,
                 'grace_ends_at' => null,
@@ -242,6 +253,19 @@ final class HandleSubscriptionNotificationAction implements Action
         $subscription->save();
 
         return null;
+    }
+
+    private function syncAmountIfStale(Subscription $subscription): void
+    {
+        if ($subscription->amount === null) {
+            return;
+        }
+
+        $amount = $this->pricing->monthlyAmount($this->plans->activeProfessionals($subscription->organization_id));
+
+        if ($subscription->amount !== $amount) {
+            SyncSubscriptionAmountJob::dispatch($subscription->organization_id);
+        }
     }
 
     /**
@@ -280,6 +304,10 @@ final class HandleSubscriptionNotificationAction implements Action
                 }
             } else {
                 $preapproval = $this->chargedPreapprovalForRenewalDate($resource);
+            }
+
+            if (in_array($subscription->status, [SubscriptionStatus::Pending, SubscriptionStatus::Cancelled], true)) {
+                $this->syncAmountIfStale($subscription);
             }
 
             $subscription->update([
