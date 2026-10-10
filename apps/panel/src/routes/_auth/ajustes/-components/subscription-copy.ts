@@ -1,15 +1,5 @@
+import { formatSubscriptionDate } from '@/lib/subscription';
 import type { Subscription } from '@/types/subscription';
-
-const DATE_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
-
-/** e.g. «3 de noviembre de 2026». */
-export function formatSubscriptionDate(iso: string): string {
-    return DATE_FORMAT.format(new Date(iso));
-}
 
 function daysLeft(days: number): string {
     return days === 1 ? 'te queda 1 día' : `te quedan ${days} días`;

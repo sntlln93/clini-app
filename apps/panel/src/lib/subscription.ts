@@ -51,6 +51,17 @@ export function scrollToSubscriptionSection(): void {
         ?.scrollIntoView({ block: 'start' });
 }
 
+const DATE_FORMAT = new Intl.DateTimeFormat('es-AR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+});
+
+/** e.g. «3 de noviembre de 2026». */
+export function formatSubscriptionDate(iso: string): string {
+    return DATE_FORMAT.format(new Date(iso));
+}
+
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
     pending: 'Pendiente',
     active: 'Activa',
