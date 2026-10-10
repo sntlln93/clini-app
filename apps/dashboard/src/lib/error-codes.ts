@@ -35,7 +35,8 @@ export type ErrorCode =
     | 'users.not_blocked'
     | 'users.email_already_verified'
     | 'subscriptions.grace_extension_not_allowed'
-    | 'subscriptions.grace_extension_not_later';
+    | 'subscriptions.grace_extension_not_later'
+    | 'subscriptions.not_cancellable';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -108,6 +109,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Solo se puede extender la gracia de una suscripción en gracia o vencida.',
     'subscriptions.grace_extension_not_later':
         'Elegí una fecha posterior al fin de la gracia actual.',
+    'subscriptions.not_cancellable':
+        'La suscripción no tiene cobros activos para cancelar.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

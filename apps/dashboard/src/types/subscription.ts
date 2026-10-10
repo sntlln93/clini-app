@@ -27,6 +27,8 @@ export type AdminSubscription = {
     last_payment_failed_at: string | null;
     next_payment_at: string | null;
     cancelled_at: string | null;
+    /** End of the period a cancelled subscription had already paid: writes stay enabled until then. */
+    access_ends_at: string | null;
     created_at: string;
     updated_at: string;
 };

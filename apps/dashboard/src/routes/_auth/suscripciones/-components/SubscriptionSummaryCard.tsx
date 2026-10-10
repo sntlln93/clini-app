@@ -41,6 +41,7 @@ export function SubscriptionSummaryCard({
         ],
         ['Próximo cobro', formatDateTime(subscription.next_payment_at)],
         ['Cancelada', formatDateTime(subscription.cancelled_at)],
+        ['Acceso pago hasta', formatDateTime(subscription.access_ends_at)],
         ['Proveedor', subscription.provider],
         [
             'ID en el proveedor',
