@@ -50,7 +50,7 @@ export function BookingSummary({
                 {`${professionalLabel(professional)} · ${serviceLabel(service)} (${service.duration_minutes} min)`}
             </p>
             {slot && (
-                <p className="text-muted-foreground first-letter:uppercase">
+                <p className="text-muted-foreground tabular-nums first-letter:uppercase">
                     {formatSlotDateTime(slot.start_at, timezone)}
                 </p>
             )}

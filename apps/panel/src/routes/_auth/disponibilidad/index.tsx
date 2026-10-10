@@ -94,7 +94,7 @@ function DisponibilidadPage() {
     return (
         <div className="space-y-6">
             <div className="space-y-1">
-                <h1 className="text-2xl font-semibold">Disponibilidad</h1>
+                <h1 className="text-2xl tracking-tight">Disponibilidad</h1>
                 <p className="text-sm text-muted-foreground">
                     Configurá los horarios de atención y las excepciones de cada
                     profesional.

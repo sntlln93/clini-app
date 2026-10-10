@@ -45,7 +45,7 @@ export function ProfessionalQueueCard({
             <CardHeader>
                 <CardTitle
                     id={headingId}
-                    className="text-2xl font-semibold wrap-break-word"
+                    className="text-2xl font-medium wrap-break-word"
                 >
                     {professional.user.name}
                 </CardTitle>
@@ -68,10 +68,10 @@ export function ProfessionalQueueCard({
                                 <p className="text-base font-medium text-muted-foreground">
                                     Próximo paciente
                                 </p>
-                                <p className="text-4xl font-bold wrap-break-word text-foreground">
+                                <p className="text-4xl font-medium tracking-tight wrap-break-word text-foreground">
                                     {displayPatientName(next.patient_name)}
                                 </p>
-                                <p className="text-lg text-muted-foreground">
+                                <p className="text-lg text-muted-foreground tabular-nums">
                                     Turno {formatAppointmentTime(next.start_at)}
                                 </p>
                             </>
@@ -85,7 +85,7 @@ export function ProfessionalQueueCard({
                         <WaitingTime
                             appointment={next}
                             now={now}
-                            className="text-lg text-muted-foreground"
+                            className="text-lg text-muted-foreground tabular-nums"
                         />
                     )}
                 </div>
@@ -106,7 +106,7 @@ export function ProfessionalQueueCard({
                                             appointment.patient_name,
                                         )}
                                     </span>
-                                    <div className="text-right text-lg text-muted-foreground">
+                                    <div className="text-right text-lg text-muted-foreground tabular-nums">
                                         <p>
                                             Turno{' '}
                                             {formatAppointmentTime(

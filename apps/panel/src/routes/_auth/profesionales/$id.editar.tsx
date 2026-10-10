@@ -23,7 +23,7 @@ function EditarProfesionalPage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Editar miembro</h1>
+            <h1 className="text-2xl tracking-tight">Editar miembro</h1>
             <MemberEditForm membership={membership} />
         </div>
     );

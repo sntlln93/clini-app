@@ -19,7 +19,7 @@ function NuevoPacientePage() {
 
     return (
         <div className="space-y-6">
-            <h1 className="text-2xl font-semibold">Nuevo paciente</h1>
+            <h1 className="text-2xl tracking-tight">Nuevo paciente</h1>
             <PatientForm insuranceProviders={insuranceProviders} />
         </div>
     );

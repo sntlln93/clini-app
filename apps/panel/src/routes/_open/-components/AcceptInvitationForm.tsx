@@ -126,7 +126,7 @@ export function AcceptInvitationForm({
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1 text-center">
-                    <h1 className="text-2xl font-semibold">Unirte a Clini</h1>
+                    <h1 className="text-2xl tracking-tight">Unirte a Clini</h1>
                     <p className="text-sm text-muted-foreground">
                         {invitation.organization_name
                             ? `Te invitaron a sumarte a ${invitation.organization_name} (${invitation.email}).`

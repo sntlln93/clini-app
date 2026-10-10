@@ -46,7 +46,7 @@ export function AvailabilityExceptionRow({
                         </span>
                     )}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-muted-foreground tabular-nums">
                     {formatExceptionRange(exception.start_at, exception.end_at)}
                 </p>
                 {exception.reason && (

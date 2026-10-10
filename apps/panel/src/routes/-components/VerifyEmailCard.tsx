@@ -51,7 +51,7 @@ export function VerifyEmailCard({ token }: VerifyEmailCardProps) {
     return (
         <div className="space-y-4">
             <div className="space-y-1 text-center">
-                <h1 className="text-2xl font-semibold">Confirmá tu correo</h1>
+                <h1 className="text-2xl tracking-tight">Confirmá tu correo</h1>
                 <p className="text-sm text-muted-foreground">
                     Vas a confirmar la cuenta de <strong>{data.email}</strong>.
                 </p>

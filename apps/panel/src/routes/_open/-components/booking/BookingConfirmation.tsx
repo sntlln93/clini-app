@@ -27,7 +27,7 @@ function DetailRow({ term, value }: { term: string; value: string }) {
     return (
         <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
             <dt className="text-muted-foreground">{term}</dt>
-            <dd className="min-w-0 text-right font-medium wrap-break-word">
+            <dd className="min-w-0 text-right font-medium wrap-break-word tabular-nums">
                 {value}
             </dd>
         </div>
@@ -51,7 +51,7 @@ export function BookingConfirmation({
         <div className="space-y-4">
             <div className="space-y-1">
                 <Badge variant="secondary">Turno confirmado</Badge>
-                <h1 className="text-lg font-semibold">
+                <h1 className="text-lg tracking-tight">
                     {confirmation.organization_name}
                 </h1>
             </div>

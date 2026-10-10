@@ -174,7 +174,7 @@ function AjustesPage() {
     return (
         <div className="mx-auto max-w-2xl space-y-8">
             <header className="space-y-1">
-                <h1 className="text-2xl font-semibold">Ajustes</h1>
+                <h1 className="text-2xl tracking-tight">Ajustes</h1>
                 <p className="text-sm text-muted-foreground">
                     Personalizá la apariencia del panel y las asignaciones del
                     consultorio.
