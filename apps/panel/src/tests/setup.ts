@@ -33,6 +33,9 @@ Element.prototype.scrollIntoView = vi.fn();
 Element.prototype.hasPointerCapture = vi.fn(() => false);
 Element.prototype.releasePointerCapture = vi.fn();
 
+// jsdom does not implement scrollTo; TanStack Router resets the window scroll on every navigation
+window.scrollTo = vi.fn();
+
 // jsdom does not implement matchMedia, required by responsive components
 // (e.g. a mobile-breakpoint hook)
 Object.defineProperty(window, 'matchMedia', {
