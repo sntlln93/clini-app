@@ -1,6 +1,8 @@
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
-import { AgendaDayColumn, formatHour, HOUR_HEIGHT_PX } from './AgendaDayColumn';
+import { AgendaColumnHeader } from './AgendaColumnHeader';
+import { AgendaDayColumn, HOUR_HEIGHT_PX } from './AgendaDayColumn';
+import { AgendaTimeGutter } from './AgendaTimeGutter';
 import { dayHourRange } from './day-hour-range';
 
 function isSameDay(iso: string, date: Date): boolean {
@@ -10,6 +12,21 @@ function isSameDay(iso: string, date: Date): boolean {
         time.getMonth() === date.getMonth() &&
         time.getDate() === date.getDate()
     );
+}
+
+/** The current-time line's offset when `date` is today and the time falls inside the grid. */
+function nowOffset(
+    date: Date,
+    startHour: number,
+    hourCount: number,
+): number | null {
+    const now = new Date();
+    if (!isSameDay(now.toISOString(), date)) {
+        return null;
+    }
+    const minutes = now.getHours() * 60 + now.getMinutes() - startHour * 60;
+    const offset = (minutes / 60) * HOUR_HEIGHT_PX;
+    return offset >= 0 && offset <= hourCount * HOUR_HEIGHT_PX ? offset : null;
 }
 
 export type AgendaDayViewProps = {
@@ -44,22 +61,25 @@ export function AgendaDayView({
         (_, index) => startHour + index,
     );
 
-    return (
-        <div className="overflow-auto rounded-lg border">
-            <div className="flex w-full">
-                <div className="w-14 shrink-0 border-r">
-                    <div className="h-10 border-b" />
-                    {hours.map((hour) => (
-                        <div
-                            key={hour}
-                            className="border-t px-1 text-right text-xs text-muted-foreground"
-                            style={{ height: HOUR_HEIGHT_PX }}
-                        >
-                            {formatHour(hour)}
-                        </div>
-                    ))}
-                </div>
+    const nowOffsetPx = nowOffset(date, hours[0], hours.length);
 
+    return (
+        <div className="overflow-x-auto px-2.5">
+            <div
+                className="grid min-w-lg"
+                style={{
+                    gridTemplateColumns: `3.4rem repeat(${professionals.length}, minmax(9.5rem, 1fr))`,
+                }}
+            >
+                <div />
+                {professionals.map((professional) => (
+                    <AgendaColumnHeader
+                        key={professional.id}
+                        professional={professional}
+                    />
+                ))}
+
+                <AgendaTimeGutter hours={hours} />
                 {professionals.map((professional) => (
                     <AgendaDayColumn
                         key={professional.id}
@@ -72,6 +92,7 @@ export function AgendaDayView({
                         )}
                         canUpdate={canUpdate(professional)}
                         canCreate={canCreate(professional)}
+                        nowOffsetPx={nowOffsetPx}
                         onCellClick={onCellClick}
                     />
                 ))}

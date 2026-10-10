@@ -53,7 +53,7 @@ export function AgendaWeekView({
     const showProfessional = professionals.length > 1;
 
     return (
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-7">
+        <div className="grid grid-cols-1 gap-2 px-2.5 sm:grid-cols-2 lg:grid-cols-7">
             {days.map((day, index) => {
                 const dayAppointments = appointments
                     .filter((appointment) =>
@@ -64,10 +64,10 @@ export function AgendaWeekView({
                 return (
                     <div
                         key={day.toISOString()}
-                        className="min-w-0 space-y-2 rounded-lg border p-2"
+                        className="min-w-0 space-y-2 rounded-2xl bg-secondary p-2"
                     >
                         <div className="flex items-center justify-between gap-2">
-                            <div className="text-sm font-medium">
+                            <div className="text-sm font-medium tabular-nums">
                                 {DAY_LABELS[index]} {day.getDate()}
                             </div>
                             {canCreateAny && (

@@ -67,14 +67,15 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
                         <Button
                             key={day.toISOString()}
                             type="button"
-                            variant={selected ? 'secondary' : 'ghost'}
+                            variant={selected ? 'default' : 'ghost'}
                             size="sm"
                             aria-pressed={selected}
                             aria-current={isToday ? 'date' : undefined}
                             className={cn(
-                                'shrink-0 capitalize',
+                                'shrink-0 capitalize tabular-nums',
                                 isToday &&
-                                    'font-semibold text-primary underline underline-offset-4',
+                                    'font-semibold underline underline-offset-4',
+                                isToday && !selected && 'text-primary',
                             )}
                             onClick={() => onDateSelect(day)}
                         >

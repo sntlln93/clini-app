@@ -60,7 +60,12 @@ export function AgendaProfessionalFilter({
         <DropdownMenu>
             <DropdownMenuTrigger
                 render={
-                    <Button type="button" variant="outline" size="sm">
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="tabular-nums"
+                    >
                         Profesionales ({selectedIds.length}/
                         {professionals.length})
                         <ChevronDownIcon />

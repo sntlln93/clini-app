@@ -156,7 +156,7 @@ describe('AgendaDayView', () => {
             professionals: [professionals[0]],
         });
 
-        expect(container.querySelectorAll('.h-10.border-b.px-2')).toHaveLength(
+        expect(container.querySelectorAll('[data-column-header]')).toHaveLength(
             1,
         );
     });
@@ -174,23 +174,44 @@ describe('AgendaDayView', () => {
         }
         expect(block).not.toBeNull();
 
-        // START_HOUR=8, HOUR_HEIGHT_PX=96 → 1.6px/min; 10:00 is 120min after 8:00 → 192px.
-        expect(block?.style.top).toBe('192px');
-        expect(parseFloat(block?.style.height ?? '0')).toBeGreaterThanOrEqual(
-            48,
-        );
+        // START_HOUR=8, HOUR_HEIGHT_PX=144 → 2.4px/min; 10:00 is 120min after 8:00 → 288px, plus the 4px inset.
+        expect(block?.style.top).toBe('292px');
+        // A 30-minute slot (72px) minus both 4px insets, still above the 44px touch target.
+        expect(block?.style.height).toBe('64px');
     });
 
-    it('lets professional columns share the available width instead of a fixed 48-unit column', () => {
-        const professional = buildProfessional({ id: 1 });
-        const { container } = renderDayView({ professionals: [professional] });
+    it('lays the day out as the landing example: a time gutter plus one flexible column per professional', () => {
+        const { container } = renderDayView({
+            professionals: [
+                buildProfessional({ id: 1 }),
+                buildProfessional({
+                    id: 2,
+                    user: { id: 11, name: 'Dr. Martín Sosa', email: 'm@x.com' },
+                }),
+            ],
+        });
 
-        const row = container.querySelector('.overflow-auto > div');
-        expect(row?.className).not.toMatch(/\bmin-w-max\b/);
+        const grid = container.querySelector<HTMLElement>('.grid');
+        expect(grid?.style.gridTemplateColumns).toBe(
+            '3.4rem repeat(2, minmax(9.5rem, 1fr))',
+        );
+        // The grid scrolls inside its own wrapper, never the page.
+        expect(grid?.parentElement?.className).toMatch(/\boverflow-x-auto\b/);
+        // Column headers show the initials, skipping titles like "Dr.".
+        expect(screen.getByText('MS')).toBeTruthy();
+    });
 
-        const column = screen.getByText('Dra. Ana López').closest('.border-r');
-        expect(column?.className).not.toMatch(/\bw-48\b/);
-        expect(column?.className).not.toMatch(/\bshrink-0\b/);
+    it('labels the time gutter every half hour', () => {
+        renderDayView();
+
+        expect(screen.getByText('08:00')).toBeTruthy();
+        expect(screen.getByText('08:30')).toBeTruthy();
+        expect(screen.getByText('19:30')).toBeTruthy();
+    });
+
+    it('draws the current-time line only on today', () => {
+        const { container } = renderDayView({ date: new Date(2026, 7, 3) });
+        expect(container.querySelector('[data-now-line]')).toBeNull();
     });
 
     function blockOf(text: string): HTMLElement | null {
@@ -211,7 +232,7 @@ describe('AgendaDayView', () => {
             ],
         });
 
-        expect(blockOf('Juan Pérez')?.style.top).toBe('0px');
+        expect(blockOf('Juan Pérez')?.style.top).toBe('4px');
         expect(
             screen.getByRole('button', {
                 name: 'Crear turno a las 07:00 para Dra. Ana López',

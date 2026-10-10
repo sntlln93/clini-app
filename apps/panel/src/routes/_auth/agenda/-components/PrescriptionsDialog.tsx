@@ -101,7 +101,7 @@ export function PrescriptionsDialog({
                                 ))}
                             </ul>
                             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-xs text-muted-foreground">
+                                <span className="text-xs text-muted-foreground tabular-nums">
                                     {formatDate(prescription.issued_at)}
                                 </span>
                                 <div className="flex gap-2">

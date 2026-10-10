@@ -44,37 +44,61 @@ export function AppointmentCardContent({
         appointment.service_name ?? `Servicio #${appointment.service_id}`;
     const struck = STRUCK_STATUSES.includes(appointment.status);
 
+    const status = (
+        <span className="flex min-w-0 items-center gap-1">
+            <AppointmentStatusChip status={appointment.status} surface="card" />
+            {appointment.origin === 'online' && <OnlineOriginMark />}
+        </span>
+    );
+    const time = (
+        <span className="font-medium whitespace-nowrap tabular-nums">
+            {timeLabel}
+        </span>
+    );
+    const patient = (
+        <span className={cn('truncate font-medium', struck && 'line-through')}>
+            {patientLabel}
+        </span>
+    );
+    const service = (
+        <span className="truncate text-muted-foreground">{serviceLabel}</span>
+    );
+    const block = cn(
+        'flex h-full flex-col gap-0.5 overflow-hidden border-l-[3px] text-left text-xs leading-tight text-foreground',
+        STATUS_TONES[appointment.status].block,
+    );
+
+    // Day view: the landing's block — patient, service, then status (with the time) at the bottom.
+    if (variant === 'day') {
+        return (
+            <div
+                data-status={appointment.status}
+                className={cn(block, 'rounded-xl px-2.5 py-1.5')}
+            >
+                {patient}
+                {!compact && service}
+                <div className="mt-auto flex items-center justify-between gap-1 pt-0.5">
+                    {status}
+                    <span className="text-[0.65rem] text-muted-foreground">
+                        {time}
+                    </span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div
             data-status={appointment.status}
-            className={cn(
-                'flex h-full flex-col gap-0.5 overflow-hidden rounded-lg border-l-[3px] px-2 py-1.5 text-left text-xs leading-tight text-foreground',
-                STATUS_TONES[appointment.status].block,
-            )}
+            className={cn(block, 'rounded-lg px-2 py-1.5')}
         >
             <div className="flex items-center justify-between gap-1">
-                <span className="font-medium whitespace-nowrap tabular-nums">
-                    {timeLabel}
-                </span>
-                <span className="flex items-center gap-1">
-                    {appointment.origin === 'online' && <OnlineOriginMark />}
-                    <AppointmentStatusChip
-                        status={appointment.status}
-                        surface="card"
-                    />
-                </span>
+                {time}
+                {status}
             </div>
-            <span
-                className={cn('truncate font-medium', struck && 'line-through')}
-            >
-                {patientLabel}
-            </span>
-            {(variant === 'default' || !compact) && (
-                <span className="truncate text-muted-foreground">
-                    {serviceLabel}
-                </span>
-            )}
-            {variant === 'default' && professionalLabel && (
+            {patient}
+            {service}
+            {professionalLabel && (
                 <span className="truncate text-muted-foreground">
                     {professionalLabel}
                 </span>
