@@ -14,7 +14,7 @@ type BookingSelectFieldProps = {
     id: string;
     label: string;
     items: SelectableItem[];
-    value?: string;
+    value: string | null;
     placeholder: string;
     onValueChange: NonNullable<ComponentProps<typeof Select>['onValueChange']>;
 };

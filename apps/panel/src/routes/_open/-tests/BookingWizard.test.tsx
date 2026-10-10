@@ -11,7 +11,7 @@ import {
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { useState } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { BookingWizard } from '../-components/booking/BookingWizard';
 
 vi.mock('@/lib/api', () => ({
@@ -139,9 +139,21 @@ function expectTopmostH1(name: string) {
 }
 
 describe('BookingWizard selection cascade', () => {
+    let consoleError: ReturnType<typeof vi.spyOn>;
+
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset();
+        consoleError = vi.spyOn(console, 'error');
+    });
+
+    // Base UI warns once per module, so the guard runs after every test (soft, so cleanup still runs): whichever test selects first catches a select that starts uncontrolled.
+    afterEach(() => {
+        expect
+            .soft(consoleError)
+            .not.toHaveBeenCalledWith(
+                expect.stringContaining('uncontrolled value state of Select'),
+            );
     });
 
     it('limits the professional list to the chosen specialty, and the service list to the chosen professional', async () => {
