@@ -8,9 +8,12 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Organizations\OrganizationLogoRemovalData;
 use App\Models\OrganizationLogo;
+use Illuminate\Support\Facades\Storage;
 
 /**
- * Idempotent: removing a missing logo is not an error; returns whether one was removed.
+ * Idempotent: removing a missing logo is not an error; returns whether one was
+ * removed. The row goes first, so a storage failure leaves an orphan object
+ * rather than a row pointing at nothing.
  *
  * @implements Action<OrganizationLogoRemovalData>
  */
@@ -21,8 +24,17 @@ class RemoveOrganizationLogoAction implements Action
      */
     public function handle(Data $dto): bool
     {
-        return OrganizationLogo::withoutGlobalScope('organization')
+        $logo = OrganizationLogo::withoutGlobalScope('organization')
             ->where('organization_id', $dto->organizationId)
-            ->delete() > 0;
+            ->first();
+
+        if ($logo === null) {
+            return false;
+        }
+
+        $logo->delete();
+        Storage::disk(OrganizationLogo::DISK)->delete($logo->path);
+
+        return true;
     }
 }

@@ -8,6 +8,11 @@ use App\Models\Organization;
 use App\Models\OrganizationLogo;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function () {
+    Storage::fake(OrganizationLogo::DISK);
+});
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
@@ -56,7 +61,8 @@ test('an owner or admin on a paid plan uploads a logo: stored as is and exposed 
     expect($logo->organization_id)->toBe($organization->id);
     expect($logo->mime_type)->toBe('image/png');
     expect($logo->checksum)->toBe($checksum);
-    expect($logo->binary())->toBe($contents);
+    expect($logo->path)->toBe("organization-logos/{$organization->id}/{$checksum}.png");
+    expect(Storage::disk(OrganizationLogo::DISK)->get($logo->path))->toBe($contents);
 })->with(['owner', 'admin']);
 
 test('uploading again replaces the logo and changes its URL', function () {
@@ -70,8 +76,9 @@ test('uploading again replaces the logo and changes its URL', function () {
     ])->json('data.logo_url');
 
     expect($second)->not->toBe($first);
-    expect(OrganizationLogo::withoutGlobalScope('organization')->count())->toBe(1);
-    expect(OrganizationLogo::withoutGlobalScope('organization')->sole()->mime_type)->toBe('image/jpeg');
+    $logo = OrganizationLogo::withoutGlobalScope('organization')->sole();
+    expect($logo->mime_type)->toBe('image/jpeg');
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([$logo->path]);
 });
 
 test('the Free plan rejects uploading a logo with 409 plans.feature_unavailable and stores nothing', function () {
@@ -86,6 +93,7 @@ test('the Free plan rejects uploading a logo with 409 plans.feature_unavailable 
     $response->assertJsonPath('error.code', ErrorCode::PlansFeatureUnavailable->value);
     $response->assertJsonPath('error.context.feature', 'booking_branding');
     expect(OrganizationLogo::withoutGlobalScope('organization')->count())->toBe(0);
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
 });
 
 test('a file that is not a PNG, JPEG or WebP image is rejected with 422', function (UploadedFile $file) {
@@ -96,6 +104,7 @@ test('a file that is not a PNG, JPEG or WebP image is rejected with 422', functi
         ->assertJsonValidationErrors('logo');
 
     expect(OrganizationLogo::withoutGlobalScope('organization')->count())->toBe(0);
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
 })->with([
     'svg' => fn () => UploadedFile::fake()->createWithContent('logo.svg', '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
     'pdf' => fn () => UploadedFile::fake()->createWithContent('logo.pdf', "%PDF-1.4\n%%EOF"),
@@ -159,6 +168,7 @@ test('after a downgrade to Free the logo is kept, still listed, and can be remov
     $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
 
     expect(OrganizationLogo::withoutGlobalScope('organization')->count())->toBe(0);
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
 });
 
 test('removing a logo that does not exist is a no-op 204', function () {
@@ -170,10 +180,11 @@ test('removing a logo that does not exist is a no-op 204', function () {
 test('an owner only reads and removes their own organization logo', function () {
     $owner = paidOwner();
     $other = paidOwner();
+    Storage::disk(OrganizationLogo::DISK)->put('organization-logos/other.png', 'other');
     OrganizationLogo::query()->create([
         'organization_id' => $other->organization_id,
         'mime_type' => 'image/png',
-        'content' => base64_encode('other'),
+        'path' => 'organization-logos/other.png',
         'checksum' => hash('sha256', 'other'),
     ]);
 
@@ -183,4 +194,16 @@ test('an owner only reads and removes their own organization logo', function () 
     $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
 
     expect(OrganizationLogo::withoutGlobalScope('organization')->where('organization_id', $other->organization_id)->exists())->toBeTrue();
+    expect(Storage::disk(OrganizationLogo::DISK)->exists('organization-logos/other.png'))->toBeTrue();
+});
+
+test('a failure saving the row deletes the object it just uploaded', function () {
+    $owner = paidOwner();
+    OrganizationLogo::creating(fn () => throw new RuntimeException('database down'));
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.png', 200, 80),
+    ])->assertStatus(500);
+
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
 });

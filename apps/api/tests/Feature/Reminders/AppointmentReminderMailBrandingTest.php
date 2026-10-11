@@ -17,7 +17,7 @@ function keepLogo(Organization $organization): string
     OrganizationLogo::query()->create([
         'organization_id' => $organization->id,
         'mime_type' => 'image/png',
-        'content' => base64_encode('logo'),
+        'path' => "organization-logos/{$organization->id}/logo.png",
         'checksum' => hash('sha256', 'logo'),
     ]);
 

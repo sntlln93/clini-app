@@ -9,9 +9,9 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * The organization's logo for its booking page and reminder mails (#239),
-     * kept in Postgres rather than on disk (ADR 0015). `content` is the file
-     * base64-encoded; `checksum` versions its public URL.
+     * The organization's logo for its booking page and reminder mails (#239).
+     * The file lives in the `media` bucket (ADR 0015); `path` is its object
+     * key and `checksum` versions its public URL.
      */
     public function up(): void
     {
@@ -19,7 +19,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->unique()->constrained()->cascadeOnDelete();
             $table->string('mime_type', 32);
-            $table->text('content');
+            $table->string('path');
             $table->string('checksum', 64);
             $table->timestamps();
         });

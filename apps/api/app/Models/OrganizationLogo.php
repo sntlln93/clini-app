@@ -6,21 +6,15 @@ namespace App\Models;
 
 use App\Support\Concerns\BelongsToOrganization;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * `content` is the image base64-encoded (ADR 0015), hidden so it never
- * leaks into a serialized payload.
+ * `path` is the object key in the `media` bucket (ADR 0015).
  */
-#[Fillable(['organization_id', 'mime_type', 'content', 'checksum'])]
-#[Hidden(['content'])]
+#[Fillable(['organization_id', 'mime_type', 'path', 'checksum'])]
 class OrganizationLogo extends Model
 {
     use BelongsToOrganization;
 
-    public function binary(): string
-    {
-        return (string) base64_decode($this->content, true);
-    }
+    public const DISK = 'media';
 }

@@ -7,6 +7,11 @@ use App\Models\Organization;
 use App\Models\OrganizationLogo;
 use App\Models\Subscription;
 use App\Support\CurrentOrganization;
+use Illuminate\Support\Facades\Storage;
+
+beforeEach(function () {
+    Storage::fake(OrganizationLogo::DISK);
+});
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
@@ -14,10 +19,13 @@ afterEach(function () {
 
 function storeLogo(Organization $organization, string $contents = "\x89PNG-logo", string $mimeType = 'image/png'): OrganizationLogo
 {
+    $path = "organization-logos/{$organization->id}/logo";
+    Storage::disk(OrganizationLogo::DISK)->put($path, $contents);
+
     return OrganizationLogo::query()->create([
         'organization_id' => $organization->id,
         'mime_type' => $mimeType,
-        'content' => base64_encode($contents),
+        'path' => $path,
         'checksum' => hash('sha256', $contents),
     ]);
 }
