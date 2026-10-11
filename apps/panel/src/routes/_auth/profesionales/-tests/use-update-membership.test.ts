@@ -67,12 +67,17 @@ describe('membership mutation toasts', () => {
 describe('membership changes reach every page that lists members (#273)', () => {
     // Read only by loaders: the list and edit page here, Ajustes'
     // professionals, the roster of the agenda and other modules, the reports.
-    const READS = [
-        () => membershipsQueryOptions({ q: '', page: 1 }),
-        () => membershipQueryOptions(5),
-        () => professionalsQueryOptions(),
-        () => professionalRosterQueryOptions(),
-        () => reportQueryOptions({}),
+    const READS: Array<(queryClient: QueryClient) => Promise<unknown>> = [
+        (queryClient) =>
+            queryClient.ensureQueryData(
+                membershipsQueryOptions({ q: '', page: 1 }),
+            ),
+        (queryClient) => queryClient.ensureQueryData(membershipQueryOptions(5)),
+        (queryClient) =>
+            queryClient.ensureQueryData(professionalsQueryOptions()),
+        (queryClient) =>
+            queryClient.ensureQueryData(professionalRosterQueryOptions()),
+        (queryClient) => queryClient.ensureQueryData(reportQueryOptions({})),
     ];
 
     beforeEach(() => {
@@ -114,15 +119,11 @@ describe('membership changes reach every page that lists members (#273)', () => 
         const queryClient = new QueryClient({
             defaultOptions: { mutations: { retry: false } },
         });
-        await Promise.all(
-            READS.map((read) => queryClient.ensureQueryData(read())),
-        );
+        await Promise.all(READS.map((read) => read(queryClient)));
         vi.mocked(api.get).mockClear();
 
         await run(queryClient);
-        await Promise.all(
-            READS.map((read) => queryClient.ensureQueryData(read())),
-        );
+        await Promise.all(READS.map((read) => read(queryClient)));
 
         expect(api.get).toHaveBeenCalledTimes(READS.length);
     });
