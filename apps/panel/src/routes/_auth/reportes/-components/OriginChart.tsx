@@ -37,6 +37,7 @@ export function OriginChart({
                 className="aspect-auto h-64 w-full"
             >
                 <BarChart
+                    responsive
                     accessibilityLayer
                     data={series}
                     margin={{ left: 0, right: 12, top: 8 }}
