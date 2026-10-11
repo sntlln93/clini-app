@@ -36,6 +36,7 @@ export function useRescheduleSubmit(
         try {
             await mutateAsync({
                 appointmentId: appointment.id,
+                patientId: appointment.patient_id,
                 startAt: toInstant(values.date, values.time),
             });
             onDone();

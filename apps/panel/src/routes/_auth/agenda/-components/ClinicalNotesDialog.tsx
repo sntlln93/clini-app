@@ -42,7 +42,7 @@ export function ClinicalNotesDialog({
     const appointmentId = appointment?.id ?? null;
     const notesQuery = useClinicalNotes(appointmentId, open);
     const { data: notes, isLoading } = notesQuery;
-    const remove = useDeleteClinicalNote(appointmentId);
+    const remove = useDeleteClinicalNote(appointment);
     // Read-only while writes are restricted (#28, #237).
     const restricted = useWritesRestricted();
     const fetchErrorMessage = notesQuery.isError
@@ -130,7 +130,7 @@ export function ClinicalNotesDialog({
 
                 {!restricted && (
                     <ClinicalNoteForm
-                        appointmentId={appointmentId}
+                        appointment={appointment}
                         open={open}
                         editingNote={editingNote}
                         onCancelEdit={() => setEditingNote(null)}

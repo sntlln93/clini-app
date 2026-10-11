@@ -14,6 +14,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { noteSchema, type NoteFormValues } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
+import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
     useCreateClinicalNote,
@@ -21,7 +22,7 @@ import {
 } from '../-hooks/use-clinical-notes';
 
 type ClinicalNoteFormProps = {
-    appointmentId: number | null;
+    appointment: Appointment | null;
     open: boolean;
     editingNote: ClinicalNote | null;
     onCancelEdit: () => void;
@@ -32,14 +33,14 @@ const EMPTY_VALUES: NoteFormValues = { body: '' };
 
 // Add/edit form for a single note: create when `editingNote` is null, update otherwise.
 export function ClinicalNoteForm({
-    appointmentId,
+    appointment,
     open,
     editingNote,
     onCancelEdit,
     onSaved,
 }: ClinicalNoteFormProps) {
-    const create = useCreateClinicalNote(appointmentId);
-    const update = useUpdateClinicalNote(appointmentId);
+    const create = useCreateClinicalNote(appointment);
+    const update = useUpdateClinicalNote(appointment);
 
     const form = useForm<NoteFormValues>({
         resolver: zodResolver(noteSchema),

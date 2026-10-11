@@ -12,8 +12,8 @@ vi.mock('@/lib/api', () => ({
 
 vi.mock('@/lib/toast', () => ({ notifySuccess: vi.fn() }));
 
-function renderSavePatient(queryClient: QueryClient) {
-    return renderHook(() => useSavePatient(12), {
+function renderSavePatient(queryClient: QueryClient, patientId?: number) {
+    return renderHook(() => useSavePatient(patientId), {
         wrapper: ({ children }: { children: ReactNode }) => (
             <QueryClientProvider client={queryClient}>
                 {children}
@@ -32,7 +32,7 @@ describe('useSavePatient', () => {
         const lookupKey = ['patients', 'lookup', 'dni', '30111222'];
         queryClient.setQueryData(listKey, { data: [{ name: 'Juan Perez' }] });
         queryClient.setQueryData(lookupKey, null);
-        const { result } = renderSavePatient(queryClient);
+        const { result } = renderSavePatient(queryClient, 12);
 
         await act(() =>
             result.current.mutateAsync({
@@ -42,5 +42,54 @@ describe('useSavePatient', () => {
 
         expect(queryClient.getQueryData(listKey)).toBeUndefined();
         expect(queryClient.getQueryState(lookupKey)).toBeDefined();
+    });
+
+    // Other pages read these only in their loaders (#273).
+    it('drops the cached appointments and prescriptions after editing a patient, which show the name', async () => {
+        vi.mocked(api.put).mockResolvedValueOnce({
+            data: { data: { id: 12, name: 'Juan Pérez' } },
+        });
+        const queryClient = new QueryClient();
+        const agendaKey = ['appointments', '2026-08-10', '2026-08-10', null];
+        const prescriptionKey = ['prescriptions', 'detail', 5];
+        const reportKey = ['reports', {}];
+        queryClient.setQueryData(agendaKey, [{ patient_name: 'Juan Perez' }]);
+        queryClient.setQueryData(prescriptionKey, {
+            patient_name: 'Juan Perez',
+        });
+        queryClient.setQueryData(reportKey, { new_patients: 1 });
+        const { result } = renderSavePatient(queryClient, 12);
+
+        await act(() =>
+            result.current.mutateAsync({
+                name: 'Juan Pérez',
+            } as PatientPayload),
+        );
+
+        expect(queryClient.getQueryData(agendaKey)).toBeUndefined();
+        expect(queryClient.getQueryData(prescriptionKey)).toBeUndefined();
+        expect(queryClient.getQueryData(reportKey)).toEqual({
+            new_patients: 1,
+        });
+    });
+
+    it('drops the cached reports after creating a patient, which count new patients', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 13, name: 'Ana Gómez' } },
+        });
+        const queryClient = new QueryClient();
+        const agendaKey = ['appointments', '2026-08-10', '2026-08-10', null];
+        const reportKey = ['reports', {}];
+        queryClient.setQueryData(agendaKey, []);
+        queryClient.setQueryData(reportKey, { new_patients: 1 });
+        const { result } = renderSavePatient(queryClient);
+
+        await act(() =>
+            result.current.mutateAsync({ name: 'Ana Gómez' } as PatientPayload),
+        );
+
+        expect(queryClient.getQueryData(reportKey)).toBeUndefined();
+        // A new patient has no appointments yet.
+        expect(queryClient.getQueryData(agendaKey)).toEqual([]);
     });
 });

@@ -1,3 +1,7 @@
+import {
+    patientAppointmentsQueryKey,
+    patientClinicalNotesQueryKey,
+} from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { mapToAppError } from '@/lib/api-errors';
@@ -5,11 +9,6 @@ import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { queryOptions, useMutation } from '@tanstack/react-query';
-import { patientAppointmentsQueryKey } from './use-patient-appointments';
-
-export function patientClinicalNotesQueryKey(patientId: number) {
-    return ['patients', patientId, 'clinical-notes'];
-}
 
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
 // Access is decided by relationship, not by a session permission (only a

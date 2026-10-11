@@ -1,6 +1,7 @@
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { discardPageData } from '@/lib/page-data';
 import { notifySuccess } from '@/lib/toast';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +34,19 @@ export function useSavePatient(patientId?: number) {
                 queryKey: patientQueryOptions(saved.id).queryKey,
                 exact: true,
             });
+            // Other pages' loader-only reads that show it (#273): appointments
+            // (agenda, waiting room) and prescriptions carry the patient's name
+            // and document; the reports count the patients registered.
+            if (patientId) {
+                discardPageData(
+                    queryClient,
+                    ['appointments'],
+                    ['prescriptions', 'patient'],
+                    ['prescriptions', 'detail'],
+                );
+            } else {
+                discardPageData(queryClient, ['reports']);
+            }
             notifySuccess(patientId ? 'Cambios guardados' : 'Paciente creado');
         },
     });

@@ -10,10 +10,12 @@ use App\Enums\MembershipStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\ClinicalNote;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\PlatformAdmin;
+use App\Models\Prescription;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
@@ -46,6 +48,18 @@ test('re-seeding leaves every fixture table with identical row counts', function
     $this->seed(DatabaseSeeder::class);
 
     expect($countRows())->toBe($countsBefore);
+});
+
+test('re-seeding clears the clinical notes and prescriptions written on fixture appointments', function () {
+    $this->seed(DatabaseSeeder::class);
+    $appointment = Appointment::query()->orderBy('id')->firstOrFail();
+    ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
+    Prescription::factory()->create(['appointment_id' => $appointment->id]);
+
+    $this->seed(DatabaseSeeder::class);
+
+    expect(ClinicalNote::withTrashed()->where('organization_id', $appointment->organization_id)->count())->toBe(0)
+        ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0);
 });
 
 test('the two fixture organizations exist by slug', function () {

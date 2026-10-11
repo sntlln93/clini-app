@@ -2,7 +2,9 @@ import { api } from '@/lib/api';
 import { planQueryOptions } from '@/lib/plan';
 import { notifySuccess } from '@/lib/toast';
 import { buildPlan } from '@/tests/fixtures/plan';
+import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import type { Plan } from '@/types/plan';
+import type { OrganizationReport } from '@/types/report';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
@@ -11,7 +13,11 @@ import {
     useCancelAppointment,
     useCreateAppointment,
     useRescheduleAppointment,
+    useUpdateAppointmentStatus,
 } from '../-hooks/use-appointments';
+import { patientAppointmentsQueryOptions } from '../../pacientes/-hooks/use-patient-appointments';
+import { patientClinicalNotesQueryOptions } from '../../pacientes/-hooks/use-patient-clinical-notes';
+import { reportQueryOptions } from '../../reportes/-hooks/use-report';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -125,6 +131,7 @@ describe('useRescheduleAppointment / useCancelAppointment', () => {
 
         await result.current.mutateAsync({
             appointmentId: 7,
+            patientId: 2,
             startAt: '2026-08-10T17:30:00.000Z',
         });
 
@@ -137,7 +144,7 @@ describe('useRescheduleAppointment / useCancelAppointment', () => {
         vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
         const { result } = renderWithClient(useCancelAppointment);
 
-        await result.current.mutateAsync({ appointmentId: 7 });
+        await result.current.mutateAsync({ appointmentId: 7, patientId: 2 });
 
         expect(notifySuccess).toHaveBeenCalledWith('Turno cancelado.');
     });
@@ -150,7 +157,11 @@ describe('useRescheduleAppointment / useCancelAppointment', () => {
         const { result } = renderWithClient(useRescheduleAppointment);
 
         await result.current
-            .mutateAsync({ appointmentId: 7, startAt: '2026-08-10T17:30:00Z' })
+            .mutateAsync({
+                appointmentId: 7,
+                patientId: 2,
+                startAt: '2026-08-10T17:30:00Z',
+            })
             .catch(() => {});
 
         expect(notifySuccess).not.toHaveBeenCalled();
@@ -174,9 +185,13 @@ describe("on Free, which counts the month's appointments (#238)", () => {
         await create.result.current.mutateAsync(PAYLOAD);
         await reschedule.result.current.mutateAsync({
             appointmentId: 7,
+            patientId: 2,
             startAt: '2026-08-10T17:30:00.000Z',
         });
-        await cancel.result.current.mutateAsync({ appointmentId: 7 });
+        await cancel.result.current.mutateAsync({
+            appointmentId: 7,
+            patientId: 2,
+        });
 
         for (const { invalidateQueries } of [create, reschedule, cancel]) {
             expect(invalidateQueries).toHaveBeenCalledWith({
@@ -244,3 +259,199 @@ describe("on Free, which counts the month's appointments (#238)", () => {
         );
     });
 });
+
+describe("refreshes the patient page's loader-only reads (#273)", () => {
+    const HISTORY_ITEM = { id: 7 } as PatientAppointmentHistoryItem;
+
+    // Visiting the patient page (id 2) left its history and notes cached by
+    // its loader's `ensureQueryData`: no observer, so nothing refetches them
+    // unless the mutation does.
+    async function renderWithPatientPageVisited<T>(hook: () => T) {
+        const queryClient = new QueryClient({
+            defaultOptions: { mutations: { retry: false } },
+        });
+        vi.mocked(api.get).mockImplementation((url: string) =>
+            url === '/patients/2/clinical-notes'
+                ? Promise.reject({
+                      isAxiosError: true,
+                      response: { status: 403, data: {} },
+                  })
+                : Promise.resolve({ data: { data: [] } }),
+        );
+        await queryClient.ensureQueryData(patientAppointmentsQueryOptions(2));
+        await queryClient.ensureQueryData(patientClinicalNotesQueryOptions(2));
+        // What the API answers once the appointment exists.
+        vi.mocked(api.get).mockImplementation((url: string) =>
+            Promise.resolve({
+                data: {
+                    data: url.startsWith('/patients/2/') ? [HISTORY_ITEM] : [],
+                },
+            }),
+        );
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            createElement(
+                QueryClientProvider,
+                { client: queryClient },
+                children,
+            );
+
+        const { result } = renderHook(hook, { wrapper });
+
+        return { result, queryClient };
+    }
+
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
+        vi.mocked(api.patch).mockReset().mockResolvedValue({ data: {} });
+    });
+
+    it.each([
+        {
+            name: 'creating',
+            run: async () => {
+                const { result, queryClient } =
+                    await renderWithPatientPageVisited(useCreateAppointment);
+                await result.current.mutateAsync(PAYLOAD);
+                return queryClient;
+            },
+        },
+        {
+            name: 'cancelling',
+            run: async () => {
+                const { result, queryClient } =
+                    await renderWithPatientPageVisited(useCancelAppointment);
+                await result.current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                });
+                return queryClient;
+            },
+        },
+        {
+            name: 'rescheduling',
+            run: async () => {
+                const { result, queryClient } =
+                    await renderWithPatientPageVisited(
+                        useRescheduleAppointment,
+                    );
+                await result.current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    startAt: '2026-08-10T17:30:00.000Z',
+                });
+                return queryClient;
+            },
+        },
+        {
+            name: 'changing the status of',
+            run: async () => {
+                const { result, queryClient } =
+                    await renderWithPatientPageVisited(
+                        useUpdateAppointmentStatus,
+                    );
+                await result.current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    status: 'arrived',
+                });
+                return queryClient;
+            },
+        },
+    ])(
+        '$name an appointment makes the patient page load its history and notes again',
+        async ({ run }) => {
+            const queryClient = await run();
+
+            // What the patient page's loader does on the way back.
+            await expect(
+                queryClient.ensureQueryData(patientAppointmentsQueryOptions(2)),
+            ).resolves.toEqual([HISTORY_ITEM]);
+            await expect(
+                queryClient.ensureQueryData(
+                    patientClinicalNotesQueryOptions(2),
+                ),
+            ).resolves.toEqual([HISTORY_ITEM]);
+        },
+    );
+});
+
+describe('refreshes the reports, which count appointments', () => {
+    const BEFORE = { period: 'before' } as unknown as OrganizationReport;
+    const AFTER = { period: 'after' } as unknown as OrganizationReport;
+
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
+        vi.mocked(api.patch).mockReset().mockResolvedValue({ data: {} });
+    });
+
+    it.each([
+        {
+            name: 'creating',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useCreateAppointment,
+                ).current.mutateAsync(PAYLOAD),
+        },
+        {
+            name: 'cancelling',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useCancelAppointment,
+                ).current.mutateAsync({ appointmentId: 7, patientId: 2 }),
+        },
+        {
+            name: 'rescheduling',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useRescheduleAppointment,
+                ).current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    startAt: '2026-08-10T17:30:00.000Z',
+                }),
+        },
+        {
+            name: 'changing the status of',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useUpdateAppointmentStatus,
+                ).current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    status: 'no_show',
+                }),
+        },
+    ])(
+        '$name an appointment makes the reports load again',
+        async ({ mutate }) => {
+            const queryClient = new QueryClient({
+                defaultOptions: { mutations: { retry: false } },
+            });
+            // The reports page was visited: its loader cached the report.
+            vi.mocked(api.get).mockResolvedValueOnce({
+                data: { data: BEFORE },
+            });
+            await queryClient.ensureQueryData(reportQueryOptions({}));
+            vi.mocked(api.get).mockResolvedValue({ data: { data: AFTER } });
+
+            await mutate(queryClient);
+
+            await expect(
+                queryClient.ensureQueryData(reportQueryOptions({})),
+            ).resolves.toEqual(AFTER);
+        },
+    );
+});
+
+function renderWithQueryClient<T>(queryClient: QueryClient, hook: () => T) {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children);
+
+    return renderHook(hook, { wrapper }).result;
+}

@@ -14,9 +14,11 @@ use App\Enums\ReminderStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\ClinicalNote;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\Prescription;
 use App\Models\Reminder;
 use App\Models\Service;
 use Illuminate\Database\Seeder;
@@ -28,7 +30,7 @@ use Illuminate\Database\Seeder;
  *
  * None of these tables has a natural key, so this seeder is idempotent by
  * deleting the organization's own rows first, in FK-safe order (reminders
- * -> appointments -> availability_exceptions -> availabilities), and
+ * -> clinical notes -> prescriptions -> appointments -> availability_exceptions -> availabilities), and
  * re-inserting — always scoped to $organization->id, never a global
  * truncate or an unfiltered delete. Appointment is soft-deletable, so its
  * cleanup uses forceDelete(): a plain delete() would only set deleted_at,
@@ -66,6 +68,10 @@ class SchedulingSeeder extends Seeder
     private function clearFixtureRows(Organization $organization): void
     {
         Reminder::where('organization_id', $organization->id)->delete();
+        // Notes and prescriptions restrict deleting their appointment, so any
+        // written since the last seed (by hand or by an e2e run) go first.
+        ClinicalNote::withTrashed()->where('organization_id', $organization->id)->forceDelete();
+        Prescription::where('organization_id', $organization->id)->delete();
         Appointment::where('organization_id', $organization->id)->forceDelete();
         AvailabilityException::where('organization_id', $organization->id)->delete();
         Availability::where('organization_id', $organization->id)->delete();
