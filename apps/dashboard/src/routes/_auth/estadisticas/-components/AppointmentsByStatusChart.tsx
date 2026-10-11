@@ -47,6 +47,7 @@ export function AppointmentsByStatusChart({
                 className="aspect-auto h-72 w-full"
             >
                 <BarChart
+                    responsive
                     accessibilityLayer
                     data={rows}
                     layout="vertical"

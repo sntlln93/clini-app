@@ -6,7 +6,6 @@ import * as RechartsPrimitive from 'recharts';
 // Format: { THEME_NAME: CSS_SELECTOR }
 const THEMES = { light: '', dark: '.dark' } as const;
 
-const INITIAL_DIMENSION = { width: 320, height: 200 } as const;
 type TooltipNameType = number | string;
 
 export type ChartConfig = Record<
@@ -36,22 +35,16 @@ function useChart() {
     return context;
 }
 
+// Each chart sizes itself with recharts' `responsive` prop, filling this container, instead of a ResponsiveContainer:
+// that one warns when it measures 0×0, as it does while Suspense hides a page for its pending component (#267).
 function ChartContainer({
     id,
     className,
     children,
     config,
-    initialDimension = INITIAL_DIMENSION,
     ...props
 }: React.ComponentProps<'div'> & {
     config: ChartConfig;
-    children: React.ComponentProps<
-        typeof RechartsPrimitive.ResponsiveContainer
-    >['children'];
-    initialDimension?: {
-        width: number;
-        height: number;
-    };
 }) {
     const uniqueId = React.useId();
     const chartId = `chart-${id ?? uniqueId.replace(/:/g, '')}`;
@@ -62,17 +55,13 @@ function ChartContainer({
                 data-slot="chart"
                 data-chart={chartId}
                 className={cn(
-                    "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden",
+                    "flex aspect-video justify-center text-xs [&_.recharts-cartesian-axis-tick_text]:fill-muted-foreground [&_.recharts-cartesian-grid_line[stroke='#ccc']]:stroke-border/50 [&_.recharts-curve.recharts-tooltip-cursor]:stroke-border [&_.recharts-dot[stroke='#fff']]:stroke-transparent [&_.recharts-layer]:outline-hidden [&_.recharts-polar-grid_[stroke='#ccc']]:stroke-border [&_.recharts-radial-bar-background-sector]:fill-muted [&_.recharts-rectangle.recharts-tooltip-cursor]:fill-muted [&_.recharts-reference-line_[stroke='#ccc']]:stroke-border [&_.recharts-sector]:outline-hidden [&_.recharts-sector[stroke='#fff']]:stroke-transparent [&_.recharts-surface]:outline-hidden [&>.recharts-wrapper]:size-full [&>.recharts-wrapper]:min-w-0",
                     className,
                 )}
                 {...props}
             >
                 <ChartStyle id={chartId} config={config} />
-                <RechartsPrimitive.ResponsiveContainer
-                    initialDimension={initialDimension}
-                >
-                    {children}
-                </RechartsPrimitive.ResponsiveContainer>
+                {children}
             </div>
         </ChartContext.Provider>
     );

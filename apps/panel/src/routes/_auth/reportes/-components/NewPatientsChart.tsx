@@ -34,6 +34,7 @@ export function NewPatientsChart({ newPatients }: NewPatientsChartProps) {
                 className="aspect-auto h-64 w-full"
             >
                 <BarChart
+                    responsive
                     accessibilityLayer
                     data={perMonth}
                     margin={{ left: 0, right: 12, top: 8 }}

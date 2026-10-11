@@ -18,7 +18,7 @@ function renderView(props: Partial<Parameters<typeof ReportView>[0]> = {}) {
 }
 
 describe('ReportView', () => {
-    // jsdom lays nothing out, so recharts' ResponsiveContainer would measure 0×0 and warn on every chart.
+    // jsdom lays nothing out; a chart is only drawn once its container measures a size.
     beforeEach(() => {
         vi.spyOn(
             HTMLElement.prototype,
@@ -31,7 +31,7 @@ describe('ReportView', () => {
     });
 
     it('shows the period totals, one row per professional and every chart', () => {
-        renderView();
+        const { container } = renderView();
 
         const summary = screen.getByRole('region', {
             name: 'Resumen del período',
@@ -59,6 +59,12 @@ describe('ReportView', () => {
             'Pacientes nuevos por mes',
         ]) {
             expect(screen.getAllByText(title).length).toBeGreaterThan(0);
+        }
+        // A chart root without `responsive` inside `ChartContainer` renders no SVG at all (#267).
+        const charts = container.querySelectorAll('[data-slot="chart"]');
+        expect(charts).toHaveLength(4);
+        for (const chart of charts) {
+            expect(chart.querySelector('svg.recharts-surface')).not.toBeNull();
         }
     });
 

@@ -32,6 +32,7 @@ export function AppointmentsCreatedChart({
                 className="aspect-auto h-64 w-full"
             >
                 <BarChart
+                    responsive
                     accessibilityLayer
                     data={points}
                     margin={{ left: 0, right: 12, top: 8 }}

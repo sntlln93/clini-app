@@ -30,6 +30,7 @@ export function PatientsCard({
                 className="aspect-auto h-48 w-full"
             >
                 <AreaChart
+                    responsive
                     accessibilityLayer
                     data={patients.per_day}
                     margin={{ left: 0, right: 12, top: 8 }}

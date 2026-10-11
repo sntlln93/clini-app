@@ -31,6 +31,7 @@ export function SignupsChart({ points }: { points: OverviewSeriesPoint[] }) {
                 className="aspect-auto h-64 w-full"
             >
                 <LineChart
+                    responsive
                     accessibilityLayer
                     data={points}
                     margin={{ left: 0, right: 12, top: 8 }}
