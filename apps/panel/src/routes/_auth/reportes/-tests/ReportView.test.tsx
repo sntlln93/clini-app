@@ -40,6 +40,11 @@ describe('ReportView', () => {
         expect(
             within(summary).getByText('4 h con turnos de 11 h publicadas'),
         ).toBeTruthy();
+        expect(
+            within(summary).getByText(
+                '2 ausentes de 6 turnos que llegaron a su hora',
+            ),
+        ).toBeTruthy();
         expect(within(summary).getByText('Pacientes nuevos')).toBeTruthy();
 
         const row = screen.getByRole('row', { name: /Ana Pérez/ });
