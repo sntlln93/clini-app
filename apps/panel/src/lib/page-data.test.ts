@@ -1,7 +1,7 @@
 import { QueryClient } from '@tanstack/react-query';
 import type { AnyRouter } from '@tanstack/react-router';
 import { describe, expect, it, vi } from 'vitest';
-import { refreshPageData } from './page-data';
+import { discardPageData, refreshPageData } from './page-data';
 
 function newQueryClient() {
     return new QueryClient({
@@ -148,5 +148,50 @@ describe('refreshPageData', () => {
         resolveInvalidate();
         await promise;
         expect(settled).toBe(true);
+    });
+});
+
+function deferredQuery(answers: string[]) {
+    const pending: Array<(value: string) => void> = [];
+    return {
+        queryFn: () =>
+            new Promise<string>((resolve) => {
+                pending.push(resolve);
+            }),
+        answerAll: () => {
+            for (const resolve of pending.splice(0)) {
+                resolve(answers.shift() ?? 'unexpected');
+            }
+        },
+        requests: () => pending.length,
+    };
+}
+
+describe('discardPageData', () => {
+    it('drops an idle entry, so the next loader run fetches it again', async () => {
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(['reports', {}], 'before');
+
+        discardPageData(queryClient, ['reports']);
+
+        expect(queryClient.getQueryData(['reports', {}])).toBeUndefined();
+    });
+
+    // A page the user went to while the mutation was saving: its loader is
+    // waiting on a load sent before the change landed (#273).
+    it('hands a loader waiting on an in-flight load a fresh answer instead of failing it', async () => {
+        const queryClient = new QueryClient();
+        const reports = deferredQuery(['before', 'after']);
+        const loading = queryClient.ensureQueryData({
+            queryKey: ['reports', {}],
+            queryFn: reports.queryFn,
+        });
+
+        discardPageData(queryClient, ['reports']);
+        // Asked again after the change.
+        expect(reports.requests()).toBe(2);
+        reports.answerAll();
+
+        await expect(loading).resolves.toBe('after');
     });
 });
