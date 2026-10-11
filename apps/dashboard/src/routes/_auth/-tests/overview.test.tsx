@@ -1,6 +1,6 @@
 import type { OverviewKpis, OverviewSeriesPoint } from '@/types/overview';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppointmentsCreatedChart } from '../-components/AppointmentsCreatedChart';
 import { KpiGrid } from '../-components/KpiGrid';
 import { SignupsChart } from '../-components/SignupsChart';
@@ -72,6 +72,10 @@ describe('KpiGrid', () => {
 });
 
 describe('overview charts', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('show the empty-period message instead of a flat line when every value is 0', () => {
         render(
             <>
@@ -86,14 +90,30 @@ describe('overview charts', () => {
     });
 
     it('render the plot and a table view when there is data', () => {
+        // jsdom lays nothing out; a chart is only drawn once its container measures a size.
+        vi.spyOn(
+            HTMLElement.prototype,
+            'getBoundingClientRect',
+        ).mockReturnValue(DOMRect.fromRect({ width: 640, height: 256 }));
         const points = [
             { ...ZERO_POINTS[0], users: 3, appointments: 2 },
             ZERO_POINTS[1],
         ];
-        render(<SignupsChart points={points} />);
+        const { container } = render(
+            <>
+                <SignupsChart points={points} />
+                <AppointmentsCreatedChart points={points} />
+            </>,
+        );
 
         expect(screen.queryByText('Sin datos para el período.')).toBeNull();
-        screen.getByText('Ver datos en tabla');
-        screen.getByRole('cell', { name: '03/10/2026' });
+        // A chart root without `responsive` inside `ChartContainer` renders no SVG at all (#267).
+        expect(container.querySelectorAll('svg.recharts-surface')).toHaveLength(
+            2,
+        );
+        expect(screen.getAllByText('Ver datos en tabla')).toHaveLength(2);
+        expect(
+            screen.getAllByRole('cell', { name: '03/10/2026' }),
+        ).toHaveLength(2);
     });
 });
