@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Mail\Appointments;
 
 use App\Models\Appointment;
+use App\Support\OrganizationBranding;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -13,7 +14,8 @@ use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Carbon;
 
 /**
- * Dispatched synchronously (no queues) by SendDueRemindersCommand.
+ * Sent by SendAppointmentReminderJob. Shows the organization's logo when its
+ * plan includes BookingBranding (#239).
  */
 class AppointmentReminderMail extends Mailable
 {
@@ -36,6 +38,7 @@ class AppointmentReminderMail extends Mailable
         $startAt = $this->appointment->start_at;
         $startAt = $startAt->clone();
         $startAt->locale('es');
+        $organization = $this->appointment->organization;
 
         return new Content(
             view: 'emails.appointment-reminder',
@@ -43,7 +46,8 @@ class AppointmentReminderMail extends Mailable
                 'patientName' => $this->appointment->patient?->name,
                 'professionalName' => $this->appointment->membership?->user?->name,
                 'serviceName' => $this->appointment->service?->name,
-                'organizationName' => $this->appointment->organization?->name,
+                'organizationName' => $organization?->name,
+                'logoUrl' => $organization === null ? null : app(OrganizationBranding::class)->of($organization)->logoUrl,
                 'startAt' => $startAt->translatedFormat('l d \\d\\e F \\d\\e Y \\a \\l\\a\\s H:i'),
             ],
         );

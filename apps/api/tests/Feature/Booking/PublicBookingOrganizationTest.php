@@ -54,6 +54,8 @@ test('show returns the organization basic data and its active professionals with
         'name' => 'Consultorio Salud',
         'slug' => 'consultorio-salud',
         'timezone' => 'America/Argentina/Buenos_Aires',
+        'show_clini_mark' => true,
+        'logo_url' => null,
     ]);
     expect($response->json('professionals'))->toHaveCount(1);
     $professional = $response->json('professionals.0');
