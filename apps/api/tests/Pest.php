@@ -114,7 +114,7 @@ function adminRouteUri(string $template): string
  * Public booking slot fixture, shared by the slot and holiday tests. UTC
  * keeps their clock times and plain date/time strings unambiguous —
  * timezone conversion itself is exercised elsewhere
- * (ListAvailableSlotsAction/ComputePublishedDayIntervalsAction).
+ * (ListAvailableSlotsAction/ComputePublishedScheduleAction).
  *
  * @return array{0: Organization, 1: Membership, 2: Service}
  */

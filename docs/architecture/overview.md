@@ -39,6 +39,7 @@ SPA de las clínicas: profesionales, dueños, administradores y recepción, aute
 - Tailwind CSS v4 + shadcn/ui.
 - Consume la API vía `VITE_API_URL`.
 - Estructura de carpetas (`routes/`, `components/`, `features/`) — ver [ADR 0003](../adr/0003-estructura-features-react.md).
+- Reportes de ocupación y ausentismo (plan Centro), con el `chart` de shadcn (recharts) igual que el dashboard — ver [reports.md](reports.md).
 
 ## Frontend (dashboard)
 
@@ -55,7 +56,7 @@ Sitio público de Clini en `apps/landing`. Cuenta el producto, muestra los plane
 
 - Mismo stack y convenciones que panel y dashboard, pero **con SSR**: TanStack Start sobre Vite, servido por Nitro como servidor Node. Ver [ADR 0011](../adr/0011-landing-con-ssr-en-tanstack-start.md).
 - `VITE_PANEL_URL` (build arg) es el origen del panel. `VITE_CONTACT_URL` (opcional) es el contacto comercial del plan Centro.
-- Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: el pago anual (#240) y las funciones exclusivas de Centro (#242 a #246).
+- Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: el pago anual (#240) y las funciones exclusivas de Centro (#243 a #246).
 
 ## Infraestructura
 

@@ -18,7 +18,8 @@ export default defineConfig({
         { name: 'setup', testMatch: /.*\.setup\.ts$/ },
         {
             name: 'chromium',
-            testIgnore: /(dashboard|landing)\//,
+            // `verify/` holds throwaway local checks, run with e2e/playwright.verify.config.ts.
+            testIgnore: /(dashboard|landing|verify)\//,
             use: { ...devices['Desktop Chrome'] },
             dependencies: ['setup'],
         },

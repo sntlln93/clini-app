@@ -111,7 +111,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'subscriptions.not_cancellable':
         'La suscripción no tiene cobros activos para cancelar. Actualizá la página para ver su estado vigente.',
     'plans.feature_unavailable':
-        'Tu plan no incluye esta función. Pasá a Consultorio desde Ajustes para usarla.',
+        'Tu plan no incluye esta función. Revisá los planes en Ajustes.',
     'plans.professional_limit_exceeded':
         'El plan Gratis incluye un solo profesional activo y tu consultorio tiene más. La agenda queda en solo lectura hasta que pases a Consultorio o desactives profesionales.',
     'plans.center_assigned':

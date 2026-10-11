@@ -26,7 +26,10 @@ export function PanelSidebar() {
     const plan = usePlan();
     const visibleNavItems = navItems.filter(
         (item) =>
-            (!item.permission || permissions.includes(item.permission)) &&
+            (!item.permissions ||
+                item.permissions.some((permission) =>
+                    permissions.includes(permission),
+                )) &&
             (!item.feature || planIncludes(plan, item.feature)),
     );
     // The mobile drawer would otherwise stay open over the new page. On click

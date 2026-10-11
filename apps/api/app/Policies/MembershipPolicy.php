@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Enums\Permission;
+use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\User;
 
@@ -26,6 +27,24 @@ class MembershipPolicy extends OrganizationScopedPolicy
             || $this->allows($user, Permission::AppointmentsCreate)
             || $this->allows($user, Permission::AppointmentsUpdate)
             || $this->allows($user, Permission::AvailabilityManage);
+    }
+
+    /**
+     * Reports (#242) have no model of their own. The whole organization's
+     * needs `reports.view`; one professional's also opens to that same
+     * professional through `reports.view.own`, via an unsaved Appointment
+     * carrying the target membership (layer 3 compares `membership_id`).
+     */
+    public function viewReports(User $user, ?Membership $professional = null): bool
+    {
+        if ($professional === null) {
+            return $this->allows($user, Permission::ReportsView);
+        }
+
+        return $this->allows($user, Permission::ReportsView, (new Appointment)->forceFill([
+            'organization_id' => $professional->organization_id,
+            'membership_id' => $professional->id,
+        ]));
     }
 
     /**

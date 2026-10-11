@@ -29,3 +29,13 @@ export function formatLongIsoDate(isoDate: string): string {
         timeZone: 'UTC',
     }).format(new Date(`${isoDate}T00:00:00Z`));
 }
+
+/** True for a real YYYY-MM-DD calendar date (rejects e.g. 2026-02-30). */
+export function isCalendarDate(isoDate: string): boolean {
+    const date = new Date(`${isoDate}T00:00:00Z`);
+
+    return (
+        !Number.isNaN(date.getTime()) &&
+        date.toISOString().slice(0, 10) === isoDate
+    );
+}

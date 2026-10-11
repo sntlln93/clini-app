@@ -76,6 +76,13 @@ test.describe('reflow at ~400% zoom (320x640), authenticated', () => {
 
         await assertNoPageLevelHorizontalScroll(page);
     });
+
+    test('/reportes has no page-level horizontal scroll', async ({ page }) => {
+        await page.goto('/reportes');
+        await page.waitForLoadState('networkidle');
+
+        await assertNoPageLevelHorizontalScroll(page);
+    });
 });
 
 test.describe('reflow at ~400% zoom (320x640) with a scaled root font-size', () => {

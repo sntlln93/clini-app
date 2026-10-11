@@ -28,7 +28,10 @@ enum Plan: string
 
     public function includes(PlanFeature $feature): bool
     {
-        return $this !== self::Free;
+        return match ($feature) {
+            PlanFeature::Reports => $this === self::Center,
+            default => $this !== self::Free,
+        };
     }
 
     /**

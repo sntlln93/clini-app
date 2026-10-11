@@ -7,7 +7,7 @@ namespace App\Actions\Booking;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Booking\AvailableSlotData;
-use App\Data\Booking\PublishedDayIntervalsData;
+use App\Data\Booking\PublishedScheduleData;
 use App\Data\Booking\SlotSearchData;
 use App\Enums\AppointmentStatus;
 use App\Models\Appointment;
@@ -20,7 +20,7 @@ use Illuminate\Database\Eloquent\Collection;
 /**
  * The grid of bookable slots for a membership+service pair over a date
  * range: the professional's *published* schedule per day (delegated to
- * ComputePublishedDayIntervalsAction), minus any overlapping active
+ * ComputePublishedScheduleAction), minus any overlapping active
  * appointment of the same physical professional across organizations (same
  * rule as BookAppointmentAction). Holidays — national, the organization's
  * province's, or the organization's own — are already subtracted by the
@@ -35,7 +35,7 @@ class ListAvailableSlotsAction implements Action
     public const int BOOKING_WINDOW_DAYS = 60;
 
     public function __construct(
-        private readonly ComputePublishedDayIntervalsAction $computePublishedDayIntervals,
+        private readonly ComputePublishedScheduleAction $computePublishedSchedule,
     ) {}
 
     /**
@@ -80,20 +80,20 @@ class ListAvailableSlotsAction implements Action
         $now = CarbonImmutable::now($timezone);
         $slots = [];
 
-        while ($cursor->lte($lastDay)) {
-            $dayIntervals = $this->computePublishedDayIntervals->handle(new PublishedDayIntervalsData(
-                membershipId: $dto->membershipId,
-                day: $cursor,
-            ));
+        $schedule = $this->computePublishedSchedule->handle(new PublishedScheduleData(
+            organizationId: $organization->id,
+            membershipIds: [$dto->membershipId],
+            fromDate: $cursor->toDateString(),
+            toDate: $lastDay->toDateString(),
+        ));
 
+        foreach ($schedule[$dto->membershipId] as $dayIntervals) {
             foreach ($dayIntervals as $interval) {
                 $slots = [
                     ...$slots,
                     ...$this->slotsWithinInterval($interval, $durationMinutes, $now, $busyAppointments),
                 ];
             }
-
-            $cursor = $cursor->addDay();
         }
 
         return $slots;

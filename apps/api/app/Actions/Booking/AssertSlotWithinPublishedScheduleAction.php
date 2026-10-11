@@ -6,7 +6,7 @@ namespace App\Actions\Booking;
 
 use App\Contracts\Action;
 use App\Contracts\Data;
-use App\Data\Booking\PublishedDayIntervalsData;
+use App\Data\Booking\PublishedScheduleData;
 use App\Data\Booking\SlotAvailabilityCheckData;
 use App\Exceptions\Booking\SlotNotAvailableException;
 use App\Models\Organization;
@@ -23,7 +23,7 @@ use App\Models\Organization;
 class AssertSlotWithinPublishedScheduleAction implements Action
 {
     public function __construct(
-        private readonly ComputePublishedDayIntervalsAction $computePublishedDayIntervals,
+        private readonly ComputePublishedScheduleAction $computePublishedSchedule,
     ) {}
 
     /**
@@ -39,13 +39,15 @@ class AssertSlotWithinPublishedScheduleAction implements Action
         $organization = Organization::query()->findOrFail($dto->organizationId);
         $timezone = $organization->timezone;
 
-        $day = $dto->startAt->setTimezone($timezone)->startOfDay();
+        $date = $dto->startAt->setTimezone($timezone)->toDateString();
         $slotEnd = $dto->startAt->addMinutes($dto->durationMinutes);
 
-        $intervals = $this->computePublishedDayIntervals->handle(new PublishedDayIntervalsData(
-            membershipId: $dto->membershipId,
-            day: $day,
-        ));
+        $intervals = $this->computePublishedSchedule->handle(new PublishedScheduleData(
+            organizationId: $organization->id,
+            membershipIds: [$dto->membershipId],
+            fromDate: $date,
+            toDate: $date,
+        ))[$dto->membershipId][$date];
 
         foreach ($intervals as $interval) {
             if ($dto->startAt->gte($interval['start']) && $slotEnd->lte($interval['end'])) {
