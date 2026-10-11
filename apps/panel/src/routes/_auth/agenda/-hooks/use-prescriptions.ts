@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { discardPageData } from '@/lib/page-data';
 import type { Prescription, PrescriptionPayload } from '@/types/prescription';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -39,14 +40,22 @@ export function useSavePrescription(appointmentId: number | null) {
                       payload,
                   )
                 : api.patch(`/prescriptions/${prescriptionId}`, payload),
-        // The whole `prescriptions` prefix: this appointment's list plus the
-        // loader-only patient list and printable view. `refetchType: 'all'`
-        // because those have no active observer and `ensureQueryData` would
-        // otherwise keep serving the stale cache (ADR 0007).
-        onSuccess: () =>
-            queryClient.invalidateQueries({
-                queryKey: ['prescriptions'],
-                refetchType: 'all',
-            }),
+        // The loader-only patient list and printable view are dropped, not
+        // refetched: `ensureQueryData` would serve them while a refetch is in
+        // flight (#273). The dialog's first load is cancelled before its own
+        // refresh, which would otherwise join it and keep its pre-save answer.
+        onSuccess: async () => {
+            discardPageData(
+                queryClient,
+                ['prescriptions', 'patient'],
+                ['prescriptions', 'detail'],
+            );
+            await queryClient.cancelQueries({
+                queryKey: queryKey(appointmentId),
+            });
+            await queryClient.invalidateQueries({
+                queryKey: queryKey(appointmentId),
+            });
+        },
     });
 }
