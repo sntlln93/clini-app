@@ -1,7 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    DOCUMENT_TYPE_OPTIONS,
+    SEX_OPTIONS,
+} from '@/features/patient-form/patient-schemas';
 import type { Patient } from '@/types/patient';
 import { formatBirthDateWithAge } from './patient-age';
-import { DOCUMENT_TYPE_OPTIONS, SEX_OPTIONS } from './patient-schemas';
 
 type PatientPersonalDataCardProps = {
     patient: Patient;

@@ -19,6 +19,11 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
+vi.mock('@/lib/toast', () => ({
+    notifySuccess: vi.fn(),
+    notifyError: vi.fn(),
+}));
+
 vi.mock('@tanstack/react-router', async (importOriginal) => {
     const actual =
         await importOriginal<typeof import('@tanstack/react-router')>();
@@ -530,11 +535,11 @@ describe('AppointmentFormDialog patient search', () => {
             await screen.findByText(/No encontramos pacientes con “Zoe”/),
         ).toBeTruthy();
         expect(
-            screen.getByRole('link', { name: 'Registrar paciente nuevo' }),
+            screen.getByRole('button', { name: 'Registrar paciente nuevo' }),
         ).toBeTruthy();
     });
 
-    it('hides the register link without patients.create', async () => {
+    it('hides the register action without patients.create', async () => {
         renderDialog(undefined, () => {}, [PROFESSIONAL], []);
 
         fireEvent.change(
@@ -546,7 +551,245 @@ describe('AppointmentFormDialog patient search', () => {
             await screen.findByText(/No encontramos pacientes con “Zoe”/),
         ).toBeTruthy();
         expect(
-            screen.queryByRole('link', { name: 'Registrar paciente nuevo' }),
+            screen.queryByRole('button', { name: 'Registrar paciente nuevo' }),
+        ).toBeNull();
+    });
+});
+
+describe('AppointmentFormDialog patient registration', () => {
+    const NEW_PATIENT = {
+        ...PATIENT,
+        id: 77,
+        name: 'Zoe Díaz',
+        document_number: '30111999',
+    };
+
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.get).mockImplementation(
+            (url: string, config?: { params?: { q?: string } }) => {
+                if (url === '/patients/lookup') {
+                    return Promise.reject({
+                        isAxiosError: true,
+                        response: {
+                            status: 404,
+                            data: { error: { code: 'patients.not_found' } },
+                        },
+                    });
+                }
+                if (url === '/patients') {
+                    // The search never catches up with the new patient here: the dialog must still list it.
+                    const data = config?.params?.q ? [] : [PATIENT];
+                    return Promise.resolve({
+                        data: {
+                            data,
+                            meta: {
+                                current_page: 1,
+                                last_page: 1,
+                                per_page: 15,
+                                total: data.length,
+                            },
+                            links: {
+                                first: null,
+                                last: null,
+                                prev: null,
+                                next: null,
+                            },
+                        },
+                    });
+                }
+                if (url.includes('/services')) {
+                    return Promise.resolve({ data: { data: [SERVICE] } });
+                }
+                return Promise.resolve({ data: { data: [] } });
+            },
+        );
+    });
+
+    async function registerFromEmptySearch(search: string, name: string) {
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: search } },
+        );
+        fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'Registrar paciente nuevo',
+            }),
+        );
+        const patientDialog = await screen.findByRole('dialog', {
+            name: 'Nuevo paciente',
+        });
+        fireEvent.change(within(patientDialog).getByLabelText('Nombre'), {
+            target: { value: name },
+        });
+        fireEvent.click(
+            within(patientDialog).getByRole('button', {
+                name: 'Guardar paciente',
+            }),
+        );
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Nuevo paciente' }),
+            ).toBeNull(),
+        );
+    }
+
+    function mockPatientCreate() {
+        vi.mocked(api.post).mockImplementation((url: string) =>
+            Promise.resolve(
+                url === '/patients'
+                    ? { data: { data: NEW_PATIENT } }
+                    : { data: {} },
+            ),
+        );
+    }
+
+    // #266: registering the patient used to leave for /pacientes/nuevo, losing the appointment.
+    it('registers the patient in a nested dialog and comes back with it selected, keeping what was typed', async () => {
+        vi.mocked(api.post).mockImplementation((url: string) =>
+            Promise.resolve(
+                url === '/patients'
+                    ? { data: { data: NEW_PATIENT } }
+                    : { data: {} },
+            ),
+        );
+        renderDialog(
+            { membershipId: 1, date: '2026-08-03', time: '10:00' },
+            () => {},
+            [PROFESSIONAL],
+            ['patients.create'],
+        );
+        fireEvent.change(screen.getByLabelText('Motivo'), {
+            target: { value: 'Control anual' },
+        });
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: '30.111.999' } },
+        );
+
+        fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'Registrar paciente nuevo',
+            }),
+        );
+
+        const patientDialog = await screen.findByRole('dialog', {
+            name: 'Nuevo paciente',
+        });
+        expect(
+            (
+                within(patientDialog).getByLabelText(
+                    'Número de documento',
+                ) as HTMLInputElement
+            ).value,
+        ).toBe('30111999');
+        fireEvent.change(within(patientDialog).getByLabelText('Nombre'), {
+            target: { value: 'Zoe Díaz' },
+        });
+        fireEvent.click(
+            within(patientDialog).getByRole('button', {
+                name: 'Guardar paciente',
+            }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Nuevo paciente' }),
+            ).toBeNull(),
+        );
+        expect(api.post).toHaveBeenCalledWith(
+            '/patients',
+            expect.objectContaining({
+                name: 'Zoe Díaz',
+                document_number: '30111999',
+            }),
+        );
+        expect(
+            screen.getByRole('combobox', { name: 'Paciente' }).textContent,
+        ).toContain('Zoe Díaz — 30111999');
+        expect((screen.getByLabelText('Fecha') as HTMLInputElement).value).toBe(
+            '2026-08-03',
+        );
+        expect(
+            (screen.getByLabelText('Motivo') as HTMLInputElement).value,
+        ).toBe('Control anual');
+
+        await selectComboboxOption(
+            screen.getByRole('combobox', { name: 'Servicio' }),
+            'Consulta general',
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Crear turno' }));
+
+        await screen.findByText(
+            '¿Querés registrar el turno fuera del horario disponible del profesional?',
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar de todos modos' }),
+        );
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/appointments',
+                expect.objectContaining({
+                    patient_id: 77,
+                    reason: 'Control anual',
+                }),
+            ),
+        );
+    });
+    it('still offers to register another patient after one was registered', async () => {
+        mockPatientCreate();
+        renderDialog(undefined, () => {}, [PROFESSIONAL], ['patients.create']);
+        await registerFromEmptySearch('30111999', 'Zoe Díaz');
+
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: 'Pedro' } },
+        );
+
+        expect(
+            await screen.findByText(/No encontramos pacientes con “Pedro”/),
+        ).toBeTruthy();
+        expect(
+            screen.getByRole('button', { name: 'Registrar paciente nuevo' }),
+        ).toBeTruthy();
+    });
+
+    it('forgets the registered patient and the search when the dialog is reopened', async () => {
+        mockPatientCreate();
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 1,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: ['patients.create'],
+        });
+        const dialog = (open: boolean) => (
+            <QueryClientProvider client={queryClient}>
+                <AppointmentFormDialog
+                    open={open}
+                    onOpenChange={() => {}}
+                    professionals={[PROFESSIONAL]}
+                />
+            </QueryClientProvider>
+        );
+        const { rerender } = render(dialog(true));
+        await registerFromEmptySearch('30111999', 'Zoe Díaz');
+
+        rerender(dialog(false));
+        rerender(dialog(true));
+
+        expect(
+            (
+                (await screen.findByRole('textbox', {
+                    name: 'Buscar paciente',
+                })) as HTMLInputElement
+            ).value,
+        ).toBe('');
+        fireEvent.click(screen.getByRole('combobox', { name: 'Paciente' }));
+        await screen.findByRole('option', { name: 'Juan Pérez — 30111222' });
+        expect(
+            screen.queryByRole('option', { name: 'Zoe Díaz — 30111999' }),
         ).toBeNull();
     });
 });

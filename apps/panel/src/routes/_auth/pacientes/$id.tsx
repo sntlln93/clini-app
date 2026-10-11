@@ -1,6 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
+import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentHistoryCard';
@@ -10,7 +11,6 @@ import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
 import { PatientNextAppointmentCard } from './-components/PatientNextAppointmentCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
 import { PatientPrescriptionsCard } from './-components/PatientPrescriptionsCard';
-import { patientQueryOptions } from './-hooks/use-patient';
 import {
     findNextAppointment,
     findTodaysOwnAppointment,

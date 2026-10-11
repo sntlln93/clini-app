@@ -1,9 +1,9 @@
 import { Form } from '@/components/ui/form';
 import type { Patient } from '@/types/patient';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { useForm } from 'react-hook-form';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { AppointmentPatientField } from '../-components/AppointmentPatientField';
 import {
     appointmentSchema,
@@ -26,13 +26,13 @@ const PATIENT: Patient = {
 type WrapperProps = {
     patients?: Patient[];
     emptySearch?: string | null;
-    canCreatePatient?: boolean;
+    onCreatePatient?: () => void;
 };
 
 function Wrapper({
     patients = [PATIENT],
     emptySearch = null,
-    canCreatePatient = true,
+    onCreatePatient,
 }: WrapperProps) {
     const form = useForm<AppointmentFormValues>({
         resolver: zodResolver(appointmentSchema),
@@ -54,7 +54,7 @@ function Wrapper({
                 patientQuery={emptySearch ?? ''}
                 onPatientQueryChange={() => {}}
                 emptySearch={emptySearch}
-                canCreatePatient={canCreatePatient}
+                onCreatePatient={onCreatePatient}
             />
         </Form>
     );
@@ -85,31 +85,33 @@ describe('AppointmentPatientField', () => {
         expect(screen.queryByText(/No encontramos pacientes/)).toBeNull();
     });
 
-    it('explains an empty search and links to register a new patient in a new tab', () => {
-        render(<Wrapper patients={[]} emptySearch="Zoe" />);
-
-        expect(
-            screen.getByText(/No encontramos pacientes con “Zoe”/),
-        ).toBeTruthy();
-        const link = screen.getByRole('link', {
-            name: 'Registrar paciente nuevo',
-        });
-        expect(link.getAttribute('href')).toBe('/pacientes/nuevo');
-        expect(link.getAttribute('target')).toBe('_blank');
-    });
-
-    it('hides the register link without the patients.create permission', () => {
+    // Leaving for /pacientes/nuevo would drop the appointment being filled in (#266).
+    it('explains an empty search and offers to register the patient without leaving the dialog', () => {
+        const onCreatePatient = vi.fn();
         render(
             <Wrapper
                 patients={[]}
                 emptySearch="Zoe"
-                canCreatePatient={false}
+                onCreatePatient={onCreatePatient}
             />,
         );
 
+        expect(
+            screen.getByText(/No encontramos pacientes con “Zoe”/),
+        ).toBeTruthy();
+        expect(screen.queryByRole('link')).toBeNull();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar paciente nuevo' }),
+        );
+        expect(onCreatePatient).toHaveBeenCalledOnce();
+    });
+
+    it('hides the register action without the patients.create permission', () => {
+        render(<Wrapper patients={[]} emptySearch="Zoe" />);
+
         expect(screen.getByText(/No encontramos pacientes/)).toBeTruthy();
         expect(
-            screen.queryByRole('link', { name: 'Registrar paciente nuevo' }),
+            screen.queryByRole('button', { name: 'Registrar paciente nuevo' }),
         ).toBeNull();
     });
 });

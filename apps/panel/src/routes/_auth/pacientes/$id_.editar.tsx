@@ -1,10 +1,10 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
+import { insuranceProvidersQueryOptions } from '@/features/patient-form/use-insurance-providers';
+import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { PatientForm } from './-components/PatientForm';
-import { insuranceProvidersQueryOptions } from './-hooks/use-insurance-providers';
-import { patientQueryOptions } from './-hooks/use-patient';
 
 export const Route = createFileRoute('/_auth/pacientes/$id_/editar')({
     // Non-nested route (trailing underscore on `$id_`): this route is a

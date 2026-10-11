@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import type { Control } from 'react-hook-form';
 
-import { buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
     FormControl,
     FormField,
@@ -27,7 +27,8 @@ type AppointmentPatientFieldProps = {
     onPatientQueryChange: (query: string) => void;
     /** The settled search that came back empty, or `null` while there are results (or nothing was searched). */
     emptySearch: string | null;
-    canCreatePatient: boolean;
+    /** Absent when the session can't register patients. */
+    onCreatePatient?: () => void;
 };
 
 export function AppointmentPatientField({
@@ -36,7 +37,7 @@ export function AppointmentPatientField({
     patientQuery,
     onPatientQueryChange,
     emptySearch,
-    canCreatePatient,
+    onCreatePatient,
 }: AppointmentPatientFieldProps) {
     const patientItems = useMemo(
         () =>
@@ -66,20 +67,17 @@ export function AppointmentPatientField({
                     {emptySearch !== null && (
                         <p className="flex flex-wrap items-center gap-x-1 text-sm text-muted-foreground">
                             No encontramos pacientes con “{emptySearch}”.
-                            {canCreatePatient && (
-                                // A new tab keeps what was already typed into this dialog.
-                                <a
-                                    href="/pacientes/nuevo"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className={buttonVariants({
-                                        variant: 'link',
-                                        size: 'sm',
-                                        className: 'h-auto px-0',
-                                    })}
+                            {onCreatePatient && (
+                                // Opens a nested dialog: leaving for /pacientes/nuevo would drop this appointment (#266).
+                                <Button
+                                    type="button"
+                                    variant="link"
+                                    size="sm"
+                                    className="h-auto px-0"
+                                    onClick={onCreatePatient}
                                 >
                                     Registrar paciente nuevo
-                                </a>
+                                </Button>
                             )}
                         </p>
                     )}

@@ -22,7 +22,7 @@ type AppointmentFormFieldsProps = {
     patientQuery: string;
     onPatientQueryChange: (query: string) => void;
     emptyPatientSearch: string | null;
-    canCreatePatient: boolean;
+    onCreatePatient?: () => void;
 };
 
 export function AppointmentFormFields({
@@ -33,7 +33,7 @@ export function AppointmentFormFields({
     patientQuery,
     onPatientQueryChange,
     emptyPatientSearch,
-    canCreatePatient,
+    onCreatePatient,
 }: AppointmentFormFieldsProps) {
     return (
         <div className="space-y-4">
@@ -49,7 +49,7 @@ export function AppointmentFormFields({
                 patientQuery={patientQuery}
                 onPatientQueryChange={onPatientQueryChange}
                 emptySearch={emptyPatientSearch}
-                canCreatePatient={canCreatePatient}
+                onCreatePatient={onCreatePatient}
             />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

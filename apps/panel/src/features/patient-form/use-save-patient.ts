@@ -1,14 +1,14 @@
+import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { patientQueryOptions } from './use-patient';
 
+// Where to go next is the caller's call: the patients pages open the saved
+// patient; a dialog elsewhere may keep the user where they are.
 export function useSavePatient(patientId?: number) {
     const queryClient = useQueryClient();
-    const navigate = useNavigate();
 
     const mutation = useMutation({
         mutationFn: (payload: PatientPayload) =>
@@ -34,12 +34,6 @@ export function useSavePatient(patientId?: number) {
                 exact: true,
             });
             notifySuccess(patientId ? 'Cambios guardados' : 'Paciente creado');
-
-            // `saved.id` also covers a create that reused an existing patient by document.
-            return navigate({
-                to: '/pacientes/$id',
-                params: { id: saved.id },
-            });
         },
     });
 

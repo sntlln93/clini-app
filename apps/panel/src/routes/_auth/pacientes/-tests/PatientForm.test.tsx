@@ -197,14 +197,11 @@ describe('PatientForm', () => {
         const notice = await screen.findByRole('status');
         await waitFor(() =>
             expect(notice.textContent).toContain(
-                'Ya existe un paciente con este documento: se va a reutilizar el registro y solo se completarán los datos faltantes.',
+                'Ya existe un paciente con este documento (Juan Perez): se va a reutilizar el registro y solo se completarán los datos faltantes.',
             ),
         );
-        expect(
-            within(notice)
-                .getByRole('link', { name: 'Ver ficha de Juan Perez' })
-                .getAttribute('href'),
-        ).toBe('/pacientes/7');
+        // The match may belong to another organization only, whose page answers 403 (#266).
+        expect(within(notice).queryByRole('link')).toBeNull();
         await waitFor(() =>
             expect(
                 (
