@@ -388,3 +388,40 @@ test('an extra exception overlapping the weekly schedule publishes one continuou
     $response->assertOk();
     expect(slotStartTimes($response->json('data')))->toBe(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30']);
 });
+
+test('an organization-wide extra exception does not open slots for a professional', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    AvailabilityException::factory()->organizationWide()->create([
+        'organization_id' => $organization->id,
+        'type' => AvailabilityExceptionType::Extra,
+        'start_at' => '2026-08-03 14:00:00',
+        'end_at' => '2026-08-03 15:00:00',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'));
+
+    $response->assertOk();
+    expect($response->json('data'))->toBe([]);
+});
+
+test('a range across a midnight daylight-saving gap keeps every day anchored to local midnight', function () {
+    // Chile moves its clocks forward at 00:00 on Sun 6 Sep 2026: that midnight doesn't exist.
+    $this->travelTo('2026-09-01 12:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    $organization->update(['timezone' => 'America/Santiago']);
+    Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '10:00:00',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-09-05', '2026-09-07'));
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('start_at')->map(
+        fn (string $start): string => CarbonImmutable::parse($start)->setTimezone('America/Santiago')->format('Y-m-d H:i'),
+    )->all())->toBe(['2026-09-07 09:00', '2026-09-07 09:30']);
+});

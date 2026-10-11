@@ -22,7 +22,8 @@ use Illuminate\Support\Carbon;
  * The *published* schedule of each membership, per local calendar day of
  * the organization's timezone: weekly `availabilities` plus `extra`
  * exceptions, minus `blocked` exceptions (the professional's own and the
- * whole organization's, `membership_id` null) — never excluding time already
+ * whole organization's, `membership_id` null; an organization-wide `extra`
+ * opens nobody's agenda) — never excluding time already
  * taken by busy appointments, which stays each caller's own concern. A
  * holiday publishes no intervals at all, regardless of availability: a
  * national catalog holiday, a catalog holiday of the organization's province
@@ -55,7 +56,7 @@ class ComputePublishedScheduleAction implements Action
             ->where('organization_id', $organization->id)
             ->where(fn ($query) => $query
                 ->whereIn('membership_id', $dto->membershipIds)
-                ->orWhereNull('membership_id'))
+                ->orWhere(fn ($query) => $query->whereNull('membership_id')->where('type', AvailabilityExceptionType::Blocked)))
             ->where('start_at', '<', $lastDay->addDay()->utc())
             ->where('end_at', '>', $firstDay->utc())
             ->get();
@@ -68,11 +69,12 @@ class ComputePublishedScheduleAction implements Action
                 fn (AvailabilityException $exception): bool => $exception->membership_id === null || $exception->membership_id === $membershipId,
             );
 
-            for ($day = $firstDay; $day->lte($lastDay); $day = $day->addDay()) {
-                $date = $day->toDateString();
+            foreach ($this->dates($dto->fromDate, $dto->toDate) as $date => $nextDate) {
+                // Each bound from its own date, never by adding a day: a daylight-saving gap at midnight would shift every later day.
+                $day = CarbonImmutable::parse($date, $timezone)->startOfDay();
                 $schedule[$membershipId][$date] = isset($holidays[$date])
                     ? []
-                    : $this->intervalsForDay($day, $availabilities->get($membershipId.':'.$day->dayOfWeek) ?? new Collection, $applicable);
+                    : $this->intervalsForDay($day, CarbonImmutable::parse($nextDate, $timezone)->startOfDay(), $availabilities->get($membershipId.':'.$day->dayOfWeek) ?? new Collection, $applicable);
             }
         }
 
@@ -84,10 +86,8 @@ class ComputePublishedScheduleAction implements Action
      * @param  Collection<int, AvailabilityException>  $exceptions
      * @return array<int, array{start: CarbonImmutable, end: CarbonImmutable}>
      */
-    private function intervalsForDay(CarbonImmutable $day, Collection $weekly, Collection $exceptions): array
+    private function intervalsForDay(CarbonImmutable $day, CarbonImmutable $dayEnd, Collection $weekly, Collection $exceptions): array
     {
-        $dayEnd = $day->addDay();
-
         $base = $weekly->map(fn (Availability $availability): array => [
             'start' => $this->combineDateAndTime($day, $availability->start_time),
             'end' => $this->combineDateAndTime($day, $availability->end_time),
@@ -125,6 +125,20 @@ class ComputePublishedScheduleAction implements Action
         }
 
         return $clipped;
+    }
+
+    /**
+     * @return array<string, string> each Y-m-d of the range, mapped to the next one
+     */
+    private function dates(string $fromDate, string $toDate): array
+    {
+        $dates = [];
+
+        for ($date = CarbonImmutable::parse($fromDate); $date->toDateString() <= $toDate; $date = $date->addDay()) {
+            $dates[$date->toDateString()] = $date->addDay()->toDateString();
+        }
+
+        return $dates;
     }
 
     /**
