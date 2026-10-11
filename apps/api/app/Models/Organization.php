@@ -62,6 +62,14 @@ class Organization extends Model
     }
 
     /**
+     * @return HasOne<OrganizationLogo, $this>
+     */
+    public function logo(): HasOne
+    {
+        return $this->hasOne(OrganizationLogo::class);
+    }
+
+    /**
      * The organization's own closure days — not the shared national or
      * provincial Holiday catalog.
      *
