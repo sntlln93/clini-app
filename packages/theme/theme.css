@@ -259,7 +259,9 @@
  * height, so a short label ("Hoy", "Día") ends up about 44x44 and the pill
  * reads as a circle (#270). Text buttons (any `Button` whose `data-size` is
  * not an `icon*` size) keep a 1.5:1 width floor, the proportion a short
- * label has at desktop size; icon buttons stay round, as on desktop.
+ * label has at desktop size; icon buttons stay round, as on desktop. The
+ * matching corner radius lives in `button.tsx` (`pointer-coarse:rounded-lg`
+ * on the text sizes), per ADR 0013.
  */
 @media (pointer: coarse) {
     #root button:not(.touch-target-exempt),
