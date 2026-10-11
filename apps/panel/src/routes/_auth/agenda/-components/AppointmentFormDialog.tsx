@@ -26,6 +26,7 @@ import {
 } from './appointment-schemas';
 import { AppointmentFormFields } from './AppointmentFormFields';
 import { AvailabilityWarningDialog } from './AvailabilityWarningDialog';
+import { PatientCreateDialog } from './PatientCreateDialog';
 
 export type AppointmentPrefill = {
     membershipId?: number;
@@ -67,10 +68,17 @@ export function AppointmentFormDialog({
     professionals,
     prefill,
 }: AppointmentFormDialogProps) {
-    const { patientQuery, setPatientQuery, patients, emptySearch } =
-        usePatientSearch(open);
+    const {
+        patientQuery,
+        setPatientQuery,
+        patients,
+        emptySearch,
+        resetSearch,
+        pinPatient,
+    } = usePatientSearch(open);
     const { data: session } = useSession();
     const [showWarning, setShowWarning] = useState(false);
+    const [creatingPatient, setCreatingPatient] = useState(false);
     const [appliedKey, setAppliedKey] = useState<string | null>(null);
 
     const openKey = open ? JSON.stringify(prefill ?? {}) : null;
@@ -78,8 +86,9 @@ export function AppointmentFormDialog({
     // Adjust state during render (not an Effect) to reset on each (re)open.
     if (open && openKey !== appliedKey) {
         setAppliedKey(openKey);
-        setPatientQuery('');
+        resetSearch();
         setShowWarning(false);
+        setCreatingPatient(false);
     }
 
     const form = useForm<AppointmentFormValues>({
@@ -165,10 +174,14 @@ export function AppointmentFormDialog({
                                 patientQuery={patientQuery}
                                 onPatientQueryChange={setPatientQuery}
                                 emptyPatientSearch={emptySearch}
-                                canCreatePatient={sessionHasPermission(
-                                    session,
-                                    'patients.create',
-                                )}
+                                onCreatePatient={
+                                    sessionHasPermission(
+                                        session,
+                                        'patients.create',
+                                    )
+                                        ? () => setCreatingPatient(true)
+                                        : undefined
+                                }
                             />
 
                             <DialogFooter>
@@ -192,6 +205,19 @@ export function AppointmentFormDialog({
                             </DialogFooter>
                         </form>
                     </Form>
+
+                    {/* Nested inside this popup (outside its <form>, so its own submit doesn't bubble into this one). */}
+                    <PatientCreateDialog
+                        open={creatingPatient}
+                        onOpenChange={setCreatingPatient}
+                        search={emptySearch}
+                        onCreated={(patient) => {
+                            pinPatient(patient);
+                            form.setValue('patientId', patient.id, {
+                                shouldValidate: true,
+                            });
+                        }}
+                    />
                 </DialogContent>
             </Dialog>
 

@@ -11,10 +11,15 @@ import { useSavePatient } from './use-save-patient';
 type UsePatientFormOptions = {
     /** Edit mode when given; create mode (with the lookup by document) otherwise. */
     patient?: Patient;
+    /** Create mode only: values to start from instead of a blank form. */
+    initialValues?: Partial<PatientPayload>;
     onSaved: (saved: Patient) => unknown;
 };
 
-function initialValues(patient?: Patient): PatientPayload {
+function startingValues(
+    patient: Patient | undefined,
+    initialValues: Partial<PatientPayload> | undefined,
+): PatientPayload {
     return {
         name: patient?.name ?? '',
         document_type: patient?.document_type ?? 'dni',
@@ -24,6 +29,7 @@ function initialValues(patient?: Patient): PatientPayload {
         sex: patient?.sex ?? '',
         birth_date: patient?.birth_date ?? '',
         insurance_provider_id: patient?.insurance_provider_id ?? null,
+        ...(patient ? {} : initialValues),
     };
 }
 
@@ -42,12 +48,16 @@ function valuesFromFoundPatient(found: Patient): PatientPayload {
 }
 
 /** The patient form's state, lookup and submit, shared by the patients pages and the agenda's dialog. */
-export function usePatientForm({ patient, onSaved }: UsePatientFormOptions) {
+export function usePatientForm({
+    patient,
+    initialValues,
+    onSaved,
+}: UsePatientFormOptions) {
     const { mutateAsync } = useSavePatient(patient?.id);
 
     const form = useForm<PatientPayload>({
         resolver: zodResolver(patientSchema),
-        defaultValues: initialValues(patient),
+        defaultValues: startingValues(patient, initialValues),
     });
 
     const documentType = useWatch({
