@@ -1,5 +1,6 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
+import { mapToAppError } from '@/lib/api-errors';
 import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
 import type { ClinicalNote } from '@/types/clinical-note';
@@ -11,6 +12,10 @@ export function patientClinicalNotesQueryKey(patientId: number) {
 }
 
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
+// Access is decided by relationship, not by a session permission (only a
+// membership with an appointment or a note for this patient can read them),
+// so the 403 is an expected answer — e.g. right after creating a patient —
+// and resolves to `null` instead of failing the whole patient page (#266).
 export function patientClinicalNotesQueryOptions(patientId: number) {
     return queryOptions({
         queryKey: patientClinicalNotesQueryKey(patientId),
@@ -19,7 +24,14 @@ export function patientClinicalNotesQueryOptions(patientId: number) {
                 .get<{ data: ClinicalNote[] }>(
                     `/patients/${patientId}/clinical-notes`,
                 )
-                .then((response) => response.data.data),
+                .then((response): ClinicalNote[] | null => response.data.data)
+                .catch((error: unknown) => {
+                    if (mapToAppError(error).kind === 'forbidden') {
+                        return null;
+                    }
+
+                    throw error;
+                }),
     });
 }
 
