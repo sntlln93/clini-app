@@ -242,8 +242,26 @@
  * Native `<button>`/`<a>`/`<input>` are scoped to `#root`, the SPAs' mount
  * node, so nothing injected outside the app is resized. The landing is
  * server-rendered and has no `#root`, so only the `data-slot` selectors can
- * reach it. Checkbox, radio and switch are base-ui `<span>`s, and select and
- * dropdown-menu items are `<div>`s, so they need their own selectors.
+ * reach it. Select and dropdown-menu items are `<div>`s, so they need their
+ * own selectors.
+ *
+ * Checkbox, radio and switch (base-ui `<span>`s) are the exception: their
+ * box *is* the drawing, so a 44px floor turns a 16px checkbox into a 44px
+ * square and the switch's pill into a circle (#270). Their visible box stays
+ * as is and the 44px target moves to the `::after` hit area the primitives
+ * already draw (`relative` + `after:absolute`), centered on the control. A
+ * vertical margin completes a 44px-tall slot, so stacked options (a radio
+ * group, a checkbox list) keep a 44px pitch and their hit areas never reach
+ * a neighbor's row. The margins follow the primitives' heights: `size-4`
+ * for checkbox/radio, 18.4px/14px for the default/`sm` switch.
+ *
+ * Buttons are pills (`rounded-full`) and the floor only grows them in
+ * height, so a short label ("Hoy", "Día") ends up about 44x44 and the pill
+ * reads as a circle (#270). Text buttons (any `Button` whose `data-size` is
+ * not an `icon*` size) keep a 1.5:1 width floor, the proportion a short
+ * label has at desktop size; icon buttons stay round, as on desktop. The
+ * matching corner radius lives in `button.tsx` (`pointer-coarse:rounded-lg`
+ * on the text sizes), per ADR 0013.
  */
 @media (pointer: coarse) {
     #root button:not(.touch-target-exempt),
@@ -251,9 +269,6 @@
     #root input:not(.touch-target-exempt),
     [data-slot='select-trigger']:not(.touch-target-exempt),
     [data-slot='select-item']:not(.touch-target-exempt),
-    [data-slot='checkbox']:not(.touch-target-exempt),
-    [data-slot='radio-group-item']:not(.touch-target-exempt),
-    [data-slot='switch']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-item']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-checkbox-item']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-radio-item']:not(.touch-target-exempt),
@@ -263,6 +278,39 @@
     [data-slot='pagination-link']:not(.touch-target-exempt) {
         min-height: 44px;
         min-width: 44px;
+    }
+
+    #root
+        [data-slot='button']:not([data-size^='icon']):not(
+            .touch-target-exempt
+        ) {
+        min-width: calc(44px * 1.5);
+    }
+
+    [data-slot='checkbox']:not(.touch-target-exempt)::after,
+    [data-slot='radio-group-item']:not(.touch-target-exempt)::after,
+    [data-slot='switch']:not(.touch-target-exempt)::after {
+        content: '';
+        position: absolute;
+        inset: auto;
+        top: 50%;
+        left: 50%;
+        width: max(100%, 44px);
+        height: max(100%, 44px);
+        translate: -50% -50%;
+    }
+
+    [data-slot='checkbox']:not(.touch-target-exempt),
+    [data-slot='radio-group-item']:not(.touch-target-exempt) {
+        margin-block: calc((44px - 16px) / 2);
+    }
+
+    [data-slot='switch'][data-size='default']:not(.touch-target-exempt) {
+        margin-block: calc((44px - 18.4px) / 2);
+    }
+
+    [data-slot='switch'][data-size='sm']:not(.touch-target-exempt) {
+        margin-block: calc((44px - 14px) / 2);
     }
 }
 
