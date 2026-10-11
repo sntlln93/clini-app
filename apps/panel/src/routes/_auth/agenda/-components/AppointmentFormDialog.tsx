@@ -83,12 +83,15 @@ export function AppointmentFormDialog({
 
     const openKey = open ? JSON.stringify(prefill ?? {}) : null;
 
-    // Adjust state during render (not an Effect) to reset on each (re)open.
-    if (open && openKey !== appliedKey) {
+    // Adjust state during render (not an Effect) to reset on each (re)open;
+    // closing clears the key, so reopening with the same prefill resets too.
+    if (openKey !== appliedKey) {
         setAppliedKey(openKey);
-        resetSearch();
-        setShowWarning(false);
-        setCreatingPatient(false);
+        if (open) {
+            resetSearch();
+            setShowWarning(false);
+            setCreatingPatient(false);
+        }
     }
 
     const form = useForm<AppointmentFormValues>({

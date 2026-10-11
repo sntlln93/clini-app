@@ -607,6 +607,44 @@ describe('AppointmentFormDialog patient registration', () => {
         );
     });
 
+    async function registerFromEmptySearch(search: string, name: string) {
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: search } },
+        );
+        fireEvent.click(
+            await screen.findByRole('button', {
+                name: 'Registrar paciente nuevo',
+            }),
+        );
+        const patientDialog = await screen.findByRole('dialog', {
+            name: 'Nuevo paciente',
+        });
+        fireEvent.change(within(patientDialog).getByLabelText('Nombre'), {
+            target: { value: name },
+        });
+        fireEvent.click(
+            within(patientDialog).getByRole('button', {
+                name: 'Guardar paciente',
+            }),
+        );
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('dialog', { name: 'Nuevo paciente' }),
+            ).toBeNull(),
+        );
+    }
+
+    function mockPatientCreate() {
+        vi.mocked(api.post).mockImplementation((url: string) =>
+            Promise.resolve(
+                url === '/patients'
+                    ? { data: { data: NEW_PATIENT } }
+                    : { data: {} },
+            ),
+        );
+    }
+
     // #266: registering the patient used to leave for /pacientes/nuevo, losing the appointment.
     it('registers the patient in a nested dialog and comes back with it selected, keeping what was typed', async () => {
         vi.mocked(api.post).mockImplementation((url: string) =>
@@ -698,5 +736,60 @@ describe('AppointmentFormDialog patient registration', () => {
                 }),
             ),
         );
+    });
+    it('still offers to register another patient after one was registered', async () => {
+        mockPatientCreate();
+        renderDialog(undefined, () => {}, [PROFESSIONAL], ['patients.create']);
+        await registerFromEmptySearch('30111999', 'Zoe Díaz');
+
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+            { target: { value: 'Pedro' } },
+        );
+
+        expect(
+            await screen.findByText(/No encontramos pacientes con “Pedro”/),
+        ).toBeTruthy();
+        expect(
+            screen.getByRole('button', { name: 'Registrar paciente nuevo' }),
+        ).toBeTruthy();
+    });
+
+    it('forgets the registered patient and the search when the dialog is reopened', async () => {
+        mockPatientCreate();
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 1,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: ['patients.create'],
+        });
+        const dialog = (open: boolean) => (
+            <QueryClientProvider client={queryClient}>
+                <AppointmentFormDialog
+                    open={open}
+                    onOpenChange={() => {}}
+                    professionals={[PROFESSIONAL]}
+                />
+            </QueryClientProvider>
+        );
+        const { rerender } = render(dialog(true));
+        await registerFromEmptySearch('30111999', 'Zoe Díaz');
+
+        rerender(dialog(false));
+        rerender(dialog(true));
+
+        expect(
+            (
+                (await screen.findByRole('textbox', {
+                    name: 'Buscar paciente',
+                })) as HTMLInputElement
+            ).value,
+        ).toBe('');
+        fireEvent.click(screen.getByRole('combobox', { name: 'Paciente' }));
+        await screen.findByRole('option', { name: 'Juan Pérez — 30111222' });
+        expect(
+            screen.queryByRole('option', { name: 'Zoe Díaz — 30111999' }),
+        ).toBeNull();
     });
 });

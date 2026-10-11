@@ -10,7 +10,8 @@ export const PATIENT_SEARCH_DEBOUNCE_MS = 300;
 // Interaction-triggered read (ADR 0007's exception): the booking dialog's patient lookup.
 export function usePatientSearch(enabled: boolean) {
     const [patientQuery, setPatientQuery] = useState('');
-    // A patient registered from the dialog: listed until the search catches up with it.
+    // A patient registered from the dialog: kept listed (the Select labels its value from the list),
+    // but it never hides an empty search, so another patient can still be registered.
     const [pinnedPatient, setPinnedPatient] = useState<Patient | null>(null);
     const debouncedQuery = useDebouncedValue(
         patientQuery,
@@ -40,7 +41,7 @@ export function usePatientSearch(enabled: boolean) {
         debouncedQuery !== '' &&
         patientsPage !== undefined &&
         !isPlaceholderData &&
-        patients.length === 0
+        results.length === 0
             ? debouncedQuery
             : null;
 
