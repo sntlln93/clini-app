@@ -4,6 +4,7 @@ import { notifySuccess } from '@/lib/toast';
 import { buildPlan } from '@/tests/fixtures/plan';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import type { Plan } from '@/types/plan';
+import type { OrganizationReport } from '@/types/report';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
@@ -16,6 +17,7 @@ import {
 } from '../-hooks/use-appointments';
 import { patientAppointmentsQueryOptions } from '../../pacientes/-hooks/use-patient-appointments';
 import { patientClinicalNotesQueryOptions } from '../../pacientes/-hooks/use-patient-clinical-notes';
+import { reportQueryOptions } from '../../reportes/-hooks/use-report';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -373,3 +375,83 @@ describe("refreshes the patient page's loader-only reads (#273)", () => {
         },
     );
 });
+
+describe('refreshes the reports, which count appointments', () => {
+    const BEFORE = { period: 'before' } as unknown as OrganizationReport;
+    const AFTER = { period: 'after' } as unknown as OrganizationReport;
+
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
+        vi.mocked(api.patch).mockReset().mockResolvedValue({ data: {} });
+    });
+
+    it.each([
+        {
+            name: 'creating',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useCreateAppointment,
+                ).current.mutateAsync(PAYLOAD),
+        },
+        {
+            name: 'cancelling',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useCancelAppointment,
+                ).current.mutateAsync({ appointmentId: 7, patientId: 2 }),
+        },
+        {
+            name: 'rescheduling',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useRescheduleAppointment,
+                ).current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    startAt: '2026-08-10T17:30:00.000Z',
+                }),
+        },
+        {
+            name: 'changing the status of',
+            mutate: (queryClient: QueryClient) =>
+                renderWithQueryClient(
+                    queryClient,
+                    useUpdateAppointmentStatus,
+                ).current.mutateAsync({
+                    appointmentId: 7,
+                    patientId: 2,
+                    status: 'no_show',
+                }),
+        },
+    ])(
+        '$name an appointment makes the reports load again',
+        async ({ mutate }) => {
+            const queryClient = new QueryClient({
+                defaultOptions: { mutations: { retry: false } },
+            });
+            // The reports page was visited: its loader cached the report.
+            vi.mocked(api.get).mockResolvedValueOnce({
+                data: { data: BEFORE },
+            });
+            await queryClient.ensureQueryData(reportQueryOptions({}));
+            vi.mocked(api.get).mockResolvedValue({ data: { data: AFTER } });
+
+            await mutate(queryClient);
+
+            await expect(
+                queryClient.ensureQueryData(reportQueryOptions({})),
+            ).resolves.toEqual(AFTER);
+        },
+    );
+});
+
+function renderWithQueryClient<T>(queryClient: QueryClient, hook: () => T) {
+    const wrapper = ({ children }: { children: ReactNode }) =>
+        createElement(QueryClientProvider, { client: queryClient }, children);
+
+    return renderHook(hook, { wrapper }).result;
+}

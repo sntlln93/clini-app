@@ -51,9 +51,10 @@ const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.slot_taken': 'start_at',
 };
 
-// What the patient page shows of an appointment change (#273): its history,
-// and its notes because an appointment with the patient grants access to them.
-function usePatientPageDiscard() {
+// What other pages show of an appointment change: the patient page's history,
+// and its notes because an appointment with the patient grants access to them
+// (#273); and the reports, which count appointments.
+function useOtherPagesDiscard() {
     const queryClient = useQueryClient();
 
     return (patientId: number) =>
@@ -61,6 +62,7 @@ function usePatientPageDiscard() {
             queryClient,
             patientAppointmentsQueryKey(patientId),
             patientClinicalNotesQueryKey(patientId),
+            ['reports'],
         );
 }
 
@@ -86,7 +88,7 @@ export function appointmentsQueryOptions(range: AppointmentsRange) {
 
 export function useCreateAppointment() {
     const refreshPageData = useRefreshPageData();
-    const discardPatientPage = usePatientPageDiscard();
+    const discardOtherPages = useOtherPagesDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
     const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
@@ -104,7 +106,7 @@ export function useCreateAppointment() {
             notifySuccess(
                 `Turno creado para el ${formatAppointmentMoment(payload.startAt)}.`,
             );
-            discardPatientPage(payload.patientId);
+            discardOtherPages(payload.patientId);
             return refreshPageData(...refreshKeys);
         },
         onError: refreshPlanOnFullMonth,
@@ -119,7 +121,7 @@ export function useCreateAppointment() {
 
 export function useUpdateAppointmentStatus() {
     const refreshPageData = useRefreshPageData();
-    const discardPatientPage = usePatientPageDiscard();
+    const discardOtherPages = useOtherPagesDiscard();
 
     return useMutation({
         mutationFn: ({
@@ -132,7 +134,7 @@ export function useUpdateAppointmentStatus() {
         }) => api.patch(`/appointments/${appointmentId}/status`, { status }),
         // Status changes start from a dropdown item with no form to hold an inline error, so both outcomes surface as toasts.
         onSuccess: async (_data, { patientId, status }) => {
-            discardPatientPage(patientId);
+            discardOtherPages(patientId);
             await refreshPageData(['appointments']);
             notifySuccess(
                 STATUS_SUCCESS_MESSAGES[status] ?? 'Turno actualizado.',
@@ -145,7 +147,7 @@ export function useUpdateAppointmentStatus() {
 
 export function useCancelAppointment() {
     const refreshPageData = useRefreshPageData();
-    const discardPatientPage = usePatientPageDiscard();
+    const discardOtherPages = useOtherPagesDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
 
     const mutation = useMutation({
@@ -162,7 +164,7 @@ export function useCancelAppointment() {
             }),
         onSuccess: (_data, { patientId }) => {
             notifySuccess('Turno cancelado.');
-            discardPatientPage(patientId);
+            discardOtherPages(patientId);
             return refreshPageData(...refreshKeys);
         },
     });
@@ -176,7 +178,7 @@ export function useCancelAppointment() {
 
 export function useRescheduleAppointment() {
     const refreshPageData = useRefreshPageData();
-    const discardPatientPage = usePatientPageDiscard();
+    const discardOtherPages = useOtherPagesDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
     const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
@@ -202,7 +204,7 @@ export function useRescheduleAppointment() {
             notifySuccess(
                 `Turno reprogramado para el ${formatAppointmentMoment(startAt)}.`,
             );
-            discardPatientPage(patientId);
+            discardOtherPages(patientId);
             return refreshPageData(...refreshKeys);
         },
         onError: refreshPlanOnFullMonth,

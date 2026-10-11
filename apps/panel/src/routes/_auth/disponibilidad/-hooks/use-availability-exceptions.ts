@@ -1,12 +1,18 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { discardPageData } from '@/lib/page-data';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type {
     AvailabilityException,
     AvailabilityExceptionType,
 } from '@/types/availability';
-import { queryOptions, useMutation } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 
 type AvailabilityExceptionPayload = {
     id?: number;
@@ -20,6 +26,12 @@ type AvailabilityExceptionPayload = {
 
 function queryKey(membershipId: number | null) {
     return ['availability-exceptions', membershipId];
+}
+
+// The reports' occupancy is computed from the published schedule, exceptions included, and the reports
+// page reads them only in its loader (#273).
+function discardReports(queryClient: QueryClient) {
+    discardPageData(queryClient, ['reports']);
 }
 
 function toRequestBody(payload: AvailabilityExceptionPayload) {
@@ -52,6 +64,7 @@ export function availabilityExceptionsQueryOptions(
 
 export function useSaveAvailabilityException(membershipId: number | null) {
     const refreshPageData = useRefreshPageData();
+    const queryClient = useQueryClient();
 
     const mutation = useMutation({
         mutationFn: (payload: AvailabilityExceptionPayload) =>
@@ -62,10 +75,12 @@ export function useSaveAvailabilityException(membershipId: number | null) {
                       toRequestBody(payload),
                   ),
         // Save errors render inline in the form, so only success toasts here.
-        onSuccess: () =>
-            refreshPageData(queryKey(membershipId)).then(() =>
+        onSuccess: () => {
+            discardReports(queryClient);
+            return refreshPageData(queryKey(membershipId)).then(() =>
                 notifySuccess('Excepción guardada'),
-            ),
+            );
+        },
     });
 
     const { message, errors } = mutation.error
@@ -77,14 +92,17 @@ export function useSaveAvailabilityException(membershipId: number | null) {
 
 export function useDeleteAvailabilityException(membershipId: number | null) {
     const refreshPageData = useRefreshPageData();
+    const queryClient = useQueryClient();
 
     return useMutation({
         mutationFn: (id: number) =>
             api.delete(`/availability-exceptions/${id}`),
-        onSuccess: () =>
-            refreshPageData(queryKey(membershipId)).then(() =>
+        onSuccess: () => {
+            discardReports(queryClient);
+            return refreshPageData(queryKey(membershipId)).then(() =>
                 notifySuccess('Excepción eliminada'),
-            ),
+            );
+        },
         onError: (error) =>
             notifyError(error, 'No se pudo eliminar la excepción'),
     });
