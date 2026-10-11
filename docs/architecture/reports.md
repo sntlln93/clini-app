@@ -26,7 +26,7 @@ La implementación está en `ComputeOrganizationReportAction`.
 Todo se cuenta por la fecha del turno, en la zona horaria de la organización.
 
 - **Ocupación** = minutos con turnos dentro del horario publicado ÷ minutos publicados.
-  - El horario publicado es el mismo que ofrece la reserva online (`ComputePublishedScheduleAction`): franjas semanales más excepciones `extra`, menos excepciones `blocked` (las del profesional y las de toda la organización), y nada en los feriados.
+  - El horario publicado es el mismo que ofrece la reserva online (`ComputePublishedScheduleAction`): franjas semanales más las excepciones `extra` del profesional, menos las excepciones `blocked` (las del profesional y las de toda la organización), y nada en los feriados. Una `extra` de toda la organización no abre la agenda de nadie.
   - Los turnos que cuentan son los vigentes, es decir, sin `cancelled` ni `rescheduled`. Un `no_show` ocupó el horario, así que cuenta.
   - El tiempo con turnos fuera del horario publicado no suma, así que la ocupación nunca pasa del 100%.
   - Las franjas semanales no tienen historial: los períodos pasados usan las franjas de hoy. Las excepciones y los feriados sí tienen fecha.
@@ -36,7 +36,7 @@ Todo se cuenta por la fecha del turno, en la zona horaria de la organización.
 - **Reservas por origen** (`online` / `manual`): todos los turnos menos el original de una reprogramación. El turno nuevo conserva el origen y es el que cuenta. Un turno cancelado fue una reserva igual, así que cuenta.
 - **Pacientes nuevos**: vínculos `organization_patient` creados en el período, por mes. Es la misma fuente que usa el dashboard para una organización.
   - Ese vínculo no tiene profesional, así que solo se muestra con el alcance de toda la organización.
-- **Profesionales del reporte**: los activos, más cualquier otro que tenga turnos en el período, para que la historia de quien ya no atiende no desaparezca.
+- **Profesionales del reporte**: los activos, más cualquier membresía con turnos en el período, aunque esté dada de baja o ya no sea profesional. Así la historia de quien ya no atiende no desaparece, y las filas suman lo mismo que los totales del período.
 
 ## Permisos
 
