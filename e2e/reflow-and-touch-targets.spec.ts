@@ -284,9 +284,11 @@ test.describe('toggles keep their shape on a coarse-pointer device', () => {
 });
 
 // Buttons are pills, and the 44px floor only grows them in height: a short
-// label ("Hoy", "Día") ended up 44x44, a circle (#270). Text buttons keep a
-// 1.5:1 floor; icon buttons (`data-size="icon*"`) stay round.
-test.describe('text buttons stay pills on a coarse-pointer device', () => {
+// label ("Hoy", "Día") ended up 44x44, a circle (#270), and even a 1.5:1
+// pill read as one with a 22px radius. Text buttons keep a 1.5:1 floor and a
+// corner radius well under half their height; icon buttons
+// (`data-size="icon*"`) stay round.
+test.describe('text buttons are not circles on a coarse-pointer device', () => {
     test.use({ storageState: STORAGE_STATE, hasTouch: true, isMobile: true });
 
     for (const path of ['/agenda', '/pacientes/nuevo', '/disponibilidad']) {
@@ -305,9 +307,15 @@ test.describe('text buttons stay pills on a coarse-pointer device', () => {
                         continue;
                     }
                     const rect = button.getBoundingClientRect();
-                    if (rect.width < rect.height * 1.5 - 0.5) {
+                    const radius = parseFloat(
+                        getComputedStyle(button).borderTopLeftRadius,
+                    );
+                    if (
+                        rect.width < rect.height * 1.5 - 0.5 ||
+                        radius > rect.height / 3
+                    ) {
                         offenders.push(
-                            `"${button.textContent?.trim()}" measured ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}px`,
+                            `"${button.textContent?.trim()}" measured ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}px, radius ${radius}px`,
                         );
                     }
                 }
@@ -318,18 +326,31 @@ test.describe('text buttons stay pills on a coarse-pointer device', () => {
         });
     }
 
-    test('the agenda toolbar keeps its short labels as pills', async ({
+    test('the agenda toolbar short labels are not circles', async ({
         page,
     }) => {
         await page.goto('/agenda');
         await page.waitForLoadState('networkidle');
 
-        for (const name of ['Día', 'Semana', 'Hoy']) {
-            const box = await page
-                .getByRole('button', { name, exact: true })
-                .boundingBox();
+        for (const [name, button] of [
+            ['Día', page.getByRole('button', { name: 'Día', exact: true })],
+            [
+                'Semana',
+                page.getByRole('button', { name: 'Semana', exact: true }),
+            ],
+            ['Hoy', page.getByRole('button', { name: 'Hoy', exact: true })],
+            [
+                'today chip',
+                page.locator('[data-slot="button"][aria-current="date"]'),
+            ],
+        ] as const) {
+            const box = await button.boundingBox();
             expect(box, `button "${name}" is not rendered`).not.toBeNull();
             expect(box!.width).toBeGreaterThanOrEqual(box!.height * 1.5 - 0.5);
+            const radius = await button.evaluate((element) =>
+                parseFloat(getComputedStyle(element).borderTopLeftRadius),
+            );
+            expect(radius).toBeLessThanOrEqual(box!.height / 3);
         }
     });
 });
