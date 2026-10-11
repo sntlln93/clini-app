@@ -45,5 +45,6 @@ Route::prefix('v1')->group(function (): void {
         require __DIR__.'/api/v1/appointments.php';
         require __DIR__.'/api/v1/clinical-notes.php';
         require __DIR__.'/api/v1/prescriptions.php';
+        require __DIR__.'/api/v1/reports.php';
     });
 });
