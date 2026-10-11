@@ -254,6 +254,12 @@
  * group, a checkbox list) keep a 44px pitch and their hit areas never reach
  * a neighbor's row. The margins follow the primitives' heights: `size-4`
  * for checkbox/radio, 18.4px/14px for the default/`sm` switch.
+ *
+ * Buttons are pills (`rounded-full`) and the floor only grows them in
+ * height, so a short label ("Hoy", "Día") ends up about 44x44 and the pill
+ * reads as a circle (#270). Text buttons (any `Button` whose `data-size` is
+ * not an `icon*` size) keep a 1.5:1 width floor, the proportion a short
+ * label has at desktop size; icon buttons stay round, as on desktop.
  */
 @media (pointer: coarse) {
     #root button:not(.touch-target-exempt),
@@ -270,6 +276,13 @@
     [data-slot='pagination-link']:not(.touch-target-exempt) {
         min-height: 44px;
         min-width: 44px;
+    }
+
+    #root
+        [data-slot='button']:not([data-size^='icon']):not(
+            .touch-target-exempt
+        ) {
+        min-width: calc(44px * 1.5);
     }
 
     [data-slot='checkbox']:not(.touch-target-exempt)::after,
