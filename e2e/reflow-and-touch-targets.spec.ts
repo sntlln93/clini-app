@@ -283,6 +283,57 @@ test.describe('toggles keep their shape on a coarse-pointer device', () => {
     }
 });
 
+// Buttons are pills, and the 44px floor only grows them in height: a short
+// label ("Hoy", "Día") ended up 44x44, a circle (#270). Text buttons keep a
+// 1.5:1 floor; icon buttons (`data-size="icon*"`) stay round.
+test.describe('text buttons stay pills on a coarse-pointer device', () => {
+    test.use({ storageState: STORAGE_STATE, hasTouch: true, isMobile: true });
+
+    for (const path of ['/agenda', '/pacientes/nuevo', '/disponibilidad']) {
+        test(`text buttons on ${path} are not circles`, async ({ page }) => {
+            await page.goto(path);
+            await page.waitForLoadState('networkidle');
+            await expect(page.getByRole('main')).toBeVisible();
+
+            const circles = await page.evaluate(() => {
+                const offenders: string[] = [];
+                const buttons = document.querySelectorAll<HTMLElement>(
+                    '#root [data-slot="button"]:not([data-size^="icon"]):not(.touch-target-exempt)',
+                );
+                for (const button of buttons) {
+                    if (!button.checkVisibility()) {
+                        continue;
+                    }
+                    const rect = button.getBoundingClientRect();
+                    if (rect.width < rect.height * 1.5 - 0.5) {
+                        offenders.push(
+                            `"${button.textContent?.trim()}" measured ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}px`,
+                        );
+                    }
+                }
+                return offenders;
+            });
+
+            expect(circles, circles.join('\n')).toEqual([]);
+        });
+    }
+
+    test('the agenda toolbar keeps its short labels as pills', async ({
+        page,
+    }) => {
+        await page.goto('/agenda');
+        await page.waitForLoadState('networkidle');
+
+        for (const name of ['Día', 'Semana', 'Hoy']) {
+            const box = await page
+                .getByRole('button', { name, exact: true })
+                .boundingBox();
+            expect(box, `button "${name}" is not rendered`).not.toBeNull();
+            expect(box!.width).toBeGreaterThanOrEqual(box!.height * 1.5 - 0.5);
+        }
+    });
+});
+
 // A toggle's 44px hit area reaches past its drawing, so options laid out
 // side by side or stacked must leave it room: a tap anywhere on an option's
 // own `<label>` has to land on that option, never on its neighbor's `::after`.
