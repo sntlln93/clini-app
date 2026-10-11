@@ -32,7 +32,11 @@ export function AppointmentStatusActions({
             <DropdownMenuItem
                 key={status}
                 onClick={() =>
-                    mutate({ appointmentId: appointment.id, status })
+                    mutate({
+                        appointmentId: appointment.id,
+                        patientId: appointment.patient_id,
+                        status,
+                    })
                 }
             >
                 {STATUS_ACTION_LABELS[status] ?? STATUS_LABELS[status]}
@@ -64,7 +68,11 @@ export function NoShowConfirmDialog({
             isPending={isPending}
             // `AlertDialogAction` is a Close part: the dialog closes on click, and the mutation's own toasts report the outcome.
             onConfirm={() =>
-                mutate({ appointmentId: appointment.id, status: 'no_show' })
+                mutate({
+                    appointmentId: appointment.id,
+                    patientId: appointment.patient_id,
+                    status: 'no_show',
+                })
             }
         />
     );

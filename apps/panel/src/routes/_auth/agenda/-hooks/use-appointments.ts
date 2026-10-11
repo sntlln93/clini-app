@@ -1,14 +1,23 @@
+import {
+    patientAppointmentsQueryKey,
+    patientClinicalNotesQueryKey,
+} from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
+import { discardPageData } from '@/lib/page-data';
 import {
     useAppointmentChangeQueryKeys,
     useRefreshPlanOnFullMonth,
 } from '@/lib/plan';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import { queryOptions, useMutation } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { formatAppointmentMoment } from '../-components/appointment-format';
 import { STATUS_SUCCESS_MESSAGES } from '../-components/appointment-status';
 
@@ -42,6 +51,19 @@ const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'appointments.slot_taken': 'start_at',
 };
 
+// What the patient page shows of an appointment change (#273): its history,
+// and its notes because an appointment with the patient grants access to them.
+function usePatientPageDiscard() {
+    const queryClient = useQueryClient();
+
+    return (patientId: number) =>
+        discardPageData(
+            queryClient,
+            patientAppointmentsQueryKey(patientId),
+            patientClinicalNotesQueryKey(patientId),
+        );
+}
+
 function queryKey(range: AppointmentsRange) {
     return ['appointments', range.from, range.to, range.membershipId ?? null];
 }
@@ -64,6 +86,7 @@ export function appointmentsQueryOptions(range: AppointmentsRange) {
 
 export function useCreateAppointment() {
     const refreshPageData = useRefreshPageData();
+    const discardPatientPage = usePatientPageDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
     const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
@@ -81,6 +104,7 @@ export function useCreateAppointment() {
             notifySuccess(
                 `Turno creado para el ${formatAppointmentMoment(payload.startAt)}.`,
             );
+            discardPatientPage(payload.patientId);
             return refreshPageData(...refreshKeys);
         },
         onError: refreshPlanOnFullMonth,
@@ -95,6 +119,7 @@ export function useCreateAppointment() {
 
 export function useUpdateAppointmentStatus() {
     const refreshPageData = useRefreshPageData();
+    const discardPatientPage = usePatientPageDiscard();
 
     return useMutation({
         mutationFn: ({
@@ -102,10 +127,12 @@ export function useUpdateAppointmentStatus() {
             status,
         }: {
             appointmentId: number;
+            patientId: number;
             status: AppointmentStatus;
         }) => api.patch(`/appointments/${appointmentId}/status`, { status }),
         // Status changes start from a dropdown item with no form to hold an inline error, so both outcomes surface as toasts.
-        onSuccess: async (_data, { status }) => {
+        onSuccess: async (_data, { patientId, status }) => {
+            discardPatientPage(patientId);
             await refreshPageData(['appointments']);
             notifySuccess(
                 STATUS_SUCCESS_MESSAGES[status] ?? 'Turno actualizado.',
@@ -118,6 +145,7 @@ export function useUpdateAppointmentStatus() {
 
 export function useCancelAppointment() {
     const refreshPageData = useRefreshPageData();
+    const discardPatientPage = usePatientPageDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
 
     const mutation = useMutation({
@@ -126,13 +154,15 @@ export function useCancelAppointment() {
             cancellationReason,
         }: {
             appointmentId: number;
+            patientId: number;
             cancellationReason?: string | null;
         }) =>
             api.patch(`/appointments/${appointmentId}/cancel`, {
                 cancellation_reason: cancellationReason ?? null,
             }),
-        onSuccess: () => {
+        onSuccess: (_data, { patientId }) => {
             notifySuccess('Turno cancelado.');
+            discardPatientPage(patientId);
             return refreshPageData(...refreshKeys);
         },
     });
@@ -146,6 +176,7 @@ export function useCancelAppointment() {
 
 export function useRescheduleAppointment() {
     const refreshPageData = useRefreshPageData();
+    const discardPatientPage = usePatientPageDiscard();
     const refreshKeys = useAppointmentChangeQueryKeys();
     const refreshPlanOnFullMonth = useRefreshPlanOnFullMonth();
 
@@ -157,6 +188,7 @@ export function useRescheduleAppointment() {
             notes,
         }: {
             appointmentId: number;
+            patientId: number;
             startAt: string;
             reason?: string | null;
             notes?: string | null;
@@ -166,10 +198,11 @@ export function useRescheduleAppointment() {
                 reason: reason ?? null,
                 notes: notes ?? null,
             }),
-        onSuccess: (_data, { startAt }) => {
+        onSuccess: (_data, { patientId, startAt }) => {
             notifySuccess(
                 `Turno reprogramado para el ${formatAppointmentMoment(startAt)}.`,
             );
+            discardPatientPage(patientId);
             return refreshPageData(...refreshKeys);
         },
         onError: refreshPlanOnFullMonth,

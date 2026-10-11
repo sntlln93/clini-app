@@ -72,6 +72,7 @@ export function CancelAppointmentDialog({
         try {
             await mutateAsync({
                 appointmentId: appointment.id,
+                patientId: appointment.patient_id,
                 cancellationReason: trimmed === '' ? null : trimmed,
             });
             onOpenChange(false);
