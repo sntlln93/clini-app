@@ -5,7 +5,8 @@ export type PlanFeature =
     | 'waiting_room'
     | 'prescriptions'
     | 'professional_booking_links'
-    | 'booking_branding';
+    | 'booking_branding'
+    | 'reports';
 
 /** GET /plan's `data` (#237). */
 export type Plan = {

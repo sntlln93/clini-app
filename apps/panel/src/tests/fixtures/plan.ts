@@ -15,6 +15,7 @@ export function buildPlan(plan: PlanId, overrides: Partial<Plan> = {}): Plan {
             prescriptions: paid,
             professional_booking_links: paid,
             booking_branding: paid,
+            reports: plan === 'center',
         },
         professional_limit: professionalLimit,
         active_professionals: activeProfessionals,

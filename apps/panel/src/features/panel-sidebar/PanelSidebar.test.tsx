@@ -55,6 +55,7 @@ function renderSidebarAt(path: string, permissions?: string[], plan?: Plan) {
         '/pacientes',
         '/profesionales',
         '/disponibilidad',
+        '/reportes',
         '/ajustes',
     ];
     const children = paths.map((p) =>
@@ -137,13 +138,39 @@ describe('PanelSidebar permission gating', () => {
             'appointments.view',
         ]);
 
-        const alwaysVisible = navItems.filter((item) => !item.permission);
+        const alwaysVisible = navItems.filter((item) => !item.permissions);
         for (const item of alwaysVisible) {
             const link = await screen.findByRole('link', {
                 name: new RegExp(item.label),
             });
             expect(link.getAttribute('href')).toBe(item.to);
         }
+    });
+});
+
+describe('PanelSidebar Reportes entry', () => {
+    it.each([['reports.view'], ['reports.view.own']])(
+        'renders Reportes on Center with %s',
+        async (permission) => {
+            renderSidebarAt('/agenda', [permission], buildPlan('center'));
+
+            const link = await screen.findByRole('link', { name: 'Reportes' });
+            expect(link.getAttribute('href')).toBe('/reportes');
+        },
+    );
+
+    it.each([
+        [
+            'on Practice, which does not include it',
+            ['reports.view'],
+            'practice',
+        ],
+        ['without any reports permission', ['appointments.view'], 'center'],
+    ] as const)('hides Reportes %s', async (_label, permissions, planId) => {
+        renderSidebarAt('/agenda', [...permissions], buildPlan(planId));
+
+        await screen.findByRole('link', { name: 'Agenda' });
+        expect(screen.queryByRole('link', { name: 'Reportes' })).toBeNull();
     });
 });
 

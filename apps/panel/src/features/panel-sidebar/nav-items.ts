@@ -1,13 +1,20 @@
 import type { PlanFeature } from '@/types/plan';
-import { Armchair, Calendar, Clock, Stethoscope, Users } from 'lucide-react';
+import {
+    Armchair,
+    Calendar,
+    ChartColumn,
+    Clock,
+    Stethoscope,
+    Users,
+} from 'lucide-react';
 import type { ComponentType } from 'react';
 
 export type NavItem = {
     label: string;
     to: string;
     icon: ComponentType<{ className?: string }>;
-    /** Absent = always visible; when set, the item renders only if the session holds that permission. */
-    permission?: string;
+    /** Absent = always visible; when set, the item renders only if the session holds any of these permissions. */
+    permissions?: string[];
     /** When set, the item renders only if the organization's plan includes it (#237). */
     feature?: PlanFeature;
 };
@@ -25,9 +32,16 @@ export const navItems: NavItem[] = [
         label: 'Profesionales',
         to: '/profesionales',
         icon: Stethoscope,
-        permission: 'memberships.view',
+        permissions: ['memberships.view'],
     },
     { label: 'Disponibilidad', to: '/disponibilidad', icon: Clock },
+    {
+        label: 'Reportes',
+        to: '/reportes',
+        icon: ChartColumn,
+        permissions: ['reports.view', 'reports.view.own'],
+        feature: 'reports',
+    },
 ];
 
 /** True when `to` is the active route (exact match or a nested child). */
