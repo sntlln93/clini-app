@@ -124,9 +124,11 @@ test.describe('reflow at ~400% zoom (320x640) with a scaled root font-size, publ
 });
 
 // Every visible interactive element must clear the WCAG 2.5.8 44x44px touch
-// target floor once the coarse-pointer media query applies (`index.css`'s
+// target floor once the coarse-pointer media query applies (`@clini/theme`'s
 // `@media (pointer: coarse)` block), except elements explicitly opted out
-// via `.touch-target-exempt` (inline text links inside a sentence).
+// via `.touch-target-exempt` (inline text links inside a sentence). The
+// target is the element's box or, for checkbox/radio/switch, the larger
+// absolutely positioned `::after` hit area drawn around it.
 async function collectUndersizedTouchTargets(page: Page): Promise<string[]> {
     const pointerIsCoarse = await page.evaluate(
         () => matchMedia('(pointer: coarse)').matches,
@@ -157,13 +159,29 @@ async function collectUndersizedTouchTargets(page: Page): Promise<string[]> {
             }
 
             const rect = element.getBoundingClientRect();
-            if (rect.width < 44 || rect.height < 44) {
+            const hitArea = getComputedStyle(element, '::after');
+            const hasHitArea =
+                element.matches(
+                    '[data-slot="switch"], [data-slot="checkbox"], [data-slot="radio-group-item"]',
+                ) &&
+                hitArea.content !== 'none' &&
+                hitArea.position === 'absolute' &&
+                hitArea.pointerEvents !== 'none';
+            const width = Math.max(
+                rect.width,
+                hasHitArea ? parseFloat(hitArea.width) : 0,
+            );
+            const height = Math.max(
+                rect.height,
+                hasHitArea ? parseFloat(hitArea.height) : 0,
+            );
+            if (width < 44 || height < 44) {
                 const accessibleName =
                     element.getAttribute('aria-label') ??
                     element.textContent?.trim() ??
                     '(no accessible name)';
                 offenders.push(
-                    `<${element.tagName.toLowerCase()}> "${accessibleName}" measured ${rect.width.toFixed(1)}x${rect.height.toFixed(1)}px`,
+                    `<${element.tagName.toLowerCase()}> "${accessibleName}" measured ${width.toFixed(1)}x${height.toFixed(1)}px`,
                 );
             }
         }
@@ -190,14 +208,139 @@ test.describe('touch targets on a coarse-pointer device', () => {
     test.describe('authenticated', () => {
         test.use({ storageState: STORAGE_STATE });
 
-        test('/agenda has no touch target under 44px', async ({ page }) => {
-            await page.goto('/agenda');
+        for (const path of [
+            '/agenda',
+            '/pacientes/nuevo',
+            '/profesionales/nuevo',
+        ]) {
+            test(`${path} has no touch target under 44px`, async ({ page }) => {
+                await page.goto(path);
+                await page.waitForLoadState('networkidle');
+
+                const offenders = await collectUndersizedTouchTargets(page);
+                expect(offenders, offenders.join('\n')).toEqual([]);
+            });
+        }
+    });
+});
+
+// The 44px floor must not resize controls whose box is the drawing itself
+// (#270): a switch stayed a 44px circle and a checkbox/radio a 44px square.
+// Their hit area grows through `::after` instead, centered on the control.
+test.describe('toggles keep their shape on a coarse-pointer device', () => {
+    test.use({ storageState: STORAGE_STATE, hasTouch: true, isMobile: true });
+
+    for (const { path, slot, width, height } of [
+        { path: '/agenda', slot: 'switch', width: 32, height: 18.4 },
+        {
+            path: '/pacientes/nuevo',
+            slot: 'radio-group-item',
+            width: 16,
+            height: 16,
+        },
+        {
+            path: '/profesionales/nuevo',
+            slot: 'checkbox',
+            width: 16,
+            height: 16,
+        },
+    ]) {
+        test(`${slot} on ${path}`, async ({ page }) => {
+            await page.goto(path);
             await page.waitForLoadState('networkidle');
 
-            const offenders = await collectUndersizedTouchTargets(page);
-            expect(offenders, offenders.join('\n')).toEqual([]);
+            const control = page.locator(`[data-slot="${slot}"]`).first();
+            await expect(control).toBeVisible();
+
+            const geometry = await control.evaluate((element) => {
+                // `elementFromPoint` only sees the viewport.
+                element.scrollIntoView({ block: 'center' });
+                const rect = element.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                // 21px from the center in each direction: outside the
+                // visible box, inside a 44px target centered on it.
+                const probes = [
+                    [centerX - 21, centerY],
+                    [centerX + 21, centerY],
+                    [centerX, centerY - 21],
+                    [centerX, centerY + 21],
+                ];
+                return {
+                    width: rect.width,
+                    height: rect.height,
+                    missedProbes: probes.filter(([x, y]) => {
+                        const hit = document.elementFromPoint(x, y);
+                        return !(hit && element.contains(hit));
+                    }).length,
+                };
+            });
+
+            expect(geometry.width).toBeCloseTo(width, 0);
+            expect(geometry.height).toBeCloseTo(height, 0);
+            expect(geometry.missedProbes).toBe(0);
         });
-    });
+    }
+});
+
+// A toggle's 44px hit area reaches past its drawing, so options laid out
+// side by side or stacked must leave it room: a tap anywhere on an option's
+// own `<label>` has to land on that option, never on its neighbor's `::after`.
+test.describe('toggle hit areas never cover a neighboring option', () => {
+    test.use({ storageState: STORAGE_STATE, hasTouch: true, isMobile: true });
+
+    for (const { path, opener } of [
+        { path: '/pacientes/nuevo' },
+        { path: '/profesionales/nuevo' },
+        { path: '/disponibilidad', opener: 'Agregar excepción' },
+    ]) {
+        test(`labels on ${path} only reach their own control`, async ({
+            page,
+        }) => {
+            await page.goto(path);
+            await page.waitForLoadState('networkidle');
+            if (opener) {
+                await page.getByRole('button', { name: opener }).click();
+            }
+            await expect(
+                page
+                    .locator(
+                        'label:has([data-slot="radio-group-item"], [data-slot="checkbox"])',
+                    )
+                    .first(),
+            ).toBeVisible();
+
+            const stolenTaps = await page.evaluate(() => {
+                const offenders: string[] = [];
+                const controls = document.querySelectorAll<HTMLElement>(
+                    'label [data-slot="switch"], label [data-slot="checkbox"], label [data-slot="radio-group-item"]',
+                );
+                for (const control of controls) {
+                    const label = control.closest('label');
+                    if (!label || !control.checkVisibility()) {
+                        continue;
+                    }
+                    label.scrollIntoView({ block: 'center' });
+                    const rect = label.getBoundingClientRect();
+                    const xs = [rect.left + 1, rect.right - 1];
+                    const ys = [rect.top + 1, rect.bottom - 1];
+                    for (const x of xs) {
+                        for (const y of ys) {
+                            const hit = document.elementFromPoint(x, y);
+                            if (!hit || !label.contains(hit)) {
+                                offenders.push(
+                                    `"${label.textContent?.trim()}" at (${x.toFixed(0)}, ${y.toFixed(0)}) hit ${hit?.closest('label')?.textContent?.trim() ?? hit?.tagName ?? 'nothing'}`,
+                                );
+                            }
+                        }
+                    }
+                }
+                return offenders;
+            });
+
+            expect(stolenTaps, stolenTaps.join('\n')).toEqual([]);
+        });
+    }
 });
 
 test.describe('the touch-target exemption stays narrow', () => {
