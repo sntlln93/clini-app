@@ -220,20 +220,131 @@ describe('ProfessionalServiceItem', () => {
         );
     });
 
-    it('clicking the service label toggles the assignment checkbox', async () => {
-        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+    it('clicking the service label toggles the assignment checkbox', () => {
         renderItem(null);
 
         fireEvent.click(screen.getByText('Consulta general'));
 
+        expect(
+            screen.getByRole('checkbox', { name: 'Consulta general' }),
+        ).toHaveProperty('ariaChecked', 'true');
+    });
+
+    it('opens the fields with the defaults on tick and sends nothing yet', () => {
+        renderItem(null);
+
+        fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Consulta general' }),
+        );
+
+        expect(api.post).not.toHaveBeenCalled();
+        expect(
+            (screen.getByLabelText(/Duración/) as HTMLInputElement).value,
+        ).toBe('30');
+        expect(
+            (screen.getByLabelText('Precio ($)') as HTMLInputElement).value,
+        ).toBe('');
+        expect(screen.getByRole('switch', { name: /Activo/ })).toHaveProperty(
+            'ariaChecked',
+            'true',
+        );
+        screen.getByRole('button', { name: 'Asignar' });
+    });
+
+    it('assigns the service with the values entered before Asignar', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderItem(null);
+
+        fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Consulta general' }),
+        );
+        fireEvent.change(screen.getByLabelText(/Duración/), {
+            target: { value: '45' },
+        });
+        fireEvent.change(screen.getByLabelText('Precio ($)'), {
+            target: { value: '12.000' },
+        });
+        fireEvent.click(screen.getByRole('switch', { name: /Activo/ }));
+        fireEvent.click(screen.getByRole('button', { name: 'Asignar' }));
+
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith('/memberships/3/services', {
                 service_id: 1,
-                duration_minutes: 30,
-                price_cents: null,
-                active: true,
+                duration_minutes: 45,
+                price_cents: 1200000,
+                active: false,
             }),
         );
+    });
+
+    it('locks the checkbox while the assignment is being sent', async () => {
+        vi.mocked(api.post).mockReturnValueOnce(new Promise(() => {}));
+        renderItem(null);
+        const checkbox = screen.getByRole('checkbox', {
+            name: 'Consulta general',
+        });
+
+        fireEvent.click(checkbox);
+        fireEvent.click(screen.getByRole('button', { name: 'Asignar' }));
+
+        await waitFor(() =>
+            expect(checkbox).toHaveProperty('ariaDisabled', 'true'),
+        );
+    });
+
+    it('opens a new draft without the error of an earlier failed save', async () => {
+        vi.mocked(api.patch).mockRejectedValueOnce(new Error('Network Error'));
+        const queryClient = new QueryClient();
+        const item = (assignment: ProfessionalService | null) => (
+            <QueryClientProvider client={queryClient}>
+                <ProfessionalServiceItem
+                    membershipId={3}
+                    service={SERVICE}
+                    assignment={assignment}
+                    canManage
+                />
+            </QueryClientProvider>
+        );
+        const { rerender } = render(item(ASSIGNMENT));
+
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+        const error = await screen.findByText(/.+/, {
+            selector: 'p.text-destructive',
+        });
+
+        // Removed elsewhere in the flow (confirm dialog), then ticked again.
+        rerender(item(null));
+        fireEvent.click(
+            screen.getByRole('checkbox', { name: 'Consulta general' }),
+        );
+
+        expect(error.isConnected).toBe(false);
+        screen.getByRole('button', { name: 'Asignar' });
+    });
+
+    it('discards an unsent draft on untick, without confirming or calling the API', () => {
+        renderItem(null);
+        const checkbox = screen.getByRole('checkbox', {
+            name: 'Consulta general',
+        });
+
+        fireEvent.click(checkbox);
+        fireEvent.change(screen.getByLabelText(/Duración/), {
+            target: { value: '45' },
+        });
+        fireEvent.click(checkbox);
+
+        expect(checkbox).toHaveProperty('ariaChecked', 'false');
+        expect(screen.queryByLabelText(/Duración/)).toBeNull();
+        expect(screen.queryByRole('alertdialog')).toBeNull();
+        expect(api.post).not.toHaveBeenCalled();
+        expect(api.delete).not.toHaveBeenCalled();
+
+        fireEvent.click(checkbox);
+
+        expect(
+            (screen.getByLabelText(/Duración/) as HTMLInputElement).value,
+        ).toBe('30');
     });
 
     it('exposes the duration and price fields with their labels', () => {

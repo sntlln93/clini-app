@@ -14,6 +14,7 @@ type ServiceAssignmentFieldsProps = {
     price: string;
     active: boolean;
     canManage: boolean;
+    saveLabel: string;
     isSaving: boolean;
     onDurationChange: (value: string) => void;
     onPriceChange: (value: string) => void;
@@ -26,6 +27,7 @@ export function ServiceAssignmentFields({
     price,
     active,
     canManage,
+    saveLabel,
     isSaving,
     onDurationChange,
     onPriceChange,
@@ -136,7 +138,7 @@ export function ServiceAssignmentFields({
                         disabled={isSaving || !durationValid || !priceValid}
                         onClick={onSave}
                     >
-                        Guardar
+                        {saveLabel}
                     </Button>
                 </div>
             )}
