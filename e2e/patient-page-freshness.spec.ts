@@ -31,11 +31,13 @@ test('the patient page reflects a note and a cancellation made from the agenda',
     // Unique per run, so a retry or a parallel worker against the same
     // database neither reuses the patient nor collides with another run's
     // slot: one day per second (repeats after ~7 hours), one hour per worker.
+    // Always before the seeded 09:00 opening, so the outside-hours warning
+    // shows on every run and is confirmed, not raced.
     const documentNumber = `${test.info().parallelIndex}${String(Date.now()).slice(-7)}`;
     const patientName = `Paciente E2E 273 ${documentNumber}`;
     const day = new Date(2030, 0, 1 + (Math.floor(Date.now() / 1000) % 25_000));
     const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-    const time = `${String(8 + test.info().parallelIndex).padStart(2, '0')}:00`;
+    const time = `0${6 + (test.info().parallelIndex % 3)}:00`;
 
     await page.goto('/login');
     await page
@@ -73,11 +75,10 @@ test('the patient page reflects a note and a cancellation made from the agenda',
     await appointmentDialog
         .getByRole('button', { name: 'Crear turno' })
         .click();
-    const outsideHours = page.getByRole('alertdialog');
-    await expect(appointmentDialog.or(outsideHours).first()).toBeVisible();
-    if (await outsideHours.isVisible()) {
-        await outsideHours.getByRole('button').last().click();
-    }
+    await page
+        .getByRole('alertdialog')
+        .getByRole('button', { name: 'Registrar de todos modos' })
+        .click();
     await expect(appointmentDialog).toBeHidden();
 
     const card = page.getByRole('button', { name: new RegExp(patientName) });
