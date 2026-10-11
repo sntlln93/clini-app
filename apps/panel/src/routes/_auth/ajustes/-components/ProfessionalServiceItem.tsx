@@ -40,11 +40,14 @@ export function ProfessionalServiceItem({
     );
     const [active, setActive] = useState(assignment?.active ?? true);
     const [appliedId, setAppliedId] = useState<number | null>(null);
+    // Ticked but not assigned yet: the fields open first and «Asignar» sends them (#279).
+    const [drafting, setDrafting] = useState(false);
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
     // Adjust state during render (react-hooks/set-state-in-effect), not an Effect.
     if (assignment && assignment.id !== appliedId) {
         setAppliedId(assignment.id);
+        setDrafting(false);
         setDuration(String(assignment.duration_minutes));
         setPrice(centsToPesosInput(assignment.price_cents));
         setActive(assignment.active);
@@ -56,16 +59,21 @@ export function ProfessionalServiceItem({
     const message = assign.message ?? update.message;
 
     function handleToggleAssigned(checked: boolean) {
-        if (checked) {
-            assign.mutate({
-                serviceId: service.id,
-                durationMinutes: DEFAULT_DURATION_MINUTES,
-                priceCents: null,
-                active: true,
-            });
-        } else if (assignment) {
-            setShowRemoveConfirm(true);
+        if (assignment) {
+            if (!checked) {
+                setShowRemoveConfirm(true);
+            }
+            return;
         }
+
+        // A removed service comes back with the defaults, not its old values.
+        setDuration(String(DEFAULT_DURATION_MINUTES));
+        setPrice(centsToPesosInput(null));
+        setActive(true);
+        // Nor with an error left over from before.
+        assign.reset();
+        update.reset();
+        setDrafting(checked);
     }
 
     function handleConfirmRemove() {
@@ -80,21 +88,31 @@ export function ProfessionalServiceItem({
             return;
         }
 
-        update.mutate({
+        const payload = {
             serviceId: service.id,
             durationMinutes,
             priceCents,
             active,
-        });
+        };
+        if (assignment) {
+            update.mutate(payload);
+        } else {
+            assign.mutate(payload);
+        }
     }
 
     return (
-        <div className="space-y-2 rounded-md border p-2">
+        <div
+            role="group"
+            aria-label={service.name}
+            className="space-y-2 rounded-md border p-2"
+        >
             <div className="flex items-center gap-2">
                 <Checkbox
                     id={assignedCheckboxId}
-                    disabled={!canManage}
-                    checked={assignment !== null}
+                    // An assignment in flight can't be discarded as a draft anymore.
+                    disabled={!canManage || assign.isPending}
+                    checked={assignment !== null || drafting}
                     onCheckedChange={(checked) =>
                         handleToggleAssigned(checked === true)
                     }
@@ -109,13 +127,14 @@ export function ProfessionalServiceItem({
 
             {message && <p className="text-sm text-destructive">{message}</p>}
 
-            {assignment && (
+            {(assignment || drafting) && (
                 <ServiceAssignmentFields
                     duration={duration}
                     price={price}
                     active={active}
                     canManage={canManage}
-                    isSaving={update.isPending}
+                    saveLabel={assignment ? 'Guardar' : 'Asignar'}
+                    isSaving={assign.isPending || update.isPending}
                     onDurationChange={setDuration}
                     onPriceChange={setPrice}
                     onActiveChange={setActive}
