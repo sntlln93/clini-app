@@ -3,24 +3,43 @@ import { RouteErrorState } from '@/components/RouteErrorState';
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { isCalendarDate, todayInTimeZone } from '@/lib/iso-date';
 import { titleHead } from '@/lib/page-title';
 import { planIncludes, planQueryOptions } from '@/lib/plan';
 import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
+import { effectiveRangeError } from './-components/report-range';
 import type { ReportFilterValues } from './-components/ReportFilters';
 import { ReportView } from './-components/ReportView';
 import { reportQueryOptions } from './-hooks/use-report';
 
-const ymd = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+const ymd = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((value) => isCalendarDate(value));
 
 // All optional: an omitted filter is the API's default, shown back from `period`.
-const reportSearchSchema = z.object({
-    from: ymd.optional().catch(undefined),
-    to: ymd.optional().catch(undefined),
-    granularity: z.enum(['week', 'month']).optional().catch(undefined),
-    membershipId: z.coerce.number().int().min(1).optional().catch(undefined),
-});
+// A range the API would reject falls back to that default instead of an error page with no filters to fix it.
+const reportSearchSchema = z
+    .object({
+        from: ymd.optional().catch(undefined),
+        to: ymd.optional().catch(undefined),
+        granularity: z.enum(['week', 'month']).optional().catch(undefined),
+        membershipId: z.coerce
+            .number()
+            .int()
+            .min(1)
+            .optional()
+            .catch(undefined),
+    })
+    .transform((search) =>
+        effectiveRangeError(search, todayInTimeZone(BROWSER_TIMEZONE)) === null
+            ? search
+            : { ...search, from: undefined, to: undefined },
+    );
 
 export const Route = createFileRoute('/_auth/reportes/')({
     head: () => titleHead('Reportes'),

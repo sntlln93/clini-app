@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
     addDaysToIsoDate,
     formatLongIsoDate,
+    isCalendarDate,
     todayInTimeZone,
 } from './iso-date';
 
@@ -28,5 +29,14 @@ describe('addDaysToIsoDate', () => {
 describe('formatLongIsoDate', () => {
     it('formats the date in long Spanish form without drifting a day', () => {
         expect(formatLongIsoDate('2026-10-05')).toBe('lunes, 5 de octubre');
+    });
+});
+
+describe('isCalendarDate', () => {
+    it('accepts real dates and rejects impossible ones', () => {
+        expect(isCalendarDate('2026-02-28')).toBe(true);
+        expect(isCalendarDate('2028-02-29')).toBe(true);
+        expect(isCalendarDate('2026-02-30')).toBe(false);
+        expect(isCalendarDate('2026-13-01')).toBe(false);
     });
 });
