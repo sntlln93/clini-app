@@ -1,12 +1,14 @@
 import { api } from '@/lib/api';
 import type { ErrorCode } from '@/lib/error-codes';
 import { extractFormErrors } from '@/lib/form-errors';
+import { discardPageData } from '@/lib/page-data';
 import { notifySuccess } from '@/lib/toast';
 import type {
     Membership,
     MembershipRole,
     MembershipStatus,
 } from '@/types/membership';
+import type { QueryClient } from '@tanstack/react-query';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 type UpdateMembershipPayload = {
@@ -19,6 +21,21 @@ const UPDATE_MEMBERSHIP_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
     'memberships.last_active_admin': 'roles',
 };
 
+// Every page read that lists members or professionals: this module's list and
+// edit page, Ajustes' professionals, the roster of the agenda, availability,
+// waiting room and reports, and the reports' per-professional rows. All are
+// read only in loaders, so a plain invalidate never reaches them: they are
+// dropped so the next visit loads them (#273). The user is sent to the list
+// right after. The plan's professional count is re-read by the `_auth` loader.
+function discardMembershipReads(queryClient: QueryClient) {
+    discardPageData(
+        queryClient,
+        ['memberships'],
+        ['professionals'],
+        ['reports'],
+    );
+}
+
 export function useUpdateMembership(membershipId: number) {
     const queryClient = useQueryClient();
 
@@ -30,9 +47,9 @@ export function useUpdateMembership(membershipId: number) {
                     payload,
                 )
                 .then((response) => response.data.data),
-        // Navigates back to the list on success, whose loader refetches, so a plain invalidate is enough (the plan's professional count is re-read by the `_auth` loader); errors render inline in the form.
+        // Errors render inline in the form.
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            discardMembershipReads(queryClient);
             queryClient.invalidateQueries({ queryKey: ['plan'] });
             notifySuccess('Cambios guardados');
         },
@@ -53,7 +70,7 @@ export function useDeactivateMembership() {
             api.delete(`/memberships/${membershipId}`),
         // Its error already renders inline in the «Zona de peligro» section (MemberDangerZone), so no error toast.
         onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['memberships'] });
+            discardMembershipReads(queryClient);
             queryClient.invalidateQueries({ queryKey: ['plan'] });
             notifySuccess('Miembro dado de baja');
         },

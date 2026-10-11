@@ -1,3 +1,7 @@
+import {
+    professionalRosterQueryOptions,
+    professionalsQueryOptions,
+} from '@/hooks/use-professionals';
 import { api } from '@/lib/api';
 import { notifySuccess } from '@/lib/toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -5,12 +9,17 @@ import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+    membershipQueryOptions,
+    membershipsQueryOptions,
+} from '../-hooks/use-memberships';
+import {
     useDeactivateMembership,
     useUpdateMembership,
 } from '../-hooks/use-update-membership';
+import { reportQueryOptions } from '../../reportes/-hooks/use-report';
 
 vi.mock('@/lib/api', () => ({
-    api: { patch: vi.fn(), delete: vi.fn() },
+    api: { get: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }));
 
 vi.mock('@/lib/toast', () => ({
@@ -52,5 +61,69 @@ describe('membership mutation toasts', () => {
         await result.current.mutateAsync(5);
 
         expect(notifySuccess).toHaveBeenCalledWith('Miembro dado de baja');
+    });
+});
+
+describe('membership changes reach every page that lists members (#273)', () => {
+    // Read only by loaders: the list and edit page here, Ajustes'
+    // professionals, the roster of the agenda and other modules, the reports.
+    const READS = [
+        () => membershipsQueryOptions({ q: '', page: 1 }),
+        () => membershipQueryOptions(5),
+        () => professionalsQueryOptions(),
+        () => professionalRosterQueryOptions(),
+        () => reportQueryOptions({}),
+    ];
+
+    beforeEach(() => {
+        vi.mocked(api.get)
+            .mockReset()
+            .mockResolvedValue({ data: { data: [], meta: {} } });
+        vi.mocked(api.patch).mockResolvedValue({ data: { data: {} } });
+        vi.mocked(api.delete).mockResolvedValue({ data: {} });
+    });
+
+    function renderWith<T>(queryClient: QueryClient, hook: () => T) {
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            createElement(
+                QueryClientProvider,
+                { client: queryClient },
+                children,
+            );
+
+        return renderHook(hook, { wrapper }).result;
+    }
+
+    it.each([
+        {
+            name: 'saving a member',
+            run: (queryClient: QueryClient) =>
+                renderWith(queryClient, () =>
+                    useUpdateMembership(5),
+                ).current.mutateAsync({ roles: ['staff'], status: 'active' }),
+        },
+        {
+            name: 'deactivating a member',
+            run: (queryClient: QueryClient) =>
+                renderWith(
+                    queryClient,
+                    useDeactivateMembership,
+                ).current.mutateAsync(5),
+        },
+    ])('$name makes those pages load them again', async ({ run }) => {
+        const queryClient = new QueryClient({
+            defaultOptions: { mutations: { retry: false } },
+        });
+        await Promise.all(
+            READS.map((read) => queryClient.ensureQueryData(read())),
+        );
+        vi.mocked(api.get).mockClear();
+
+        await run(queryClient);
+        await Promise.all(
+            READS.map((read) => queryClient.ensureQueryData(read())),
+        );
+
+        expect(api.get).toHaveBeenCalledTimes(READS.length);
     });
 });
