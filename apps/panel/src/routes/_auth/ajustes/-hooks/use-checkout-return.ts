@@ -24,7 +24,14 @@ export function useCheckoutReturn(
     const polls = useRef(0);
 
     const finish = useCallback(
-        () => navigate({ to: '/ajustes', search: {}, replace: true }),
+        // Dropping the flag is not a new page: keep the scroll where it is (#279).
+        () =>
+            navigate({
+                to: '/ajustes',
+                search: {},
+                replace: true,
+                resetScroll: false,
+            }),
         [navigate],
     );
 

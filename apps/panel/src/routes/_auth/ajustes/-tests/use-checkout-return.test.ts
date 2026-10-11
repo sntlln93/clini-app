@@ -17,7 +17,12 @@ vi.mock('@tanstack/react-router', () => ({
     useNavigate: () => navigate,
 }));
 
-const STRIP_FLAG = { to: '/ajustes', search: {}, replace: true };
+const STRIP_FLAG = {
+    to: '/ajustes',
+    search: {},
+    replace: true,
+    resetScroll: false,
+};
 
 describe('useCheckoutReturn', () => {
     beforeEach(() => {
