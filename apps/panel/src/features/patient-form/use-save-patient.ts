@@ -34,10 +34,18 @@ export function useSavePatient(patientId?: number) {
                 queryKey: patientQueryOptions(saved.id).queryKey,
                 exact: true,
             });
-            // Appointments carry the patient's name (agenda, waiting room),
-            // read there only in loaders (#273).
+            // Other pages' loader-only reads that show it (#273): appointments
+            // (agenda, waiting room) and prescriptions carry the patient's name
+            // and document; the reports count the patients registered.
             if (patientId) {
-                discardPageData(queryClient, ['appointments']);
+                discardPageData(
+                    queryClient,
+                    ['appointments'],
+                    ['prescriptions', 'patient'],
+                    ['prescriptions', 'detail'],
+                );
+            } else {
+                discardPageData(queryClient, ['reports']);
             }
             notifySuccess(patientId ? 'Cambios guardados' : 'Paciente creado');
         },
