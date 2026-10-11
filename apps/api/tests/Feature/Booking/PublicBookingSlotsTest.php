@@ -18,50 +18,6 @@ afterEach(function () {
     $this->travelBack();
 });
 
-/**
- * UTC timezone keeps clock times and every plain date/time string below
- * unambiguous — timezone-conversion itself is exercised elsewhere
- * (ListAvailableSlotsAction/ComputePublishedDayIntervalsAction).
- *
- * @return array{0: Organization, 1: Membership, 2: Service}
- */
-function createSlotsFixture(int $durationMinutes = 30): array
-{
-    $organization = Organization::factory()->create(['timezone' => 'UTC']);
-    $membership = Membership::factory()->create(['organization_id' => $organization->id]);
-    $service = Service::factory()->create();
-    ProfessionalService::factory()->create([
-        'organization_id' => $organization->id,
-        'membership_id' => $membership->id,
-        'service_id' => $service->id,
-        'duration_minutes' => $durationMinutes,
-        'active' => true,
-    ]);
-
-    return [$organization, $membership, $service];
-}
-
-function slotsUrl(Organization $organization, Membership $membership, Service $service, string $from, ?string $to = null): string
-{
-    return '/api/v1/booking/'.$organization->slug.'/slots?'.http_build_query([
-        'membership_id' => $membership->id,
-        'service_id' => $service->id,
-        'from' => $from,
-        'to' => $to ?? $from,
-    ]);
-}
-
-/**
- * @param  array<int, array{start_at: string, end_at: string}>  $slots
- * @return array<int, string>
- */
-function slotStartTimes(array $slots): array
-{
-    return collect($slots)
-        ->map(fn (array $slot): string => CarbonImmutable::parse($slot['start_at'])->format('H:i'))
-        ->all();
-}
-
 test('slots for a weekly availability are exactly duration_minutes long and cover the whole published range', function () {
     $this->travelTo('2026-07-20 00:00:00');
     [$organization, $membership, $service] = createSlotsFixture(30);

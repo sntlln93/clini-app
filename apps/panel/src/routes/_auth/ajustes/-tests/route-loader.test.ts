@@ -38,7 +38,10 @@ const loader = Route.options.loader as (opts: {
     subscription: Subscription | null;
     plan: Plan | undefined;
     isOwner: boolean;
+    organizationLogo: { logo_url: string | null } | null;
 }>;
+
+const LOGO = { logo_url: 'http://localhost:8080/api/v1/booking/x/logo?v=1' };
 
 const PLAN = buildPlan('practice');
 
@@ -72,6 +75,9 @@ function mockApiGet(
         }
         if (url === '/subscription') {
             return Promise.resolve({ data: { data: subscription } });
+        }
+        if (url === '/organization/logo') {
+            return Promise.resolve({ data: { data: LOGO } });
         }
         if (url === '/plan') {
             return Promise.resolve({ data: { data: PLAN } });
@@ -203,5 +209,45 @@ describe('/ajustes loader subscription', () => {
             subscription: null,
             isOwner: false,
         });
+    });
+});
+
+describe('/ajustes loader organization logo (#239)', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    it('loads the logo with organization.manage', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: ['organization.manage'],
+            membership: OWN_MEMBERSHIP,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(api.get).toHaveBeenCalledWith('/organization/logo');
+        expect(result.organizationLogo).toEqual(LOGO);
+    });
+
+    it('never requests the logo without organization.manage', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: [],
+            membership: OWN_MEMBERSHIP,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(api.get).not.toHaveBeenCalledWith('/organization/logo');
+        expect(result.organizationLogo).toBeNull();
     });
 });

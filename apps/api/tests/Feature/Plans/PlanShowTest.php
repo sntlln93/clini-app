@@ -31,6 +31,7 @@ test('a new organization with no subscription is on Free, with every paid functi
                 'waiting_room' => false,
                 'prescriptions' => false,
                 'professional_booking_links' => false,
+                'booking_branding' => false,
             ],
             'professional_limit' => 1,
             'active_professionals' => 0,

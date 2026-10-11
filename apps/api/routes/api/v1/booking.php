@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Booking\PublicBookingController;
+use App\Http\Controllers\Booking\PublicBookingLogoController;
 use Illuminate\Support\Facades\Route;
 
 // Public: consumed by an anonymous patient booking an appointment online,
@@ -13,6 +14,7 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('booking/{slug}')->middleware('public-organization')->group(function (): void {
     Route::get('/', [PublicBookingController::class, 'show']);
     Route::get('/slots', [PublicBookingController::class, 'slots']);
+    Route::get('/logo', [PublicBookingLogoController::class, 'show']);
     // Blocked like the panel's own writes (#28, #237).
     Route::post('/appointments', [PublicBookingController::class, 'store'])->middleware('subscription.active');
 });

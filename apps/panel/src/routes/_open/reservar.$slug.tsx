@@ -4,6 +4,10 @@ import { addDaysToIsoDate, todayInTimeZone } from '@/lib/iso-date';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
+import {
+    BookingLogo,
+    MadeWithClini,
+} from './-components/booking/BookingBranding';
 import { BookingWizard } from './-components/booking/BookingWizard';
 import { BOOKING_WINDOW_DAYS } from './-components/booking/booking-window';
 import {
@@ -103,7 +107,8 @@ function BookingPage() {
     const { organization, slots } = Route.useLoaderData();
 
     return (
-        <div className="w-full max-w-md">
+        <div className="w-full max-w-md space-y-6">
+            <BookingLogo organization={organization.organization} />
             <BookingWizard
                 slug={slug}
                 organization={organization.organization}
@@ -114,6 +119,7 @@ function BookingPage() {
                     void navigate({ search: (prev) => ({ ...prev, ...next }) })
                 }
             />
+            {organization.organization.show_clini_mark && <MadeWithClini />}
         </div>
     );
 }

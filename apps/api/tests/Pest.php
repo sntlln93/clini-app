@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\PlatformAdmin;
+use App\Models\ProfessionalService;
+use App\Models\Service;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -104,4 +108,49 @@ function adminRouteUri(string $template): string
         [(string) $organization->id, (string) $user->id, (string) $subscription->id],
         $template,
     );
+}
+
+/**
+ * Public booking slot fixture, shared by the slot and holiday tests. UTC
+ * keeps their clock times and plain date/time strings unambiguous —
+ * timezone conversion itself is exercised elsewhere
+ * (ListAvailableSlotsAction/ComputePublishedDayIntervalsAction).
+ *
+ * @return array{0: Organization, 1: Membership, 2: Service}
+ */
+function createSlotsFixture(int $durationMinutes = 30): array
+{
+    $organization = Organization::factory()->create(['timezone' => 'UTC']);
+    $membership = Membership::factory()->create(['organization_id' => $organization->id]);
+    $service = Service::factory()->create();
+    ProfessionalService::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'duration_minutes' => $durationMinutes,
+        'active' => true,
+    ]);
+
+    return [$organization, $membership, $service];
+}
+
+function slotsUrl(Organization $organization, Membership $membership, Service $service, string $from, ?string $to = null): string
+{
+    return '/api/v1/booking/'.$organization->slug.'/slots?'.http_build_query([
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'from' => $from,
+        'to' => $to ?? $from,
+    ]);
+}
+
+/**
+ * @param  array<int, array{start_at: string, end_at: string}>  $slots
+ * @return array<int, string>
+ */
+function slotStartTimes(array $slots): array
+{
+    return collect($slots)
+        ->map(fn (array $slot): string => CarbonImmutable::parse($slot['start_at'])->format('H:i'))
+        ->all();
 }

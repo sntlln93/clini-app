@@ -1,7 +1,11 @@
 export type PlanId = 'free' | 'practice' | 'center';
 
 export type PlanFeature =
-    'team' | 'waiting_room' | 'prescriptions' | 'professional_booking_links';
+    | 'team'
+    | 'waiting_room'
+    | 'prescriptions'
+    | 'professional_booking_links'
+    | 'booking_branding';
 
 /** GET /plan's `data` (#237). */
 export type Plan = {

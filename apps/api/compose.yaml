@@ -32,6 +32,7 @@ services:
         depends_on:
             - pgsql
             - mailpit
+            - s3
     queue:
         build:
             context: './vendor/laravel/sail/runtimes/8.5'
@@ -55,6 +56,7 @@ services:
         depends_on:
             - pgsql
             - mailpit
+            - s3
     scheduler:
         build:
             context: './vendor/laravel/sail/runtimes/8.5'
@@ -83,6 +85,20 @@ services:
         ports:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
+        networks:
+            - sail
+    # Dev stand-in for the S3-compatible bucket (Cloudflare R2 in production,
+    # ADR 0015): creates the bucket itself and keeps its objects in a volume.
+    s3:
+        image: 'adobe/s3mock:4.10.0'
+        ports:
+            - '${FORWARD_S3_PORT:-9090}:9090'
+        environment:
+            COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: '${AWS_BUCKET:-clini}'
+            COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: 'true'
+            COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
+        volumes:
+            - 'clini-s3:/data'
         networks:
             - sail
     pgsql:
@@ -115,4 +131,6 @@ networks:
         driver: bridge
 volumes:
     sail-pgsql:
+        driver: local
+    clini-s3:
         driver: local

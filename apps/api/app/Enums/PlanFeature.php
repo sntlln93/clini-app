@@ -15,4 +15,6 @@ enum PlanFeature: string
     case WaitingRoom = 'waiting_room';
     case Prescriptions = 'prescriptions';
     case ProfessionalBookingLinks = 'professional_booking_links';
+    /** The organization's logo on its booking page and mails, without the Clini mark (#239). */
+    case BookingBranding = 'booking_branding';
 }

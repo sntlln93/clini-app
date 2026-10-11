@@ -37,6 +37,7 @@ Esto levanta seis servicios en la red `sail`:
 | `landing`     | http://localhost:5176   | Sitio público con SSR (TanStack Start, Vite dev server) |
 | `pgsql`       | localhost:55432         | PostgreSQL                          |
 | `mailpit`     | http://localhost:8025   | UI de Mailpit (transporte de correo de dev) |
+| `s3`          | http://localhost:9090   | Bucket S3 de dev (`adobe/s3mock`, bucket `clini`): reemplaza a Cloudflare R2 para los archivos que suben los usuarios (ADR 0015) |
 
 Detrás del profile `e2e` (no arranca con `docker compose up` normal) hay dos servicios más: `pgsql-e2e` (Postgres efímero, aislado del `pgsql` de dev) y `e2e` (Playwright, imagen `sail-8.5/app` reutilizada — ya trae PHP 8.5 + Node 24 + deps de sistema de Playwright). Se levantan con `docker compose --profile e2e up --abort-on-container-exit e2e`; ver CLAUDE.md § Tests para el detalle de por qué `e2e` levanta sus propios `php artisan serve` + `vite dev` en vez de apuntar a `laravel.test`/`panel`.
 

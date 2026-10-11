@@ -74,7 +74,7 @@ Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 - **Una ruta de escritura nueva** de agenda, notas, recetas o disponibilidad tiene que entrar en el grupo `subscription.active`, que ahora también aplica el límite de profesionales.
 - **`OrganizationFactory` crea organizaciones sin plan asignado**, es decir en Gratis, igual que en producción. Los tests de funciones pagas que no tratan sobre planes usan `Organization::factory()->center()` o `Membership::factory()->onPaidPlan()`.
 - **Fuera de este ADR**, cada uno en su issue:
-  - la marca Clini en la reserva (#239);
+  - la marca Clini en la reserva (#239, resuelta en ADR 0015);
   - el pago anual (#240);
   - las funciones exclusivas de Centro (#242 a #245).
 - **Un checkout pendiente** (que no cobra) no impide asignar Centro. Si el dueño completa después ese checkout viejo, la organización pagaría Mercado Pago estando en Centro. El caso es raro (el panel ya no ofrece el checkout en Centro) y se resuelve cancelando desde Ajustes.
