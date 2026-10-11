@@ -49,6 +49,25 @@ return [
             'report' => false,
         ],
 
+        // Files users upload (the organization logo, #239): an S3-compatible
+        // bucket — Cloudflare R2 in production, s3mock in dev (ADR 0015).
+        // Throws, so a storage failure never passes as a saved file. The
+        // checksum options keep the SDK's default CRC headers off, which
+        // S3-compatible stores like R2 don't all accept.
+        'media' => [
+            'driver' => 's3',
+            'key' => env('AWS_ACCESS_KEY_ID'),
+            'secret' => env('AWS_SECRET_ACCESS_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'auto'),
+            'bucket' => env('AWS_BUCKET'),
+            'endpoint' => env('AWS_ENDPOINT'),
+            'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
+            'request_checksum_calculation' => 'when_required',
+            'response_checksum_validation' => 'when_required',
+            'throw' => true,
+            'report' => true,
+        ],
+
         's3' => [
             'driver' => 's3',
             'key' => env('AWS_ACCESS_KEY_ID'),
