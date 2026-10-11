@@ -320,3 +320,71 @@ test('a guest gets 200 on slots: the endpoint does not require authentication', 
 
     $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'))->assertOk();
 });
+
+test('an organization-wide blocked exception removes the slots it covers for every professional', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '11:00:00',
+    ]);
+    AvailabilityException::factory()->organizationWide()->create([
+        'organization_id' => $organization->id,
+        'type' => AvailabilityExceptionType::Blocked,
+        'start_at' => '2026-08-03 09:30:00',
+        'end_at' => '2026-08-03 10:30:00',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'));
+
+    $response->assertOk();
+    expect(slotStartTimes($response->json('data')))->toBe(['09:00', '10:30']);
+});
+
+test('an extra exception late in the local day is published on that local day, not missed by a UTC offset', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    $organization->update(['timezone' => 'America/Argentina/Buenos_Aires']);
+    AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'type' => AvailabilityExceptionType::Extra,
+        // 21:00–22:00 on Aug 3 in Buenos Aires (UTC−3).
+        'start_at' => '2026-08-04 00:00:00',
+        'end_at' => '2026-08-04 01:00:00',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'));
+
+    $response->assertOk();
+    expect(collect($response->json('data'))->pluck('start_at')->map(
+        fn (string $start): string => CarbonImmutable::parse($start)->utc()->toDateTimeString(),
+    )->all())->toBe(['2026-08-04 00:00:00', '2026-08-04 00:30:00']);
+});
+
+test('an extra exception overlapping the weekly schedule publishes one continuous range, without duplicate slots', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '11:00:00',
+    ]);
+    AvailabilityException::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'type' => AvailabilityExceptionType::Extra,
+        'start_at' => '2026-08-03 10:00:00',
+        'end_at' => '2026-08-03 12:00:00',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'));
+
+    $response->assertOk();
+    expect(slotStartTimes($response->json('data')))->toBe(['09:00', '09:30', '10:00', '10:30', '11:00', '11:30']);
+});

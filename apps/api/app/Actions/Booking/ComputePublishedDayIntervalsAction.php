@@ -21,7 +21,8 @@ use Illuminate\Support\Collection as SupportCollection;
 
 /**
  * A day's *published* schedule: weekly `availabilities` plus `extra`
- * exceptions, minus `blocked` exceptions — never excluding time already
+ * exceptions, minus `blocked` exceptions (the professional's own and the
+ * whole organization's, `membership_id` null) — never excluding time already
  * taken by busy appointments, which stays each caller's own concern.
  * `day` must already be anchored to the organization's own timezone by
  * the caller. A holiday publishes no intervals at all, regardless of
@@ -61,10 +62,13 @@ class ComputePublishedDayIntervalsAction implements Action
             ->get()
             ->groupBy('day_of_week');
 
+        // Bound as UTC: the columns hold UTC instants, and a query binding keeps a Carbon's own wall-clock time.
         $exceptions = AvailabilityException::query()
-            ->where('membership_id', $dto->membershipId)
-            ->where('start_at', '<', $dayEnd)
-            ->where('end_at', '>', $day)
+            ->where(fn ($query) => $query
+                ->where('membership_id', $dto->membershipId)
+                ->orWhereNull('membership_id'))
+            ->where('start_at', '<', $dayEnd->utc())
+            ->where('end_at', '>', $day->utc())
             ->get();
 
         return $this->intervalsForDay($day, $availabilitiesByDay, $exceptions);
@@ -102,7 +106,7 @@ class ComputePublishedDayIntervalsAction implements Action
             ->filter()
             ->all();
 
-        return $this->subtractIntervals([...$baseIntervals, ...$extraIntervals], $blockedIntervals);
+        return $this->subtractIntervals($this->mergeIntervals([...$baseIntervals, ...$extraIntervals]), $blockedIntervals);
     }
 
     private function isHoliday(int $membershipId, CarbonImmutable $day): bool
@@ -171,6 +175,32 @@ class ComputePublishedDayIntervalsAction implements Action
         [$hour, $minute, $second] = array_pad(explode(':', $time), 3, '0');
 
         return $day->setTime((int) $hour, (int) $minute, (int) $second);
+    }
+
+    /**
+     * An `extra` exception may overlap the weekly windows; merging keeps one continuous range instead of two overlapping slot grids.
+     *
+     * @param  array<int, array{start: CarbonImmutable, end: CarbonImmutable}>  $intervals
+     * @return array<int, array{start: CarbonImmutable, end: CarbonImmutable}>
+     */
+    private function mergeIntervals(array $intervals): array
+    {
+        usort($intervals, fn (array $a, array $b): int => $a['start'] <=> $b['start']);
+        $merged = [];
+
+        foreach ($intervals as $interval) {
+            $last = array_key_last($merged);
+
+            if ($last !== null && $interval['start']->lte($merged[$last]['end'])) {
+                $merged[$last]['end'] = $merged[$last]['end']->max($interval['end']);
+
+                continue;
+            }
+
+            $merged[] = $interval;
+        }
+
+        return $merged;
     }
 
     /**
