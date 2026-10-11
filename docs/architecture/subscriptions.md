@@ -39,6 +39,10 @@ La suscripción define el plan de la organización, que se calcula y no se guard
   - `BookAppointmentAction` lo controla bajo un lock de la organización, tanto para la carga manual como para la reserva online y la reprogramación. El turno 41 responde 409 `plans.appointment_limit_reached` (`context.appointment_limit`, `context.month`).
   - Al llegar a 35, los dueños reciben `AppointmentLimitApproachingNotification` por mail, una sola vez por mes (`appointment_limit_warnings`, con clave única por organización y mes).
   - No hay reinicio programado: el mes siguiente simplemente cuenta desde cero.
+- **Marca en la página de reservas (#239, ADR 0015):** Gratis muestra «Hecho con Clini» (`organization.show_clini_mark` en `GET /booking/{slug}`).
+  - Los planes pagos (`booking_branding`) muestran el logo de la organización (`organization.logo_url`) en la reserva y en el mail de recordatorio.
+  - Dueño y administración (`organization.manage`) lo suben desde Ajustes: `POST /organization/logo` (multipart, campo `logo`). En Gratis responde 409 `plans.feature_unavailable`.
+  - `DELETE /organization/logo` lo quita en cualquier plan. Bajar a Gratis no lo borra: deja de mostrarse hasta volver a un plan pago.
 - **Centro:** `PUT /api/v1/admin/organizations/{id}/plan` (`{"assigned_plan": "center" | null, "reason": "…"}`) lo asigna o lo quita.
   - Queda auditado como `organizations.assign_plan`.
   - Responde 409 `plans.subscription_live` si la suscripción todavía puede cobrar (`active`, `grace`, `expired`) y `plans.assignment_unchanged` si no cambia nada.
@@ -160,7 +164,7 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 - **Web Push** para los avisos de gracia/vencimiento (no existe infraestructura de push todavía): por ahora solo mail.
 - Prueba gratuita de Consultorio y cobro de consultas (#29, que reutiliza este adapter).
 - Comprar turnos extra sueltos (#238 lo deja fuera). La grilla pública sigue mostrando horarios de un mes lleno: el rechazo llega al confirmar.
-- Marca Clini en la reserva (#239), pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
+- Pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
 - Precio de Centro: se cobra por fuera de la plataforma y no se modela.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
 - Volver a suscribirse durante el período pago de una cancelación crea un preapproval nuevo que cobra desde la autorización, sin descontar los días que quedaban (`auto_recurring.start_date` no se usa).
