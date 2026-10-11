@@ -30,6 +30,8 @@ function mockOrganization(
             name: 'Consultorio Salud',
             slug: 'consultorio-salud',
             timezone: 'America/Argentina/Buenos_Aires',
+            show_clini_mark: false,
+            logo_url: null,
         },
         professionals: [],
         preselected_membership_id: null,

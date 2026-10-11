@@ -4,6 +4,10 @@ export type BookingOrganization = {
     name: string;
     slug: string;
     timezone: string;
+    /** Free plan: the page shows «Hecho con Clini» (#239). */
+    show_clini_mark: boolean;
+    /** Only on a plan with booking branding, and only once uploaded. */
+    logo_url: string | null;
 };
 
 export type BookingSpecialty = {

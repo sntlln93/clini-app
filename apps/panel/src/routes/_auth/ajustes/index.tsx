@@ -8,6 +8,7 @@ import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
+import { BookingBrandingSection } from './-components/BookingBrandingSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
@@ -20,6 +21,7 @@ import {
     catalogSpecialtiesQueryOptions,
 } from './-hooks/use-catalog';
 import { useCheckoutReturn } from './-hooks/use-checkout-return';
+import { organizationLogoQueryOptions } from './-hooks/use-organization-logo';
 import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
 // `retorno`: the browser is back from the Mercado Pago checkout (the API's
@@ -55,6 +57,16 @@ export const Route = createFileRoute('/_auth/ajustes/')({
                   professionalsQueryOptions(),
               )
             : [];
+
+        // Owner and admin only (#239).
+        const organizationLogo = sessionHasPermission(
+            session,
+            'organization.manage',
+        )
+            ? await context.queryClient.ensureQueryData(
+                  organizationLogoQueryOptions,
+              )
+            : null;
 
         const mySpecialties = await context.queryClient.ensureQueryData(
             userSpecialtiesQueryOptions(session.id),
@@ -97,6 +109,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             mySpecialties,
             professionals,
             ownMembership: session.membership ?? null,
+            organizationLogo,
             ...assignments,
         };
     },
@@ -118,6 +131,7 @@ function AjustesPage() {
         mySpecialties,
         professionals,
         ownMembership,
+        organizationLogo,
         credentialsByMembership,
         assignedSpecialtiesByMembership,
         assignedServicesByMembership,
@@ -165,6 +179,13 @@ function AjustesPage() {
                         isOwner={isOwner}
                         confirmingPayment={confirmingPayment}
                     />
+                </>
+            )}
+
+            {organizationLogo && (
+                <>
+                    <Separator />
+                    <BookingBrandingSection logo={organizationLogo} />
                 </>
             )}
 

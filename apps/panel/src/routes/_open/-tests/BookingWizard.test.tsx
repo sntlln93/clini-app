@@ -22,6 +22,8 @@ const ORGANIZATION: BookingOrganization = {
     name: 'Consultorio Salud',
     slug: 'consultorio-salud',
     timezone: 'UTC',
+    show_clini_mark: false,
+    logo_url: null,
 };
 
 const CARDIOLOGIA = { id: 1, name: 'Cardiología' };
