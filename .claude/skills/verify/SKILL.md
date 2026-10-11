@@ -16,8 +16,8 @@ the API side, not the panel.
 
 ## Throwaway specs in `e2e/verify/`
 
-Write the check as a Playwright spec in `e2e/verify/` (gitignored — it never
-runs in CI). Every spec here **must** import `test`/`expect` from
+Write the check as a Playwright spec in `e2e/verify/` (gitignored, and
+ignored by the main Playwright config — it never runs in CI). Every spec here **must** import `test`/`expect` from
 `../fixtures`, never Playwright's own module directly, to reuse the shared
 console/network guard instead of reimplementing it:
 
@@ -39,19 +39,24 @@ array-valued options:
 test.use({ expectedIssues: { console: [...], responses: [{ url, status }] } });
 ```
 
+Run it inside the `e2e` compose service (`npx` never runs on the host). It
+boots its own API, panel, dashboard and landing against the isolated
+`pgsql-e2e` database, seeded with `DatabaseSeeder`, and the `setup` project
+signs in as `ana.duena@test.com` (Clínica Modelo, plan Centro) — so a spec opts
+into that session with `test.use({ storageState: STORAGE_STATE })` from
+`../storage-state`. `e2e/playwright.verify.config.ts` runs only `e2e/verify/`
+(the main config ignores that folder, so a full run never picks it up):
+
 ```bash
-npx playwright test e2e/verify/my-check.spec.ts
+docker compose --profile e2e run --rm e2e sh -c "cd apps/api && composer install -q && php artisan migrate:fresh --force -q && php artisan db:seed --force -q && cd /workspace && npm install --no-audit --no-fund && npx playwright install chromium && npx playwright test -c e2e/playwright.verify.config.ts verify/my-check --reporter=line"
 ```
 
-There is no `setup` project or seeded auth yet (see `e2e/smoke.spec.ts` and
-`playwright.config.ts`) — once login and demo data exist, document the reset/
-sign-in convention here so specs can rely on it, the way this skill's source
-project (`e2e/helpers.ts` style) does.
-
-Interactive debugging: `--headed` to watch, `--debug` or `await
-page.pause()` to step through, `npx playwright show-trace
-test-results/<dir>/trace.zip` after a failure, `npx playwright codegen
-http://localhost:5174` to record interactions as locators.
+After the first run the database and installs are in place; repeat with just
+`npx playwright test -c e2e/playwright.verify.config.ts verify/my-check` as the
+`sh -c` command. Screenshots a spec saves under `e2e/verify/` land on the host
+(the repo is mounted at `/workspace`). Traces: `test-results/<dir>/trace.zip`
+(unzip and read the `*.trace` JSON lines, or open it in
+<https://trace.playwright.dev>).
 
 Delete the spec when done, or leave it locally — the folder stays out of git.
 
@@ -72,9 +77,11 @@ their type and text, failed requests with method, URL and status.
 
 ## Gotchas
 
-None recorded yet — there's no real UI beyond the connectivity smoke page.
-Add them here as they're discovered (component library quirks, routing
-edge cases, etc.), the way a mature Playwright suite accumulates them.
+- recharts animates bars in: wait ~2 s before a screenshot of a chart, or it
+  shows empty axes.
+- A filter change on a route with `pendingMs` hides the page while it loads;
+  recharts then warns `width(0) and height(0)` in dev (#267). Declare it in
+  `expectedIssues` only for a spec that changes filters on purpose.
 
 ## Mobile layout probes
 

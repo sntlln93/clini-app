@@ -5,7 +5,14 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
     {
-        ignores: ['apps/**', 'node_modules/**', 'test-results/**', 'playwright-report/**'],
+        ignores: [
+            'apps/**',
+            'node_modules/**',
+            'test-results/**',
+            'playwright-report/**',
+            // Throwaway local checks, gitignored (see the verify skill).
+            'e2e/verify/**',
+        ],
     },
     js.configs.recommended,
     ...tseslint.configs.recommended,

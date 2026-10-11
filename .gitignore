@@ -4,6 +4,7 @@ node_modules/
 test-results/
 playwright-report/
 e2e/.auth/
+e2e/verify/
 
 # Local-only Claude Code session artifacts — only agents/, skills/ and
 # settings.json are meant to be tracked.
