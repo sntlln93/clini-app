@@ -18,6 +18,7 @@ import { useCreateAppointment } from '../-hooks/use-appointments';
 import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
 import { useBookableServices } from '../-hooks/use-bookable-services';
 import { usePatientSearch } from '../-hooks/use-patient-search';
+import { useResetOnOpen } from '../-hooks/use-reset-on-open';
 import { toInstant } from './agenda-dates';
 import { applyAppointmentServerErrors } from './apply-appointment-server-errors';
 import {
@@ -79,20 +80,12 @@ export function AppointmentFormDialog({
     const { data: session } = useSession();
     const [showWarning, setShowWarning] = useState(false);
     const [creatingPatient, setCreatingPatient] = useState(false);
-    const [appliedKey, setAppliedKey] = useState<string | null>(null);
 
-    const openKey = open ? JSON.stringify(prefill ?? {}) : null;
-
-    // Adjust state during render (not an Effect) to reset on each (re)open;
-    // closing clears the key, so reopening with the same prefill resets too.
-    if (openKey !== appliedKey) {
-        setAppliedKey(openKey);
-        if (open) {
-            resetSearch();
-            setShowWarning(false);
-            setCreatingPatient(false);
-        }
-    }
+    useResetOnOpen(open, JSON.stringify(prefill ?? {}), () => {
+        resetSearch();
+        setShowWarning(false);
+        setCreatingPatient(false);
+    });
 
     const form = useForm<AppointmentFormValues>({
         resolver: zodResolver(appointmentSchema),
