@@ -104,6 +104,7 @@ Underlying tools if you need one directly, all from the repo root: `apps/api/ven
 ## Git & CI workflow
 
 - PRs target `develop` and merge with **squash**; never reuse a merged branch.
+- The PR body is in Spanish, but the closing keyword stays in English: `Closes #<N>`. GitHub only recognizes English keywords, so «Cierra #N» or «Resuelve #N» links nothing and the issue stays open after the merge (`develop` is the default branch, so a recognized keyword closes it right on merge, not at release).
 - Releases `develop → main` use a **merge commit** (never squash).
 - Merging to `main` auto-deploys via Dokploy, which builds `apps/api/Dockerfile`, `apps/panel/Dockerfile` and `apps/dashboard/Dockerfile` as three separate applications (`apps/landing/Dockerfile` isn't deployed yet — #249; production API env needs the dashboard origin in `FRONTEND_URL` after the panel, its host in `SANCTUM_STATEFUL_DOMAINS`, and `ADMIN_ALLOWED_ORIGINS` — see `docs/architecture/infrastructure.md`). `apps/api/docker/entrypoint.sh` builds Laravel caches and runs `php artisan migrate --force` on every container start (all environments auto-migrate; only dev/test also seed, via `migrate:fresh --seed`, run manually — production never seeds).
 - Five required checks on every PR: `quality_backend` (Pint+PhpStan), `quality_frontend` (Prettier+ESLint+tsc, panel, dashboard and landing), `tests_backend` (Pest), `tests_frontend` (Vitest, panel, dashboard and landing), `e2e` (Playwright, all projects). Renaming a CI job requires updating the branch rulesets or PRs get blocked.
