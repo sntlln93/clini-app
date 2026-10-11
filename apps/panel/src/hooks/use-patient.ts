@@ -11,3 +11,13 @@ export function patientQueryOptions(id: number) {
                 .then((response) => response.data.data),
     });
 }
+
+// Keys of the patient page's loader-only reads, shared so the agenda's
+// mutations can refresh them too (#273).
+export function patientAppointmentsQueryKey(patientId: number) {
+    return ['patients', patientId, 'appointments'];
+}
+
+export function patientClinicalNotesQueryKey(patientId: number) {
+    return ['patients', patientId, 'clinical-notes'];
+}

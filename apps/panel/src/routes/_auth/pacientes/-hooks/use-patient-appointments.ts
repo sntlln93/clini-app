@@ -1,10 +1,7 @@
+import { patientAppointmentsQueryKey } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { queryOptions } from '@tanstack/react-query';
-
-export function patientAppointmentsQueryKey(patientId: number) {
-    return ['patients', patientId, 'appointments'];
-}
 
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
 export function patientAppointmentsQueryOptions(patientId: number) {
