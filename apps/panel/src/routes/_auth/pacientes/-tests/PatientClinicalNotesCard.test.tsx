@@ -248,7 +248,8 @@ describe('PatientClinicalNotesCard', () => {
     });
 
     it('explains who can read the notes instead of listing them when the API denied the read', async () => {
-        renderCard({ notes: null, todaysAppointmentId: null });
+        // Even with an own appointment today, a denied read offers no note form.
+        renderCard({ notes: null, todaysAppointmentId: 77 });
 
         await screen.findByText(
             'Solo pueden ver las notas clínicas los profesionales que tienen o tuvieron un turno con este paciente.',
