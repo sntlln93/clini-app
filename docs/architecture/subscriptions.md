@@ -39,7 +39,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
   - `BookAppointmentAction` lo controla bajo un lock de la organización, tanto para la carga manual como para la reserva online y la reprogramación. El turno 41 responde 409 `plans.appointment_limit_reached` (`context.appointment_limit`, `context.month`).
   - Al llegar a 35, los dueños reciben `AppointmentLimitApproachingNotification` por mail, una sola vez por mes (`appointment_limit_warnings`, con clave única por organización y mes).
   - No hay reinicio programado: el mes siguiente simplemente cuenta desde cero.
-- **Marca en la página de reservas (#239, ADR 0015):** Gratis muestra «Hecho con Clini» (`organization.show_clini_mark` en `GET /booking/{slug}`).
+- **Marca en la página de reservas (#239, [ADR 0015](../adr/0015-archivos-de-usuarios-en-un-bucket-s3.md)):** Gratis muestra «Hecho con Clini» (`organization.show_clini_mark` en `GET /booking/{slug}`).
   - Los planes pagos (`booking_branding`) muestran el logo de la organización (`organization.logo_url`) en la reserva y en el mail de recordatorio.
   - Dueño y administración (`organization.manage`) lo suben desde Ajustes: `POST /organization/logo` (multipart, campo `logo`). En Gratis responde 409 `plans.feature_unavailable`.
   - `DELETE /organization/logo` lo quita en cualquier plan. Bajar a Gratis no lo borra: deja de mostrarse hasta volver a un plan pago.

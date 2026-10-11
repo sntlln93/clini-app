@@ -15,7 +15,7 @@ Clini: modular medical-practice management platform, starting with a first-class
 
 ## Environment & commands
 
-Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`, `apps/dashboard/compose.yaml`, `apps/landing/compose.yaml`), plus a root `compose.yaml` that `include`s all four — `docker compose up` from the repo root starts everything (api + panel + dashboard + landing + pgsql + mailpit) as one project. See `docs/architecture/development.md` for the full layout.
+Backend runs through Laravel Sail (Docker) — there is no local PHP. Docker Compose is split one file per app (`apps/api/compose.yaml`, `apps/panel/compose.yaml`, `apps/dashboard/compose.yaml`, `apps/landing/compose.yaml`), plus a root `compose.yaml` that `include`s all four — `docker compose up` from the repo root starts everything (api + panel + dashboard + landing + pgsql + mailpit + s3) as one project. See `docs/architecture/development.md` for the full layout.
 
 **Always invoke Sail from the repo root, as `apps/api/vendor/bin/sail …` — never `cd apps/api && ./vendor/bin/sail …`.** Both work (Sail runs the command *inside* the container, where the working dir is always `/var/www/html`, so `./vendor/bin/pest` resolves there regardless of your host cwd; `name: clini-app` is pinned in `apps/api/compose.yaml` so either entrypoint lands on the same Compose project). The root-relative form is the required one because it is what `.claude/settings.json` allowlists — the `cd` form matches no rule and makes every command prompt for permission, which breaks the autonomous issue flow. Humans working interactively may `cd` wherever they like; this rule is about the form written into commands.
 
@@ -32,7 +32,7 @@ The repo root is an npm workspace whose members are the three frontends, `apps/p
 git config core.hooksPath .githooks               # once per clone (strips agent attribution from commit messages)
 docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24-bookworm-slim npm install   # once per clone — for editor/type-checking use only; see rule above
 cp apps/api/.env.example apps/api/.env            # once per clone
-docker compose up -d                              # starts api + panel + pgsql + mailpit, from the repo root
+docker compose up -d                              # starts api + panel + pgsql + mailpit + s3, from the repo root
 apps/api/vendor/bin/sail artisan migrate          # first run
 ```
 
@@ -41,6 +41,7 @@ apps/api/vendor/bin/sail artisan migrate          # first run
 - Dashboard (platform operators): <http://localhost:5175> — needs the dashboard origin in `apps/api/.env` (`FRONTEND_URL=http://localhost:5174,http://localhost:5175` with the panel first, `SANCTUM_STATEFUL_DOMAINS=localhost:5174,localhost:5175`, `ADMIN_ALLOWED_ORIGINS=http://localhost:5175`; all in `.env.example`). `artisan serve` re-reads `apps/api/.env` in its child process, so these can't be overridden with compose `environment:` in dev — edit the file and restart `laravel.test`.
 - Landing (public site, SSR): <http://localhost:5176> — `apps/landing/.env` holds `VITE_PANEL_URL` (the panel origin its CTAs link to) and the optional `VITE_CONTACT_URL`.
 - Mailpit (dev mail UI): <http://localhost:8025> — dev mail transport; SMTP on port `1025`. Production uses `MAIL_MAILER=resend` with a `RESEND_API_KEY` environment variable (no real value in the repo).
+- S3 (dev bucket): <http://localhost:9090> — the `s3` service (`adobe/s3mock`, bucket `clini`) stands in for Cloudflare R2 behind the `media` disk, where user uploads live (ADR 0015); only the object key goes in Postgres. Tests use `Storage::fake('media')`. `apps/api/.env` needs the `AWS_*` values from `.env.example`.
 
 `database/seeders/DatabaseSeeder.php` seeds a full literal, deterministic fixture set (two organizations, users/memberships covering every role and status, professionals, patients, scheduling data) — safe to re-run (`php artisan db:seed`) and safe on the production image (no factories/faker). See `docs/architecture/development.md` § Datos de prueba (seeders) for the credentials table and how to seed a deployed environment (manual only, production never seeds automatically). Outside production it also seeds one platform operator for the dashboard, `operador@test.com` / `password` (`PlatformAdminSeeder`, a no-op when `app()->isProduction()` — including the demo server, which runs the production image with `RUN_SEEDERS=true`). Operators anywhere else are created with `apps/api/vendor/bin/sail artisan admin:create` (`php artisan admin:create` in Dokploy).
 

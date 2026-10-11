@@ -39,7 +39,21 @@ Driver por defecto de Laravel. No optimizar prematuramente: sin justificación c
 
 ## Archivos
 
-Disco local en la primera etapa. El único archivo que suben los usuarios, el logo de la organización (#239), vive en Postgres y no en el disco, porque el contenedor no tiene volumen persistente (ADR 0015). Cuando haga falta almacenamiento distribuido/durable (múltiples instancias, backups, CDN), migrar a un bucket compatible con S3 — Laravel's filesystem abstraction hace ese cambio barato cuando llegue el momento, así que no se justifica adelantarlo.
+Los archivos que suben los usuarios (hoy, el logo de la organización, #239) van a un bucket compatible con S3, a través del disco `media` ([ADR 0015](../adr/0015-archivos-de-usuarios-en-un-bucket-s3.md)). La base guarda solo la clave del objeto. El bucket es privado, y la API sirve los archivos públicos con su propia ruta.
+
+**Producción: Cloudflare R2.** Antes de desplegar, crear el bucket y un token de API de R2 con permiso de lectura y escritura sobre ese bucket. Después, cargar estas variables en la app API (pestaña **Environment**):
+
+| Variable | Valor |
+|---|---|
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | las credenciales del token de R2 |
+| `AWS_DEFAULT_REGION` | `auto` |
+| `AWS_BUCKET` | el nombre del bucket |
+| `AWS_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
+| `AWS_USE_PATH_STYLE_ENDPOINT` | `false` |
+
+Sin ellas, la API arranca igual, pero subir un logo responde 500. Los backups de los archivos se hacen sobre el bucket, por separado de Postgres.
+
+En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3`.
 
 ## Observabilidad
 
