@@ -1,6 +1,7 @@
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
+import { discardPageData } from '@/lib/page-data';
 import { notifySuccess } from '@/lib/toast';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -33,6 +34,11 @@ export function useSavePatient(patientId?: number) {
                 queryKey: patientQueryOptions(saved.id).queryKey,
                 exact: true,
             });
+            // Appointments carry the patient's name (agenda, waiting room),
+            // read there only in loaders (#273).
+            if (patientId) {
+                discardPageData(queryClient, ['appointments']);
+            }
             notifySuccess(patientId ? 'Cambios guardados' : 'Paciente creado');
         },
     });
