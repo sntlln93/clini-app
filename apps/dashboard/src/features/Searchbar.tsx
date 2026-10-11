@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Search, X } from 'lucide-react';
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 
-// Debouncing the navigate and raising the route's `pendingMs` keep the global `defaultPendingMs: 0` (`src/main.tsx`)
+// Debouncing the navigate and raising the route's `pendingMs` keep the global `defaultPendingMs: 0` (`src/lib/router-behavior.ts`)
 // from swapping the page for `pendingComponent` on every keystroke, remounting the Input and dropping focus — see ADR 0007.
 export const SEARCH_DEBOUNCE_MS = 300;
 
