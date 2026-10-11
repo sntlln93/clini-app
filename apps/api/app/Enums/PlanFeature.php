@@ -17,4 +17,6 @@ enum PlanFeature: string
     case ProfessionalBookingLinks = 'professional_booking_links';
     /** The organization's logo on its booking page and mails, without the Clini mark (#239). */
     case BookingBranding = 'booking_branding';
+    /** Occupancy and no-show reports per professional (#242). Center only. */
+    case Reports = 'reports';
 }

@@ -37,6 +37,9 @@ enum Permission: string
     case OrganizationView = 'organization.view';
     case OrganizationManage = 'organization.manage';
 
+    case ReportsView = 'reports.view';
+    case ReportsViewOwn = 'reports.view.own';
+
     public function isOwnScoped(): bool
     {
         return str_ends_with($this->value, '.own');

@@ -17,6 +17,7 @@ dataset('permissionMatrix', function (): Generator {
             'catalog.view', 'catalog.manage',
             'memberships.view', 'memberships.manage',
             'organization.view', 'organization.manage',
+            'reports.view',
         ],
         'admin' => [
             'patients.view', 'patients.create', 'patients.update',
@@ -25,6 +26,7 @@ dataset('permissionMatrix', function (): Generator {
             'catalog.view', 'catalog.manage',
             'memberships.view', 'memberships.manage',
             'organization.view', 'organization.manage',
+            'reports.view',
         ],
         'staff' => [
             'patients.view', 'patients.create', 'patients.update',
@@ -37,6 +39,7 @@ dataset('permissionMatrix', function (): Generator {
             'appointments.view.own', 'appointments.create.own', 'appointments.update.own', 'appointments.cancel.own',
             'availability.view', 'availability.manage.own',
             'catalog.view', 'catalog.manage.own',
+            'reports.view.own',
         ],
     ];
 
@@ -94,6 +97,7 @@ test('orgWide() maps each .own permission to its org-wide counterpart and isOwnS
         Permission::AppointmentsCancelOwn->value => Permission::AppointmentsCancel,
         Permission::AvailabilityManageOwn->value => Permission::AvailabilityManage,
         Permission::CatalogManageOwn->value => Permission::CatalogManage,
+        Permission::ReportsViewOwn->value => Permission::ReportsView,
     ];
 
     foreach ($ownToOrgWide as $ownValue => $expectedOrgWide) {
@@ -112,6 +116,7 @@ test('orgWide() is null and isOwnScoped() is false for every org-wide permission
         Permission::AppointmentsCancelOwn,
         Permission::AvailabilityManageOwn,
         Permission::CatalogManageOwn,
+        Permission::ReportsViewOwn,
     ];
 
     $orgWidePermissions = array_filter(
