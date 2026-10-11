@@ -40,7 +40,7 @@ export function AvailabilityExceptionFields({
                                     <RadioGroup
                                         value={field.value}
                                         onValueChange={field.onChange}
-                                        className="flex gap-3"
+                                        className="flex gap-4"
                                     />
                                 }
                             >
