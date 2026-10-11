@@ -62,3 +62,13 @@ test('/ajustes renders for an authenticated user', async ({ page }) => {
         page.getByRole('heading', { name: 'Ajustes', level: 1 }),
     ).toBeVisible();
 });
+
+test('/reportes renders for an authenticated user', async ({ page }) => {
+    await page.goto('/reportes');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).not.toHaveURL(/\/login$/);
+    await expect(
+        page.getByRole('heading', { name: 'Reportes', level: 1 }),
+    ).toBeVisible();
+});
