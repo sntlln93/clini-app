@@ -105,20 +105,24 @@ class ComputeOrganizationReportAction implements Action
     }
 
     /**
-     * Professionals still active, plus any other with an appointment in the
-     * period, so a past professional's history doesn't disappear.
+     * Active professionals, plus any membership with an appointment in the
+     * period — even deactivated (soft-deleted) or no longer a professional —
+     * so a past professional's history doesn't disappear and the rows add up
+     * to the period totals.
      *
      * @return Collection<int, Membership>
      */
     private function professionals(ReportPeriodData $dto, CarbonImmutable $fromUtc, CarbonImmutable $toUtc): Collection
     {
-        return Membership::query()
+        return Membership::withTrashed()
             ->with('user:id,name')
             ->where('organization_id', $dto->organizationId)
-            ->whereJsonContains('roles', MembershipRole::Professional->value)
             ->when($dto->membershipId !== null, fn ($query) => $query->whereKey($dto->membershipId))
             ->where(fn ($query) => $query
-                ->where('status', MembershipStatus::Active)
+                ->where(fn ($query) => $query
+                    ->whereNull('deleted_at')
+                    ->where('status', MembershipStatus::Active)
+                    ->whereJsonContains('roles', MembershipRole::Professional->value))
                 ->orWhereHas('appointments', fn ($query) => $query->where('start_at', '>=', $fromUtc)->where('start_at', '<', $toUtc)))
             ->get()
             ->sortBy(fn (Membership $membership): string => mb_strtolower((string) $membership->user?->name))
@@ -155,15 +159,15 @@ class ComputeOrganizationReportAction implements Action
             ->groupBy('membership_id');
 
         foreach ($schedule as $membershipId => $days) {
-            $booked = $appointments->get($membershipId) ?? new Collection;
+            $bookedByDay = $this->byLocalDay($appointments->get($membershipId) ?? new Collection, $dto->timezone);
 
             foreach ($days as $date => $published) {
-                $dayStart = CarbonImmutable::parse($date, $dto->timezone);
-                $dayBooked = Intervals::merge($booked
-                    ->map(fn (Appointment $appointment): ?array => $this->clip($appointment, $dayStart, $dayStart->addDay()))
-                    ->filter()
-                    ->values()
-                    ->all());
+                $dayStart = CarbonImmutable::parse($date, $dto->timezone)->startOfDay();
+                $dayEnd = CarbonImmutable::parse(CarbonImmutable::parse($date)->addDay()->toDateString(), $dto->timezone)->startOfDay();
+                $dayBooked = Intervals::merge(array_values(array_filter(array_map(
+                    fn (Appointment $appointment): ?array => $this->clip($appointment, $dayStart, $dayEnd),
+                    $bookedByDay[$date] ?? [],
+                ))));
 
                 $publishedMinutes = Intervals::minutes($published);
                 $bookedMinutes = Intervals::minutes($dayBooked) - Intervals::minutes(Intervals::subtract($dayBooked, $published));
@@ -259,6 +263,31 @@ class ComputeOrganizationReportAction implements Action
         }
 
         return $buckets;
+    }
+
+    /**
+     * Each appointment under every local calendar day it touches, so a day only clips its own.
+     *
+     * @param  Collection<int, Appointment>  $appointments
+     * @return array<string, array<int, Appointment>>
+     */
+    private function byLocalDay(Collection $appointments, string $timezone): array
+    {
+        $byDay = [];
+
+        foreach ($appointments as $appointment) {
+            /** @var Carbon $start */
+            $start = $appointment->start_at;
+            /** @var Carbon $end */
+            $end = $appointment->end_at;
+            $last = CarbonImmutable::instance($end)->subSecond()->setTimezone($timezone)->toDateString();
+
+            for ($date = CarbonImmutable::instance($start)->setTimezone($timezone)->toDateString(); $date <= $last; $date = CarbonImmutable::parse($date)->addDay()->toDateString()) {
+                $byDay[$date][] = $appointment;
+            }
+        }
+
+        return $byDay;
     }
 
     /**

@@ -292,3 +292,18 @@ test('invalid filters return 422 on the right field', function (array $query, st
     'a professional of another organization' => [['membership_id' => 'other-org'], 'membership_id'],
     'a member who is not a professional' => [['membership_id' => 'staff'], 'membership_id'],
 ]);
+
+test('a deactivated professional keeps their row, so the rows add up to the period totals', function () {
+    ['owner' => $owner, 'bruno' => $bruno] = seedReportCase();
+    $bruno->update(['status' => 'inactive']);
+    $bruno->delete();
+
+    $response = $this->actingAs($owner->user)
+        ->getJson(reportUrl(['from' => '2026-09-07', 'to' => '2026-09-20']))
+        ->assertOk();
+
+    expect(array_column($response->json('data.professionals'), 'name'))->toBe(['Ana Pérez', 'Bruno Díaz'])
+        ->and($response->json('data.professionals.1.no_show'))->toBe(1)
+        ->and(array_sum(array_column($response->json('data.professionals'), 'no_show')))
+        ->toBe(array_sum(array_column($response->json('data.series'), 'no_show')));
+});
