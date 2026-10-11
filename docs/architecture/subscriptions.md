@@ -164,7 +164,7 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 - **Web Push** para los avisos de gracia/vencimiento (no existe infraestructura de push todavía): por ahora solo mail.
 - Prueba gratuita de Consultorio y cobro de consultas (#29, que reutiliza este adapter).
 - Comprar turnos extra sueltos (#238 lo deja fuera). La grilla pública sigue mostrando horarios de un mes lleno: el rechazo llega al confirmar.
-- Pago anual (#240) y funciones exclusivas de Centro (#242 a #245).
+- Pago anual (#240) y funciones exclusivas de Centro (#243 a #245). Los reportes (#242) están en [reports.md](reports.md).
 - Precio de Centro: se cobra por fuera de la plataforma y no se modela.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
 - Volver a suscribirse durante el período pago de una cancelación crea un preapproval nuevo que cobra desde la autorización, sin descontar los días que quedaban (`auto_recurring.start_date` no se usa).
