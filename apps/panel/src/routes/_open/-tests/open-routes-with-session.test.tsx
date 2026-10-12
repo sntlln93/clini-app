@@ -31,6 +31,7 @@ const ORGANIZATION: BookingOrganizationResponse = {
     },
     professionals: [],
     preselected_membership_id: null,
+    insurance_providers: [],
 };
 
 // The real `_open` layout and page routes, assembled the same way `routeTree.gen.ts` does, under a root that already holds a session — the case `_public`'s guard used to bounce to `/agenda`.

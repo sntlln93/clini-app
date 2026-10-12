@@ -4,6 +4,7 @@ import type {
     BookingOrganization,
     BookingProfessional,
 } from '@/types/booking';
+import type { InsuranceProvider } from '@/types/patient';
 import { useState } from 'react';
 import { BookingConfirmation } from './BookingConfirmation';
 import { BookingPatientForm } from './BookingPatientForm';
@@ -23,6 +24,7 @@ type BookingWizardProps = {
     slug: string;
     organization: BookingOrganization;
     professionals: BookingProfessional[];
+    insuranceProviders: InsuranceProvider[];
     slots: AvailableSlot[];
     search: BookingSearch;
     onSearchChange: (next: Partial<BookingSearch>) => void;
@@ -39,6 +41,7 @@ export function BookingWizard({
     slug,
     organization,
     professionals,
+    insuranceProviders,
     slots,
     search,
     onSearchChange,
@@ -100,6 +103,7 @@ export function BookingWizard({
                     membershipId={professional.membership_id}
                     serviceId={service.id}
                     slot={selectedSlot}
+                    insuranceProviders={insuranceProviders}
                     summary={
                         <BookingSummary
                             professional={professional}

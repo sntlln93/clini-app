@@ -113,6 +113,7 @@ function BookingPage() {
                 slug={slug}
                 organization={organization.organization}
                 professionals={organization.professionals}
+                insuranceProviders={organization.insurance_providers}
                 slots={slots}
                 search={search}
                 onSearchChange={(next) =>
