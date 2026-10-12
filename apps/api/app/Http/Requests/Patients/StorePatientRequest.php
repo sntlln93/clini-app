@@ -6,6 +6,7 @@ namespace App\Http\Requests\Patients;
 
 use App\Enums\DocumentType;
 use App\Enums\Sex;
+use App\Rules\UniqueInsuranceMemberNumber;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,28 @@ class StorePatientRequest extends FormRequest
             'sex' => ['nullable', Rule::enum(Sex::class)],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'insurance_provider_id' => ['nullable', 'integer', 'exists:insurance_providers,id'],
-            'insurance_member_number' => ['nullable', 'required_with:insurance_provider_id', 'string', 'max:50'],
+            'insurance_member_number' => [
+                'nullable',
+                'required_with:insurance_provider_id',
+                'string',
+                'max:50',
+                // Separators alone would all normalize to the same empty number.
+                'regex:/[\pL\pN]/u',
+                new UniqueInsuranceMemberNumber(
+                    $this->input('insurance_provider_id'),
+                    ownDocument: ['type' => $this->input('document_type'), 'number' => $this->input('document_number')],
+                ),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return [
+            'insurance_member_number.regex' => 'El número de afiliado debe tener al menos una letra o un número.',
         ];
     }
 }

@@ -78,6 +78,21 @@ class Patient extends Model
     }
 
     /**
+     * Same normalization as the patients_insurance_member_number_unique index: separators and letter case don't make a different number.
+     *
+     * @param  Builder<Patient>  $query
+     * @return Builder<Patient>
+     */
+    public function scopeWhereInsuranceMemberNumber(Builder $query, int $insuranceProviderId, string $memberNumber): Builder
+    {
+        return $query->where('insurance_provider_id', $insuranceProviderId)
+            ->whereRaw(
+                "upper(regexp_replace(insurance_member_number, '[^[:alnum:]]', '', 'g')) = upper(regexp_replace(?, '[^[:alnum:]]', '', 'g'))",
+                [$memberNumber],
+            );
+    }
+
+    /**
      * @param  Builder<Patient>  $query
      * @return Builder<Patient>
      */

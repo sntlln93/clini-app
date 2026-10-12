@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Actions\Patients\RegisterPatientAction;
+use App\Data\Patients\PatientRegistrationData;
 use App\Enums\DocumentType;
+use App\Exceptions\Patients\InsuranceMemberNumberTakenException;
 use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Patient;
@@ -123,4 +126,118 @@ test('update requires a member number with the provider and clears it when the p
     ]))->assertOk()->assertJsonPath('data.insurance_member_number', null);
 
     expect($patient->refresh()->insurance_member_number)->toBeNull();
+});
+
+test('store rejects a member number another patient has in the same provider, whatever its separators or case', function (string $typed) {
+    $membership = Membership::factory()->create();
+    $provider = InsuranceProvider::factory()->create();
+    Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37-415820/0a',
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/patients', memberNumberPayload([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => $typed,
+    ]))->assertStatus(422)->assertJsonValidationErrors([
+        'insurance_member_number' => 'Ese número de afiliado ya está registrado para otro paciente de la misma obra social.',
+    ]);
+
+    expect(Patient::query()->where('document_number', '27123456')->exists())->toBeFalse();
+})->with(['37-415820/0a', '374158200A', '37 415820 0a']);
+
+test('store accepts a member number another patient has in a different provider', function () {
+    $membership = Membership::factory()->create();
+    Patient::factory()->create([
+        'insurance_provider_id' => InsuranceProvider::factory()->create()->id,
+        'insurance_member_number' => '37415820',
+    ]);
+    $otherProvider = InsuranceProvider::factory()->create();
+
+    $this->actingAs($membership->user)->postJson('/api/v1/patients', memberNumberPayload([
+        'insurance_provider_id' => $otherProvider->id,
+        'insurance_member_number' => '37415820',
+    ]))->assertCreated()->assertJsonPath('data.insurance_member_number', '37415820');
+});
+
+test('store accepts the member number of the patient its document resolves to', function () {
+    $membership = Membership::factory()->create();
+    $provider = InsuranceProvider::factory()->create();
+    $existing = Patient::factory()->create([
+        'document_type' => DocumentType::Dni,
+        'document_number' => '27123456',
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37415820',
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/patients', memberNumberPayload([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37415820',
+    ]))->assertCreated()->assertJsonPath('data.id', $existing->id);
+});
+
+test('store rejects a member number made only of separators', function () {
+    $membership = Membership::factory()->create();
+
+    $this->actingAs($membership->user)->postJson('/api/v1/patients', memberNumberPayload([
+        'insurance_provider_id' => InsuranceProvider::factory()->create()->id,
+        'insurance_member_number' => '-/ ',
+    ]))->assertStatus(422)->assertJsonValidationErrors([
+        'insurance_member_number' => 'El número de afiliado debe tener al menos una letra o un número.',
+    ]);
+});
+
+test('update rejects a member number another patient has in the same provider but keeps the patient own one', function () {
+    $membership = Membership::factory()->create();
+    $provider = InsuranceProvider::factory()->create();
+    Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37415820',
+    ]);
+    $patient = Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '11111111',
+    ]);
+    $patient->organizations()->attach($membership->organization_id);
+    $payload = [
+        'name' => $patient->name,
+        'document_type' => $patient->document_type->value,
+        'document_number' => $patient->document_number,
+        'insurance_provider_id' => $provider->id,
+    ];
+
+    $this->actingAs($membership->user)
+        ->putJson("/api/v1/patients/{$patient->id}", [...$payload, 'insurance_member_number' => '37-415820'])
+        ->assertStatus(422)
+        ->assertJsonValidationErrors('insurance_member_number');
+
+    $this->actingAs($membership->user)
+        ->putJson("/api/v1/patients/{$patient->id}", [...$payload, 'insurance_member_number' => '1111-1111'])
+        ->assertOk();
+});
+
+test('a concurrent claim of a taken member number reaching the index is a 409 domain error, not a reuse', function () {
+    $provider = InsuranceProvider::factory()->create();
+    $organizationId = Membership::factory()->create()->organization_id;
+    Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37415820',
+    ]);
+
+    // Calls the action directly, as a request that passed validation before the other patient committed would.
+    expect(fn () => app(RegisterPatientAction::class)->handle(new PatientRegistrationData(
+        organizationId: $organizationId,
+        createdBy: null,
+        name: 'Juana Diaz',
+        documentType: DocumentType::Dni,
+        documentNumber: '27123456',
+        email: null,
+        phone: null,
+        sex: null,
+        birthDate: null,
+        insuranceProviderId: $provider->id,
+        insuranceMemberNumber: '37-415820',
+    )))->toThrow(InsuranceMemberNumberTakenException::class);
+
+    expect(Patient::query()->where('document_number', '27123456')->exists())->toBeFalse();
 });

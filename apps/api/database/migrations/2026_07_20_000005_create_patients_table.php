@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -30,6 +31,9 @@ return new class extends Migration
 
             $table->unique(['document_type', 'document_number']);
         });
+
+        // A member number belongs to one person per provider, whatever separators or letter case it was typed with (#290).
+        DB::statement("CREATE UNIQUE INDEX patients_insurance_member_number_unique ON patients (insurance_provider_id, upper(regexp_replace(insurance_member_number, '[^[:alnum:]]', '', 'g')))");
     }
 
     /**
