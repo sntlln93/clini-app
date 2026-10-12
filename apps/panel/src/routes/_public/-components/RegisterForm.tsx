@@ -28,6 +28,7 @@ const registerSchema = z
             .min(1, 'La contraseña es obligatoria.')
             .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
         password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
+        attends_patients: z.boolean(),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
@@ -45,6 +46,8 @@ export function RegisterForm() {
             email: '',
             password: '',
             password_confirmation: '',
+            // Most owners of a small practice see patients themselves (#278).
+            attends_patients: true,
         },
     });
     const { mutateAsync } = useRegister();

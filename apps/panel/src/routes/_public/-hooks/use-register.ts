@@ -10,6 +10,7 @@ type RegisterPayload = {
     password: string;
     password_confirmation: string;
     organization_name: string;
+    attends_patients: boolean;
 };
 
 export function useRegister() {
