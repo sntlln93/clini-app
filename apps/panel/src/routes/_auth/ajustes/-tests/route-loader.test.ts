@@ -33,7 +33,8 @@ const loader = Route.options.loader as (opts: {
 }) => Promise<{
     canManageProfessionals: boolean;
     professionals: Membership[];
-    ownMembership: Membership | null;
+    ownProfessionalMembership: Membership | null;
+    organizationSlug: string | null;
     hasOrganization: boolean;
     subscription: Subscription | null;
     plan: Plan | undefined;
@@ -65,6 +66,7 @@ function mockApiGet(
         email: string;
         permissions: string[];
         roles?: string[];
+        organization?: { id: number; name: string; slug: string } | null;
         membership: Membership | null;
     },
     subscription: Subscription | null = null,
@@ -129,7 +131,7 @@ describe('/ajustes loader without memberships.view', () => {
         expect(result).toMatchObject({
             canManageProfessionals: false,
             professionals: [],
-            ownMembership: OWN_MEMBERSHIP,
+            ownProfessionalMembership: OWN_MEMBERSHIP,
         });
     });
 });
@@ -249,5 +251,78 @@ describe('/ajustes loader organization logo (#239)', () => {
 
         expect(api.get).not.toHaveBeenCalledWith('/organization/logo');
         expect(result.organizationLogo).toBeNull();
+    });
+});
+
+describe('/ajustes loader booking links (#283)', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    it("never offers a public link of their own to an owner who doesn't attend patients, and always returns the practice's slug", async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Dueña',
+            email: 'ana.duena@test.com',
+            permissions: [],
+            roles: ['owner'],
+            organization: {
+                id: 1,
+                name: 'Clínica Modelo',
+                slug: 'clinica-modelo',
+            },
+            membership: { ...OWN_MEMBERSHIP, roles: ['owner'] },
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result).toMatchObject({
+            ownProfessionalMembership: null,
+            organizationSlug: 'clinica-modelo',
+        });
+    });
+
+    it('offers it to a professional', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Dueña',
+            email: 'ana.duena@test.com',
+            permissions: [],
+            roles: ['owner', 'professional'],
+            organization: {
+                id: 1,
+                name: 'Clínica Modelo',
+                slug: 'clinica-modelo',
+            },
+            membership: { ...OWN_MEMBERSHIP, roles: ['owner', 'professional'] },
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result.ownProfessionalMembership?.id).toBe(OWN_MEMBERSHIP.id);
+    });
+
+    it('has no practice link without an active membership', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: [],
+            organization: null,
+            membership: null,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result).toMatchObject({
+            ownProfessionalMembership: null,
+            organizationSlug: null,
+        });
     });
 });

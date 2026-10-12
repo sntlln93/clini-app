@@ -7,14 +7,11 @@ import type { Membership } from '@/types/membership';
 import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
 import { PublicLinkActions } from './PublicLinkActions';
+import { bookingUrl } from './booking-url';
 
 type MyPublicLinkSectionProps = {
     membership: Pick<Membership, 'id' | 'slug'>;
 };
-
-function bookingUrl(slug: string): string {
-    return `${window.location.origin}/reservar/${slug}`;
-}
 
 export function MyPublicLinkSection({ membership }: MyPublicLinkSectionProps) {
     const slugInputId = useId();
