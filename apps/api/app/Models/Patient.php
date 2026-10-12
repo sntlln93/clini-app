@@ -87,9 +87,19 @@ class Patient extends Model
             return $query;
         }
 
-        return $query->where(function (Builder $query) use ($term) {
+        // Member numbers are typed with dashes, slashes or spaces at will, so they match on letters and digits alone.
+        $memberNumber = preg_replace('/[^\pL\pN]/u', '', $term) ?? '';
+
+        return $query->where(function (Builder $query) use ($term, $memberNumber) {
             $query->where('name', 'ilike', "%{$term}%")
                 ->orWhere('document_number', 'like', "%{$term}%");
+
+            if ($memberNumber !== '') {
+                $query->orWhereRaw(
+                    "regexp_replace(insurance_member_number, '[^[:alnum:]]', '', 'g') ilike ?",
+                    ["%{$memberNumber}%"],
+                );
+            }
         });
     }
 }
