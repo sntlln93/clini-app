@@ -4,6 +4,7 @@ import type {
     BookingOrganization,
     BookingProfessional,
 } from '@/types/booking';
+import type { InsuranceProvider } from '@/types/patient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -80,6 +81,9 @@ function slotNotAvailableError() {
     };
 }
 
+// What the practice accepts; each test that needs providers sets it before rendering.
+let insuranceProviders: InsuranceProvider[] = [];
+
 type Search = {
     specialty?: number;
     professional?: number;
@@ -99,6 +103,7 @@ function Wrapper() {
             slug={ORGANIZATION.slug}
             organization={ORGANIZATION}
             professionals={PROFESSIONALS}
+            insuranceProviders={insuranceProviders}
             slots={[SLOT]}
             search={search}
             onSearchChange={(next) =>
@@ -134,7 +139,8 @@ function renderWizard() {
     return queryClient;
 }
 
-async function goToPatientForm() {
+async function goToPatientForm(accepted: InsuranceProvider[] = []) {
+    insuranceProviders = accepted;
     const queryClient = renderWizard();
     const slotButton = await screen.findByRole('button', {
         name: '01:00 p. m.',
@@ -229,9 +235,94 @@ describe('BookingPatientForm validation and submission', () => {
                     document_number: '30111222',
                     email: null,
                     phone: null,
+                    insurance_provider_id: null,
+                    insurance_member_number: null,
                 },
             },
         );
+    });
+
+    it('does not ask for an insurance provider when the practice accepts none', async () => {
+        await goToPatientForm();
+
+        expect(screen.queryByLabelText('Obra social (opcional)')).toBeNull();
+    });
+
+    it('offers only the accepted providers and sends the chosen one with its member number', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce(confirmedBooking());
+        await goToPatientForm([
+            { id: 7, name: 'Galeno' },
+            { id: 3, name: 'OSDE' },
+        ]);
+        fillValidPatientData();
+        expect(screen.queryByLabelText('N° de afiliado')).toBeNull();
+
+        fireEvent.click(screen.getByLabelText('Obra social (opcional)'));
+        const options = await screen.findAllByRole('option');
+        expect(options.map((option) => option.textContent)).toEqual([
+            'Sin obra social',
+            'Galeno',
+            'OSDE',
+        ]);
+        const osde = screen.getByRole('option', { name: 'OSDE' });
+        // base-ui's roving-tabindex needs a real pointer sequence in jsdom; a bare `click` doesn't register.
+        fireEvent.pointerDown(osde);
+        fireEvent.pointerUp(osde);
+        fireEvent.click(osde);
+
+        const memberNumber = await screen.findByLabelText('N° de afiliado');
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+        await screen.findByText('Ingresá el número de afiliado.');
+        expect(api.post).not.toHaveBeenCalled();
+
+        fireEvent.change(memberNumber, { target: { value: '61234567801' } });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
+        expect(vi.mocked(api.post).mock.calls[0][1]).toMatchObject({
+            patient: {
+                insurance_provider_id: 3,
+                insurance_member_number: '61234567801',
+            },
+        });
+    });
+
+    it('shows the API rejection of a provider under its field', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 422,
+                data: {
+                    message: 'El consultorio no atiende esa obra social.',
+                    errors: {
+                        'patient.insurance_provider_id': [
+                            'El consultorio no atiende esa obra social.',
+                        ],
+                    },
+                },
+            },
+        });
+        await goToPatientForm([{ id: 3, name: 'OSDE' }]);
+        fillValidPatientData();
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        await waitFor(() =>
+            expect(
+                screen
+                    .getByLabelText('Obra social (opcional)')
+                    .getAttribute('aria-invalid'),
+            ).toBe('true'),
+        );
+        expect(
+            screen.getByText('El consultorio no atiende esa obra social.'),
+        ).not.toBeNull();
     });
 
     it('sends the patient back to a refreshed grid with a notice and keeps their data when the slot was just taken (409)', async () => {

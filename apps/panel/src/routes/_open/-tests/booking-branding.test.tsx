@@ -44,6 +44,7 @@ function bookingResponse(
         },
         professionals: [],
         preselected_membership_id: null,
+        insurance_providers: [],
     };
 }
 

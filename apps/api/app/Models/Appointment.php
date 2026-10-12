@@ -36,6 +36,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'cancellation_reason',
     'rescheduled_from_id',
     'notes',
+    'reported_insurance_provider_id',
+    'reported_insurance_member_number',
 ])]
 class Appointment extends Model
 {
@@ -73,6 +75,17 @@ class Appointment extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(Patient::class);
+    }
+
+    /**
+     * What the patient said when booking online (#291). Self-reported, so it
+     * never replaces the patient's own record.
+     *
+     * @return BelongsTo<InsuranceProvider, $this>
+     */
+    public function reportedInsuranceProvider(): BelongsTo
+    {
+        return $this->belongsTo(InsuranceProvider::class);
     }
 
     /**

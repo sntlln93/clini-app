@@ -141,6 +141,16 @@ class Organization extends Model
     }
 
     /**
+     * The insurance providers the practice works with (#291).
+     *
+     * @return BelongsToMany<InsuranceProvider, $this>
+     */
+    public function acceptedInsuranceProviders(): BelongsToMany
+    {
+        return $this->belongsToMany(InsuranceProvider::class, 'accepted_insurance_providers')->withTimestamps();
+    }
+
+    /**
      * @return HasOne<Subscription, $this>
      */
     public function subscription(): HasOne

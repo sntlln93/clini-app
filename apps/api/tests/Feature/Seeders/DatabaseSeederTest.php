@@ -36,6 +36,7 @@ test('re-seeding leaves every fixture table with identical row counts', function
         'memberships' => Membership::count(),
         'patients' => Patient::count(),
         'organization_patient' => DB::table('organization_patient')->count(),
+        'accepted_insurance_providers' => DB::table('accepted_insurance_providers')->count(),
         'availabilities' => Availability::count(),
         'availability_exceptions' => AvailabilityException::count(),
         // withTrashed(): an earlier bug in this branch made re-seeding accumulate soft-deleted rows instead of clearing them.

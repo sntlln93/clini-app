@@ -36,6 +36,10 @@ class AppointmentResource extends JsonResource
             'cancelled_at' => $appointment->cancelled_at,
             'cancellation_reason' => $appointment->cancellation_reason,
             'rescheduled_from_id' => $appointment->rescheduled_from_id,
+            // What the patient reported when booking online (#291); the patient's own record may differ.
+            'reported_insurance_provider_id' => $appointment->reported_insurance_provider_id,
+            'reported_insurance_member_number' => $appointment->reported_insurance_member_number,
+            'reported_insurance_provider_name' => $this->whenLoaded('reportedInsuranceProvider', fn () => $appointment->reportedInsuranceProvider?->name),
             'professional_name' => $this->whenLoaded('membership', fn () => $appointment->membership?->user?->name),
             'patient_name' => $this->whenLoaded('patient', fn () => $appointment->patient?->name),
             'service_name' => $this->whenLoaded('service', fn () => $appointment->service?->name),

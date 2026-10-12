@@ -75,6 +75,12 @@ export function useConfirmBooking(slug: string) {
                             document_number: payload.patient.document_number,
                             email: payload.patient.email || null,
                             phone: payload.patient.phone || null,
+                            insurance_provider_id:
+                                payload.patient.insurance_provider_id,
+                            insurance_member_number:
+                                payload.patient.insurance_provider_id === null
+                                    ? null
+                                    : payload.patient.insurance_member_number,
                         },
                     },
                 )

@@ -572,6 +572,11 @@ Convenciones:
     de identidad (CU-37): un paciente puede identificarse por DNI y además tener obra social.
   - **[Futuro]** Su uso pleno (planes, autorizaciones) llega con facturación; el MVP solo
     necesita poder guardarla.
+  - El consultorio declara en Ajustes qué obras sociales atiende (dueño y administrador).
+    La reserva online (CU-36) solo ofrece esas, y si no declaró ninguna no pide obra social (#291).
+  - La obra social y el n° de afiliado que el paciente informa al reservar online quedan en el
+    **turno**, nunca en el paciente: la reserva es anónima y no garantiza de quién son los datos.
+    El consultorio los ve en el turno y decide si actualiza la ficha.
 
 ### CU-49 · Motivo del turno (opcional)
 

@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { AvailableSlot, BookingConfirmation } from '@/types/booking';
+import type { InsuranceProvider } from '@/types/patient';
 import { zodResolver } from '@hookform/resolvers/zod';
 import type { ReactNode } from 'react';
 import { useForm } from 'react-hook-form';
@@ -13,6 +14,7 @@ import {
     MONTH_FULL_MESSAGE,
     useConfirmBooking,
 } from '../../-hooks/use-confirm-booking';
+import { BookingInsuranceFields } from './BookingInsuranceFields';
 import { BookingPatientFormFields } from './BookingPatientFormFields';
 import {
     bookingPatientSchema,
@@ -26,6 +28,8 @@ type BookingPatientFormProps = {
     membershipId: number;
     serviceId: number;
     slot: AvailableSlot;
+    /** The ones the practice accepts; with none, the form doesn't ask (#291). */
+    insuranceProviders: InsuranceProvider[];
     summary: ReactNode;
     /** What the patient typed last time, so going back to the grid never loses it. */
     defaultValues?: BookingPatientDraft;
@@ -39,6 +43,7 @@ export function BookingPatientForm({
     membershipId,
     serviceId,
     slot,
+    insuranceProviders,
     summary,
     defaultValues = EMPTY_PATIENT_DRAFT,
     onBack,
@@ -83,6 +88,10 @@ export function BookingPatientForm({
                 'patient.document_number': 'patient.document_number',
                 'patient.email': 'patient.email',
                 'patient.phone': 'patient.phone',
+                'patient.insurance_provider_id':
+                    'patient.insurance_provider_id',
+                'patient.insurance_member_number':
+                    'patient.insurance_member_number',
             });
         }
     }
@@ -111,6 +120,13 @@ export function BookingPatientForm({
                 )}
 
                 <BookingPatientFormFields control={form.control} />
+
+                {insuranceProviders.length > 0 && (
+                    <BookingInsuranceFields
+                        control={form.control}
+                        insuranceProviders={insuranceProviders}
+                    />
+                )}
 
                 <Button
                     type="submit"

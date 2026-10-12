@@ -18,6 +18,7 @@ use App\Http\Resources\Booking\AvailableSlotResource;
 use App\Http\Resources\Booking\BookingConfirmationResource;
 use App\Http\Resources\Booking\PublicOrganizationResource;
 use App\Http\Resources\Booking\PublicProfessionalResource;
+use App\Http\Resources\Catalog\InsuranceProviderResource;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\ProfessionalService;
@@ -77,6 +78,7 @@ class PublicBookingController extends Controller
         return response()->json([
             'organization' => new PublicOrganizationResource($organization),
             'professionals' => PublicProfessionalResource::collection($professionals),
+            'insurance_providers' => InsuranceProviderResource::collection($organization->acceptedInsuranceProviders()->orderBy('name')->get()),
             'preselected_membership_id' => $preselectedMembershipId,
         ]);
     }
@@ -110,6 +112,8 @@ class PublicBookingController extends Controller
             documentNumber: $request->string('patient.document_number')->toString(),
             email: $request->filled('patient.email') ? $request->string('patient.email')->toString() : null,
             phone: $request->filled('patient.phone') ? $request->string('patient.phone')->toString() : null,
+            insuranceProviderId: $request->filled('patient.insurance_provider_id') ? $request->integer('patient.insurance_provider_id') : null,
+            insuranceMemberNumber: $request->filled('patient.insurance_member_number') ? $request->string('patient.insurance_member_number')->toString() : null,
         ));
 
         return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization'])))

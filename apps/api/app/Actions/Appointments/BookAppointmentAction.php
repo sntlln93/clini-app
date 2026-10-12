@@ -108,6 +108,8 @@ class BookAppointmentAction implements Action
                 'reason' => $dto->reason,
                 'notes' => $dto->notes,
                 'rescheduled_from_id' => $dto->rescheduledFromId,
+                'reported_insurance_provider_id' => $dto->reportedInsuranceProviderId,
+                'reported_insurance_member_number' => $dto->reportedInsuranceMemberNumber,
             ]);
 
             if ($limited) {

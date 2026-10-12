@@ -50,7 +50,7 @@ test('show returns the organization basic data and its active professionals with
     $response = $this->getJson("/api/v1/booking/{$organization->slug}");
 
     $response->assertOk();
-    expect(array_keys($response->json()))->toEqualCanonicalizing(['organization', 'professionals', 'preselected_membership_id']);
+    expect(array_keys($response->json()))->toEqualCanonicalizing(['organization', 'professionals', 'preselected_membership_id', 'insurance_providers']);
     expect($response->json('preselected_membership_id'))->toBeNull();
     expect($response->json('organization'))->toBe([
         'name' => 'Consultorio Salud',

@@ -35,6 +35,7 @@ function mockOrganization(
         },
         professionals: [],
         preselected_membership_id: null,
+        insurance_providers: [],
         ...overrides,
     };
     vi.mocked(api.get).mockResolvedValueOnce({ data: response });

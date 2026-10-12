@@ -8,21 +8,21 @@ import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
-import { BookingBrandingSection } from './-components/BookingBrandingSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { OrganizationBookingLinkSection } from './-components/OrganizationBookingLinkSection';
+import { OrganizationBookingSettings } from './-components/OrganizationBookingSettings';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
 import { SubscriptionSection } from './-components/SubscriptionSection';
 import { ThemeToggle } from './-components/ThemeToggle';
+import { loadOrganizationSettings } from './-hooks/load-organization-settings';
 import { loadProfessionalAssignments } from './-hooks/load-professional-assignments';
 import {
     catalogServicesQueryOptions,
     catalogSpecialtiesQueryOptions,
 } from './-hooks/use-catalog';
 import { useCheckoutReturn } from './-hooks/use-checkout-return';
-import { organizationLogoQueryOptions } from './-hooks/use-organization-logo';
 import { userSpecialtiesQueryOptions } from './-hooks/use-user-specialties';
 
 // `retorno`: the browser is back from the Mercado Pago checkout (the API's
@@ -59,14 +59,11 @@ export const Route = createFileRoute('/_auth/ajustes/')({
               )
             : [];
 
-        // Owner and admin only (#239).
-        const organizationLogo = sessionHasPermission(
+        const organizationSettings = sessionHasPermission(
             session,
             'organization.manage',
         )
-            ? await context.queryClient.ensureQueryData(
-                  organizationLogoQueryOptions,
-              )
+            ? await loadOrganizationSettings(context.queryClient)
             : null;
 
         const mySpecialties = await context.queryClient.ensureQueryData(
@@ -116,7 +113,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
                 ? session.membership
                 : null,
             organizationSlug: session.organization?.slug ?? null,
-            organizationLogo,
+            organizationSettings,
             ...assignments,
         };
     },
@@ -139,7 +136,7 @@ function AjustesPage() {
         professionals,
         ownProfessionalMembership,
         organizationSlug,
-        organizationLogo,
+        organizationSettings,
         credentialsByMembership,
         assignedSpecialtiesByMembership,
         assignedServicesByMembership,
@@ -197,11 +194,8 @@ function AjustesPage() {
                 </>
             )}
 
-            {organizationLogo && (
-                <>
-                    <Separator />
-                    <BookingBrandingSection logo={organizationLogo} />
-                </>
+            {organizationSettings && (
+                <OrganizationBookingSettings settings={organizationSettings} />
             )}
 
             <Separator />

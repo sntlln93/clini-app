@@ -1,4 +1,4 @@
-import type { DocumentType } from './patient';
+import type { DocumentType, InsuranceProvider } from './patient';
 
 export type BookingOrganization = {
     name: string;
@@ -35,6 +35,8 @@ export type BookingOrganizationResponse = {
     organization: BookingOrganization;
     professionals: BookingProfessional[];
     preselected_membership_id: number | null;
+    /** The ones the practice accepts (#291); empty means the page doesn't ask. */
+    insurance_providers: InsuranceProvider[];
 };
 
 export type AvailableSlot = {
@@ -48,6 +50,8 @@ export type BookingPatientPayload = {
     document_number: string;
     email: string;
     phone: string;
+    insurance_provider_id: number | null;
+    insurance_member_number: string;
 };
 
 export type OnlineBookingPayload = {

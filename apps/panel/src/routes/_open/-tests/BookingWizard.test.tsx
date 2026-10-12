@@ -75,6 +75,7 @@ function Wrapper({ initialSearch = {} }: { initialSearch?: Search }) {
             slug={ORGANIZATION.slug}
             organization={ORGANIZATION}
             professionals={PROFESSIONALS}
+            insuranceProviders={[]}
             slots={[]}
             search={search}
             onSearchChange={(next) =>

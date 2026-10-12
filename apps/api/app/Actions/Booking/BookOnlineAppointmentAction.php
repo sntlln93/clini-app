@@ -28,7 +28,9 @@ use App\Support\OrganizationPlan;
  * ServiceNotActiveForProfessionalException, not masked by one of this
  * action's own. The monthly appointment limit (#238) is pre-checked here
  * only so a full month doesn't register the patient first; the check that
- * holds under concurrency is BookAppointmentAction's.
+ * holds under concurrency is BookAppointmentAction's. The insurance the
+ * patient reports stays on the appointment and never reaches the patient's
+ * record (#291): an anonymous booking can't vouch for whose data it is.
  *
  * @implements Action<OnlineBookingData>
  */
@@ -74,6 +76,8 @@ class BookOnlineAppointmentAction implements Action
             origin: AppointmentOrigin::Online,
             reason: null,
             notes: null,
+            reportedInsuranceProviderId: $dto->insuranceProviderId,
+            reportedInsuranceMemberNumber: $dto->insuranceMemberNumber,
         ));
     }
 
