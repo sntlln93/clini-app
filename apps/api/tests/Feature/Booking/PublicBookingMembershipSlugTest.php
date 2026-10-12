@@ -62,7 +62,9 @@ test('a membership slug on a membership that does not hold the professional role
         'slug' => 'no-profesional',
     ]);
 
-    $this->getJson('/api/v1/booking/no-profesional')->assertStatus(404);
+    $this->getJson('/api/v1/booking/no-profesional')
+        ->assertStatus(404)
+        ->assertJsonPath('error.code', 'booking.link_not_found');
 });
 
 test('slots on a membership slug are scoped to that membership\'s organization', function () {
@@ -147,5 +149,7 @@ test('store on a membership slug creates the appointment in that membership\'s o
 });
 
 test('a slug matching neither an organization nor a membership returns 404', function () {
-    $this->getJson('/api/v1/booking/no-existe-ni-organizacion-ni-membresia')->assertStatus(404);
+    $this->getJson('/api/v1/booking/no-existe-ni-organizacion-ni-membresia')
+        ->assertStatus(404)
+        ->assertJsonPath('error.code', 'booking.link_not_found');
 });

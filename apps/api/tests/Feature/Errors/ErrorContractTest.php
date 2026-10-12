@@ -11,6 +11,7 @@ use App\Exceptions\Appointments\ServiceNotActiveForProfessionalException;
 use App\Exceptions\Appointments\SlotTakenException;
 use App\Exceptions\Appointments\StatusTransitionNotAllowedException;
 use App\Exceptions\Auth\UserBlockedException;
+use App\Exceptions\Booking\BookingLinkNotFoundException;
 use App\Exceptions\Booking\BookingOrganizationUnavailableException;
 use App\Exceptions\Memberships\InvitationInvalidOrExpiredException;
 use App\Exceptions\Memberships\LastActiveAdminException;
@@ -186,6 +187,7 @@ test('the platform-operator domain errors carry the documented code, status and 
     'organization already suspended' => [new OrganizationAlreadySuspendedException(1), 'organizations.already_suspended', 409, []],
     'organization not suspended' => [new OrganizationNotSuspendedException(1), 'organizations.not_suspended', 409, []],
     'booking organization unavailable' => [new BookingOrganizationUnavailableException(1), 'booking.organization_unavailable', 403, []],
+    'booking link not found' => [new BookingLinkNotFoundException('no-existe'), 'booking.link_not_found', 404, []],
     'user blocked' => [new UserBlockedException(1), 'auth.user_blocked', 403, []],
     'user already blocked' => [new UserAlreadyBlockedException(1), 'users.already_blocked', 409, []],
     'user not blocked' => [new UserNotBlockedException(1), 'users.not_blocked', 409, []],

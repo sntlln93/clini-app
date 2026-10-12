@@ -6,12 +6,12 @@ namespace App\Http\Middleware;
 
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Exceptions\Booking\BookingLinkNotFoundException;
 use App\Exceptions\Booking\BookingOrganizationUnavailableException;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Support\CurrentOrganization;
 use Closure;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -27,9 +27,8 @@ use Symfony\Component\HttpFoundation\Response;
  * On a membership hit, the membership's organization becomes current and
  * the membership itself is recorded on the request for the controller to
  * use for preselection. No session, no header: the slug is the only
- * signal. A slug that matches neither throws ModelNotFoundException, which
- * the framework converts into a plain 404 before it ever reaches a
- * controller.
+ * signal. A slug that matches neither is rejected with 404
+ * `booking.link_not_found` before it ever reaches a controller.
  *
  * A slug resolving (either way) to an organization suspended by a platform
  * operator is rejected with 403 `booking.organization_unavailable`, before
@@ -69,7 +68,7 @@ class ResolvePublicOrganization
             });
 
         if ($membership === null) {
-            throw (new ModelNotFoundException)->setModel(Membership::class);
+            throw new BookingLinkNotFoundException($slug);
         }
 
         $membershipOrganization = Organization::query()->find($membership->organization_id);
