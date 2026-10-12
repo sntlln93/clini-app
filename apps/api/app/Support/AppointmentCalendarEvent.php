@@ -53,7 +53,8 @@ final class AppointmentCalendarEvent
             fn (?string $part): bool => $part !== null && trim($part) !== '',
         );
 
-        return $parts === [] ? null : implode(', ', $parts);
+        // A city named like its province (CABA) is named once.
+        return $parts === [] ? null : implode(', ', array_unique($parts));
     }
 
     private function title(?string $organizationName): string

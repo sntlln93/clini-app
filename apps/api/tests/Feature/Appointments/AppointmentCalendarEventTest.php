@@ -59,3 +59,16 @@ test('the location skips the parts the address lacks', function () {
 
     expect(app(AppointmentCalendarEvent::class)->locationOf($organization))->toBe('Mitre 200');
 });
+
+test('the location names a city once when it is named like its province', function () {
+    $organization = Organization::factory()->create();
+    Address::factory()->create([
+        'addressable_id' => $organization->id,
+        'street' => 'Av. Corrientes 1234',
+        'city_id' => City::factory()->inProvince(ProvinceSlug::CiudadAutonomaDeBuenosAires)->create(['name' => 'Ciudad Autónoma de Buenos Aires'])->id,
+        'country' => 'Argentina',
+    ]);
+
+    expect(app(AppointmentCalendarEvent::class)->locationOf($organization))
+        ->toBe('Av. Corrientes 1234, Ciudad Autónoma de Buenos Aires, Argentina');
+});
