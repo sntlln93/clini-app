@@ -52,10 +52,11 @@ const ROUTER_INVALIDATE_RESTRICTION = {
 // buttonVariants() returns the base classes and the variant's side by side
 // without merging them, and Tailwind emits `.border-transparent` after
 // `.border-border`, so a raw call loses the outline variant's border (#295).
-// Wrap it in cn(), as Button itself does.
+// Wrap it in cn(), as Button itself does. Tests are exempt: the contrast
+// test reads the raw class string.
 const RAW_BUTTON_VARIANTS_RESTRICTION = {
     selector:
-        "JSXAttribute[name.name='className'] > JSXExpressionContainer > CallExpression[callee.name='buttonVariants']",
+        "CallExpression[callee.name='buttonVariants']:not(CallExpression[callee.name='cn'] > CallExpression[callee.name='buttonVariants'])",
     message:
         "Wrap buttonVariants() in cn(): unmerged, the base's `border-transparent` overrides the variant's border color.",
 };
@@ -182,7 +183,6 @@ export default tseslint.config(
             'no-restricted-syntax': [
                 'error',
                 ...SSR_DIRECTIVE_RESTRICTIONS,
-                RAW_BUTTON_VARIANTS_RESTRICTION,
                 ROUTER_INVALIDATE_RESTRICTION,
             ],
         },

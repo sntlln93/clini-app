@@ -68,6 +68,13 @@ export default tseslint.config(
                     message:
                         "'use server' is meaningless: TanStack Start uses createServerFn, not directives.",
                 },
+                // See apps/panel: unmerged, the base's `border-transparent` overrides the variant's border color (#295).
+                {
+                    selector:
+                        "CallExpression[callee.name='buttonVariants']:not(CallExpression[callee.name='cn'] > CallExpression[callee.name='buttonVariants'])",
+                    message:
+                        "Wrap buttonVariants() in cn(): unmerged, the base's `border-transparent` overrides the variant's border color.",
+                },
             ],
         },
     },
