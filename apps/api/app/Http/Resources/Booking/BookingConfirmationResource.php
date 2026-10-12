@@ -31,11 +31,18 @@ class BookingConfirmationResource extends JsonResource
             'professional_name' => $appointment->membership?->user?->name,
             'service_name' => $appointment->service?->name,
             'organization_name' => $appointment->organization?->name,
-            // The practice's own public address, for the patient's calendar event (#295).
+            // The patient's calendar event (#295): the practice's own public
+            // address, and the same opaque uid the reminder's .ics carries.
             'organization_address' => $appointment->organization === null
                 ? null
-                : app(AppointmentCalendarEvent::class)->locationOf($appointment->organization),
+                : $this->calendarEvent()->locationOf($appointment->organization),
+            'calendar_uid' => $this->calendarEvent()->uidOf($appointment),
         ];
+    }
+
+    private function calendarEvent(): AppointmentCalendarEvent
+    {
+        return app(AppointmentCalendarEvent::class);
     }
 
     private function appointment(): Appointment

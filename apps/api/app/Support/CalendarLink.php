@@ -66,14 +66,17 @@ final class CalendarLink
         return $instant->toImmutable()->utc()->format('Ymd\THis\Z');
     }
 
-    /** RFC 5545 §3.3.11: backslash, semicolon and comma are escaped, newlines become `\n`. */
+    /**
+     * RFC 5545 §3.3.11: backslash, semicolon and comma are escaped and any
+     * line break becomes `\n`. Other control characters are not TEXT and are
+     * dropped, so a name can't start a property line of its own.
+     */
     private static function text(string $value): string
     {
-        return str_replace(
-            ['\\', ';', ',', "\r\n", "\n"],
-            ['\\\\', '\\;', '\\,', '\\n', '\\n'],
-            $value,
-        );
+        $value = (string) preg_replace('/\r\n|\r/', "\n", $value);
+        $value = (string) preg_replace('/[\x00-\x08\x0B-\x1F\x7F]/', '', $value);
+
+        return str_replace(['\\', ';', ',', "\n"], ['\\\\', '\\;', '\\,', '\\n'], $value);
     }
 
     /** RFC 5545 §3.1: lines longer than 75 octets continue on the next one, indented by a space, never splitting a UTF-8 character. */

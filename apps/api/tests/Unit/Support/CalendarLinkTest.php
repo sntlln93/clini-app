@@ -86,3 +86,14 @@ test('the .ics folds lines over 75 octets without splitting a multibyte characte
     $unfolded = str_replace("\r\n ", '', $ics);
     expect($unfolded)->toContain('DESCRIPTION:'.str_repeat('ñ', 100)."\r\n");
 });
+
+test('the .ics turns any line break into an escaped newline and drops other control characters', function () {
+    $ics = CalendarLink::ics(
+        calendarEvent(['title' => "Ana\rLOCATION:otra\x07 Gómez", 'description' => "uno\r\ndos\rtres\nfin\tok"]),
+        CarbonImmutable::parse('2026-07-20T12:00:00Z'),
+    );
+
+    expect($ics)->toContain("SUMMARY:Ana\\nLOCATION:otra Gómez\r\n")
+        ->toContain("DESCRIPTION:uno\\ndos\\ntres\\nfin\tok\r\n")
+        ->and(substr_count($ics, "\r\nLOCATION:"))->toBe(1);
+});

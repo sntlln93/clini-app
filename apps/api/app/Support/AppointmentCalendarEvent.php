@@ -26,7 +26,7 @@ final class AppointmentCalendarEvent
         $organization = $appointment->organization;
 
         return new CalendarEventData(
-            uid: "appointment-{$appointment->id}@".$this->host(),
+            uid: $this->uidOf($appointment),
             title: $this->title($organization?->name),
             description: $this->description(
                 $appointment->membership?->user?->name,
@@ -37,6 +37,19 @@ final class AppointmentCalendarEvent
             startAt: CarbonImmutable::instance($startAt)->utc(),
             endAt: CarbonImmutable::instance($endAt)->utc(),
         );
+    }
+
+    /**
+     * The same for the reminder's `.ics` and the booking confirmation's, so a
+     * patient who imports both keeps one event. Opaque: the confirmation is
+     * public, and a raw id would tell how many appointments a practice has.
+     */
+    public function uidOf(Appointment $appointment): string
+    {
+        /** @var string $key */
+        $key = config('app.key');
+
+        return substr(hash_hmac('sha256', "appointment-{$appointment->id}", $key), 0, 32).'@'.$this->host();
     }
 
     /** One line, e.g. «Av. Corrientes 1234, Rosario, Santa Fe, Argentina»; null without an address. */

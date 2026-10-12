@@ -16,6 +16,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Models\Service;
+use App\Support\AppointmentCalendarEvent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -322,11 +323,14 @@ test('the 201 confirmation response exposes only confirmation data, no internal 
 
     $response->assertCreated();
     expect(array_keys($response->json('data')))->toEqualCanonicalizing([
-        'start_at', 'end_at', 'professional_name', 'service_name', 'organization_name', 'organization_address',
+        'start_at', 'end_at', 'professional_name', 'service_name', 'organization_name', 'organization_address', 'calendar_uid',
     ]);
     expect($response->json('data.professional_name'))->toBe($membership->user->name);
     expect($response->json('data.service_name'))->toBe($service->name);
     expect($response->json('data.organization_name'))->toBe($organization->name);
+    // The reminder's .ics carries the same uid, so importing both keeps one event.
+    $appointment = Appointment::withoutGlobalScope('organization')->sole();
+    expect($response->json('data.calendar_uid'))->toBe(app(AppointmentCalendarEvent::class)->uidOf($appointment));
 });
 
 test('store with a membership_id from another organization returns 404 and creates no appointment or patient', function () {

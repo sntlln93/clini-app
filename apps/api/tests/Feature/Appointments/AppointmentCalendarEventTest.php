@@ -32,7 +32,7 @@ test('the event is titled by the practice, describes professional and service, a
         ->and($event->description)->toBe("Profesional: Ana Gómez\nPrestación: Consulta\nSi necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.")
         ->and($event->startAt->toIso8601ZuluString())->toBe('2026-08-03T13:00:00Z')
         ->and($event->endAt->toIso8601ZuluString())->toBe('2026-08-03T13:45:00Z')
-        ->and($event->uid)->toBe("appointment-{$appointment->id}@".parse_url((string) config('app.url'), PHP_URL_HOST))
+        ->and($event->uid)->toBe(app(AppointmentCalendarEvent::class)->uidOf($appointment))
         ->and($event->location)->toBeNull();
 });
 
@@ -71,4 +71,15 @@ test('the location names a city once when it is named like its province', functi
 
     expect(app(AppointmentCalendarEvent::class)->locationOf($organization))
         ->toBe('Av. Corrientes 1234, Ciudad Autónoma de Buenos Aires, Argentina');
+});
+
+test('the uid is opaque, stable for an appointment and distinct between appointments', function () {
+    $calendar = app(AppointmentCalendarEvent::class);
+    [$first, $second] = Appointment::factory()->count(2)->create();
+    $host = parse_url((string) config('app.url'), PHP_URL_HOST);
+
+    expect($calendar->uidOf($first))->toMatch('/^[0-9a-f]{32}@'.preg_quote((string) $host, '/').'$/')
+        ->toBe($calendar->uidOf($first->fresh()))
+        ->not->toBe($calendar->uidOf($second))
+        ->not->toContain((string) $first->id.'@');
 });
