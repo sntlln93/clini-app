@@ -21,6 +21,7 @@ final readonly class PatientRegistrationData implements Data
         public ?Sex $sex,
         public ?string $birthDate,
         public ?int $insuranceProviderId,
+        public ?string $insuranceMemberNumber,
     ) {}
 
     /**
@@ -39,6 +40,7 @@ final readonly class PatientRegistrationData implements Data
             'sex' => $this->sex,
             'birthDate' => $this->birthDate,
             'insuranceProviderId' => $this->insuranceProviderId,
+            'insuranceMemberNumber' => $this->insuranceMemberNumber,
         ];
     }
 }

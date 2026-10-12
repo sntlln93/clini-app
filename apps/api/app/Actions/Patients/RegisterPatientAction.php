@@ -55,6 +55,7 @@ class RegisterPatientAction implements Action
                     'sex' => $dto->sex,
                     'birth_date' => $dto->birthDate,
                     'insurance_provider_id' => $dto->insuranceProviderId,
+                    'insurance_member_number' => $dto->insuranceMemberNumber,
                     'created_by' => $dto->createdBy,
                 ]);
             }
@@ -93,7 +94,6 @@ class RegisterPatientAction implements Action
             'phone' => $dto->phone,
             'sex' => $dto->sex,
             'birth_date' => $dto->birthDate,
-            'insurance_provider_id' => $dto->insuranceProviderId,
         ];
 
         foreach ($candidates as $attribute => $value) {
@@ -104,6 +104,14 @@ class RegisterPatientAction implements Action
             if (blank($patient->getAttribute($attribute))) {
                 $patient->setAttribute($attribute, $value);
             }
+        }
+
+        // Provider and member number travel together: a number is never attached to another provider.
+        if ($dto->insuranceProviderId !== null && blank($patient->insurance_provider_id)) {
+            $patient->fill([
+                'insurance_provider_id' => $dto->insuranceProviderId,
+                'insurance_member_number' => $dto->insuranceMemberNumber,
+            ]);
         }
 
         if ($patient->isDirty()) {

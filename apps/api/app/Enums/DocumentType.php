@@ -8,5 +8,4 @@ enum DocumentType: string
 {
     case Dni = 'dni';
     case Passport = 'passport';
-    case InsuranceId = 'insurance_id';
 }

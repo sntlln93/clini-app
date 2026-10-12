@@ -35,6 +35,7 @@ class PatientResource extends JsonResource
             'sex' => $patient->sex,
             'birth_date' => $birthDate?->format('Y-m-d'),
             'insurance_provider_id' => $patient->insurance_provider_id,
+            'insurance_member_number' => $patient->insurance_member_number,
             'insurance_provider' => $this->whenLoaded('insuranceProvider', function () use ($patient) {
                 $insuranceProvider = $patient->insuranceProvider;
 

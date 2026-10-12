@@ -61,6 +61,7 @@ class BookOnlineAppointmentAction implements Action
             sex: null,
             birthDate: null,
             insuranceProviderId: null,
+            insuranceMemberNumber: null,
         ));
 
         return $this->bookAppointment->handle(new AppointmentBookingData(

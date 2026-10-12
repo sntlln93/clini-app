@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('sex')->nullable();
             $table->date('birth_date')->nullable();
             $table->foreignId('insurance_provider_id')->nullable()->constrained()->nullOnDelete();
+            $table->string('insurance_member_number', 50)->nullable();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->timestampsTz();
             $table->softDeletesTz();

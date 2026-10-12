@@ -59,6 +59,7 @@ class PatientController extends Controller
             sex: $request->filled('sex') ? Sex::from($request->string('sex')->toString()) : null,
             birthDate: $request->string('birth_date')->toString() ?: null,
             insuranceProviderId: $request->integer('insurance_provider_id') ?: null,
+            insuranceMemberNumber: $request->string('insurance_member_number')->toString() ?: null,
         );
 
         $patient = $action->handle($dto);

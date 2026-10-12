@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
     'sex',
     'birth_date',
     'insurance_provider_id',
+    'insurance_member_number',
     'created_by',
 ])]
 class Patient extends Model
