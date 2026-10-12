@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { DateTime } from '@/lib/datetime';
 import {
     isSubscriptionCancellable,
     paidPeriodEnd,
@@ -70,7 +71,7 @@ describe('isSubscriptionCancellable', () => {
 });
 
 describe('paidPeriodEnd', () => {
-    const now = new Date('2026-10-10T12:00:00Z');
+    const now = DateTime.fromISO('2026-10-10T12:00:00Z');
 
     it('is the renewal date of an active subscription still ahead', () => {
         expect(

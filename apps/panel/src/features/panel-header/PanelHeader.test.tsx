@@ -30,6 +30,7 @@ describe('PanelHeader', () => {
             organization: {
                 id: 1,
                 name: 'Consultorio Norte',
+                timezone: 'America/Argentina/Buenos_Aires',
                 slug: 'consultorio-norte',
             },
         });

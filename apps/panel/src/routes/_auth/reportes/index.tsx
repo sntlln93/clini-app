@@ -14,8 +14,6 @@ import type { ReportFilterValues } from './-components/ReportFilters';
 import { ReportView } from './-components/ReportView';
 import { reportQueryOptions } from './-hooks/use-report';
 
-const BROWSER_TIMEZONE = Intl.DateTimeFormat().resolvedOptions().timeZone;
-
 const ymd = z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
@@ -36,7 +34,8 @@ const reportSearchSchema = z
             .catch(undefined),
     })
     .transform((search) =>
-        effectiveRangeError(search, todayInTimeZone(BROWSER_TIMEZONE)) === null
+        // On the very first load this runs before `_auth` sets the practice's zone, so today may be the browser's; the API checks the range again in the practice's.
+        effectiveRangeError(search, todayInTimeZone()) === null
             ? search
             : { ...search, from: undefined, to: undefined },
     );

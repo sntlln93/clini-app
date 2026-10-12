@@ -25,7 +25,8 @@ vi.mock('@/lib/api', () => ({
 const ORGANIZATION: BookingOrganization = {
     name: 'Consultorio Salud',
     slug: 'consultorio-salud',
-    timezone: 'UTC',
+    // An IANA zone on purpose: Luxon formats a bare 'UTC' (a fixed-offset zone) through formatToParts, which keeps a narrow no-break space before «p. m.».
+    timezone: 'Etc/UTC',
     show_clini_mark: false,
     logo_url: null,
 };

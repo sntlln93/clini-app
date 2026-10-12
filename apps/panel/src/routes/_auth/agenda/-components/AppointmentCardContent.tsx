@@ -1,24 +1,18 @@
 import { AppointmentStatusChip } from '@/features/appointment-status/AppointmentStatusChip';
 import { OnlineOriginMark } from '@/features/appointment-status/OnlineOriginMark';
 import { STATUS_TONES, STRUCK_STATUSES } from '@/lib/appointment-status';
+import { fromInstant } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 
 export type AppointmentCardVariant = 'default' | 'day';
 
 function formatTime(iso: string, variant: AppointmentCardVariant): string {
-    const date = new Date(iso);
+    const date = fromInstant(iso);
 
-    if (variant === 'day') {
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        return `${hours}:${minutes}`;
-    }
-
-    return date.toLocaleTimeString('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return variant === 'day'
+        ? date.toFormat('HH:mm')
+        : date.toLocaleString({ hour: '2-digit', minute: '2-digit' });
 }
 
 type AppointmentCardContentProps = {

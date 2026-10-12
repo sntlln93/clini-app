@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import type { DateTime } from '@/lib/datetime';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 import { useId } from 'react';
 import { AgendaDayStrip } from './AgendaDayStrip';
@@ -8,23 +9,23 @@ import { AgendaDayStrip } from './AgendaDayStrip';
 export type AgendaViewMode = 'day' | 'week';
 
 type AgendaToolbarProps = {
-    date: Date;
+    date: DateTime;
     view: AgendaViewMode;
     onPrev: () => void;
     onNext: () => void;
     onToday: () => void;
     onViewChange: (view: AgendaViewMode) => void;
-    onDateSelect: (date: Date) => void;
+    onDateSelect: (date: DateTime) => void;
     showCancelled: boolean;
     onShowCancelledChange: (value: boolean) => void;
 };
 
-const DATE_LABEL_FORMAT = new Intl.DateTimeFormat('es-AR', {
+const DATE_LABEL_FORMAT = {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric',
-});
+} as const;
 
 export function AgendaToolbar({
     date,
@@ -48,7 +49,7 @@ export function AgendaToolbar({
     // The agenda card's title, as in the landing's agenda example.
     const dateLabel = (
         <h2 className="min-w-0 text-lg font-medium tabular-nums first-letter:uppercase">
-            {DATE_LABEL_FORMAT.format(date)}
+            {date.toLocaleString(DATE_LABEL_FORMAT)}
         </h2>
     );
     const viewOption = (mode: AgendaViewMode, label: string) => (

@@ -33,13 +33,12 @@ describe('/agenda validateSearch + loaderDeps', () => {
         });
     });
 
-    it('loaderDeps falls back to today and "day" when date/view are absent', () => {
+    // Today is the loader's to resolve: loaderDeps runs before `_auth` sets the practice's zone (#265).
+    it('loaderDeps falls back to "day" and leaves an absent date for the loader', () => {
         const parsed = validateSearch({});
         const deps = loaderDeps({ search: parsed });
 
-        expect(deps.view).toBe('day');
-        expect(deps.date).toEqual(expect.any(String));
-        expect(deps.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(deps).toEqual({ date: undefined, view: 'day' });
     });
 
     it('validateSearch accepts a professionals array and returns the ids as numbers', () => {

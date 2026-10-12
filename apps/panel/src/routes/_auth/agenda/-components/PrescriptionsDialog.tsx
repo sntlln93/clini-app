@@ -1,3 +1,4 @@
+import { formatShortDateTime } from '@/lib/datetime';
 import { useState } from 'react';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -22,13 +23,6 @@ type PrescriptionsDialogProps = {
     onOpenChange: (open: boolean) => void;
     appointment: Appointment | null;
 };
-
-function formatDate(iso: string): string {
-    return new Date(iso).toLocaleString('es-AR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    });
-}
 
 // Contextual dialog (ADR 0006): lists the acting membership's own
 // prescriptions for this appointment and resolves issue/edit inline; printing
@@ -105,7 +99,9 @@ export function PrescriptionsDialog({
                             </ul>
                             <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {formatDate(prescription.issued_at)}
+                                    {formatShortDateTime(
+                                        prescription.issued_at,
+                                    )}
                                 </span>
                                 <div className="flex gap-2">
                                     {!restricted && (

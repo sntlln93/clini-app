@@ -6,12 +6,13 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { fromInstant } from '@/lib/datetime';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
 
 function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-AR', { dateStyle: 'short' });
+    return fromInstant(iso).toLocaleString({ dateStyle: 'short' });
 }
 
 // Read-only list of the acting membership's own prescriptions for this

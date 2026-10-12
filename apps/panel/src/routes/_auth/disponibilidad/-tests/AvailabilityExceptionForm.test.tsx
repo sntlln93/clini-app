@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { AvailabilityException } from '@/types/availability';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     fireEvent,
@@ -25,6 +26,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 function renderForm(props: {
     membershipId: number;
     canManageOrgWide: boolean;
+    exception?: AvailabilityException;
 }) {
     const queryClient = new QueryClient();
     render(
@@ -32,6 +34,7 @@ function renderForm(props: {
             <AvailabilityExceptionForm
                 membershipId={props.membershipId}
                 canManageOrgWide={props.canManageOrgWide}
+                exception={props.exception}
                 onDone={() => {}}
             />
         </QueryClientProvider>,
@@ -48,9 +51,18 @@ function businessAxiosError(code: string, context: Record<string, unknown>) {
     };
 }
 
+// As the API serializes them: UTC instants (09:00–12:00 and 11:00–12:00 in Buenos Aires).
 const MERGE_PROPOSAL = {
-    merged: { start: '2026-08-10T09:00', end: '2026-08-10T12:00' },
-    absorbed: [{ start: '2026-08-10T11:00', end: '2026-08-10T12:00' }],
+    merged: {
+        start: '2026-08-10T12:00:00.000000Z',
+        end: '2026-08-10T15:00:00.000000Z',
+    },
+    absorbed: [
+        {
+            start: '2026-08-10T14:00:00.000000Z',
+            end: '2026-08-10T15:00:00.000000Z',
+        },
+    ],
 };
 
 function fillDates() {
@@ -187,8 +199,8 @@ describe('AvailabilityExceptionForm', () => {
             {
                 membership_id: 3,
                 type: 'blocked',
-                start_at: '2026-08-10T09:00',
-                end_at: '2026-08-10T11:00',
+                start_at: '2026-08-10T12:00:00.000Z',
+                end_at: '2026-08-10T14:00:00.000Z',
                 reason: null,
                 merge: true,
             },
@@ -220,5 +232,52 @@ describe('AvailabilityExceptionForm', () => {
             ).toBeNull(),
         );
         expect(api.post).toHaveBeenCalledTimes(1);
+    });
+
+    // #265: the inputs hold the practice's wall clock (Buenos Aires here), the API instants in UTC.
+    it("sends the entered times as the practice's UTC instants", async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderForm({ membershipId: 3, canManageOrgWide: false });
+
+        fillDates();
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/availability-exceptions',
+                expect.objectContaining({
+                    start_at: '2026-08-10T12:00:00.000Z',
+                    end_at: '2026-08-10T14:00:00.000Z',
+                }),
+            ),
+        );
+    });
+
+    it("prefills an existing exception's times in the practice's wall clock", () => {
+        renderForm({
+            membershipId: 3,
+            canManageOrgWide: false,
+            exception: {
+                id: 9,
+                membership_id: 3,
+                type: 'blocked',
+                start_at: '2026-10-12T12:00:00.000000Z',
+                end_at: '2026-10-12T16:00:00.000000Z',
+                reason: null,
+            },
+        });
+
+        expect(screen.getByLabelText<HTMLInputElement>(/Desde/).value).toBe(
+            '2026-10-12T09:00',
+        );
+        expect(screen.getByLabelText<HTMLInputElement>(/Hasta/).value).toBe(
+            '2026-10-12T13:00',
+        );
+    });
+
+    it("describes a merge with the practice's local ranges, not raw instants", () => {
+        expect(mergeExceptionDescription(MERGE_PROPOSAL)).toBe(
+            'Ya tenés una excepción del mismo tipo (lun 10 ago, 11:00 – 12:00). Si continuás, queda una sola (lun 10 ago, 09:00 – 12:00), con el motivo que acabás de ingresar.',
+        );
     });
 });

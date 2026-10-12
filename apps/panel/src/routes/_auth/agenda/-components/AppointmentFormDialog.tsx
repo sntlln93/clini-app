@@ -12,6 +12,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { fromDateAndTime, toInstant } from '@/lib/datetime';
 import { sessionHasPermission, useSession } from '@/lib/session';
 import type { Professional } from '@/types/professional';
 import { useCreateAppointment } from '../-hooks/use-appointments';
@@ -19,7 +20,6 @@ import { useAvailabilityWarning } from '../-hooks/use-availability-warning';
 import { useBookableServices } from '../-hooks/use-bookable-services';
 import { usePatientSearch } from '../-hooks/use-patient-search';
 import { useResetOnOpen } from '../-hooks/use-reset-on-open';
-import { toInstant } from './agenda-dates';
 import { applyAppointmentServerErrors } from './apply-appointment-server-errors';
 import {
     appointmentSchema,
@@ -116,7 +116,7 @@ export function AppointmentFormDialog({
                 membershipId: values.membershipId as number,
                 patientId: values.patientId as number,
                 serviceId: values.serviceId as number,
-                startAt: toInstant(values.date, values.time),
+                startAt: toInstant(fromDateAndTime(values.date, values.time)),
                 reason: values.reason || null,
                 notes: null,
             });
@@ -132,7 +132,7 @@ export function AppointmentFormDialog({
             return;
         }
 
-        if (isOutside(new Date(`${values.date}T${values.time}`))) {
+        if (isOutside(fromDateAndTime(values.date, values.time))) {
             setShowWarning(true);
             return;
         }

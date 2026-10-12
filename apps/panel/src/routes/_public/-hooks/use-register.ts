@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { browserTimeZone } from '@/lib/datetime';
 import { extractFormErrors } from '@/lib/form-errors';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -22,7 +23,7 @@ export function useRegister() {
             api
                 .post<SessionUser>('/register', {
                     ...payload,
-                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    timezone: browserTimeZone(),
                 })
                 .then((response) => response.data),
         onSuccess: (user) => {

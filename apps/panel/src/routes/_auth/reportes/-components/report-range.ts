@@ -1,5 +1,11 @@
+import { DateTime } from '@/lib/datetime';
+
 const MAX_RANGE_DAYS = 366;
-const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Calendar arithmetic only, so in UTC: no zone offset can move a day.
+function utcDay(isoDate: string): DateTime {
+    return DateTime.fromISO(isoDate, { zone: 'utc' });
+}
 
 /** Client-side mirror of the API's range rules, so an invalid range never leaves the form; `null` = valid. */
 export function rangeError(
@@ -14,10 +20,7 @@ export function rangeError(
         return 'La fecha “Hasta” tiene que ser igual o posterior a “Desde”.';
     }
 
-    const spanDays =
-        (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
-            DAY_MS +
-        1;
+    const spanDays = utcDay(to).diff(utcDay(from), 'days').days + 1;
 
     return spanDays > MAX_RANGE_DAYS
         ? `El rango no puede superar los ${MAX_RANGE_DAYS} días.`
@@ -26,9 +29,7 @@ export function rangeError(
 
 /** The first day of the month two months before `to`: the API's default "Desde". */
 export function defaultFrom(to: string): string {
-    const [year, month] = to.split('-').map(Number);
-
-    return new Date(Date.UTC(year, month - 3, 1)).toISOString().slice(0, 10);
+    return utcDay(to).startOf('month').minus({ months: 2 }).toISODate();
 }
 
 /**

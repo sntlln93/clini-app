@@ -1,3 +1,4 @@
+import { fromDateTimeInputValue, toDateTimeInputValue } from '@/lib/datetime';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
@@ -39,8 +40,9 @@ export function AvailabilityExceptionForm({
         resolver: zodResolver(availabilityExceptionSchema),
         defaultValues: {
             type: exception?.type ?? 'blocked',
-            startAt: exception?.start_at ?? '',
-            endAt: exception?.end_at ?? '',
+            // The inputs hold the practice's wall clock; the API's instants are converted both ways (#265).
+            startAt: exception ? toDateTimeInputValue(exception.start_at) : '',
+            endAt: exception ? toDateTimeInputValue(exception.end_at) : '',
             reason: exception?.reason ?? '',
             isOrgWide: exception ? exception.membership_id === null : false,
         },
@@ -60,8 +62,8 @@ export function AvailabilityExceptionForm({
                 id: exception?.id,
                 membershipId: values.isOrgWide ? null : membershipId,
                 type: values.type,
-                startAt: values.startAt,
-                endAt: values.endAt,
+                startAt: fromDateTimeInputValue(values.startAt),
+                endAt: fromDateTimeInputValue(values.endAt),
                 reason: values.reason || null,
                 merge,
             });

@@ -1,41 +1,42 @@
-/** Today's calendar date (YYYY-MM-DD) in `timeZone`, regardless of the browser's own zone. */
+import { DateTime } from './datetime';
+
+/** Today's calendar date (YYYY-MM-DD) in `timeZone`, or in the practice's zone when omitted. */
 export function todayInTimeZone(
-    timeZone: string,
-    now: Date = new Date(),
+    timeZone?: string,
+    now: DateTime = DateTime.now(),
 ): string {
-    // `en-CA` formats as YYYY-MM-DD.
-    return new Intl.DateTimeFormat('en-CA', {
-        timeZone,
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    }).format(now);
+    return (timeZone ? now.setZone(timeZone) : now).toISODate();
 }
 
-/** Calendar arithmetic on a YYYY-MM-DD string, done in UTC so no zone offset can shift the day. */
-export function addDaysToIsoDate(isoDate: string, days: number): string {
-    const date = new Date(`${isoDate}T00:00:00Z`);
-    date.setUTCDate(date.getUTCDate() + days);
+// Pure calendar arithmetic on YYYY-MM-DD strings, done in UTC so no zone offset can shift the day.
+function utcDay(isoDate: string): DateTime {
+    return DateTime.fromISO(isoDate, { zone: 'utc' });
+}
 
-    return date.toISOString().slice(0, 10);
+export function addDaysToIsoDate(isoDate: string, days: number): string {
+    return utcDay(isoDate).plus({ days }).toISODate();
 }
 
 /** e.g. "2026-10-05" → "lunes, 5 de octubre". */
 export function formatLongIsoDate(isoDate: string): string {
-    return new Intl.DateTimeFormat('es-AR', {
+    return utcDay(isoDate).toLocaleString({
         weekday: 'long',
         day: 'numeric',
         month: 'long',
-        timeZone: 'UTC',
-    }).format(new Date(`${isoDate}T00:00:00Z`));
+    });
 }
 
 /** True for a real YYYY-MM-DD calendar date (rejects e.g. 2026-02-30). */
 export function isCalendarDate(isoDate: string): boolean {
-    const date = new Date(`${isoDate}T00:00:00Z`);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(isoDate)) {
+        return false;
+    }
 
-    return (
-        !Number.isNaN(date.getTime()) &&
-        date.toISOString().slice(0, 10) === isoDate
-    );
+    // Luxon is set to throw on an invalid date instead of flagging it.
+    try {
+        utcDay(isoDate);
+        return true;
+    } catch {
+        return false;
+    }
 }

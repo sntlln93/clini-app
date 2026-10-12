@@ -1,5 +1,6 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
+import { DateTime, fromInstant } from '@/lib/datetime';
 import {
     SUBSCRIPTION_SECTION_ID,
     formatSubscriptionDate,
@@ -13,7 +14,7 @@ import { CircleAlert } from 'lucide-react';
 type SubscriptionBannerProps = {
     subscription: Subscription | null | undefined;
     plan: Plan | undefined;
-    now?: Date;
+    now?: DateTime;
 };
 
 type BannerCopy = { title: string; description: string; restricted: boolean };
@@ -24,7 +25,7 @@ function daysLeftLabel(days: number): string {
 
 function subscriptionCopy(
     subscription: Subscription,
-    now: Date,
+    now: DateTime,
     assignedByPlatform: boolean,
 ): BannerCopy | null {
     switch (subscription.status) {
@@ -48,7 +49,7 @@ function subscriptionCopy(
             if (
                 !assignedByPlatform &&
                 subscription.access_ends_at &&
-                new Date(subscription.access_ends_at).getTime() > now.getTime()
+                fromInstant(subscription.access_ends_at) > now
             ) {
                 return {
                     title: 'Cancelaste la suscripción.',
@@ -106,7 +107,7 @@ function appointmentUsageCopy(plan: Plan): BannerCopy | null {
 export function SubscriptionBanner({
     subscription,
     plan,
-    now = new Date(),
+    now = DateTime.now(),
 }: SubscriptionBannerProps) {
     const fromSubscription = subscription
         ? subscriptionCopy(

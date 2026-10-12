@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
 import { describe, expect, it } from 'vitest';
@@ -135,20 +136,18 @@ describe('buildWaitingQueues', () => {
 });
 
 describe('todayRange', () => {
-    it('spans the local day of the given instant', () => {
-        const now = new Date(2026, 7, 3, 15, 30);
-        const start = new Date(2026, 7, 3, 0, 0, 0, 0);
-        const end = new Date(2026, 7, 3, 23, 59, 59, 999);
+    it("spans the practice's day of the given instant, as UTC instants", () => {
+        const now = DateTime.local(2026, 8, 3, 15, 30);
 
         expect(todayRange(now)).toEqual({
-            from: start.toISOString(),
-            to: end.toISOString(),
+            from: '2026-08-03T03:00:00.000Z',
+            to: '2026-08-04T02:59:59.999Z',
         });
     });
 });
 
 describe('minutesSinceArrival', () => {
-    const now = new Date('2026-08-03T10:20:00').getTime();
+    const now = DateTime.fromISO('2026-08-03T10:20:00').toMillis();
 
     it('returns whole minutes since check-in', () => {
         expect(minutesSinceArrival('2026-08-03T10:07:30', now)).toBe(12);

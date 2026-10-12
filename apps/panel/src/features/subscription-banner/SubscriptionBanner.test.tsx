@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Plan } from '@/types/plan';
@@ -38,7 +39,7 @@ function subscription(overrides: Partial<Subscription> = {}): Subscription {
     return buildSubscription(overrides.status ?? 'active', overrides);
 }
 
-const NOW = new Date('2026-10-10T12:00:00+00:00');
+const NOW = DateTime.fromISO('2026-10-10T12:00:00+00:00');
 
 function renderBanner(
     value: Subscription | null | undefined,

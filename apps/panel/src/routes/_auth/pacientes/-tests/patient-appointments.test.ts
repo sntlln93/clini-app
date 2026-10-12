@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -74,7 +75,7 @@ describe('findTodaysOwnAppointment', () => {
 });
 
 describe('findNextAppointment', () => {
-    const now = new Date('2026-08-13T15:00:00');
+    const now = DateTime.fromISO('2026-08-13T15:00:00');
 
     it('picks the closest upcoming appointment even though the history is sorted descending', () => {
         const later = buildAppointment({

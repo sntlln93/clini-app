@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { browserTimeZone } from '@/lib/datetime';
 import { sessionQueryOptions } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -12,6 +13,11 @@ import {
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from '../-components/RegisterForm';
+
+vi.mock('@/lib/datetime', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/datetime')>()),
+    browserTimeZone: vi.fn(),
+}));
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
@@ -81,9 +87,7 @@ async function fillForm() {
 
 describe('RegisterForm', () => {
     beforeEach(() => {
-        vi.spyOn(Intl, 'DateTimeFormat').mockReturnValue({
-            resolvedOptions: () => ({ timeZone: STUB_TIMEZONE }),
-        } as unknown as Intl.DateTimeFormat);
+        vi.mocked(browserTimeZone).mockReturnValue(STUB_TIMEZONE);
     });
 
     it('sends the form fields plus the auto-detected timezone, and renders no timezone input', async () => {

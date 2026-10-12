@@ -2,14 +2,18 @@ import { NotFoundState } from '@/components/NotFoundState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PanelLayout } from '@/layouts/PanelLayout';
 import { requireSession } from '@/lib/auth-guards';
+import { setPracticeTimeZone } from '@/lib/datetime';
 import { planQueryOptions } from '@/lib/plan';
 import { sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import { createFileRoute, Outlet } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/_auth')({
-    beforeLoad: ({ context, location }) =>
-        requireSession({ ...context, location }),
+    // Before any guarded loader reads or builds a date (#265).
+    beforeLoad: async ({ context, location }) => {
+        const session = await requireSession({ ...context, location });
+        setPracticeTimeZone(session.organization?.timezone);
+    },
     // Reads the subscription and the plan once for the whole panel (banner,
     // read-only and per-plan affordances observe them via `useSubscription`
     // and `usePlan`). A user with no active membership has no organization

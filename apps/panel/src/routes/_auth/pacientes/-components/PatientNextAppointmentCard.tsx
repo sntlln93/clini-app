@@ -6,6 +6,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { DateTime, fromInstant, toInstant } from '@/lib/datetime';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
 import { CalendarDays } from 'lucide-react';
@@ -16,7 +17,7 @@ type PatientNextAppointmentCardProps = {
 };
 
 function formatNextAppointment(iso: string): string {
-    return new Date(iso).toLocaleString('es-AR', {
+    return fromInstant(iso).toLocaleString({
         weekday: 'long',
         day: 'numeric',
         month: 'long',
@@ -31,7 +32,7 @@ export function PatientNextAppointmentCard({
 }: PatientNextAppointmentCardProps) {
     // With nothing upcoming, the agenda opens on today, where a new appointment would be booked.
     const search = agendaDaySearch(
-        appointment?.start_at ?? new Date().toISOString(),
+        appointment?.start_at ?? toInstant(DateTime.now()),
     );
 
     return (

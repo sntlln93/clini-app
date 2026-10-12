@@ -1,6 +1,7 @@
 import { cleanup } from '@testing-library/react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
+import { setPracticeTimeZone } from '@/lib/datetime';
 import { resetDocument } from '@/tests/reset-document';
 
 afterEach(() => {
@@ -51,4 +52,9 @@ Object.defineProperty(window, 'matchMedia', {
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
     })),
+});
+
+// A test that moves the practice's zone (`setPracticeTimeZone`) must not leak it into the next one.
+afterEach(() => {
+    setPracticeTimeZone(null);
 });

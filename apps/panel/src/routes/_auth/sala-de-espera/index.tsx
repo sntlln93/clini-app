@@ -2,6 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import { DateTime, toInstant } from '@/lib/datetime';
 import { titleHead } from '@/lib/page-title';
 import { planIncludes, planQueryOptions } from '@/lib/plan';
 import { createFileRoute } from '@tanstack/react-router';
@@ -34,7 +35,7 @@ export const Route = createFileRoute('/_auth/sala-de-espera/')({
         // A failed auto-refresh keeps the cached data and its timestamp, so a stale screen shows an old time.
         const updatedAt =
             context.queryClient.getQueryState(waitingRoomQueryKey(range))
-                ?.dataUpdatedAt || Date.now();
+                ?.dataUpdatedAt || DateTime.now().toMillis();
 
         return {
             available: true as const,
@@ -86,7 +87,7 @@ function WaitingRoomScreen({
                     Actualizado a las{' '}
                     <time
                         className="tabular-nums"
-                        dateTime={new Date(updatedAt).toISOString()}
+                        dateTime={toInstant(DateTime.fromMillis(updatedAt))}
                     >
                         {formatClockTime(updatedAt)}
                     </time>

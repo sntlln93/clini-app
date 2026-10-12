@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import type { Availability, AvailabilityException } from '@/types/availability';
 import { describe, expect, it } from 'vitest';
 import { isOutsideAvailability } from '../-hooks/use-availability-warning';
@@ -29,8 +30,8 @@ function exception(
 
 describe('isOutsideAvailability', () => {
     it('returns false when the time falls inside a recurring slot for that weekday', () => {
-        const dateTime = new Date('2026-08-03T10:00:00');
-        const dayOfWeek = dateTime.getDay();
+        const dateTime = DateTime.fromISO('2026-08-03T10:00:00');
+        const dayOfWeek = dateTime.weekday % 7;
 
         const result = isOutsideAvailability(
             dateTime,
@@ -42,8 +43,8 @@ describe('isOutsideAvailability', () => {
     });
 
     it('returns true when the time falls outside every recurring slot on that weekday', () => {
-        const dateTime = new Date('2026-08-03T13:00:00');
-        const dayOfWeek = dateTime.getDay();
+        const dateTime = DateTime.fromISO('2026-08-03T13:00:00');
+        const dayOfWeek = dateTime.weekday % 7;
 
         const result = isOutsideAvailability(
             dateTime,
@@ -55,8 +56,8 @@ describe('isOutsideAvailability', () => {
     });
 
     it('returns true when the weekday has no recurring slot at all', () => {
-        const dateTime = new Date('2026-08-03T10:00:00');
-        const otherWeekday = (dateTime.getDay() + 1) % 7;
+        const dateTime = DateTime.fromISO('2026-08-03T10:00:00');
+        const otherWeekday = ((dateTime.weekday % 7) + 1) % 7;
 
         const result = isOutsideAvailability(
             dateTime,
@@ -68,8 +69,8 @@ describe('isOutsideAvailability', () => {
     });
 
     it('returns true when the time is inside a recurring slot but covered by a blocked exception window', () => {
-        const dateTime = new Date('2026-08-03T10:00:00');
-        const dayOfWeek = dateTime.getDay();
+        const dateTime = DateTime.fromISO('2026-08-03T10:00:00');
+        const dayOfWeek = dateTime.weekday % 7;
 
         const result = isOutsideAvailability(
             dateTime,
@@ -87,8 +88,8 @@ describe('isOutsideAvailability', () => {
     });
 
     it('returns false when the time is outside every recurring slot but covered by an extra exception', () => {
-        const dateTime = new Date('2026-08-03T13:00:00');
-        const dayOfWeek = dateTime.getDay();
+        const dateTime = DateTime.fromISO('2026-08-03T13:00:00');
+        const dayOfWeek = dateTime.weekday % 7;
 
         const result = isOutsideAvailability(
             dateTime,
@@ -107,8 +108,8 @@ describe('isOutsideAvailability', () => {
 
     describe('boundary behavior', () => {
         it('treats a slot start_time as inside (inclusive lower bound)', () => {
-            const dateTime = new Date('2026-08-03T09:00:00');
-            const dayOfWeek = dateTime.getDay();
+            const dateTime = DateTime.fromISO('2026-08-03T09:00:00');
+            const dayOfWeek = dateTime.weekday % 7;
 
             const result = isOutsideAvailability(
                 dateTime,
@@ -126,8 +127,8 @@ describe('isOutsideAvailability', () => {
         });
 
         it('treats a slot end_time as outside (exclusive upper bound)', () => {
-            const dateTime = new Date('2026-08-03T12:00:00');
-            const dayOfWeek = dateTime.getDay();
+            const dateTime = DateTime.fromISO('2026-08-03T12:00:00');
+            const dayOfWeek = dateTime.weekday % 7;
 
             const result = isOutsideAvailability(
                 dateTime,
@@ -145,8 +146,8 @@ describe('isOutsideAvailability', () => {
         });
 
         it('treats an exception window start_at as covered (inclusive lower bound)', () => {
-            const dateTime = new Date('2026-08-03T09:30:00');
-            const dayOfWeek = dateTime.getDay();
+            const dateTime = DateTime.fromISO('2026-08-03T09:30:00');
+            const dayOfWeek = dateTime.weekday % 7;
 
             const result = isOutsideAvailability(
                 dateTime,
@@ -164,8 +165,8 @@ describe('isOutsideAvailability', () => {
         });
 
         it('treats an exception window end_at as no longer covered (exclusive upper bound)', () => {
-            const dateTime = new Date('2026-08-03T10:00:00');
-            const dayOfWeek = dateTime.getDay();
+            const dateTime = DateTime.fromISO('2026-08-03T10:00:00');
+            const dayOfWeek = dateTime.weekday % 7;
 
             const result = isOutsideAvailability(
                 dateTime,

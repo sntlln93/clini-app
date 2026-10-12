@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { DateTime, fromInstant } from '@/lib/datetime';
 import type { Subscription, SubscriptionStatus } from '@/types/subscription';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 
@@ -37,15 +38,13 @@ export function scrollToSubscriptionSection(): void {
         ?.scrollIntoView({ block: 'start' });
 }
 
-const DATE_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-});
-
 /** e.g. «3 de noviembre de 2026». */
 export function formatSubscriptionDate(iso: string): string {
-    return DATE_FORMAT.format(new Date(iso));
+    return fromInstant(iso).toLocaleString({
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+    });
 }
 
 /**
@@ -69,13 +68,13 @@ export function isSubscriptionCancellable(
  */
 export function paidPeriodEnd(
     subscription: Subscription,
-    now: Date = new Date(),
+    now: DateTime = DateTime.now(),
 ): string | null {
     const renewal = subscription.next_payment_at;
 
     return subscription.status === 'active' &&
         renewal !== null &&
-        new Date(renewal).getTime() > now.getTime()
+        fromInstant(renewal) > now
         ? renewal
         : null;
 }

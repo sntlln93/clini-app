@@ -92,3 +92,71 @@ describe('eslint no-restricted-syntax: router.invalidate()', () => {
         LINT_TIMEOUT,
     );
 });
+
+describe('eslint: dates go through @/lib/datetime (#265)', () => {
+    it.each([
+        'export const now = new Date();',
+        'export const now = Date.now();',
+        "export const format = new Intl.DateTimeFormat('es-AR');",
+        'export const label = (d: { toLocaleTimeString(): string }) => d.toLocaleTimeString();',
+    ])(
+        'bans native date handling in app code: %s',
+        async (code) => {
+            const messages = await lintRestrictedSyntaxMessages(
+                'src/routes/_auth/agenda/-components/thing.ts',
+                code,
+            );
+
+            expect(messages).toHaveLength(1);
+            expect(messages[0].message).toContain('@/lib/datetime');
+        },
+        LINT_TIMEOUT,
+    );
+
+    it(
+        'still lets the router.invalidate() exempt files see the date ban',
+        async () => {
+            const messages = await lintRestrictedSyntaxMessages(
+                'src/lib/page-data.ts',
+                'export const now = new Date();',
+            );
+
+            expect(messages).toHaveLength(1);
+        },
+        LINT_TIMEOUT,
+    );
+
+    it(
+        'lets tests build a native Date for fake timers',
+        async () => {
+            const messages = await lintRestrictedSyntaxMessages(
+                'src/routes/_auth/agenda/-tests/thing.test.ts',
+                "export const now = new Date('2026-08-03T10:00:00');",
+            );
+
+            expect(messages).toHaveLength(0);
+        },
+        LINT_TIMEOUT,
+    );
+
+    it.each([
+        'src/routes/_auth/agenda/-components/thing.ts',
+        'src/components/Thing.tsx',
+        'src/lib/api.ts',
+    ])(
+        'bans importing luxon directly in %s',
+        async (filePath) => {
+            const results = await newEslint().lintText(
+                "import { DateTime } from 'luxon';\nexport const now = DateTime.now();\n",
+                { filePath, warnIgnored: false },
+            );
+
+            expect(
+                results[0].messages.filter(
+                    (m) => m.ruleId === 'no-restricted-imports',
+                ),
+            ).toHaveLength(1);
+        },
+        LINT_TIMEOUT,
+    );
+});

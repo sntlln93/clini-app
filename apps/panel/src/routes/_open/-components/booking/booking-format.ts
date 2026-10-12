@@ -1,3 +1,4 @@
+import { fromInstant } from '@/lib/datetime';
 import { formatPriceCents } from '@/lib/price';
 import type { BookingProfessional, BookingService } from '@/types/booking';
 
@@ -18,12 +19,11 @@ export function serviceOptionLabel(service: BookingService): string {
         .join(' · ');
 }
 
+// The booking page is the practice's own, but outside `_auth`: its zone travels explicitly instead of as Luxon's default.
 export function formatSlotTime(isoInstant: string, timeZone: string): string {
-    return new Intl.DateTimeFormat('es-AR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone,
-    }).format(new Date(isoInstant));
+    return fromInstant(isoInstant)
+        .setZone(timeZone)
+        .toLocaleString({ hour: '2-digit', minute: '2-digit' });
 }
 
 /** e.g. "lunes, 3 de agosto, 10:00 GMT-3": the zone is spelled out since the practice's may differ from the patient's. */
@@ -31,13 +31,12 @@ export function formatSlotDateTime(
     isoInstant: string,
     timeZone: string,
 ): string {
-    return new Intl.DateTimeFormat('es-AR', {
+    return fromInstant(isoInstant).setZone(timeZone).toLocaleString({
         weekday: 'long',
         day: 'numeric',
         month: 'long',
         hour: '2-digit',
         minute: '2-digit',
-        timeZone,
         timeZoneName: 'short',
-    }).format(new Date(isoInstant));
+    });
 }
