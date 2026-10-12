@@ -2,6 +2,7 @@ import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
 import { AppointmentStatusLegend } from '@/features/appointment-status/AppointmentStatusLegend';
+import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
@@ -175,9 +176,9 @@ function AgendaPage() {
                 />
 
                 {professionals.length === 0 && (
-                    <p className="px-5 pb-5 text-sm text-muted-foreground">
-                        Todavía no hay profesionales en esta organización.
-                    </p>
+                    <div className="px-5 pb-5">
+                        <NoProfessionalsEmptyState description="Invitá a un profesional para empezar a cargar turnos." />
+                    </div>
                 )}
 
                 {noneVisibleFromFilter && (

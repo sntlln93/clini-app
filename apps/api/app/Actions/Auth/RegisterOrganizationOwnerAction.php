@@ -12,15 +12,23 @@ use App\Enums\MembershipStatus;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
+use App\Support\OrganizationPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
+ * An owner who also attends patients (#278) starts as a professional too,
+ * through the same plan rule as any other professional joining.
+ *
  * @implements Action<OrganizationOwnerRegistrationData>
  */
 class RegisterOrganizationOwnerAction implements Action
 {
+    public function __construct(
+        private readonly OrganizationPlan $plans,
+    ) {}
+
     /**
      * @param  OrganizationOwnerRegistrationData  $dto
      */
@@ -39,10 +47,17 @@ class RegisterOrganizationOwnerAction implements Action
                 'timezone' => $dto->timezone,
             ]);
 
+            $roles = [MembershipRole::Owner];
+
+            if ($dto->attendsPatients) {
+                $this->plans->ensureAllowsMember($organization->id, [MembershipRole::Professional]);
+                $roles[] = MembershipRole::Professional;
+            }
+
             Membership::create([
                 'organization_id' => $organization->id,
                 'user_id' => $user->id,
-                'roles' => [MembershipRole::Owner],
+                'roles' => $roles,
                 'status' => MembershipStatus::Active,
             ]);
 

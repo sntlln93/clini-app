@@ -24,6 +24,7 @@ class RegisterRequest extends FormRequest
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'organization_name' => ['required', 'string', 'max:255'],
             'timezone' => ['required', 'string', 'timezone'],
+            'attends_patients' => ['sometimes', 'boolean'],
         ];
     }
 }

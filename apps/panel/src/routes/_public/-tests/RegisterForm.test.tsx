@@ -104,8 +104,32 @@ describe('RegisterForm', () => {
                 organization_name: 'Consultorio Ana',
                 password: 'secreta123',
                 password_confirmation: 'secreta123',
+                attends_patients: true,
                 timezone: STUB_TIMEZONE,
             }),
+        );
+    });
+
+    it('registers the owner as a professional by default, and not once unticked', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+        });
+        renderRegisterForm();
+        await fillForm();
+
+        const attends = screen.getByRole('checkbox', {
+            name: 'También atiendo pacientes',
+        });
+        expect(attends.getAttribute('aria-checked')).toBe('true');
+
+        fireEvent.click(attends);
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/register',
+                expect.objectContaining({ attends_patients: false }),
+            ),
         );
     });
 
