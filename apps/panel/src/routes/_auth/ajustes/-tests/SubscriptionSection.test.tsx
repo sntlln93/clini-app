@@ -517,6 +517,23 @@ describe('SubscriptionSection', () => {
             ).toBeNull();
         });
 
+        it('describes Free without a limit when its appointments are unlimited', () => {
+            renderSection(null, {
+                plan: buildPlan('free', {
+                    appointment_limit: null,
+                    appointment_warning_threshold: null,
+                }),
+            });
+
+            const detail = plainText(
+                screen.getByText(/Consultorio suma equipo con roles/),
+            );
+            expect(detail).toContain(
+                'Incluye 1 profesional, turnos sin límite,',
+            );
+            expect(detail).not.toContain('40');
+        });
+
         it('shows the monthly amount Consultorio charges with the active professionals', () => {
             renderSection(subscription({ amount: 25000 }), {
                 plan: buildPlan('practice', { active_professionals: 7 }),

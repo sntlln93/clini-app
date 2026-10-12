@@ -173,6 +173,21 @@ describe('SubscriptionBanner', () => {
             'a paid plan, however many appointments',
             buildPlan('practice', { appointments_this_month: 120 }),
         ],
+        [
+            'Free with no appointment limit, however many appointments',
+            buildPlan('free', {
+                appointment_limit: null,
+                appointment_warning_threshold: null,
+                appointments_this_month: 120,
+            }),
+        ],
+        [
+            'Free below the limit with the warning off',
+            buildPlan('free', {
+                appointment_warning_threshold: null,
+                appointments_this_month: 39,
+            }),
+        ],
     ])('says nothing about the monthly appointments for %s', (_label, plan) => {
         const { container } = renderBanner(null, plan);
 
@@ -201,6 +216,20 @@ describe('SubscriptionBanner', () => {
             'Llegaste a los 40 turnos de este mes que incluye el plan Gratis.',
         );
         expect(banner.textContent).not.toContain('solo lectura');
+    });
+
+    it('still says the month is full when the warning is off', () => {
+        renderBanner(
+            null,
+            buildPlan('free', {
+                appointment_warning_threshold: null,
+                appointments_this_month: 40,
+            }),
+        );
+
+        expect(screen.getByRole('alert').textContent).toContain(
+            'Llegaste a los 40 turnos de este mes que incluye el plan Gratis.',
+        );
     });
 
     it('keeps the professional limit notice over the monthly appointments', () => {
