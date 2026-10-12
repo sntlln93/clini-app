@@ -21,7 +21,7 @@ return new class extends Migration
             $table->string('mime_type', 32);
             $table->string('path');
             $table->string('checksum', 64);
-            $table->timestamps();
+            $table->timestampsTz();
         });
     }
 

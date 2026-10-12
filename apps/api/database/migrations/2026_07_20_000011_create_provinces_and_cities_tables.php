@@ -34,7 +34,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('province_id')->constrained()->restrictOnDelete();
             $table->string('name');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['province_id', 'name']);
         });

@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->foreignId('patient_id')->constrained()->cascadeOnDelete();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['organization_id', 'patient_id']);
         });

@@ -179,7 +179,7 @@ class ComputePlatformOverviewAction implements Action
     {
         return $this->createdBetween($query, $fromUtc, $toUtcExclusive)
             ->toBase()
-            ->selectRaw("to_char((created_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$timezone])
+            ->selectRaw("to_char(created_at AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$timezone])
             ->groupBy('day')
             ->pluck('aggregate', 'day')
             ->map(fn (mixed $count): int => $this->toInt($count))

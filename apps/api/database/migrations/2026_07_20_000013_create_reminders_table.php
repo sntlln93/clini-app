@@ -19,9 +19,9 @@ return new class extends Migration
             $table->foreignId('appointment_id');
             $table->string('channel');
             $table->string('status')->default('pending');
-            $table->timestamp('scheduled_at');
-            $table->timestamp('sent_at')->nullable();
-            $table->timestamps();
+            $table->dateTimeTz('scheduled_at');
+            $table->dateTimeTz('sent_at')->nullable();
+            $table->timestampsTz();
 
             $table->foreign(['appointment_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('appointments')->cascadeOnDelete();

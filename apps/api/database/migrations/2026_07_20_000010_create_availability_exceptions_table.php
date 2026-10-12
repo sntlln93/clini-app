@@ -18,10 +18,10 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->nullable();
             $table->string('type');
-            $table->timestamp('start_at');
-            $table->timestamp('end_at');
+            $table->dateTimeTz('start_at');
+            $table->dateTimeTz('end_at');
             $table->string('reason')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();

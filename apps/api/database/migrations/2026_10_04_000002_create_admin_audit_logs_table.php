@@ -24,7 +24,7 @@ return new class extends Migration
             $table->unsignedBigInteger('subject_id')->nullable();
             $table->jsonb('metadata')->default('{}');
             $table->string('ip', 45)->nullable();
-            $table->timestamp('created_at')->useCurrent();
+            $table->dateTimeTz('created_at')->useCurrent();
 
             $table->index(['subject_type', 'subject_id']);
             $table->index(['platform_admin_id', 'created_at']);

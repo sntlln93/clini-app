@@ -21,8 +21,8 @@ return new class extends Migration
             $table->json('extra_permissions')->default('[]');
             $table->string('status')->default('active');
             $table->string('slug')->nullable()->index();
-            $table->timestamps();
-            $table->softDeletes();
+            $table->timestampsTz();
+            $table->softDeletesTz();
 
             $table->unique(['organization_id', 'user_id']);
             $table->unique(['id', 'organization_id']);

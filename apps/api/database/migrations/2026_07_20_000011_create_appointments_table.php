@@ -23,19 +23,19 @@ return new class extends Migration
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('origin')->default('manual');
             $table->string('status')->default('scheduled');
-            $table->timestamp('start_at');
-            $table->timestamp('end_at');
+            $table->dateTimeTz('start_at');
+            $table->dateTimeTz('end_at');
             $table->string('reason')->nullable();
-            $table->timestamp('confirmed_at')->nullable();
-            $table->timestamp('arrived_at')->nullable();
-            $table->timestamp('completed_at')->nullable();
-            $table->timestamp('cancelled_at')->nullable();
+            $table->dateTimeTz('confirmed_at')->nullable();
+            $table->dateTimeTz('arrived_at')->nullable();
+            $table->dateTimeTz('completed_at')->nullable();
+            $table->dateTimeTz('cancelled_at')->nullable();
             $table->foreignId('cancelled_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('cancellation_reason')->nullable();
             $table->foreignId('rescheduled_from_id')->nullable();
             $table->text('notes')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
+            $table->timestampsTz();
+            $table->softDeletesTz();
 
             $table->index(['membership_id', 'start_at']);
 

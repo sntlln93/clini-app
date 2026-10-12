@@ -22,7 +22,7 @@ return new class extends Migration
             $table->integer('price_cents')->nullable();
             $table->string('currency')->default('ARS');
             $table->boolean('active')->default(true);
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['membership_id', 'service_id']);
 

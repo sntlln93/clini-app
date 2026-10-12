@@ -98,6 +98,8 @@ return [
             'prefix' => '',
             'prefix_indexes' => true,
             'search_path' => 'public',
+            // Laravel binds dates without an offset, and timestamptz columns read those in the session zone: pin it to the app's (#265).
+            'timezone' => 'UTC',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 

@@ -83,7 +83,7 @@ class ComputePlatformStatsAction implements Action
         $total = array_sum($byStatus);
 
         $perDayRows = $query()
-            ->selectRaw("to_char((start_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM-DD') as day, origin, count(*) as aggregate", [$dto->timezone])
+            ->selectRaw("to_char(start_at AT TIME ZONE ?, 'YYYY-MM-DD') as day, origin, count(*) as aggregate", [$dto->timezone])
             ->groupBy('day', 'origin')
             ->get();
 
@@ -125,14 +125,14 @@ class ComputePlatformStatsAction implements Action
                 ->where('created_at', '>=', $fromUtc)
                 ->where('created_at', '<', $toUtcExclusive)
                 ->toBase()
-                ->selectRaw("to_char((created_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone])
+                ->selectRaw("to_char(created_at AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone])
             : DB::table('organization_patient')
                 ->join('patients', 'patients.id', '=', 'organization_patient.patient_id')
                 ->whereNull('patients.deleted_at')
                 ->where('organization_patient.organization_id', $dto->organizationId)
                 ->where('organization_patient.created_at', '>=', $fromUtc)
                 ->where('organization_patient.created_at', '<', $toUtcExclusive)
-                ->selectRaw("to_char((organization_patient.created_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone]);
+                ->selectRaw("to_char(organization_patient.created_at AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone]);
 
         $counts = $query->groupBy('day')->pluck('aggregate', 'day');
 
