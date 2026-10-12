@@ -18,7 +18,9 @@ test('a user with an active membership gets user fields plus organization, roles
         ->assertJsonPath('name', $user->name)
         ->assertJsonPath('email', $user->email)
         ->assertJsonPath('organization.id', $membership->organization_id)
-        ->assertJsonPath('organization.name', $membership->organization->name);
+        ->assertJsonPath('organization.name', $membership->organization->name)
+        // Ajustes builds the practice's booking link from it (#283).
+        ->assertJsonPath('organization.slug', $membership->organization->slug);
 
     expect($response->json('roles'))->not->toBeNull();
     expect($response->json('permissions'))->not->toBeNull();
