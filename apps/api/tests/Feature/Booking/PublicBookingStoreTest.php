@@ -6,13 +6,17 @@ use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
 use App\Enums\DocumentType;
 use App\Enums\ErrorCode;
+use App\Enums\Province as ProvinceSlug;
+use App\Models\Address;
 use App\Models\Appointment;
 use App\Models\Availability;
+use App\Models\City;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\ProfessionalService;
 use App\Models\Service;
+use App\Support\AppointmentCalendarEvent;
 use Carbon\CarbonImmutable;
 
 /**
@@ -80,6 +84,32 @@ test('store creates the appointment online, unauthenticated, with a derived end_
     expect($appointment->status)->toBe(AppointmentStatus::Scheduled);
     expect($appointment->start_at->format('Y-m-d H:i'))->toBe('2026-08-03 10:00');
     expect($appointment->end_at->format('Y-m-d H:i'))->toBe('2026-08-03 10:45');
+});
+
+test('the confirmation carries the practice address for the patient calendar event, and null without one', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createOnlineBookingFixture();
+    $payload = fn (string $startAt): array => [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => $startAt,
+        'patient' => bookingPatientPayload(),
+    ];
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", $payload('2026-08-03T10:00:00Z'))
+        ->assertCreated()
+        ->assertJsonPath('data.organization_address', null);
+
+    Address::factory()->create([
+        'addressable_id' => $organization->id,
+        'street' => 'Av. Pellegrini 1500',
+        'city_id' => City::factory()->inProvince(ProvinceSlug::SantaFe)->create(['name' => 'Rosario'])->id,
+        'country' => 'Argentina',
+    ]);
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", $payload('2026-08-03T11:00:00Z'))
+        ->assertCreated()
+        ->assertJsonPath('data.organization_address', 'Av. Pellegrini 1500, Rosario, Santa Fe, Argentina');
 });
 
 test('store with an unknown document_number creates the patient and links it to the organization from the slug', function () {
@@ -293,11 +323,14 @@ test('the 201 confirmation response exposes only confirmation data, no internal 
 
     $response->assertCreated();
     expect(array_keys($response->json('data')))->toEqualCanonicalizing([
-        'start_at', 'end_at', 'professional_name', 'service_name', 'organization_name',
+        'start_at', 'end_at', 'professional_name', 'service_name', 'organization_name', 'organization_address', 'calendar_uid',
     ]);
     expect($response->json('data.professional_name'))->toBe($membership->user->name);
     expect($response->json('data.service_name'))->toBe($service->name);
     expect($response->json('data.organization_name'))->toBe($organization->name);
+    // The reminder's .ics carries the same uid, so importing both keeps one event.
+    $appointment = Appointment::withoutGlobalScope('organization')->sole();
+    expect($response->json('data.calendar_uid'))->toBe(app(AppointmentCalendarEvent::class)->uidOf($appointment));
 });
 
 test('store with a membership_id from another organization returns 404 and creates no appointment or patient', function () {

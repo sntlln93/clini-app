@@ -4,9 +4,13 @@ declare(strict_types=1);
 
 namespace App\Mail\Appointments;
 
+use App\Data\Appointments\CalendarEventData;
 use App\Models\Appointment;
+use App\Support\AppointmentCalendarEvent;
+use App\Support\CalendarLink;
 use App\Support\OrganizationBranding;
 use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Attachment;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -15,7 +19,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * Sent by SendAppointmentReminderJob. Shows the organization's logo when its
- * plan includes BookingBranding (#239).
+ * plan includes BookingBranding (#239), and carries the appointment as a
+ * Google Calendar link and an `.ics` attachment (#295).
  */
 class AppointmentReminderMail extends Mailable
 {
@@ -49,7 +54,26 @@ class AppointmentReminderMail extends Mailable
                 'organizationName' => $organization?->name,
                 'logoUrl' => $organization === null ? null : app(OrganizationBranding::class)->of($organization)->logoUrl,
                 'startAt' => $startAt->translatedFormat('l d \\d\\e F \\d\\e Y \\a \\l\\a\\s H:i'),
+                'googleCalendarUrl' => CalendarLink::google($this->calendarEvent()),
             ],
         );
+    }
+
+    /**
+     * @return array<int, Attachment>
+     */
+    public function attachments(): array
+    {
+        $event = $this->calendarEvent();
+
+        return [
+            Attachment::fromData(fn (): string => CalendarLink::ics($event, now()), 'turno.ics')
+                ->withMime('text/calendar; charset=utf-8; method=PUBLISH'),
+        ];
+    }
+
+    private function calendarEvent(): CalendarEventData
+    {
+        return app(AppointmentCalendarEvent::class)->of($this->appointment);
     }
 }

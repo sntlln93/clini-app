@@ -49,6 +49,18 @@ const ROUTER_INVALIDATE_RESTRICTION = {
         'Do not call router.invalidate() directly: it does not refresh a read that lives only in a route loader (ensureQueryData returns the cached value). Use useRefreshPageData() from @/hooks/use-refresh-page-data in the mutation onSuccess instead — see ADR 0007.',
 };
 
+// buttonVariants() returns the base classes and the variant's side by side
+// without merging them, and Tailwind emits `.border-transparent` after
+// `.border-border`, so a raw call loses the outline variant's border (#295).
+// Wrap it in cn(), as Button itself does. Tests are exempt: the contrast
+// test reads the raw class string.
+const RAW_BUTTON_VARIANTS_RESTRICTION = {
+    selector:
+        "CallExpression[callee.name='buttonVariants']:not(CallExpression[callee.name='cn'] > CallExpression[callee.name='buttonVariants'])",
+    message:
+        "Wrap buttonVariants() in cn(): unmerged, the base's `border-transparent` overrides the variant's border color.",
+};
+
 // Dates go through Luxon, wrapped by src/lib/datetime.ts, in the reporting
 // zone rather than the browser's — #265. Native `Date` and
 // `Intl.DateTimeFormat` read the browser's zone unless told otherwise.
@@ -158,6 +170,7 @@ export default tseslint.config(
             'no-restricted-syntax': [
                 'error',
                 ...SSR_DIRECTIVE_RESTRICTIONS,
+                RAW_BUTTON_VARIANTS_RESTRICTION,
                 ROUTER_INVALIDATE_RESTRICTION,
                 ...NATIVE_DATE_RESTRICTIONS,
             ],
@@ -203,6 +216,7 @@ export default tseslint.config(
             'no-restricted-syntax': [
                 'error',
                 ...SSR_DIRECTIVE_RESTRICTIONS,
+                RAW_BUTTON_VARIANTS_RESTRICTION,
                 ...NATIVE_DATE_RESTRICTIONS,
             ],
         },

@@ -28,7 +28,7 @@ export function PlanFeatureNote({ children, className }: PlanFeatureNoteProps) {
                 to="/ajustes"
                 hash={SUBSCRIPTION_SECTION_ID}
                 onClick={scrollToSubscriptionSection}
-                className={buttonVariants({ size: 'sm', variant: 'link' })}
+                className={cn(buttonVariants({ size: 'sm', variant: 'link' }))}
             >
                 Ver planes
             </Link>

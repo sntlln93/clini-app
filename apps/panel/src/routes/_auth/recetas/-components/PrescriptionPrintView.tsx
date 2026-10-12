@@ -1,4 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
 import { ArrowLeft } from 'lucide-react';
@@ -22,7 +23,7 @@ export function PrescriptionPrintView({
                     <Link
                         to="/pacientes/$id"
                         params={{ id: prescription.patient_id }}
-                        className={buttonVariants({ variant: 'outline' })}
+                        className={cn(buttonVariants({ variant: 'outline' }))}
                     >
                         <ArrowLeft data-icon="inline-start" aria-hidden />
                         Volver a la ficha

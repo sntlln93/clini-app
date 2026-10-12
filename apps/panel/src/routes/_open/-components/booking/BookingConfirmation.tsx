@@ -8,6 +8,8 @@ import type {
     BookingService,
 } from '@/types/booking';
 
+import { BookingCalendarLinks } from './BookingCalendarLinks';
+
 type BookingConfirmationProps = {
     confirmation: BookingConfirmationData;
     timezone: string;
@@ -78,6 +80,8 @@ export function BookingConfirmation({
                 )}
                 {price && <DetailRow term="Precio" value={price} />}
             </dl>
+
+            <BookingCalendarLinks confirmation={confirmation} />
 
             <p className="text-sm text-muted-foreground">
                 Guardá estos datos. Si necesitás cancelar o reprogramar el

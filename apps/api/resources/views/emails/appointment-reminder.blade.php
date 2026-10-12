@@ -24,6 +24,14 @@
     </p>
 
     <p>
+        <a href="{{ $googleCalendarUrl }}" style="display: inline-block; padding: 10px 20px; background-color: #111827; color: #ffffff; text-decoration: none; border-radius: 6px;">Agregar a Google Calendar</a>
+    </p>
+
+    <p style="font-size: 14px; color: #4b5563;">
+        Para Apple Calendar, Outlook u otro calendario, abrí el archivo <strong>turno.ics</strong> adjunto.
+    </p>
+
+    <p>
         Si no podés asistir, contactate con la organización para reprogramar o cancelar tu turno.
     </p>
 </body>

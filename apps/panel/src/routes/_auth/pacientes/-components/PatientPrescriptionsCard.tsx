@@ -7,6 +7,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { fromInstant } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
 import { ExternalLink } from 'lucide-react';
@@ -65,10 +66,12 @@ export function PatientPrescriptionsCard({
                                     params={{ id: prescription.id }}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={buttonVariants({
-                                        size: 'sm',
-                                        variant: 'ghost',
-                                    })}
+                                    className={cn(
+                                        buttonVariants({
+                                            size: 'sm',
+                                            variant: 'ghost',
+                                        }),
+                                    )}
                                 >
                                     Ver / imprimir{' '}
                                     <span className="sr-only">

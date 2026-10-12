@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Booking;
 
 use App\Models\Appointment;
+use App\Support\AppointmentCalendarEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,7 +31,18 @@ class BookingConfirmationResource extends JsonResource
             'professional_name' => $appointment->membership?->user?->name,
             'service_name' => $appointment->service?->name,
             'organization_name' => $appointment->organization?->name,
+            // The patient's calendar event (#295): the practice's own public
+            // address, and the same opaque uid the reminder's .ics carries.
+            'organization_address' => $appointment->organization === null
+                ? null
+                : $this->calendarEvent()->locationOf($appointment->organization),
+            'calendar_uid' => $this->calendarEvent()->uidOf($appointment),
         ];
+    }
+
+    private function calendarEvent(): AppointmentCalendarEvent
+    {
+        return app(AppointmentCalendarEvent::class);
     }
 
     private function appointment(): Appointment
