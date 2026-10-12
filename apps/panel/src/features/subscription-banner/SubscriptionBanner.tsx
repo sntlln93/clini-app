@@ -6,6 +6,7 @@ import {
     formatSubscriptionDate,
     scrollToSubscriptionSection,
 } from '@/lib/subscription';
+import { cn } from '@/lib/utils';
 import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { Link } from '@tanstack/react-router';
@@ -140,7 +141,9 @@ export function SubscriptionBanner({
                     to="/ajustes"
                     hash={SUBSCRIPTION_SECTION_ID}
                     onClick={scrollToSubscriptionSection}
-                    className={buttonVariants({ size: 'sm', variant: 'link' })}
+                    className={cn(
+                        buttonVariants({ size: 'sm', variant: 'link' }),
+                    )}
                 >
                     Ver plan
                 </Link>

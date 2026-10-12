@@ -2,6 +2,7 @@ import { useId, useState } from 'react';
 
 import { buttonVariants } from '@/components/ui/button';
 import { DateTime } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
 import type { BookingConfirmation } from '@/types/booking';
 import { CalendarPlusIcon, DownloadIcon } from 'lucide-react';
 
@@ -41,7 +42,7 @@ export function BookingCalendarLinks({
                     href={googleCalendarUrl(event)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonVariants({ variant: 'outline' })}
+                    className={cn(buttonVariants({ variant: 'outline' }))}
                 >
                     <CalendarPlusIcon data-icon="inline-start" />
                     Google Calendar
@@ -50,7 +51,7 @@ export function BookingCalendarLinks({
                 <a
                     href={icsDataUrl(icsFile(event, stampedAt))}
                     download="turno.ics"
-                    className={buttonVariants({ variant: 'outline' })}
+                    className={cn(buttonVariants({ variant: 'outline' }))}
                 >
                     <DownloadIcon data-icon="inline-start" />
                     Descargar .ics

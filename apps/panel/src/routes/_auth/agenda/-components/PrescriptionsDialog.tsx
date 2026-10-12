@@ -12,6 +12,7 @@ import {
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { extractFormErrors } from '@/lib/form-errors';
 import { usePlanIncludes, useWritesRestricted } from '@/lib/plan';
+import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
 import { Link } from '@tanstack/react-router';
@@ -120,10 +121,12 @@ export function PrescriptionsDialog({
                                         to="/recetas/$id"
                                         params={{ id: prescription.id }}
                                         target="_blank"
-                                        className={buttonVariants({
-                                            size: 'sm',
-                                            variant: 'ghost',
-                                        })}
+                                        className={cn(
+                                            buttonVariants({
+                                                size: 'sm',
+                                                variant: 'ghost',
+                                            }),
+                                        )}
                                     >
                                         Imprimir
                                     </Link>

@@ -7,6 +7,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { DateTime, fromInstant, toInstant } from '@/lib/datetime';
+import { cn } from '@/lib/utils';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
 import { CalendarDays } from 'lucide-react';
@@ -43,10 +44,12 @@ export function PatientNextAppointmentCard({
                     <Link
                         to="/agenda"
                         search={search}
-                        className={buttonVariants({
-                            variant: 'outline',
-                            size: 'sm',
-                        })}
+                        className={cn(
+                            buttonVariants({
+                                variant: 'outline',
+                                size: 'sm',
+                            }),
+                        )}
                     >
                         <CalendarDays data-icon="inline-start" aria-hidden />
                         Ver en agenda

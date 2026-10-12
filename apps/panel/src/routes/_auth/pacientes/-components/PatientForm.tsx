@@ -5,6 +5,7 @@ import { Form } from '@/components/ui/form';
 import { ExistingPatientNotice } from '@/features/patient-form/ExistingPatientNotice';
 import { PatientFormFields } from '@/features/patient-form/PatientFormFields';
 import { usePatientForm } from '@/features/patient-form/use-patient-form';
+import { cn } from '@/lib/utils';
 import type { InsuranceProvider, Patient } from '@/types/patient';
 
 type PatientFormProps = {
@@ -47,14 +48,18 @@ export function PatientForm({ patient, insuranceProviders }: PatientFormProps) {
                         <Link
                             to="/pacientes/$id"
                             params={{ id: patient.id }}
-                            className={buttonVariants({ variant: 'outline' })}
+                            className={cn(
+                                buttonVariants({ variant: 'outline' }),
+                            )}
                         >
                             Cancelar
                         </Link>
                     ) : (
                         <Link
                             to="/pacientes"
-                            className={buttonVariants({ variant: 'outline' })}
+                            className={cn(
+                                buttonVariants({ variant: 'outline' }),
+                            )}
                         >
                             Cancelar
                         </Link>

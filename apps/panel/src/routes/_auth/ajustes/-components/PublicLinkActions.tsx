@@ -1,5 +1,6 @@
 import { Button, buttonVariants } from '@/components/ui/button';
 import { notifyError, notifySuccess } from '@/lib/toast';
+import { cn } from '@/lib/utils';
 import { Copy, ExternalLink } from 'lucide-react';
 
 /** The saved link only — an unsaved draft would hand out a URL that doesn't resolve yet. */
@@ -38,10 +39,12 @@ export function PublicLinkActions({
                     href={url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className={buttonVariants({
-                        variant: 'outline',
-                        size: 'sm',
-                    })}
+                    className={cn(
+                        buttonVariants({
+                            variant: 'outline',
+                            size: 'sm',
+                        }),
+                    )}
                 >
                     <ExternalLink data-icon="inline-start" />
                     Abrir
