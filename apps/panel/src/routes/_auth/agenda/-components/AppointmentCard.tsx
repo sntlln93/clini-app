@@ -82,7 +82,7 @@ export function AppointmentCard({
         canUpdate && (nextStatuses.length > 0 || canCancel || canReschedule);
     const hasRecordActions = canViewPatient || isOwnAppointment;
 
-    if (!hasUpdateActions && !hasRecordActions) {
+    if (!hasUpdateActions && !hasRecordActions && !reportedInsurance) {
         return content;
     }
 

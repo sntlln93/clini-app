@@ -359,6 +359,29 @@ describe('AppointmentCard', () => {
         expect(screen.queryByRole('button')).toBeNull();
     });
 
+    it('still opens a menu with the reported insurance when the card has no other action', async () => {
+        renderCard(
+            buildAppointment({
+                id: 1,
+                status: 'completed',
+                membership_id: 1,
+                reported_insurance_provider_id: 3,
+                reported_insurance_provider_name: 'OSDE',
+                reported_insurance_member_number: '123',
+            }),
+            true,
+            'default',
+            false,
+            2,
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByText('Obra social informada: OSDE · N° 123'),
+        ).toBeTruthy();
+    });
+
     it('does not show the Notas clínicas item when the session membership is a different membership', () => {
         renderCard(
             buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
