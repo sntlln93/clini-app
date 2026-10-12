@@ -71,7 +71,7 @@ final class CalendarLink
     {
         return str_replace(
             ['\\', ';', ',', "\r\n", "\n"],
-            ['\\\\', '\;', '\\,', '\\n', '\\n'],
+            ['\\\\', '\\;', '\\,', '\\n', '\\n'],
             $value,
         );
     }
