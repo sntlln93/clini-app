@@ -11,6 +11,7 @@ use App\Http\Resources\Appointments\AppointmentResource;
 use App\Models\Appointment;
 use App\Models\Membership;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
@@ -33,7 +34,7 @@ class WaitingRoomController extends Controller
 
         $appointments = Appointment::query()
             ->visibleTo($membership)
-            ->whereBetween('start_at', [$request->string('from')->toString(), $request->string('to')->toString()])
+            ->whereBetween('start_at', [CarbonImmutable::parse($request->string('from')->toString())->utc(), CarbonImmutable::parse($request->string('to')->toString())->utc()])
             ->where('status', AppointmentStatus::Arrived)
             ->with(['membership.user', 'patient', 'service'])
             ->orderBy('start_at')

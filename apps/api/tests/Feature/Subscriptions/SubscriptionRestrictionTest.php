@@ -134,7 +134,7 @@ test('an active subscription books an appointment end to end', function () {
         'membership_id' => $membership->id,
         'patient_id' => Patient::factory()->create()->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ])->assertCreated();
 });
 
@@ -142,7 +142,7 @@ test('reads stay allowed while the subscription is expired', function () {
     ['membership' => $membership, 'appointment' => $appointment] = restrictionFixture(SubscriptionStatus::Expired);
 
     $this->actingAs($membership->user)
-        ->getJson('/api/v1/appointments?from=2020-01-01T00:00:00&to=2030-01-01T00:00:00')
+        ->getJson('/api/v1/appointments?from=2020-01-01T00:00:00Z&to=2030-01-01T00:00:00Z')
         ->assertOk();
     $this->actingAs($membership->user)
         ->getJson("/api/v1/memberships/{$membership->id}/availabilities")

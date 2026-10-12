@@ -18,8 +18,8 @@ test('store creates a professional-scoped blocked exception with a reason', func
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
         'reason' => 'Turno médico personal',
     ]);
 
@@ -35,8 +35,8 @@ test('store creates an org-wide exception with membership_id null', function () 
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
-        'start_at' => '2026-12-25 00:00:00',
-        'end_at' => '2026-12-26 00:00:00',
+        'start_at' => '2026-12-25T00:00:00Z',
+        'end_at' => '2026-12-26T00:00:00Z',
         'reason' => 'Feriado',
     ]);
 
@@ -55,8 +55,8 @@ test('store creates an extra exception', function () {
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -69,8 +69,8 @@ test('store with type outside blocked or extra returns 422', function () {
     $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'holiday',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertStatus(422)->assertJsonValidationErrors('type');
 });
 
@@ -80,15 +80,15 @@ test('store with end_at <= start_at returns 422', function () {
     $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 11:00:00',
-        'end_at' => '2026-08-10 09:00:00',
+        'start_at' => '2026-08-10T11:00:00Z',
+        'end_at' => '2026-08-10T09:00:00Z',
     ])->assertStatus(422)->assertJsonValidationErrors('end_at');
 
     $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 09:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T09:00:00Z',
     ])->assertStatus(422)->assertJsonValidationErrors('end_at');
 });
 
@@ -99,8 +99,8 @@ test('store with a membership_id from another organization returns 422', functio
     $response = $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $otherOrgMembership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response->assertStatus(422);
@@ -113,15 +113,15 @@ test('store overlapping an existing exception of the same membership and type re
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 10:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T10:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -135,15 +135,15 @@ test('store overlapping an existing exception of the same membership but a diffe
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'extra',
-        'start_at' => '2026-08-10 10:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T10:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -157,15 +157,15 @@ test('store adjacent to an existing exception of the same membership and type re
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 11:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T11:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -178,16 +178,16 @@ test('store with merge true collapses two same-type conflicting exceptions into 
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
         'reason' => 'Original',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 10:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T10:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
         'reason' => 'Nuevo motivo',
         'merge' => true,
     ]);
@@ -195,8 +195,8 @@ test('store with merge true collapses two same-type conflicting exceptions into 
     $response->assertCreated();
     $rows = DB::table('availability_exceptions')->where('membership_id', $membership->id)->get();
     expect($rows)->toHaveCount(1);
-    expect($rows->first()->start_at)->toBe('2026-08-10 09:00:00');
-    expect($rows->first()->end_at)->toBe('2026-08-10 12:00:00');
+    expect($rows->first()->start_at)->toBe('2026-08-10 09:00:00+00');
+    expect($rows->first()->end_at)->toBe('2026-08-10 12:00:00+00');
     expect($rows->first()->reason)->toBe('Nuevo motivo');
 });
 
@@ -206,15 +206,15 @@ test('store fully contained within an existing exception of the same membership 
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 10:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T10:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -228,14 +228,14 @@ test('store of an org-wide exception overlapping an existing professional-scoped
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertCreated();
 });
 
@@ -245,14 +245,14 @@ test('store of an org-wide exception overlapping an existing org-wide one return
         'organization_id' => $membership->organization_id,
         'membership_id' => null,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
-        'start_at' => '2026-08-10 10:00:00',
-        'end_at' => '2026-08-10 12:00:00',
+        'start_at' => '2026-08-10T10:00:00Z',
+        'end_at' => '2026-08-10T12:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -266,14 +266,14 @@ test('index returns the organization exceptions ordered by start_at and never le
     $later = AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
-        'start_at' => '2026-08-15 09:00:00',
-        'end_at' => '2026-08-15 11:00:00',
+        'start_at' => '2026-08-15T09:00:00Z',
+        'end_at' => '2026-08-15T11:00:00Z',
     ]);
     $earlier = AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
-        'start_at' => '2026-08-01 09:00:00',
-        'end_at' => '2026-08-01 11:00:00',
+        'start_at' => '2026-08-01T09:00:00Z',
+        'end_at' => '2026-08-01T11:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->getJson('/api/v1/availability-exceptions');
@@ -317,16 +317,16 @@ test('update changes type, start_at, end_at and reason without self-colliding', 
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
         'reason' => 'Original',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'membership_id' => $membership->id,
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:30:00',
-        'end_at' => '2026-08-10 11:30:00',
+        'start_at' => '2026-08-10T09:30:00Z',
+        'end_at' => '2026-08-10T11:30:00Z',
         'reason' => 'Actualizado',
     ]);
 
@@ -343,15 +343,15 @@ test('update with membership_id null in the body does not reassign a professiona
         'organization_id' => $organization->id,
         'membership_id' => $professional->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'membership_id' => null,
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:30:00',
-        'end_at' => '2026-08-10 11:30:00',
+        'start_at' => '2026-08-10T09:30:00Z',
+        'end_at' => '2026-08-10T11:30:00Z',
     ]);
 
     $response->assertOk();
@@ -367,15 +367,15 @@ test('update with another membership_id in the body does not reassign the except
         'organization_id' => $organization->id,
         'membership_id' => $professional->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
 
     $response = $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'membership_id' => $another->id,
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:30:00',
-        'end_at' => '2026-08-10 11:30:00',
+        'start_at' => '2026-08-10T09:30:00Z',
+        'end_at' => '2026-08-10T11:30:00Z',
     ]);
 
     $response->assertOk();
@@ -389,15 +389,15 @@ test('an owner updating an org-wide exception fields succeeds and it stays org-w
         'organization_id' => $membership->organization_id,
         'membership_id' => null,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
         'reason' => 'Feriado',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:30:00',
-        'end_at' => '2026-08-10 11:30:00',
+        'start_at' => '2026-08-10T09:30:00Z',
+        'end_at' => '2026-08-10T11:30:00Z',
         'reason' => 'Actualizado',
     ]);
 
@@ -417,42 +417,42 @@ test('a professional holding only availability.manage.own gets 403 on update and
         'organization_id' => $organization->id,
         'membership_id' => $professional->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
     $anotherException = AvailabilityException::factory()->create([
         'organization_id' => $organization->id,
         'membership_id' => $another->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-11 09:00:00',
-        'end_at' => '2026-08-11 11:00:00',
+        'start_at' => '2026-08-11T09:00:00Z',
+        'end_at' => '2026-08-11T11:00:00Z',
     ]);
     $orgWideException = AvailabilityException::factory()->create([
         'organization_id' => $organization->id,
         'membership_id' => null,
         'type' => 'blocked',
-        'start_at' => '2026-08-12 09:00:00',
-        'end_at' => '2026-08-12 11:00:00',
+        'start_at' => '2026-08-12T09:00:00Z',
+        'end_at' => '2026-08-12T11:00:00Z',
     ]);
 
     $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$anotherException->id}", [
         'type' => 'blocked',
-        'start_at' => '2026-08-11 10:00:00',
-        'end_at' => '2026-08-11 12:00:00',
+        'start_at' => '2026-08-11T10:00:00Z',
+        'end_at' => '2026-08-11T12:00:00Z',
     ])->assertStatus(403);
     $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$anotherException->id}")->assertStatus(403);
 
     $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$orgWideException->id}", [
         'type' => 'blocked',
-        'start_at' => '2026-08-12 10:00:00',
-        'end_at' => '2026-08-12 12:00:00',
+        'start_at' => '2026-08-12T10:00:00Z',
+        'end_at' => '2026-08-12T12:00:00Z',
     ])->assertStatus(403);
     $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$orgWideException->id}")->assertStatus(403);
 
     $this->actingAs($professional->user)->patchJson("/api/v1/availability-exceptions/{$ownException->id}", [
         'type' => 'extra',
-        'start_at' => '2026-08-10 09:30:00',
-        'end_at' => '2026-08-10 11:30:00',
+        'start_at' => '2026-08-10T09:30:00Z',
+        'end_at' => '2026-08-10T11:30:00Z',
     ])->assertSuccessful();
     $this->actingAs($professional->user)->deleteJson("/api/v1/availability-exceptions/{$ownException->id}")->assertNoContent();
 });
@@ -483,42 +483,42 @@ test('a professional holding only availability.manage.own gets 403 on org-wide a
 
     $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertStatus(403);
 
     $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $another->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-11 09:00:00',
-        'end_at' => '2026-08-11 11:00:00',
+        'start_at' => '2026-08-11T09:00:00Z',
+        'end_at' => '2026-08-11T11:00:00Z',
     ])->assertStatus(403);
 
     $this->actingAs($professional->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $professional->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-12 09:00:00',
-        'end_at' => '2026-08-12 11:00:00',
+        'start_at' => '2026-08-12T09:00:00Z',
+        'end_at' => '2026-08-12T11:00:00Z',
     ])->assertSuccessful();
 
     $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
         'type' => 'blocked',
-        'start_at' => '2026-09-10 09:00:00',
-        'end_at' => '2026-09-10 11:00:00',
+        'start_at' => '2026-09-10T09:00:00Z',
+        'end_at' => '2026-09-10T11:00:00Z',
     ])->assertSuccessful();
 
     $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $another->id,
         'type' => 'blocked',
-        'start_at' => '2026-09-11 09:00:00',
-        'end_at' => '2026-09-11 11:00:00',
+        'start_at' => '2026-09-11T09:00:00Z',
+        'end_at' => '2026-09-11T11:00:00Z',
     ])->assertSuccessful();
 
     $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $professional->id,
         'type' => 'blocked',
-        'start_at' => '2026-09-12 09:00:00',
-        'end_at' => '2026-09-12 11:00:00',
+        'start_at' => '2026-09-12T09:00:00Z',
+        'end_at' => '2026-09-12T11:00:00Z',
     ])->assertSuccessful();
 });
 
@@ -532,8 +532,8 @@ test('update on an exception from another organization returns 403', function ()
 
     $this->actingAs($owner->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertStatus(403);
 });
 
@@ -559,14 +559,14 @@ test('a guest gets 401 on index, store, update and destroy', function () {
     $this->postJson('/api/v1/availability-exceptions', [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertStatus(401);
     $this->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ])->assertStatus(401);
     $this->deleteJson("/api/v1/availability-exceptions/{$exception->id}")->assertStatus(401);
 });
@@ -577,22 +577,22 @@ test('update of an exception to a range overlapping another exception of the sam
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
     ]);
     $other = AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 13:00:00',
-        'end_at' => '2026-08-10 15:00:00',
+        'start_at' => '2026-08-10T13:00:00Z',
+        'end_at' => '2026-08-10T15:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 14:00:00',
-        'end_at' => '2026-08-10 16:00:00',
+        'start_at' => '2026-08-10T14:00:00Z',
+        'end_at' => '2026-08-10T16:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -600,11 +600,11 @@ test('update of an exception to a range overlapping another exception of the sam
     expect($response->json('error.context'))->toHaveKeys(['merged', 'absorbed']);
 
     $updatedRow = DB::table('availability_exceptions')->where('id', $updated->id)->first();
-    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00');
-    expect($updatedRow->end_at)->toBe('2026-08-10 11:00:00');
+    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00+00');
+    expect($updatedRow->end_at)->toBe('2026-08-10 11:00:00+00');
     $otherRow = DB::table('availability_exceptions')->where('id', $other->id)->first();
-    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00');
-    expect($otherRow->end_at)->toBe('2026-08-10 15:00:00');
+    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00+00');
+    expect($otherRow->end_at)->toBe('2026-08-10 15:00:00+00');
 });
 
 test('update of an exception with merge true collapses it with another same-type exception into one row carrying the new reason', function () {
@@ -613,24 +613,24 @@ test('update of an exception with merge true collapses it with another same-type
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 11:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
         'reason' => 'Original',
     ]);
     $other = AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 13:00:00',
-        'end_at' => '2026-08-10 15:00:00',
+        'start_at' => '2026-08-10T13:00:00Z',
+        'end_at' => '2026-08-10T15:00:00Z',
         'reason' => 'Otro motivo',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 14:00:00',
-        'end_at' => '2026-08-10 16:00:00',
+        'start_at' => '2026-08-10T14:00:00Z',
+        'end_at' => '2026-08-10T16:00:00Z',
         'reason' => 'Nuevo motivo',
         'merge' => true,
     ]);
@@ -639,8 +639,8 @@ test('update of an exception with merge true collapses it with another same-type
     $rows = DB::table('availability_exceptions')->where('membership_id', $membership->id)->get();
     expect($rows)->toHaveCount(1);
     expect($rows->first()->id)->toBe($updated->id);
-    expect($rows->first()->start_at)->toBe('2026-08-10 13:00:00');
-    expect($rows->first()->end_at)->toBe('2026-08-10 16:00:00');
+    expect($rows->first()->start_at)->toBe('2026-08-10 13:00:00+00');
+    expect($rows->first()->end_at)->toBe('2026-08-10 16:00:00+00');
     expect($rows->first()->reason)->toBe('Nuevo motivo');
     expect(DB::table('availability_exceptions')->where('id', $other->id)->exists())->toBeFalse();
 });
@@ -651,33 +651,33 @@ test('update of an exception to a range fully contained within another same-type
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 10:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T10:00:00Z',
     ]);
     $other = AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 13:00:00',
-        'end_at' => '2026-08-10 17:00:00',
+        'start_at' => '2026-08-10T13:00:00Z',
+        'end_at' => '2026-08-10T17:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 14:00:00',
-        'end_at' => '2026-08-10 15:00:00',
+        'start_at' => '2026-08-10T14:00:00Z',
+        'end_at' => '2026-08-10T15:00:00Z',
     ]);
 
     $response->assertStatus(409);
     $response->assertJsonPath('error.code', 'availability.exception_already_covered');
 
     $updatedRow = DB::table('availability_exceptions')->where('id', $updated->id)->first();
-    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00');
-    expect($updatedRow->end_at)->toBe('2026-08-10 10:00:00');
+    expect($updatedRow->start_at)->toBe('2026-08-10 09:00:00+00');
+    expect($updatedRow->end_at)->toBe('2026-08-10 10:00:00+00');
     $otherRow = DB::table('availability_exceptions')->where('id', $other->id)->first();
-    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00');
-    expect($otherRow->end_at)->toBe('2026-08-10 17:00:00');
+    expect($otherRow->start_at)->toBe('2026-08-10 13:00:00+00');
+    expect($otherRow->end_at)->toBe('2026-08-10 17:00:00+00');
 });
 
 test('update of an exception to a range overlapping an exception of a different type returns 409 type_conflict and merge true still returns the same conflict', function () {
@@ -686,22 +686,22 @@ test('update of an exception to a range overlapping an exception of a different 
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 09:00:00',
-        'end_at' => '2026-08-10 10:00:00',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T10:00:00Z',
     ]);
     AvailabilityException::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
         'type' => 'extra',
-        'start_at' => '2026-08-10 13:00:00',
-        'end_at' => '2026-08-10 15:00:00',
+        'start_at' => '2026-08-10T13:00:00Z',
+        'end_at' => '2026-08-10T15:00:00Z',
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 14:00:00',
-        'end_at' => '2026-08-10 16:00:00',
+        'start_at' => '2026-08-10T14:00:00Z',
+        'end_at' => '2026-08-10T16:00:00Z',
     ]);
 
     $response->assertStatus(409);
@@ -711,11 +711,61 @@ test('update of an exception to a range overlapping an exception of a different 
     $retry = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$updated->id}", [
         'membership_id' => $membership->id,
         'type' => 'blocked',
-        'start_at' => '2026-08-10 14:00:00',
-        'end_at' => '2026-08-10 16:00:00',
+        'start_at' => '2026-08-10T14:00:00Z',
+        'end_at' => '2026-08-10T16:00:00Z',
         'merge' => true,
     ]);
 
     $retry->assertStatus(409);
     $retry->assertJsonPath('error.code', 'availability.exception_type_conflict');
+});
+
+test('store rejects a start_at or end_at without an offset with 422 (#265)', function () {
+    $membership = Membership::factory()->create();
+
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-10-12T09:00',
+        'end_at' => '2026-10-12T13:00',
+    ])->assertStatus(422)->assertJsonValidationErrors(['start_at', 'end_at']);
+
+    expect(AvailabilityException::count())->toBe(0);
+});
+
+test('store saves a block entered with the practice\'s offset as its UTC instant (#265)', function () {
+    $membership = Membership::factory()->create();
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-10-12T09:00:00-03:00',
+        'end_at' => '2026-10-12T13:00:00-03:00',
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.start_at', '2026-10-12T12:00:00.000000Z')
+        ->assertJsonPath('data.end_at', '2026-10-12T16:00:00.000000Z');
+    $row = DB::table('availability_exceptions')->where('membership_id', $membership->id)->first();
+    expect($row->start_at)->toBe('2026-10-12 12:00:00+00');
+    expect($row->end_at)->toBe('2026-10-12 16:00:00+00');
+});
+
+test('an exception sent with an offset is compared against the stored ones as an instant (#265)', function () {
+    $membership = Membership::factory()->create();
+    AvailabilityException::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'type' => 'extra',
+        'start_at' => '2026-10-12T12:00:00Z',
+        'end_at' => '2026-10-12T16:00:00Z',
+    ]);
+
+    // 10:00–11:00 in Buenos Aires overlaps the 09:00–13:00 extra stored above.
+    $this->actingAs($membership->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => $membership->id,
+        'type' => 'blocked',
+        'start_at' => '2026-10-12T10:00:00-03:00',
+        'end_at' => '2026-10-12T11:00:00-03:00',
+    ])->assertStatus(409)->assertJsonPath('error.code', 'availability.exception_type_conflict');
 });

@@ -20,7 +20,9 @@ test('a user with an active membership gets user fields plus organization, roles
         ->assertJsonPath('organization.id', $membership->organization_id)
         ->assertJsonPath('organization.name', $membership->organization->name)
         // Ajustes builds the practice's booking link from it (#283).
-        ->assertJsonPath('organization.slug', $membership->organization->slug);
+        ->assertJsonPath('organization.slug', $membership->organization->slug)
+        // The panel reads and enters every date in it (#265).
+        ->assertJsonPath('organization.timezone', $membership->organization->timezone);
 
     expect($response->json('roles'))->not->toBeNull();
     expect($response->json('permissions'))->not->toBeNull();

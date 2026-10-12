@@ -25,8 +25,8 @@ class SaveAvailabilityExceptionAction implements Action
     public function handle(Data $dto): AvailabilityException
     {
         return DB::transaction(function () use ($dto): AvailabilityException {
-            $start = Carbon::parse($dto->startAt);
-            $end = Carbon::parse($dto->endAt);
+            $start = Carbon::parse($dto->startAt)->setTimezone('UTC');
+            $end = Carbon::parse($dto->endAt)->setTimezone('UTC');
 
             $typeConflict = AvailabilityException::query()
                 ->strictlyOverlappingOtherType($dto->organizationId, $dto->membershipId, $dto->type, $start, $end, $dto->availabilityExceptionId)

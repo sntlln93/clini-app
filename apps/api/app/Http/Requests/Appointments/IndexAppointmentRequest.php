@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Appointments;
 
+use App\Rules\Iso8601Instant;
 use Illuminate\Foundation\Http\FormRequest;
 
 class IndexAppointmentRequest extends FormRequest
@@ -19,8 +20,8 @@ class IndexAppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'from' => ['required', 'date'],
-            'to' => ['required', 'date', 'after_or_equal:from'],
+            'from' => ['required', new Iso8601Instant],
+            'to' => ['required', new Iso8601Instant, 'after_or_equal:from'],
             'membership_id' => ['nullable', 'integer', 'exists:memberships,id'],
         ];
     }

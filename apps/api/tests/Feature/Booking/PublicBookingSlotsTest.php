@@ -425,3 +425,39 @@ test('a range across a midnight daylight-saving gap keeps every day anchored to 
         fn (string $start): string => CarbonImmutable::parse($start)->setTimezone('America/Santiago')->format('Y-m-d H:i'),
     )->all())->toBe(['2026-09-07 09:00', '2026-09-07 09:30']);
 });
+
+test('an appointment late in the practice\'s local day, already the next day in UTC, still blocks its slot (#265)', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+    $organization->update(['timezone' => 'America/Argentina/Buenos_Aires']);
+    Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'day_of_week' => 1,
+        'start_time' => '21:00:00',
+        'end_time' => '22:00:00',
+    ]);
+    // 21:30–22:00 in Buenos Aires on Monday 3 August is 00:30–01:00 UTC on the 4th.
+    Appointment::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'status' => AppointmentStatus::Scheduled,
+        'start_at' => '2026-08-04T00:30:00Z',
+        'end_at' => '2026-08-04T01:00:00Z',
+    ]);
+
+    $response = $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03'));
+
+    $response->assertOk();
+    expect(array_column($response->json('data'), 'start_at'))->toBe(['2026-08-04T00:00:00.000000Z']);
+});
+
+test('slot search takes calendar dates, not instants', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createSlotsFixture(30);
+
+    $this->getJson(slotsUrl($organization, $membership, $service, '2026-08-03T00:00:00Z'))
+        ->assertStatus(422)
+        ->assertJsonValidationErrors(['from', 'to']);
+});

@@ -73,8 +73,8 @@ class ListAvailableSlotsAction implements Action
         $busyAppointments = Appointment::withoutGlobalScope('organization')
             ->whereIn('membership_id', $membershipIds)
             ->whereNotIn('status', [AppointmentStatus::Cancelled, AppointmentStatus::Rescheduled])
-            ->where('start_at', '<', $rangeEnd)
-            ->where('end_at', '>', $cursor)
+            ->where('start_at', '<', $rangeEnd->utc())
+            ->where('end_at', '>', $cursor->utc())
             ->get(['start_at', 'end_at']);
 
         $now = CarbonImmutable::now($timezone);

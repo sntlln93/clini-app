@@ -7,6 +7,7 @@ namespace App\Http\Requests\Availability;
 use App\Enums\AvailabilityExceptionType;
 use App\Models\Membership;
 use App\Rules\BelongsToCurrentOrganization;
+use App\Rules\Iso8601Instant;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -25,8 +26,8 @@ class StoreAvailabilityExceptionRequest extends FormRequest
         return [
             'membership_id' => ['nullable', new BelongsToCurrentOrganization(Membership::class)],
             'type' => ['required', Rule::enum(AvailabilityExceptionType::class)],
-            'start_at' => ['required', 'date'],
-            'end_at' => ['required', 'date', 'after:start_at'],
+            'start_at' => ['required', new Iso8601Instant],
+            'end_at' => ['required', new Iso8601Instant, 'after:start_at'],
             'reason' => ['nullable', 'string', 'max:255'],
             'merge' => ['sometimes', 'boolean'],
         ];
