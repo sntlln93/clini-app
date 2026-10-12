@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use App\Models\InsuranceProvider;
 use App\Models\Organization;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Eloquent\Collection;
@@ -32,12 +33,25 @@ class DatabaseSeeder extends Seeder
         $this->call(OrganizationsSeeder::class);
         $this->call(InsuranceProviderSeeder::class);
         $this->call(CatalogSeeder::class);
+        $this->seedAcceptedInsuranceProviders();
 
         foreach ($this->fixtureOrganizations() as $organization) {
             $this->callWith(ProfessionalsSeeder::class, ['organization' => $organization]);
             $this->callWith(PatientsSeeder::class, ['organization' => $organization]);
             $this->callWith(SchedulingSeeder::class, ['organization' => $organization]);
         }
+    }
+
+    /**
+     * Organization A offers a few providers on its booking page (#291);
+     * organization B accepts none, so its page doesn't ask for one.
+     */
+    private function seedAcceptedInsuranceProviders(): void
+    {
+        $organization = Organization::query()->where('slug', OrganizationsSeeder::ORGANIZATION_A_SLUG)->firstOrFail();
+        $providerIds = InsuranceProvider::query()->whereIn('name', ['OSDE', 'Swiss Medical', 'Galeno'])->pluck('id');
+
+        $organization->acceptedInsuranceProviders()->syncWithoutDetaching($providerIds);
     }
 
     /**
