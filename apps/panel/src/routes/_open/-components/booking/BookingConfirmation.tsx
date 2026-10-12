@@ -12,8 +12,6 @@ import { BookingCalendarLinks } from './BookingCalendarLinks';
 
 type BookingConfirmationProps = {
     confirmation: BookingConfirmationData;
-    /** The practice's, for the calendar event's id. */
-    slug: string;
     timezone: string;
     /** The booked service as listed by the practice, for its duration and price; absent if it can no longer be resolved. */
     service?: BookingService;
@@ -44,7 +42,6 @@ function DetailRow({ term, value }: { term: string; value: string }) {
  */
 export function BookingConfirmation({
     confirmation,
-    slug,
     timezone,
     service,
     onBookAnother,
@@ -84,7 +81,7 @@ export function BookingConfirmation({
                 {price && <DetailRow term="Precio" value={price} />}
             </dl>
 
-            <BookingCalendarLinks confirmation={confirmation} slug={slug} />
+            <BookingCalendarLinks confirmation={confirmation} />
 
             <p className="text-sm text-muted-foreground">
                 Guardá estos datos. Si necesitás cancelar o reprogramar el

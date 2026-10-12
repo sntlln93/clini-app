@@ -161,6 +161,7 @@ function confirmedBooking() {
                 service_name: 'Consulta cardiológica',
                 organization_name: ORGANIZATION.name,
                 organization_address: null,
+                calendar_uid: 'abc@clini.test',
             },
         },
     };
@@ -199,6 +200,7 @@ describe('BookingPatientForm validation and submission', () => {
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
                     organization_address: null,
+                    calendar_uid: 'abc@clini.test',
                 },
             },
         });
@@ -501,6 +503,7 @@ describe('BookingPatientForm validation and submission', () => {
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
                     organization_address: null,
+                    calendar_uid: 'abc@clini.test',
                 },
             },
         });
@@ -536,6 +539,7 @@ describe('BookingPatientForm validation and submission', () => {
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
                     organization_address: null,
+                    calendar_uid: 'abc@clini.test',
                 },
             },
         });

@@ -20,7 +20,6 @@ const GOOGLE_TEMPLATE_URL = 'https://calendar.google.com/calendar/render';
 
 export function bookingCalendarEvent(
     confirmation: BookingConfirmation,
-    slug: string,
 ): CalendarEvent {
     const organization = confirmation.organization_name;
     const description = [
@@ -33,8 +32,7 @@ export function bookingCalendarEvent(
         .join('\n');
 
     return {
-        // The confirmation carries no appointment id; the slot and the practice identify the booking for the patient.
-        uid: `turno-${utcStamp(confirmation.start_at)}-${slug}@clini`,
+        uid: confirmation.calendar_uid,
         title: `Turno en ${organization}`,
         description,
         location: confirmation.organization_address,
@@ -63,13 +61,22 @@ export function googleCalendarUrl(event: CalendarEvent): string {
     return `${GOOGLE_TEMPLATE_URL}?${params.toString()}`;
 }
 
-/** RFC 5545 §3.3.11: backslash, semicolon and comma are escaped, newlines become `\n`. */
+/**
+ * RFC 5545 §3.3.11: backslash, semicolon and comma are escaped and any line
+ * break becomes `\n`. Other control characters are not TEXT and are dropped,
+ * so a name can't start a property line of its own.
+ */
 function icsText(value: string): string {
-    return value
-        .replace(/\\/g, '\\\\')
-        .replace(/;/g, '\\;')
-        .replace(/,/g, '\\,')
-        .replace(/\r?\n/g, '\\n');
+    return (
+        value
+            .replace(/\r\n|\r/g, '\n')
+            // eslint-disable-next-line no-control-regex -- stripping them is the point
+            .replace(/[\x00-\x08\x0B-\x1F\x7F]/g, '')
+            .replace(/\\/g, '\\\\')
+            .replace(/;/g, '\\;')
+            .replace(/,/g, '\\,')
+            .replace(/\n/g, '\\n')
+    );
 }
 
 const encoder = new TextEncoder();

@@ -65,7 +65,6 @@ export function BookingWizard({
         return (
             <BookingConfirmation
                 confirmation={confirmation}
-                slug={slug}
                 timezone={organization.timezone}
                 service={service}
                 onBookAnother={() => {

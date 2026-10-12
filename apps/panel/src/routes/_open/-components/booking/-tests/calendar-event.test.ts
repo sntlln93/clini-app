@@ -18,15 +18,16 @@ const CONFIRMATION: BookingConfirmation = {
     service_name: 'Consulta',
     organization_name: 'Consultorio Salud',
     organization_address: 'Av. Pellegrini 1500, Rosario, Santa Fe, Argentina',
+    calendar_uid: '0123456789abcdef0123456789abcdef@clini.test',
 };
 const STAMPED_AT = DateTime.fromISO('2026-07-20T12:00:00Z');
 
 describe('bookingCalendarEvent', () => {
     it('titles the event by the practice and describes professional and service', () => {
-        const event = bookingCalendarEvent(CONFIRMATION, 'salud');
+        const event = bookingCalendarEvent(CONFIRMATION);
 
         expect(event).toEqual({
-            uid: 'turno-20260803T130000Z-salud@clini',
+            uid: '0123456789abcdef0123456789abcdef@clini.test',
             title: 'Turno en Consultorio Salud',
             description:
                 'Profesional: Ana Gómez\nPrestación: Consulta\nSi necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
@@ -37,10 +38,11 @@ describe('bookingCalendarEvent', () => {
     });
 
     it('leaves out the lines whose name the API no longer resolves', () => {
-        const event = bookingCalendarEvent(
-            { ...CONFIRMATION, professional_name: null, service_name: null },
-            'salud',
-        );
+        const event = bookingCalendarEvent({
+            ...CONFIRMATION,
+            professional_name: null,
+            service_name: null,
+        });
 
         expect(event.description).toBe(
             'Si necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
@@ -51,7 +53,7 @@ describe('bookingCalendarEvent', () => {
 describe('googleCalendarUrl', () => {
     it('prefills title, UTC dates, details and location', () => {
         const url = new URL(
-            googleCalendarUrl(bookingCalendarEvent(CONFIRMATION, 'salud')),
+            googleCalendarUrl(bookingCalendarEvent(CONFIRMATION)),
         );
 
         expect(url.origin + url.pathname).toBe(
@@ -70,10 +72,10 @@ describe('googleCalendarUrl', () => {
     it('leaves the location out when the practice has no address', () => {
         const url = new URL(
             googleCalendarUrl(
-                bookingCalendarEvent(
-                    { ...CONFIRMATION, organization_address: null },
-                    'salud',
-                ),
+                bookingCalendarEvent({
+                    ...CONFIRMATION,
+                    organization_address: null,
+                }),
             ),
         );
 
@@ -84,10 +86,7 @@ describe('googleCalendarUrl', () => {
 describe('icsFile', () => {
     it('is a published VEVENT in UTC, CRLF-terminated, with escaped text', () => {
         const ics = icsFile(
-            bookingCalendarEvent(
-                { ...CONFIRMATION, professional_name: null },
-                'salud',
-            ),
+            bookingCalendarEvent({ ...CONFIRMATION, professional_name: null }),
             STAMPED_AT,
         );
 
@@ -99,7 +98,7 @@ describe('icsFile', () => {
                 'CALSCALE:GREGORIAN',
                 'METHOD:PUBLISH',
                 'BEGIN:VEVENT',
-                'UID:turno-20260803T130000Z-salud@clini',
+                'UID:0123456789abcdef0123456789abcdef@clini.test',
                 'DTSTAMP:20260720T120000Z',
                 'DTSTART:20260803T130000Z',
                 'DTEND:20260803T134500Z',
@@ -115,14 +114,11 @@ describe('icsFile', () => {
 
     it('has no LOCATION without an address and escapes semicolons and backslashes', () => {
         const ics = icsFile(
-            bookingCalendarEvent(
-                {
-                    ...CONFIRMATION,
-                    organization_name: 'Salud; Centro \\ Norte',
-                    organization_address: null,
-                },
-                'salud',
-            ),
+            bookingCalendarEvent({
+                ...CONFIRMATION,
+                organization_name: 'Salud; Centro \\ Norte',
+                organization_address: null,
+            }),
             STAMPED_AT,
         );
 
@@ -134,10 +130,10 @@ describe('icsFile', () => {
 
     it('folds lines over 75 octets without splitting a multibyte character', () => {
         const ics = icsFile(
-            bookingCalendarEvent(
-                { ...CONFIRMATION, organization_name: 'ñ'.repeat(100) },
-                'salud',
-            ),
+            bookingCalendarEvent({
+                ...CONFIRMATION,
+                organization_name: 'ñ'.repeat(100),
+            }),
             STAMPED_AT,
         );
         const encoder = new TextEncoder();
@@ -152,12 +148,26 @@ describe('icsFile', () => {
     });
 });
 
-describe('icsDataUrl', () => {
-    it('round-trips the file through a text/calendar data URL', () => {
+describe('icsFile control characters', () => {
+    it('turns any line break into an escaped newline and drops other control characters', () => {
         const ics = icsFile(
-            bookingCalendarEvent(CONFIRMATION, 'salud'),
+            bookingCalendarEvent({
+                ...CONFIRMATION,
+                organization_name: 'Ana\rLOCATION:otra\u0007 Gómez',
+                professional_name: 'uno\r\ndos\ttres',
+            }),
             STAMPED_AT,
         );
+
+        expect(ics).toContain('SUMMARY:Turno en Ana\\nLOCATION:otra Gómez\r\n');
+        expect(ics).toContain('DESCRIPTION:Profesional: uno\\ndos\ttres\\n');
+        expect(ics.split('\r\nLOCATION:')).toHaveLength(2);
+    });
+});
+
+describe('icsDataUrl', () => {
+    it('round-trips the file through a text/calendar data URL', () => {
+        const ics = icsFile(bookingCalendarEvent(CONFIRMATION), STAMPED_AT);
         const url = icsDataUrl(ics);
 
         expect(url.startsWith('data:text/calendar;charset=utf-8,')).toBe(true);

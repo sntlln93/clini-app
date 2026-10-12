@@ -12,13 +12,12 @@ const CONFIRMATION: BookingConfirmation = {
     service_name: 'Consulta',
     organization_name: 'Consultorio Salud',
     organization_address: null,
+    calendar_uid: '0123456789abcdef0123456789abcdef@clini.test',
 };
 
 describe('BookingCalendarLinks', () => {
     it('offers Google Calendar in a new tab and the .ics as a download, as links', () => {
-        render(
-            <BookingCalendarLinks confirmation={CONFIRMATION} slug="salud" />,
-        );
+        render(<BookingCalendarLinks confirmation={CONFIRMATION} />);
 
         const group = screen.getByRole('group', {
             name: 'Agregar a mi calendario',
@@ -40,9 +39,7 @@ describe('BookingCalendarLinks', () => {
 
     // Unmerged, the base's `border-transparent` is emitted after `border-border` and wins.
     it('keeps the outline border on both links', () => {
-        render(
-            <BookingCalendarLinks confirmation={CONFIRMATION} slug="salud" />,
-        );
+        render(<BookingCalendarLinks confirmation={CONFIRMATION} />);
 
         for (const link of screen.getAllByRole('link')) {
             const classes = link.className.split(' ');

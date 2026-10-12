@@ -15,7 +15,6 @@ import {
 
 type BookingCalendarLinksProps = {
     confirmation: BookingConfirmation;
-    slug: string;
 };
 
 /**
@@ -25,11 +24,10 @@ type BookingCalendarLinksProps = {
  */
 export function BookingCalendarLinks({
     confirmation,
-    slug,
 }: BookingCalendarLinksProps) {
     // Fixed once per confirmation, so a re-render doesn't change the file.
     const [stampedAt] = useState(() => DateTime.now());
-    const event = bookingCalendarEvent(confirmation, slug);
+    const event = bookingCalendarEvent(confirmation);
     const labelId = useId();
 
     return (
