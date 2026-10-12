@@ -39,12 +39,23 @@ const loader = Route.options.loader as (opts: {
     subscription: Subscription | null;
     plan: Plan | undefined;
     isOwner: boolean;
-    organizationLogo: { logo_url: string | null } | null;
+    organizationSettings: {
+        organizationLogo: { logo_url: string | null };
+        insuranceProviders: {
+            catalog: { id: number; name: string }[];
+            accepted: { id: number; name: string }[];
+        };
+    } | null;
 }>;
 
 const LOGO = { logo_url: 'http://localhost:8080/api/v1/booking/x/logo?v=1' };
 
 const PLAN = buildPlan('practice');
+
+const CATALOG = [
+    { id: 1, name: 'OSDE' },
+    { id: 2, name: 'Galeno' },
+];
 
 const GRACE_SUBSCRIPTION: Subscription = {
     status: 'grace',
@@ -80,6 +91,12 @@ function mockApiGet(
         }
         if (url === '/organization/logo') {
             return Promise.resolve({ data: { data: LOGO } });
+        }
+        if (url === '/insurance-providers') {
+            return Promise.resolve({ data: { data: CATALOG } });
+        }
+        if (url === '/organization/insurance-providers') {
+            return Promise.resolve({ data: { data: [CATALOG[0]] } });
         }
         if (url === '/plan') {
             return Promise.resolve({ data: { data: PLAN } });
@@ -214,12 +231,12 @@ describe('/ajustes loader subscription', () => {
     });
 });
 
-describe('/ajustes loader organization logo (#239)', () => {
+describe('/ajustes loader organization settings (#239, #291)', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
     });
 
-    it('loads the logo with organization.manage', async () => {
+    it('loads the logo and the insurance providers with organization.manage', async () => {
         mockApiGet({
             id: 10,
             name: 'Ana Ejemplo',
@@ -233,10 +250,13 @@ describe('/ajustes loader organization logo (#239)', () => {
         });
 
         expect(api.get).toHaveBeenCalledWith('/organization/logo');
-        expect(result.organizationLogo).toEqual(LOGO);
+        expect(result.organizationSettings).toEqual({
+            organizationLogo: LOGO,
+            insuranceProviders: { catalog: CATALOG, accepted: [CATALOG[0]] },
+        });
     });
 
-    it('never requests the logo without organization.manage', async () => {
+    it('never requests the logo or the accepted insurance providers without organization.manage', async () => {
         mockApiGet({
             id: 10,
             name: 'Ana Ejemplo',
@@ -250,7 +270,10 @@ describe('/ajustes loader organization logo (#239)', () => {
         });
 
         expect(api.get).not.toHaveBeenCalledWith('/organization/logo');
-        expect(result.organizationLogo).toBeNull();
+        expect(api.get).not.toHaveBeenCalledWith(
+            '/organization/insurance-providers',
+        );
+        expect(result.organizationSettings).toBeNull();
     });
 });
 
