@@ -10,6 +10,7 @@ export type ErrorCode =
     | 'memberships.last_active_admin'
     | 'organizations.no_active_membership'
     | 'patients.not_found'
+    | 'patients.insurance_member_number_taken'
     | 'memberships.invitation_invalid_or_expired'
     | 'auth.email_verification_invalid_or_expired'
     | 'booking.slot_not_available'
@@ -63,6 +64,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
     'patients.not_found':
         'No encontramos un paciente con ese documento. Revisá que esté bien escrito o creá un paciente nuevo si todavía no está registrado.',
+    'patients.insurance_member_number_taken':
+        'Ese número de afiliado ya está registrado para otro paciente de la misma obra social. Revisá que esté bien escrito.',
     'memberships.invitation_invalid_or_expired':
         'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
     'auth.email_verification_invalid_or_expired':
