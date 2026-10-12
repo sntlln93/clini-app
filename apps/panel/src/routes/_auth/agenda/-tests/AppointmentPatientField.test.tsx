@@ -80,6 +80,18 @@ describe('AppointmentPatientField', () => {
         ).toBeTruthy();
     });
 
+    // The search hits /patients, which also matches the member number (#290).
+    it('tells that the search also matches the member number', () => {
+        render(<Wrapper />);
+
+        expect(
+            screen.getByRole('textbox', { name: 'Buscar paciente' }),
+        ).toHaveProperty(
+            'placeholder',
+            'Buscar por nombre, documento o N° de afiliado…',
+        );
+    });
+
     it('shows no empty-state message while the search has results', () => {
         render(<Wrapper />);
 

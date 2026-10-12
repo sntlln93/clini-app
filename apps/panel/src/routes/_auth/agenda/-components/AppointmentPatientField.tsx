@@ -58,7 +58,7 @@ export function AppointmentPatientField({
                     {/* `FormLabel` names the Select below, so the search box needs its own accessible name. */}
                     <Input
                         aria-label="Buscar paciente"
-                        placeholder="Buscar por nombre o documento…"
+                        placeholder="Buscar por nombre, documento o N° de afiliado…"
                         value={patientQuery}
                         onChange={(event) =>
                             onPatientQueryChange(event.target.value)
