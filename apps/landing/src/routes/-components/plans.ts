@@ -22,7 +22,7 @@ export const PLANS: Plan[] = [
             'Atendés solo y querés dejar de coordinar turnos por WhatsApp.',
         features: [
             yes('1 profesional'),
-            yes('Hasta 40 turnos por mes'),
+            yes('Turnos sin límite'),
             yes('Reserva online con tu link'),
             yes('Recordatorios por mail'),
             yes('Notas clínicas por visita'),
@@ -34,8 +34,7 @@ export const PLANS: Plan[] = [
         id: 'consultorio',
         badge: 'Para la mayoría de los consultorios',
         name: 'Consultorio',
-        audience:
-            'Compartís el consultorio, tenés recepción o ya no te alcanzan 40 turnos.',
+        audience: 'Compartís el consultorio o tenés recepción.',
         features: [
             yes('5 profesionales incluidos, sin tope'),
             yes('Turnos sin límite'),
@@ -82,7 +81,7 @@ export const COMPARE: CompareGroup[] = [
             },
             {
                 label: 'Turnos por mes',
-                values: ['40', 'Sin límite', 'Sin límite'],
+                values: ['Sin límite', 'Sin límite', 'Sin límite'],
             },
             { label: 'Reserva online, 24 h', values: ['Sí', 'Sí', 'Sí'] },
             {

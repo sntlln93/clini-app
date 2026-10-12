@@ -38,6 +38,14 @@ describe('PricingSection', () => {
         screen.getByText(/Un solo pago al año con Mercado Pago/);
     });
 
+    it('offers the free plan with unlimited appointments, matching the API default (#300)', () => {
+        render(<PricingSection />);
+
+        const free = within(screen.getByRole('article', { name: 'Gratis' }));
+        free.getByText('Turnos sin límite');
+        expect(screen.queryByText(/40 turnos|35 turnos/)).toBeNull();
+    });
+
     it('marks what the free plan does not include', () => {
         render(<PricingSection />);
 
