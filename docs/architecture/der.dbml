@@ -304,6 +304,8 @@ Table appointments {
   cancellation_reason varchar [null]
   rescheduled_from_id bigint [null, note: 'previous appointment this one replaces, if rescheduled']
   notes text [null]
+  reported_insurance_provider_id bigint [null, note: 'insurance the patient reported when booking online (#291); self-reported, never copied to patients']
+  reported_insurance_member_number varchar(50) [null, note: 'goes with reported_insurance_provider_id, null without it']
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
@@ -322,6 +324,20 @@ Table insurance_providers {
   updated_at timestamp [not null]
 
   Note: 'Global catalog of health-insurance providers (obra social, CU-48). Stored now, fully used with billing later.'
+}
+
+Table accepted_insurance_providers {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  insurance_provider_id bigint [not null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (organization_id, insurance_provider_id) [unique]
+  }
+
+  Note: 'Insurance providers the practice works with (#291): the only ones its public booking page offers. Managed in Ajustes by owner/admin (organization.manage).'
 }
 
 Table addresses {
@@ -504,6 +520,9 @@ Ref: professional_specialties.user_id > users.id [delete: cascade]
 Ref: professional_specialties.specialty_id > specialties.id [delete: cascade]
 
 Ref: patients.insurance_provider_id > insurance_providers.id [delete: set null]
+Ref: appointments.reported_insurance_provider_id > insurance_providers.id [delete: set null]
+Ref: accepted_insurance_providers.organization_id > organizations.id [delete: cascade]
+Ref: accepted_insurance_providers.insurance_provider_id > insurance_providers.id [delete: cascade]
 Ref: patients.created_by > users.id [delete: set null]
 
 Ref: professional_services.organization_id > organizations.id [delete: restrict]

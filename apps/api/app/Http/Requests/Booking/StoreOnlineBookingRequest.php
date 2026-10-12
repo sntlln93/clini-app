@@ -6,6 +6,7 @@ namespace App\Http\Requests\Booking;
 
 use App\Actions\Booking\ListAvailableSlotsAction;
 use App\Enums\DocumentType;
+use App\Models\AcceptedInsuranceProvider;
 use App\Models\Organization;
 use App\Rules\Iso8601Instant;
 use App\Support\CurrentOrganization;
@@ -15,6 +16,14 @@ use Illuminate\Validation\Rule;
 
 class StoreOnlineBookingRequest extends FormRequest
 {
+    // A member number only means something next to its provider, so it's dropped when there is none.
+    protected function prepareForValidation(): void
+    {
+        if (blank($this->input('patient.insurance_provider_id'))) {
+            $this->merge(['patient' => [...(array) $this->input('patient', []), 'insurance_member_number' => null]]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -40,6 +49,15 @@ class StoreOnlineBookingRequest extends FormRequest
             'patient.document_number' => ['required', 'string', 'max:50'],
             'patient.email' => ['nullable', 'email', 'max:255'],
             'patient.phone' => ['nullable', 'string', 'max:50'],
+            // Only a provider the practice accepts (#291). Never checked against other patients' member numbers: that would let anyone probe them.
+            'patient.insurance_provider_id' => ['nullable', 'integer', Rule::in($this->acceptedInsuranceProviderIds())],
+            'patient.insurance_member_number' => [
+                'nullable',
+                'required_with:patient.insurance_provider_id',
+                'string',
+                'max:50',
+                'regex:/[\pL\pN]/u',
+            ],
         ];
     }
 
@@ -57,7 +75,27 @@ class StoreOnlineBookingRequest extends FormRequest
             'patient.document_type.required' => 'Elegí un tipo de documento.',
             'patient.document_number.required' => 'El número de documento es obligatorio.',
             'patient.email.email' => 'El correo no es válido.',
+            'patient.insurance_provider_id.in' => 'El consultorio no atiende esa obra social.',
+            'patient.insurance_member_number.required_with' => 'El número de afiliado es obligatorio.',
+            'patient.insurance_member_number.regex' => 'El número de afiliado debe tener al menos una letra o un número.',
         ];
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function acceptedInsuranceProviderIds(): array
+    {
+        $organizationId = app(CurrentOrganization::class)->get();
+
+        if ($organizationId === null) {
+            return [];
+        }
+
+        /** @var list<int> $ids */
+        $ids = AcceptedInsuranceProvider::query()->where('organization_id', $organizationId)->pluck('insurance_provider_id')->all();
+
+        return $ids;
     }
 
     // `public-organization` has already resolved the tenant from {slug}; the

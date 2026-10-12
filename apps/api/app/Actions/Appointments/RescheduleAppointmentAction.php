@@ -70,6 +70,8 @@ class RescheduleAppointmentAction implements Action
                 reason: $dto->reason ?? $original->reason,
                 notes: $dto->notes ?? $original->notes,
                 rescheduledFromId: $original->id,
+                reportedInsuranceProviderId: $original->reported_insurance_provider_id,
+                reportedInsuranceMemberNumber: $original->reported_insurance_member_number,
             ));
         });
     }

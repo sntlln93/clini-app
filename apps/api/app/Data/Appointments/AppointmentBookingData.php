@@ -21,6 +21,8 @@ final readonly class AppointmentBookingData implements Data
         public ?string $reason,
         public ?string $notes,
         public ?int $rescheduledFromId = null,
+        public ?int $reportedInsuranceProviderId = null,
+        public ?string $reportedInsuranceMemberNumber = null,
     ) {}
 
     /**
@@ -39,6 +41,8 @@ final readonly class AppointmentBookingData implements Data
             'reason' => $this->reason,
             'notes' => $this->notes,
             'rescheduledFromId' => $this->rescheduledFromId,
+            'reportedInsuranceProviderId' => $this->reportedInsuranceProviderId,
+            'reportedInsuranceMemberNumber' => $this->reportedInsuranceMemberNumber,
         ];
     }
 }

@@ -20,6 +20,8 @@ final readonly class OnlineBookingData implements Data
         public string $documentNumber,
         public ?string $email,
         public ?string $phone,
+        public ?int $insuranceProviderId,
+        public ?string $insuranceMemberNumber,
     ) {}
 
     /**
@@ -37,6 +39,8 @@ final readonly class OnlineBookingData implements Data
             'documentNumber' => $this->documentNumber,
             'email' => $this->email,
             'phone' => $this->phone,
+            'insuranceProviderId' => $this->insuranceProviderId,
+            'insuranceMemberNumber' => $this->insuranceMemberNumber,
         ];
     }
 }

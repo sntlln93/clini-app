@@ -50,7 +50,7 @@ class AppointmentController extends Controller
         }
 
         $appointments = $query
-            ->with(['membership.user', 'patient', 'service'])
+            ->with(['membership.user', 'patient', 'service', 'reportedInsuranceProvider'])
             ->orderBy('start_at')
             ->get();
 
@@ -78,7 +78,7 @@ class AppointmentController extends Controller
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
         ));
 
-        $appointment->load(['membership.user', 'patient', 'service']);
+        $appointment->load(['membership.user', 'patient', 'service', 'reportedInsuranceProvider']);
 
         return (new AppointmentResource($appointment))
             ->response()
@@ -97,7 +97,7 @@ class AppointmentController extends Controller
             status: AppointmentStatus::from($request->string('status')->toString()),
         ));
 
-        $updated->load(['membership.user', 'patient', 'service']);
+        $updated->load(['membership.user', 'patient', 'service', 'reportedInsuranceProvider']);
 
         return new AppointmentResource($updated);
     }
@@ -120,7 +120,7 @@ class AppointmentController extends Controller
                 : null,
         ));
 
-        $cancelled->load(['membership.user', 'patient', 'service']);
+        $cancelled->load(['membership.user', 'patient', 'service', 'reportedInsuranceProvider']);
 
         return new AppointmentResource($cancelled);
     }
@@ -143,7 +143,7 @@ class AppointmentController extends Controller
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
         ));
 
-        $rescheduled->load(['membership.user', 'patient', 'service']);
+        $rescheduled->load(['membership.user', 'patient', 'service', 'reportedInsuranceProvider']);
 
         return (new AppointmentResource($rescheduled))
             ->response()
