@@ -116,7 +116,7 @@ class PublicBookingController extends Controller
             insuranceMemberNumber: $request->filled('patient.insurance_member_number') ? $request->string('patient.insurance_member_number')->toString() : null,
         ));
 
-        return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization'])))
+        return (new BookingConfirmationResource($appointment->load(['membership.user', 'service', 'organization.address.city.province'])))
             ->response()
             ->setStatusCode(201);
     }

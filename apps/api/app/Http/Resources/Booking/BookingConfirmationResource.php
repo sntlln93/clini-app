@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Resources\Booking;
 
 use App\Models\Appointment;
+use App\Support\AppointmentCalendarEvent;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -30,6 +31,10 @@ class BookingConfirmationResource extends JsonResource
             'professional_name' => $appointment->membership?->user?->name,
             'service_name' => $appointment->service?->name,
             'organization_name' => $appointment->organization?->name,
+            // The practice's own public address, for the patient's calendar event (#295).
+            'organization_address' => $appointment->organization === null
+                ? null
+                : app(AppointmentCalendarEvent::class)->locationOf($appointment->organization),
         ];
     }
 
