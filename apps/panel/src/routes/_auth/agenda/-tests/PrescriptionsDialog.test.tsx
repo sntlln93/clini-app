@@ -64,6 +64,8 @@ function buildPrescription(
         patient_name: 'Juan Pérez',
         patient_document_type: 'dni',
         patient_document_number: '30111222',
+        patient_insurance_provider_name: null,
+        patient_insurance_member_number: null,
         author_name: 'Dra. Ana Gomez',
         author_specialties: ['Clínica médica'],
         ...overrides,

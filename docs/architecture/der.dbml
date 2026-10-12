@@ -35,7 +35,6 @@ Enum membership_status {
 Enum document_type {
   dni
   passport
-  insurance_id
 }
 
 Enum sex {
@@ -196,11 +195,12 @@ Table patients {
   name varchar [not null]
   email varchar [null]
   phone varchar [null]
-  document_type document_type [not null, default: 'dni', note: 'DNI by default; passport / insurance_id as alternatives (CU-37)']
+  document_type document_type [not null, default: 'dni', note: 'DNI by default; passport as the alternative (CU-37). An insurance card is not an identity document: its number goes in insurance_member_number (#275)']
   document_number varchar [not null]
   sex sex [null]
   birth_date date [null]
   insurance_provider_id bigint [null]
+  insurance_member_number varchar(50) [null, note: 'Affiliate number; required whenever insurance_provider_id is set, null otherwise (#275)']
   created_by bigint [null, note: 'user who created the record; null when self-created via online booking']
   created_at timestamp [not null]
   updated_at timestamp [not null]

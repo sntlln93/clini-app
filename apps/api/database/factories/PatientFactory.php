@@ -30,6 +30,7 @@ class PatientFactory extends Factory
             'sex' => fake()->randomElement(Sex::cases()),
             'birth_date' => fake()->date(),
             'insurance_provider_id' => null,
+            'insurance_member_number' => null,
             'created_by' => null,
         ];
     }

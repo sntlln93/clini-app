@@ -9,7 +9,6 @@ import type { ReactNode } from 'react';
 const DOCUMENT_TYPE_LABELS: Record<Patient['document_type'], string> = {
     dni: 'DNI',
     passport: 'Pasaporte',
-    insurance_id: 'Carnet de obra social',
 };
 
 type PatientsTableProps = {

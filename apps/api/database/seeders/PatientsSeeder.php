@@ -31,7 +31,7 @@ use Illuminate\Database\Seeder;
 class PatientsSeeder extends Seeder
 {
     /**
-     * @var array<int, array{name: string, document_type: DocumentType, document_number: string, email: string|null, phone: string|null, sex: Sex, birth_date: string, insurance_provider: string|null, organizations: array<int, string>}>
+     * @var array<int, array{name: string, document_type: DocumentType, document_number: string, email: string|null, phone: string|null, sex: Sex, birth_date: string, insurance_provider: string|null, insurance_member_number: string|null, organizations: array<int, string>}>
      */
     private const array PATIENT_FIXTURES = [
         [
@@ -43,6 +43,7 @@ class PatientsSeeder extends Seeder
             'sex' => Sex::F,
             'birth_date' => '1990-03-14',
             'insurance_provider' => 'OSDE',
+            'insurance_member_number' => '61234567801',
             'organizations' => [OrganizationsSeeder::ORGANIZATION_A_SLUG, OrganizationsSeeder::ORGANIZATION_B_SLUG],
         ],
         [
@@ -54,6 +55,7 @@ class PatientsSeeder extends Seeder
             'sex' => Sex::M,
             'birth_date' => '1985-07-22',
             'insurance_provider' => null,
+            'insurance_member_number' => null,
             'organizations' => [OrganizationsSeeder::ORGANIZATION_A_SLUG],
         ],
         [
@@ -65,6 +67,7 @@ class PatientsSeeder extends Seeder
             'sex' => Sex::F,
             'birth_date' => '1994-11-02',
             'insurance_provider' => 'Swiss Medical',
+            'insurance_member_number' => '80002456712',
             'organizations' => [OrganizationsSeeder::ORGANIZATION_A_SLUG],
         ],
         [
@@ -76,6 +79,7 @@ class PatientsSeeder extends Seeder
             'sex' => Sex::M,
             'birth_date' => '1978-01-30',
             'insurance_provider' => null,
+            'insurance_member_number' => null,
             'organizations' => [OrganizationsSeeder::ORGANIZATION_B_SLUG],
         ],
         [
@@ -87,6 +91,7 @@ class PatientsSeeder extends Seeder
             'sex' => Sex::F,
             'birth_date' => '2001-05-18',
             'insurance_provider' => 'Galeno',
+            'insurance_member_number' => '4471230900',
             'organizations' => [OrganizationsSeeder::ORGANIZATION_B_SLUG],
         ],
     ];
@@ -171,6 +176,7 @@ class PatientsSeeder extends Seeder
                     'sex' => $fixture['sex'],
                     'birth_date' => $fixture['birth_date'],
                     'insurance_provider_id' => $insuranceProviderId,
+                    'insurance_member_number' => $fixture['insurance_member_number'],
                     'created_by' => $creatorId,
                 ],
             );
@@ -206,6 +212,7 @@ class PatientsSeeder extends Seeder
                     'sex' => self::VOLUME_SEXES[$index % count(self::VOLUME_SEXES)],
                     'birth_date' => self::VOLUME_BIRTH_DATES[$index],
                     'insurance_provider_id' => null,
+                    'insurance_member_number' => null,
                     'created_by' => $creatorId,
                 ],
             );

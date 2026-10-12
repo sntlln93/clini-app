@@ -17,7 +17,7 @@ type PatientBasicFieldsProps = {
 };
 
 export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
-    // Passports and insurance cards may carry letters, so only a DNI gets the numeric keypad.
+    // Passports may carry letters, so only a DNI gets the numeric keypad.
     const documentType = useWatch({ control, name: 'document_type' });
 
     return (

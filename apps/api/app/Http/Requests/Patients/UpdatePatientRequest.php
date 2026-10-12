@@ -11,6 +11,14 @@ use Illuminate\Validation\Rule;
 
 class UpdatePatientRequest extends FormRequest
 {
+    // A member number only means something next to its provider, so it's dropped when there is none.
+    protected function prepareForValidation(): void
+    {
+        if (blank($this->input('insurance_provider_id'))) {
+            $this->merge(['insurance_member_number' => null]);
+        }
+    }
+
     public function authorize(): bool
     {
         return true;
@@ -37,6 +45,7 @@ class UpdatePatientRequest extends FormRequest
             'sex' => ['nullable', Rule::enum(Sex::class)],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'insurance_provider_id' => ['nullable', 'integer', 'exists:insurance_providers,id'],
+            'insurance_member_number' => ['nullable', 'required_with:insurance_provider_id', 'string', 'max:50'],
         ];
     }
 }

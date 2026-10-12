@@ -24,6 +24,8 @@ export type Prescription = {
     patient_name: string | null;
     patient_document_type: DocumentType | null;
     patient_document_number: string | null;
+    patient_insurance_provider_name: string | null;
+    patient_insurance_member_number: string | null;
     author_name: string | null;
     author_specialties: string[];
 };

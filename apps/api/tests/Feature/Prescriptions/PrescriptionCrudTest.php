@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Appointment;
+use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Models\Prescription;
@@ -173,6 +174,22 @@ test('show returns the printable fields: patient identity and author name/specia
         ->assertJsonPath('data.author_name', $membership->user->name)
         ->assertJsonPath('data.author_specialties', [$specialty->name])
         ->assertJsonPath('data.items.0.medication', 'Amoxicilina');
+});
+
+test('show returns the patient\'s insurance provider and member number for the printed prescription', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $provider = InsuranceProvider::factory()->create(['name' => 'OSDE']);
+    $patient = Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37415820',
+    ]);
+    $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
+    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+
+    $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
+        ->assertOk()
+        ->assertJsonPath('data.patient_insurance_provider_name', 'OSDE')
+        ->assertJsonPath('data.patient_insurance_member_number', '37415820');
 });
 
 test('update replaces diagnosis and items, keeping issued_at', function () {

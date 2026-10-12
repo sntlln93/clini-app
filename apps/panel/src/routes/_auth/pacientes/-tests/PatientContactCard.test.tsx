@@ -14,6 +14,7 @@ const PATIENT: Patient = {
     sex: null,
     birth_date: null,
     insurance_provider_id: null,
+    insurance_member_number: null,
     insurance_provider: null,
     created_at: '2026-01-01T00:00:00Z',
 };
@@ -47,19 +48,24 @@ describe('PatientContactCard', () => {
 });
 
 describe('PatientInsuranceCard', () => {
-    it('shows the provider name', () => {
+    it('shows the provider name with its member number', () => {
         render(
             <PatientInsuranceCard
-                insuranceProvider={{ id: 1, name: 'OSDE' }}
+                patient={{
+                    insurance_provider: { id: 1, name: 'OSDE' },
+                    insurance_member_number: '37415820',
+                }}
             />,
         );
 
         expect(screen.getByText('OSDE')).toBeTruthy();
+        expect(screen.getByText('N° de afiliado: 37415820')).toBeTruthy();
     });
 
     it('marks a patient without insurance as private', () => {
-        render(<PatientInsuranceCard insuranceProvider={null} />);
+        render(<PatientInsuranceCard patient={PATIENT} />);
 
         expect(screen.getByText('Particular (sin obra social)')).toBeTruthy();
+        expect(screen.queryByText(/N° de afiliado/)).toBeNull();
     });
 });

@@ -46,6 +46,8 @@ class PrescriptionResource extends JsonResource
             'patient_name' => $prescription->patient?->name,
             'patient_document_type' => $prescription->patient?->document_type,
             'patient_document_number' => $prescription->patient?->document_number,
+            'patient_insurance_provider_name' => $prescription->patient?->insuranceProvider?->name,
+            'patient_insurance_member_number' => $prescription->patient?->insurance_member_number,
             'author_name' => $prescription->author?->user?->name,
             'author_specialties' => $prescription->author?->specialties
                 ->map(fn (Specialty $specialty) => $specialty->name)
