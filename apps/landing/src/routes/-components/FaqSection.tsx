@@ -4,7 +4,7 @@ import { Plus } from 'lucide-react';
 const QUESTIONS = [
     {
         q: '¿Mis pacientes necesitan crear una cuenta para reservar?',
-        a: 'No. Entran a tu link, eligen el horario y dejan su nombre y documento (DNI, pasaporte o número de afiliado). Nada de usuarios ni contraseñas.',
+        a: 'No. Entran a tu link, eligen el horario y dejan su nombre y documento (DNI o pasaporte). Nada de usuarios ni contraseñas.',
     },
     {
         q: 'Si un paciente se atiende en otro consultorio con Clini, ¿ven mis notas?',
