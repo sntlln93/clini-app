@@ -160,6 +160,7 @@ function confirmedBooking() {
                 professional_name: 'Dr. Uno',
                 service_name: 'Consulta cardiológica',
                 organization_name: ORGANIZATION.name,
+                organization_address: null,
             },
         },
     };
@@ -197,6 +198,7 @@ describe('BookingPatientForm validation and submission', () => {
                     professional_name: 'Dr. Uno',
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
+                    organization_address: null,
                 },
             },
         });
@@ -468,6 +470,17 @@ describe('BookingPatientForm validation and submission', () => {
         expect(screen.getByText('30 min')).not.toBeNull();
         expect(screen.getByText('$ 50,00')).not.toBeNull();
         expect(screen.queryByText(/te enviamos|correo/i)).toBeNull();
+        // No email was given (#295): the calendar links don't depend on one.
+        expect(
+            screen
+                .getByRole('link', { name: /Google Calendar/ })
+                .getAttribute('href'),
+        ).toMatch(/^https:\/\/calendar\.google\.com\/calendar\/render\?/);
+        expect(
+            screen
+                .getByRole('link', { name: 'Descargar .ics' })
+                .getAttribute('download'),
+        ).toBe('turno.ics');
 
         fireEvent.click(
             screen.getByRole('button', { name: 'Reservar otro turno' }),
@@ -487,6 +500,7 @@ describe('BookingPatientForm validation and submission', () => {
                     professional_name: 'Dr. Uno',
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
+                    organization_address: null,
                 },
             },
         });
@@ -521,6 +535,7 @@ describe('BookingPatientForm validation and submission', () => {
                     professional_name: 'Dr. Uno',
                     service_name: 'Consulta cardiológica',
                     organization_name: ORGANIZATION.name,
+                    organization_address: null,
                 },
             },
         });

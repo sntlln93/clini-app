@@ -67,4 +67,6 @@ export type BookingConfirmation = {
     professional_name: string | null;
     service_name: string | null;
     organization_name: string;
+    /** The practice's primary address on one line, for the calendar event (#295); null without one. */
+    organization_address: string | null;
 };
