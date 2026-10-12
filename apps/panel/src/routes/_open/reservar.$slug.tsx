@@ -1,5 +1,4 @@
 import { CardSkeleton } from '@/components/CardSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { addDaysToIsoDate, todayInTimeZone } from '@/lib/iso-date';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute, redirect } from '@tanstack/react-router';
@@ -8,6 +7,7 @@ import {
     BookingLogo,
     MadeWithClini,
 } from './-components/booking/BookingBranding';
+import { BookingErrorState } from './-components/booking/BookingErrorState';
 import { BookingWizard } from './-components/booking/BookingWizard';
 import { BOOKING_WINDOW_DAYS } from './-components/booking/booking-window';
 import {
@@ -96,7 +96,7 @@ export const Route = createFileRoute('/_open/reservar/$slug')({
     head: ({ loaderData }) =>
         titleHead('Reservar turno', loaderData?.organization.organization.name),
     pendingComponent: () => <CardSkeleton className="max-w-md" />,
-    errorComponent: RouteErrorState,
+    errorComponent: BookingErrorState,
     component: BookingPage,
 });
 

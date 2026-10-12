@@ -42,7 +42,8 @@ export type ErrorCode =
     | 'plans.center_assigned'
     | 'plans.assignment_unchanged'
     | 'plans.subscription_live'
-    | 'plans.appointment_limit_reached';
+    | 'plans.appointment_limit_reached'
+    | 'booking.link_not_found';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -99,6 +100,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'organizations.not_suspended': 'La organización no está suspendida.',
     'booking.organization_unavailable':
         'Este consultorio no está recibiendo reservas online en este momento.',
+    'booking.link_not_found':
+        'Este link de reservas no existe. Revisá que esté bien escrito o pedile el link correcto al consultorio.',
     'auth.user_blocked':
         'Tu cuenta está bloqueada. Comunicate con el soporte de Clini.',
     'users.already_blocked': 'El usuario ya está bloqueado.',

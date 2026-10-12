@@ -11,6 +11,7 @@ import { z } from 'zod';
 import { BookingBrandingSection } from './-components/BookingBrandingSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
+import { OrganizationBookingLinkSection } from './-components/OrganizationBookingLinkSection';
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
 import { SubscriptionSection } from './-components/SubscriptionSection';
@@ -108,7 +109,13 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             catalogServices,
             mySpecialties,
             professionals,
-            ownMembership: session.membership ?? null,
+            // Only a professional can hold a link of their own (CU-52); the API rejects anyone else's.
+            ownProfessionalMembership: session.membership?.roles.includes(
+                'professional',
+            )
+                ? session.membership
+                : null,
+            organizationSlug: session.organization?.slug ?? null,
             organizationLogo,
             ...assignments,
         };
@@ -130,7 +137,8 @@ function AjustesPage() {
         catalogServices,
         mySpecialties,
         professionals,
-        ownMembership,
+        ownProfessionalMembership,
+        organizationSlug,
         organizationLogo,
         credentialsByMembership,
         assignedSpecialtiesByMembership,
@@ -182,6 +190,13 @@ function AjustesPage() {
                 </>
             )}
 
+            {organizationSlug && (
+                <>
+                    <Separator />
+                    <OrganizationBookingLinkSection slug={organizationSlug} />
+                </>
+            )}
+
             {organizationLogo && (
                 <>
                     <Separator />
@@ -197,10 +212,12 @@ function AjustesPage() {
                 mySpecialties={mySpecialties}
             />
 
-            {ownMembership && (
+            {ownProfessionalMembership && (
                 <>
                     <Separator />
-                    <MyPublicLinkSection membership={ownMembership} />
+                    <MyPublicLinkSection
+                        membership={ownProfessionalMembership}
+                    />
                 </>
             )}
 

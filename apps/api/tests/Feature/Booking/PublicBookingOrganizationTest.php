@@ -11,8 +11,10 @@ use App\Models\Service;
 use App\Models\Specialty;
 use App\Models\User;
 
-test('showing an unknown slug returns 404', function () {
-    $this->getJson('/api/v1/booking/no-existe')->assertStatus(404);
+test('showing an unknown slug returns 404 booking.link_not_found, so the public page can tell a wrong link apart from a failure', function () {
+    $this->getJson('/api/v1/booking/no-existe')
+        ->assertStatus(404)
+        ->assertJsonPath('error.code', 'booking.link_not_found');
 });
 
 test('a guest with no session gets 200: the endpoint requires no authentication', function () {

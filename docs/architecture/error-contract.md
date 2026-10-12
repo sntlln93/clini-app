@@ -58,6 +58,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta) y middleware `EnsureUserNotBlocked` | |
 | `booking.slot_not_available` | 409 | `AssertSlotWithinPublishedScheduleAction` | |
 | `booking.organization_unavailable` | 403 | middleware `ResolvePublicOrganization` (organización suspendida) | |
+| `booking.link_not_found` | 404 | middleware `ResolvePublicOrganization` (el slug no es de ninguna organización ni del link de un profesional activo) | |
 | `availability.slot_merge_required` | 409 | `SaveAvailabilitySlotAction` | `merged` |
 | `availability.slot_already_covered` | 409 | `SaveAvailabilitySlotAction` | `covering` |
 | `availability.exception_merge_required` | 409 | `SaveAvailabilityExceptionAction` | `merged` |

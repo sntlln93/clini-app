@@ -64,7 +64,7 @@ describe('eslint no-restricted-syntax: router.invalidate()', () => {
     it.each([
         'src/lib/page-data.ts',
         'src/hooks/use-refresh-page-data.ts',
-        'src/components/RouteErrorState.tsx',
+        'src/hooks/use-route-retry.ts',
     ])(
         'does not fire in the exempt file %s',
         async (filePath) => {

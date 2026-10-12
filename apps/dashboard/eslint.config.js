@@ -142,7 +142,7 @@ export default tseslint.config(
         },
         rules: { 'local/require-native-button': 'error' },
     },
-    // The shared helper, the hook that wraps it, and RouteErrorState's retry
+    // The shared helper, the hook that wraps it, and the route-error retry hook
     // are the only places allowed to call router.invalidate() (see issue
     // #202). The SSR-directive restrictions are repeated here because flat
     // config replaces a rule's entire options array per matching file
@@ -151,7 +151,7 @@ export default tseslint.config(
         files: [
             'src/lib/page-data.ts',
             'src/hooks/use-refresh-page-data.ts',
-            'src/components/RouteErrorState.tsx',
+            'src/hooks/use-route-retry.ts',
         ],
         rules: {
             'no-restricted-syntax': ['error', ...SSR_DIRECTIVE_RESTRICTIONS],

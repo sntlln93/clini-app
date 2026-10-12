@@ -27,7 +27,11 @@ describe('PanelHeader', () => {
     it("shows the active organization's name, with the full name as title", () => {
         renderHeader({
             ...user,
-            organization: { id: 1, name: 'Consultorio Norte' },
+            organization: {
+                id: 1,
+                name: 'Consultorio Norte',
+                slug: 'consultorio-norte',
+            },
         });
 
         const name = screen.getByText('Consultorio Norte');

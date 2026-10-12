@@ -3,7 +3,13 @@ import { notifyError, notifySuccess } from '@/lib/toast';
 import { Copy, ExternalLink } from 'lucide-react';
 
 /** The saved link only — an unsaved draft would hand out a URL that doesn't resolve yet. */
-export function PublicLinkActions({ url }: { url: string }) {
+export function PublicLinkActions({
+    url,
+    label = 'Tu link',
+}: {
+    url: string;
+    label?: string;
+}) {
     async function copy() {
         try {
             await navigator.clipboard.writeText(url);
@@ -16,7 +22,7 @@ export function PublicLinkActions({ url }: { url: string }) {
     return (
         <div className="space-y-2">
             <p className="text-sm break-all text-muted-foreground">
-                Tu link: <span className="text-foreground">{url}</span>
+                {label}: <span className="text-foreground">{url}</span>
             </p>
             <div className="flex flex-wrap gap-2">
                 <Button
