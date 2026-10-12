@@ -7,6 +7,7 @@ namespace App\Actions\Patients;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Patients\PatientRegistrationData;
+use App\Exceptions\Patients\InsuranceMemberNumberTakenException;
 use App\Models\Patient;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
@@ -25,7 +26,12 @@ class RegisterPatientAction implements Action
     {
         try {
             return $this->registerOrReuse($dto);
-        } catch (UniqueConstraintViolationException) {
+        } catch (UniqueConstraintViolationException $exception) {
+            // Validation already rejects a member number taken by another patient, so this index only fires on a concurrent claim (#290).
+            if (str_contains($exception->getMessage(), 'patients_insurance_member_number_unique')) {
+                throw new InsuranceMemberNumberTakenException((int) $dto->insuranceProviderId);
+            }
+
             // Lost a race against a concurrent insert of the same document pair: the transaction above is already rolled back by Postgres, so a fresh transaction re-reads and reuses the row the winner just created. Bounded to a single retry, a second collision is not swallowed.
             return $this->reuseExisting($dto);
         }

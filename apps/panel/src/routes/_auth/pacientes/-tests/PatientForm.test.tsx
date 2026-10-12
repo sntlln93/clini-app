@@ -189,6 +189,35 @@ describe('PatientForm', () => {
         );
     });
 
+    it('shows a member number taken by a concurrent registration under that field', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 409,
+                data: {
+                    error: {
+                        code: 'patients.insurance_member_number_taken',
+                        message:
+                            'The insurance member number is already registered for another patient.',
+                    },
+                },
+            },
+        });
+        renderPatientForm(undefined, [{ id: 1, name: 'OSDE' }]);
+
+        await fillMinimalPatientForm();
+        await pickInsuranceProvider('OSDE');
+        const memberNumber = await screen.findByLabelText('N° de afiliado');
+        fireEvent.change(memberNumber, { target: { value: '37415820' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await screen.findByText(
+            'Ese número de afiliado ya está registrado para otro paciente de la misma obra social. Revisá que esté bien escrito.',
+        );
+        expect(memberNumber.getAttribute('aria-invalid')).toBe('true');
+    });
+
     it('lets a provider picked by mistake be undone, dropping the member number requirement', async () => {
         mockLookupMiss();
         vi.mocked(api.post).mockResolvedValueOnce({

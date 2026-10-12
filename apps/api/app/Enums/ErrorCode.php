@@ -17,6 +17,7 @@ enum ErrorCode: string
     case MembershipsLastActiveAdmin = 'memberships.last_active_admin';
     case OrganizationsNoActiveMembership = 'organizations.no_active_membership';
     case PatientsNotFound = 'patients.not_found';
+    case PatientsInsuranceMemberNumberTaken = 'patients.insurance_member_number_taken';
     case MembershipsInvitationInvalidOrExpired = 'memberships.invitation_invalid_or_expired';
     case AuthEmailVerificationInvalidOrExpired = 'auth.email_verification_invalid_or_expired';
     case BookingSlotNotAvailable = 'booking.slot_not_available';

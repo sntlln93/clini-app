@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 
+import type { ErrorCode } from '@/lib/error-codes';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Patient, PatientPayload } from '@/types/patient';
 import { patientSchema } from './patient-schemas';
@@ -50,6 +51,11 @@ function valuesFromFoundPatient(found: Patient): PatientPayload {
 }
 
 /** The patient form's state, lookup and submit, shared by the patients pages and the agenda's dialog. */
+// A concurrent registration can still take the number after validation passed (#290).
+const SAVE_PATIENT_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
+    'patients.insurance_member_number_taken': 'insurance_member_number',
+};
+
 export function usePatientForm({
     patient,
     initialValues,
@@ -97,7 +103,11 @@ export function usePatientForm({
                 fields.map((field) => [field, field] as const),
             );
 
-            applyFormErrors(form, extractFormErrors(error), fieldMap);
+            applyFormErrors(
+                form,
+                extractFormErrors(error, SAVE_PATIENT_FIELD_MAP),
+                fieldMap,
+            );
             return;
         }
 

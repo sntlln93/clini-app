@@ -7,7 +7,7 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PatientsTable } from '../-components/PatientsTable';
 
@@ -103,5 +103,35 @@ describe('PatientsTable', () => {
         renderPatientsTable(PATIENTS);
         await screen.findByText('Ana Gomez');
         expect(screen.queryByText(/eliminar/i)).toBeNull();
+    });
+
+    it('shows the member number next to its insurance provider', async () => {
+        renderPatientsTable([
+            {
+                ...PATIENTS[0],
+                insurance_provider_id: 3,
+                insurance_member_number: '37415820',
+                insurance_provider: { id: 3, name: 'OSDE' },
+            },
+        ]);
+
+        await screen.findByText('OSDE · 37415820');
+    });
+
+    it('shows only the provider when it has no member number, and a dash for a private patient', async () => {
+        renderPatientsTable([
+            {
+                ...PATIENTS[0],
+                insurance_provider_id: 3,
+                insurance_provider: { id: 3, name: 'OSDE' },
+            },
+            { ...PATIENTS[0], id: 2, name: 'Bruno Diaz' },
+        ]);
+
+        await screen.findByText('OSDE');
+        const brunoRow = screen.getByText('Bruno Diaz').closest('tr')!;
+        const cells = within(brunoRow).getAllByRole('cell');
+        // Columns: name, document, phone, insurance, actions.
+        expect(cells[3].textContent).toBe('—');
     });
 });

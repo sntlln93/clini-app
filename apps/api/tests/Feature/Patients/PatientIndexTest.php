@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
@@ -65,6 +66,47 @@ test('q matches part of the document number', function () {
     $ids = collect($response->json('data'))->pluck('id');
     expect($ids)->toContain($match->id);
     expect($ids)->not->toContain($noMatch->id);
+});
+
+test('q matches the insurance member number regardless of its separators', function (string $term) {
+    $membership = Membership::factory()->create();
+    $provider = InsuranceProvider::factory()->create();
+
+    $match = Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '37-415820/01',
+    ]);
+    $match->organizations()->attach($membership->organization_id);
+
+    $noMatch = Patient::factory()->create([
+        'insurance_provider_id' => $provider->id,
+        'insurance_member_number' => '99-000000/01',
+    ]);
+    $noMatch->organizations()->attach($membership->organization_id);
+
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/patients?q='.urlencode($term));
+
+    $response->assertOk();
+    $ids = collect($response->json('data'))->pluck('id');
+    expect($ids)->toContain($match->id);
+    expect($ids)->not->toContain($noMatch->id);
+})->with(['37-415820/01', '3741582001', '415820 01']);
+
+test('q made only of separators does not match every patient with a member number', function () {
+    $membership = Membership::factory()->create();
+
+    $patient = Patient::factory()->create([
+        'name' => 'Maria Gonzalez',
+        'document_number' => '30123456',
+        'insurance_provider_id' => InsuranceProvider::factory()->create()->id,
+        'insurance_member_number' => '37-415820/01',
+    ]);
+    $patient->organizations()->attach($membership->organization_id);
+
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/patients?q=%2F');
+
+    $response->assertOk();
+    expect($response->json('data'))->toBe([]);
 });
 
 test('per_page over 12 linked patients returns the page size and the correct total', function () {
