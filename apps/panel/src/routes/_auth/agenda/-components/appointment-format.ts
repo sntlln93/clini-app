@@ -21,3 +21,21 @@ export function describeAppointment(appointment: Appointment): string {
 
     return `Turno de ${patient}${professional} · ${formatShortDay(date)}, ${formatTime(date)}`;
 }
+
+/** e.g. "Obra social informada: OSDE · N° 61234567801" — what the patient said when booking online (#291), or null. */
+export function describeReportedInsurance(
+    appointment: Appointment,
+): string | null {
+    if (
+        appointment.reported_insurance_provider_id === null ||
+        !appointment.reported_insurance_provider_name
+    ) {
+        return null;
+    }
+
+    const memberNumber = appointment.reported_insurance_member_number
+        ? ` · N° ${appointment.reported_insurance_member_number}`
+        : '';
+
+    return `Obra social informada: ${appointment.reported_insurance_provider_name}${memberNumber}`;
+}

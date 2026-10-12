@@ -39,6 +39,8 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
         cancelled_at: null,
         cancellation_reason: null,
         rescheduled_from_id: null,
+        reported_insurance_provider_id: null,
+        reported_insurance_member_number: null,
         arrived_at: null,
         patient_name: 'Juan Pérez',
         service_name: 'Consulta general',
@@ -116,6 +118,34 @@ describe('AppointmentCard', () => {
         expect(
             screen.getByRole('menuitem', { name: 'Marcar ausente' }),
         ).toBeTruthy();
+    });
+
+    it('shows the insurance the patient reported when booking online at the top of the menu', async () => {
+        renderCard(
+            buildAppointment({
+                origin: 'online',
+                reported_insurance_provider_id: 3,
+                reported_insurance_provider_name: 'OSDE',
+                reported_insurance_member_number: '61234567801',
+            }),
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByText(
+                'Obra social informada: OSDE · N° 61234567801',
+            ),
+        ).toBeTruthy();
+    });
+
+    it('shows no reported insurance when the patient reported none', async () => {
+        renderCard(buildAppointment({ origin: 'online' }));
+
+        fireEvent.click(screen.getByRole('button'));
+
+        await screen.findByRole('menuitem', { name: 'Cancelar' });
+        expect(screen.queryByText(/Obra social informada/)).toBeNull();
     });
 
     it('shows Cancelar but not Reprogramar for an arrived appointment', async () => {

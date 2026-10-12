@@ -1,7 +1,9 @@
 import {
     DropdownMenu,
     DropdownMenuContent,
+    DropdownMenuGroup,
     DropdownMenuItem,
+    DropdownMenuLabel,
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
@@ -9,6 +11,7 @@ import { sessionHasPermission, useSession } from '@/lib/session';
 import type { Appointment } from '@/types/appointment';
 import { useRouter } from '@tanstack/react-router';
 import { useState } from 'react';
+import { describeReportedInsurance } from './appointment-format';
 import {
     ALLOWED_TRANSITIONS,
     CANCELLABLE_STATUSES,
@@ -58,6 +61,7 @@ export function AppointmentCard({
     const isOwnAppointment =
         session?.membership?.id === appointment.membership_id;
     const canViewPatient = sessionHasPermission(session, 'patients.view');
+    const reportedInsurance = describeReportedInsurance(appointment);
 
     const dialogProps = (dialog: CardDialog) => ({
         open: openDialog === dialog,
@@ -90,6 +94,16 @@ export function AppointmentCard({
                     {content}
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
+                    {reportedInsurance && (
+                        <>
+                            <DropdownMenuGroup>
+                                <DropdownMenuLabel>
+                                    {reportedInsurance}
+                                </DropdownMenuLabel>
+                            </DropdownMenuGroup>
+                            <DropdownMenuSeparator />
+                        </>
+                    )}
                     {canUpdate && (
                         <AppointmentStatusActions
                             appointment={appointment}

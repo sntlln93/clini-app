@@ -20,6 +20,8 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
         cancelled_at: null,
         cancellation_reason: null,
         rescheduled_from_id: null,
+        reported_insurance_provider_id: null,
+        reported_insurance_member_number: null,
         arrived_at: '2026-08-03T09:50:00',
         patient_name: 'Juan Pérez',
         ...overrides,
