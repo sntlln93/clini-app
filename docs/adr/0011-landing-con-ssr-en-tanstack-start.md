@@ -16,13 +16,16 @@ La landing se renderiza en el servidor con **TanStack Start** (el framework de T
 
 - Mismas rutas por archivos, mismos componentes y la misma configuración de ESLint, Prettier y Vitest que panel y dashboard. Las rutas viven en `src/routes/`, con los componentes en `-components/` (ADR 0003).
 - El `<head>` (título, description, Open Graph, favicon y el script que aplica el tema antes de pintar) lo arma la ruta raíz (`head()` + `shellComponent`). No hay `index.html`.
-- La landing no habla con la API: no tiene sesión, loaders ni TanStack Query. Solo enlaza al panel (`VITE_PANEL_URL`, build arg).
+- La landing no lee de la API: no tiene sesión, loaders ni TanStack Query, y su contenido no depende de datos del backend. Enlaza al panel (`VITE_PANEL_URL`, build arg).
+- La única excepción es el **formulario de contacto comercial** (#248): un envío anónimo desde el navegador a un endpoint público y sin sesión (`POST /api/v1/contact`), como la reserva online. El origen de la landing está en los orígenes de CORS (`FRONTEND_URL`) pero no en `SANCTUM_STATEFUL_DOMAINS`, así que el pedido es stateless y no lleva CSRF ni cookies. El endpoint tiene rate limiting por IP y un campo trampa (honeypot) contra bots. Los mensajes se leen en el dashboard. Cualquier otra escritura desde la landing necesita su propia decisión.
 - El tema es claro por defecto y no sigue al sistema operativo. El oscuro es una elección explícita, guardada en `localStorage`.
 
 ## Alternativas descartadas
 
 - **SPA de Vite como panel y dashboard**: el HTML inicial no tiene contenido. Los buscadores que ejecutan JavaScript lo terminan viendo, pero las vistas previas de links no, y el primer render llega más tarde.
 - **SPA con prerender a HTML estático en el build**: resolvería el contenido inicial con nginx, pero obliga a armar el prerender a mano sobre el router. Además, cualquier página futura que dependa del request (un formulario de contacto o un precio por región) tendría que cambiar de modelo. Con TanStack Start, el prerender estático se puede activar más adelante sin cambiar de framework.
+- **Enviar el formulario de contacto desde el servidor de la landing** (una server function de TanStack Start que llama a la API): evita sumar el origen a CORS, pero la API vería la IP del servidor de la landing en lugar de la del visitante, así que el rate limiting por IP necesitaría reenviarla en un header y un secreto compartido para confiar en él. Es más infraestructura que un endpoint público como el de la reserva.
+- **Un servicio externo de formularios o un link a mail o WhatsApp**: no deja los mensajes en el dashboard, donde el equipo ya trabaja.
 - **Next.js o Astro**: dan SSR y SSG de forma nativa, pero suman un segundo router, otras convenciones y otra configuración de build a un monorepo donde todo lo demás es TanStack + Vite.
 
 ## Consecuencias
