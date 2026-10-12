@@ -21,7 +21,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
 
 | Plan | Cuándo | Qué incluye |
 |---|---|---|
-| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo y 40 turnos por mes; sin equipo, sala de espera, recetas ni link por profesional |
+| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo y, si se configura, un tope de turnos por mes (sin tope por defecto); sin equipo, sala de espera, recetas ni link por profesional |
 | Consultorio (`practice`) | suscripción `active`, `grace`, `expired` o `cancelled` con `access_ends_at` futuro | todo, sin tope de profesionales |
 | Centro (`center`) | `organizations.assigned_plan = center`, lo asigna un operador | todo; se cobra por fuera de la plataforma |
 
@@ -35,9 +35,9 @@ La suscripción define el plan de la organización, que se calcula y no se guard
   - `OrganizationPlan::ensureAllowsMember()` al invitar, al aceptar (con lock de la organización) y al editar miembros: solo se validan los roles que la membresía **gana**;
   - `ensureIncludes()` al definir un link por profesional. Borrar el link siempre se permite, y uno creado antes de bajar de plan sigue resolviendo.
 - **Límite de profesionales:** Gratis con más profesionales activos que el límite responde 409 `plans.professional_limit_exceeded` en el mismo grupo `subscription.active` que la suscripción vencida. Nadie se desactiva solo.
-- **Límite de turnos (#238):** Gratis acepta hasta 40 turnos por mes. Se cuentan por la fecha del turno, en la zona horaria de la organización, sin los cancelados ni los reprogramados.
-  - `BookAppointmentAction` lo controla bajo un lock de la organización, tanto para la carga manual como para la reserva online y la reprogramación. El turno 41 responde 409 `plans.appointment_limit_reached` (`context.appointment_limit`, `context.month`).
-  - Al llegar a 35, los dueños reciben `AppointmentLimitApproachingNotification` por mail, una sola vez por mes (`appointment_limit_warnings`, con clave única por organización y mes).
+- **Límite de turnos (#238, #300):** Gratis acepta hasta `PLAN_FREE_MONTHLY_APPOINTMENT_LIMIT` turnos por mes; `0` (el valor por defecto) es sin límite. Se cuentan por la fecha del turno, en la zona horaria de la organización, sin los cancelados ni los reprogramados.
+  - `BookAppointmentAction` lo controla bajo un lock de la organización, tanto para la carga manual como para la reserva online y la reprogramación. El turno que pasa el límite responde 409 `plans.appointment_limit_reached` (`context.appointment_limit`, `context.month`).
+  - Al llegar a `PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD`, los dueños reciben `AppointmentLimitApproachingNotification` por mail, una sola vez por mes (`appointment_limit_warnings`, con clave única por organización y mes). Sin límite, con el umbral en `0` o con un umbral que no queda por debajo del límite, no hay aviso.
   - No hay reinicio programado: el mes siguiente simplemente cuenta desde cero.
 - **Marca en la página de reservas (#239, [ADR 0015](../adr/0015-archivos-de-usuarios-en-un-bucket-s3.md)):** Gratis muestra «Hecho con Clini» (`organization.show_clini_mark` en `GET /booking/{slug}`).
   - Los planes pagos (`booking_branding`) muestran el logo de la organización (`organization.logo_url`) en la reserva y en el mail de recordatorio.
@@ -95,7 +95,7 @@ Una suscripción `cancelled` ya no restringe nada (#237): mientras dure su perí
 La regla vive en `Subscription::restrictsWrites()` (la usan el middleware y el `restricted` del recurso), y se compara con la hora actual: el fin del período pago no necesita ningún comando programado. Se aplica en un solo lugar: el middleware `subscription.active`, agrupando las rutas de escritura en `routes/api/v1/{appointments,availability,clinical-notes,prescriptions,booking}.php`. Una ruta de escritura nueva en esos módulos tiene que entrar en ese grupo.
 
 El panel lee la suscripción y el plan una vez en el loader de `_auth` y los observa con `useSubscription()` y `usePlan()`.
-- **Banner:** gracia, vencida, el período pago de una cancelación, Gratis por encima del límite de profesionales, o Gratis con 35 turnos o más en el mes actual. Muestra «Ver plan», que lleva a `/ajustes#suscripcion`. Crear, reprogramar o cancelar un turno en Gratis refresca el plan, así que el contador del banner se actualiza.
+- **Banner:** gracia, vencida, el período pago de una cancelación, Gratis por encima del límite de profesionales, o Gratis con un límite de turnos y el mes actual en el umbral de aviso o lleno. Muestra «Ver plan», que lleva a `/ajustes#suscripcion`. Crear, reprogramar o cancelar un turno en Gratis refresca el plan, así que el contador del banner se actualiza.
 - **Ajustes:** la sección «Plan y suscripción».
 - **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda, notas clínicas, recetas y disponibilidad.
 - **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; las recetas se pueden ver e imprimir pero no emitir; invitar y el link por profesional muestran el límite.
@@ -134,6 +134,8 @@ Un operador de la plataforma puede extender la gracia desde el dashboard de oper
 | `MERCADOPAGO_PLAN_CURRENCY` | Moneda; `ARS` por defecto. |
 | `PLAN_PRACTICE_INCLUDED_PROFESSIONALS` | Profesionales activos que cubre el precio base; `5` por defecto. |
 | `PLAN_PRACTICE_EXTRA_PROFESSIONAL_AMOUNT` | Monto mensual por cada profesional activo por encima de los incluidos (ej. `5000`); `0` por defecto. |
+| `PLAN_FREE_MONTHLY_APPOINTMENT_LIMIT` | Turnos por mes del plan Gratis (ej. `40`); `0` por defecto, sin límite. |
+| `PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD` | Turnos del mes desde los que se avisa a los dueños (ej. `35`); `0` por defecto, sin aviso. Solo vale por debajo del límite. |
 | `MERCADOPAGO_BACK_URL` | URL a la que Mercado Pago devuelve al pagador. Por defecto `${APP_URL}/api/v1/subscription/return`, la ruta de la API que redirige al panel (`/ajustes?suscripcion=retorno`); se puede sobrescribir. Mercado Pago exige una URL `https` pública. |
 
 Nunca commitear valores reales: `.env.example` los deja vacíos.

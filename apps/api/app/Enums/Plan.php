@@ -44,18 +44,35 @@ enum Plan: string
     }
 
     /**
-     * Appointments per calendar month the plan allows (#238); null for no limit.
+     * Appointments per calendar month the plan allows (#238); null for no
+     * limit. Free's comes from config, where 0 (the default) lifts it (#300).
      */
     public function monthlyAppointmentLimit(): ?int
     {
-        return $this === self::Free ? 40 : null;
+        if ($this !== self::Free) {
+            return null;
+        }
+
+        $limit = config()->integer('plans.free.monthly_appointment_limit');
+
+        return $limit > 0 ? $limit : null;
     }
 
     /**
-     * The month's appointment count that triggers the owner's warning.
+     * The month's appointment count that triggers the owner's warning; null
+     * when there is no limit, or the configured threshold is 0 or doesn't
+     * come before the limit.
      */
     public function appointmentWarningThreshold(): ?int
     {
-        return $this === self::Free ? 35 : null;
+        $limit = $this->monthlyAppointmentLimit();
+
+        if ($limit === null) {
+            return null;
+        }
+
+        $threshold = config()->integer('plans.free.appointment_warning_threshold');
+
+        return $threshold > 0 && $threshold < $limit ? $threshold : null;
     }
 }

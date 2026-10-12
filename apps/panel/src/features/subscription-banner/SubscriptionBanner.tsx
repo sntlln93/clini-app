@@ -78,13 +78,13 @@ function planCopy(plan: Plan): BannerCopy | null {
     };
 }
 
-/** From the warning threshold on, how close the current month is to the plan's appointment limit (#238). */
+/** A full month on a plan with an appointment limit (#238) and, from the warning threshold on, how close it is; the threshold can be off while the limit still applies (#300). */
 function appointmentUsageCopy(plan: Plan): BannerCopy | null {
     const limit = plan.appointment_limit;
     const threshold = plan.appointment_warning_threshold;
     const used = plan.appointments_this_month;
 
-    if (limit === null || threshold === null || used < threshold) {
+    if (limit === null) {
         return null;
     }
 
@@ -97,6 +97,10 @@ function appointmentUsageCopy(plan: Plan): BannerCopy | null {
         };
     }
 
+    if (threshold === null || used < threshold) {
+        return null;
+    }
+
     return {
         title: `Ya cargaste ${used} de los ${limit} turnos de este mes.`,
         description: `El plan Gratis incluye hasta ${limit} turnos por mes. Pasá a Consultorio para tener turnos sin límite, sin perder nada de lo que cargaste.`,
@@ -104,7 +108,7 @@ function appointmentUsageCopy(plan: Plan): BannerCopy | null {
     };
 }
 
-/** Panel-wide notice for a subscription in grace, expired or within the paid period of a cancellation, for more active professionals than the plan allows, or for the month nearing the plan's appointment limit; renders nothing otherwise. */
+/** Panel-wide notice for a subscription in grace, expired or within the paid period of a cancellation, for more active professionals than the plan allows, or for the month nearing or at the plan's appointment limit; renders nothing otherwise. */
 export function SubscriptionBanner({
     subscription,
     plan,

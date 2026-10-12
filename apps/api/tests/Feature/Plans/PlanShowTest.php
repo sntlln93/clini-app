@@ -18,7 +18,7 @@ afterEach(function () {
     Date::setTestNow();
 });
 
-test('a new organization with no subscription is on Free, with every paid function off', function () {
+test('a new organization with no subscription is on Free, with every paid function off and, by default, no appointment limit', function () {
     $owner = Membership::factory()->owner()->create();
 
     $this->actingAs($owner->user)->getJson('/api/v1/plan')
@@ -37,8 +37,8 @@ test('a new organization with no subscription is on Free, with every paid functi
             'professional_limit' => 1,
             'active_professionals' => 0,
             'restricted' => false,
-            'appointment_limit' => 40,
-            'appointment_warning_threshold' => 35,
+            'appointment_limit' => null,
+            'appointment_warning_threshold' => null,
             'appointments_this_month' => 0,
             'practice_pricing' => [
                 'base_amount' => 15000,
@@ -51,6 +51,7 @@ test('a new organization with no subscription is on Free, with every paid functi
 
 test('the plan follows the subscription: Practice while it grants access, Free otherwise', function (SubscriptionStatus $status, array $attributes, string $plan) {
     Date::setTestNow('2026-10-10 12:00:00');
+    limitFreePlan();
     $member = Membership::factory()->staff()->create();
     Subscription::factory()->withStatus($status)->create(['organization_id' => $member->organization_id, ...$attributes]);
 
@@ -72,6 +73,7 @@ test('the plan follows the subscription: Practice while it grants access, Free o
 ]);
 
 test('an operator-assigned Center wins over the subscription and lifts every limit', function () {
+    limitFreePlan();
     $organization = Organization::factory()->center()->create();
     $member = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     Subscription::factory()->withStatus(SubscriptionStatus::Pending)->create(['organization_id' => $organization->id]);

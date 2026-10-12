@@ -35,6 +35,18 @@ function configureMercadoPago(): void
 }
 
 /**
+ * Free's appointment limit as #238 shipped it; the config default is no
+ * limit (#300), so tests about the limit set it explicitly.
+ */
+function limitFreePlan(int $limit = 40, int $warningThreshold = 35): void
+{
+    config([
+        'plans.free.monthly_appointment_limit' => $limit,
+        'plans.free.appointment_warning_threshold' => $warningThreshold,
+    ]);
+}
+
+/**
  * Builds an `x-signature` header the way Mercado Pago documents it.
  */
 function mercadoPagoSignature(string $dataId, string $requestId, string $ts, string $secret = 'test-webhook-secret'): string

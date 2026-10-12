@@ -36,5 +36,7 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="SANCTUM_STATEFUL_DOMAINS" value="localhost:5174,localhost:5175"/>
         <env name="ADMIN_ALLOWED_ORIGINS" value="http://localhost:5175"/>
+        <env name="PLAN_FREE_MONTHLY_APPOINTMENT_LIMIT" value="0"/>
+        <env name="PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD" value="0"/>
     </php>
 </phpunit>

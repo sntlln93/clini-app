@@ -18,6 +18,13 @@ function professionalsLabel(count: number): string {
         : `${count} profesionales activos`;
 }
 
+/** Free's monthly appointments: the configured limit, or none (#300). */
+function appointmentsLabel(limit: number | null): string {
+    return limit === null
+        ? 'turnos sin límite'
+        : `hasta ${limit} turnos por mes`;
+}
+
 /** One or two sentences on what the current plan includes and, on Practice, what it costs this month. */
 export function planDetail(
     plan: Plan,
@@ -25,7 +32,7 @@ export function planDetail(
 ): string {
     switch (plan.plan) {
         case 'free':
-            return `Incluye 1 profesional, hasta ${plan.appointment_limit ?? 40} turnos por mes, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas, un link de reservas para cada profesional y tu logo en la página de reservas, sin «Hecho con Clini»: ${practicePriceDetail(plan.practice_pricing)}.`;
+            return `Incluye 1 profesional, ${appointmentsLabel(plan.appointment_limit)}, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas, un link de reservas para cada profesional y tu logo en la página de reservas, sin «Hecho con Clini»: ${practicePriceDetail(plan.practice_pricing)}.`;
         case 'practice': {
             const amount =
                 subscription?.amount ??

@@ -22,6 +22,7 @@ use Illuminate\Testing\TestResponse;
 
 beforeEach(function () {
     configureMercadoPago();
+    limitFreePlan();
     Notification::fake();
 });
 
@@ -312,6 +313,82 @@ test('GET /plan reports the current month\'s appointments in the organization\'s
         ->assertJsonPath('data.appointment_limit', 40)
         ->assertJsonPath('data.appointment_warning_threshold', 35)
         ->assertJsonPath('data.appointments_this_month', 3);
+});
+
+test('with the limit at 0, Free books past 40, online too, and never warns', function () {
+    limitFreePlan(0, 35);
+    Date::setTestNow('2026-11-01 12:00:00');
+    $organization = Organization::factory()->create(['timezone' => 'UTC']);
+    [$owner, $professionalService] = limitFixture($organization);
+    Availability::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $owner->id,
+        'day_of_week' => 1,
+        'start_time' => '09:00:00',
+        'end_time' => '12:00:00',
+    ]);
+    plantAppointments($owner, 40, '2026-11-02 13:00:00');
+
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $owner->id,
+        'service_id' => $professionalService->service_id,
+        'start_at' => '2026-11-16T09:00:00Z',
+        'patient' => [
+            'name' => 'Juan Pérez',
+            'document_type' => 'dni',
+            'document_number' => '30111222',
+            'email' => 'juan@example.com',
+            'phone' => '1122334455',
+        ],
+    ])->assertCreated();
+
+    expect(Appointment::query()->count())->toBe(42);
+    expect(AppointmentLimitWarning::query()->count())->toBe(0);
+    Notification::assertNothingSent();
+
+    $this->actingAs($owner->user)->getJson('/api/v1/plan')
+        ->assertOk()
+        ->assertJsonPath('data.appointment_limit', null)
+        ->assertJsonPath('data.appointment_warning_threshold', null);
+});
+
+test('with the threshold at 0, or not below the limit, Free keeps its limit but never warns', function (int $threshold) {
+    limitFreePlan(40, $threshold);
+    [$owner, $professionalService] = limitFixture();
+    plantAppointments($owner, 39, '2026-11-02 13:00:00');
+
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-21T13:00:00Z')
+        ->assertStatus(409)
+        ->assertJsonPath('error.context.appointment_limit', 40);
+
+    Notification::assertNothingSent();
+    expect(AppointmentLimitWarning::query()->count())->toBe(0);
+
+    $this->actingAs($owner->user)->getJson('/api/v1/plan')
+        ->assertOk()
+        ->assertJsonPath('data.appointment_limit', 40)
+        ->assertJsonPath('data.appointment_warning_threshold', null);
+})->with(['zero' => 0, 'equal to the limit' => 40, 'above the limit' => 50]);
+
+test('a configured limit and threshold apply as set', function () {
+    limitFreePlan(10, 8);
+    [$owner, $professionalService] = limitFixture();
+    plantAppointments($owner, 7, '2026-11-02 13:00:00');
+
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
+    Notification::assertSentTo(
+        $owner->user,
+        AppointmentLimitApproachingNotification::class,
+        fn (AppointmentLimitApproachingNotification $notification): bool => $notification->appointments === 8
+            && $notification->appointmentLimit === 10,
+    );
+
+    plantAppointments($owner, 2, '2026-11-03 13:00:00');
+    bookManually($owner, $professionalService, '2026-11-21T13:00:00Z')
+        ->assertStatus(409)
+        ->assertJsonPath('error.context', ['appointment_limit' => 10, 'month' => '2026-11']);
 });
 
 // Declared last on purpose, like AppointmentStoreTest's race test: the rows

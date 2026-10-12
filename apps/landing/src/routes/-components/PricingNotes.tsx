@@ -10,8 +10,8 @@ export function PricingNotes({ billing }: { billing: Billing }) {
                     : 'Débito automático mensual con Mercado Pago. Cancelás cuando quieras.',
         },
         {
-            title: 'Si llegás al límite',
-            body: 'En el plan Gratis te avisamos al llegar a 35 turnos del mes. Pasás a Consultorio con un clic y no perdés nada.',
+            title: 'Si cambiás de plan',
+            body: 'Pasás de Gratis a Consultorio con un clic desde el panel y no perdés nada de lo que cargaste.',
         },
         {
             title: 'Si un pago falla',
