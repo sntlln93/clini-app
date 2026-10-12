@@ -101,7 +101,7 @@ function PacientesPage() {
             <Searchbar
                 value={q}
                 onSearch={handleSearch}
-                placeholder="Buscar por nombre o documento…"
+                placeholder="Buscar por nombre, documento o N° de afiliado…"
                 label="Buscar pacientes"
                 className="max-w-sm"
             />

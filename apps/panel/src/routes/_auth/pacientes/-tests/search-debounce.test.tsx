@@ -91,7 +91,7 @@ describe('/pacientes search debounce', () => {
     it('updates the input immediately but only navigates once the debounce elapses', async () => {
         const { router } = renderPacientesRoute('/pacientes/');
         const input = (await screen.findByPlaceholderText(
-            'Buscar por nombre o documento…',
+            'Buscar por nombre, documento o N° de afiliado…',
         )) as HTMLInputElement;
         input.focus();
 

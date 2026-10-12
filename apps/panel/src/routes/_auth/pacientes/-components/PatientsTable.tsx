@@ -11,6 +11,18 @@ const DOCUMENT_TYPE_LABELS: Record<Patient['document_type'], string> = {
     passport: 'Pasaporte',
 };
 
+// The member number only means something next to its provider (#289), so it never shows on its own.
+function insuranceLabel({
+    insurance_provider,
+    insurance_member_number,
+}: Patient): string {
+    if (!insurance_provider) return '—';
+
+    return insurance_member_number
+        ? `${insurance_provider.name} · ${insurance_member_number}`
+        : insurance_provider.name;
+}
+
 type PatientsTableProps = {
     patients: Patient[];
     empty: ReactNode;
@@ -75,7 +87,7 @@ const columns: ColumnDef<Patient, unknown>[] = [
     {
         id: 'insurance',
         header: 'Obra social',
-        cell: ({ row }) => row.original.insurance_provider?.name ?? '—',
+        cell: ({ row }) => insuranceLabel(row.original),
         meta: { className: 'hidden md:table-cell' },
     },
     {
