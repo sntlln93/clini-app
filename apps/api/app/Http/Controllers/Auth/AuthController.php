@@ -60,6 +60,7 @@ class AuthController extends Controller
             password: $request->string('password')->toString(),
             organizationName: $request->string('organization_name')->toString(),
             timezone: $request->string('timezone')->toString(),
+            attendsPatients: $request->boolean('attends_patients'),
         );
 
         $user = $action->handle($dto);

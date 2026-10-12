@@ -9,6 +9,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 
 // Sanctum only boots the session for requests it recognizes as coming from
 // the SPA (Origin/Referer matching SANCTUM_STATEFUL_DOMAINS) — a real
@@ -158,4 +159,70 @@ test('registering with an invalid timezone fails validation and persists nothing
     $this->assertDatabaseCount('users', 0);
     $this->assertDatabaseCount('organizations', 0);
     $this->assertDatabaseCount('memberships', 0);
+});
+
+test('an owner who attends patients registers as owner and professional', function () {
+    registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+        'attends_patients' => true,
+    ])->assertCreated()
+        ->assertJsonPath('roles', [MembershipRole::Owner->value, MembershipRole::Professional->value]);
+
+    $membership = Membership::query()->withoutGlobalScope('organization')->sole();
+
+    expect($membership->roles)->toBe([MembershipRole::Owner, MembershipRole::Professional]);
+});
+
+test('an owner who does not attend patients registers as owner only', function () {
+    registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+        'attends_patients' => false,
+    ])->assertCreated();
+
+    expect(Membership::query()->withoutGlobalScope('organization')->sole()->roles)->toBe([MembershipRole::Owner]);
+});
+
+test('the registering owner fills the Free plan professional slot', function () {
+    registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+        'attends_patients' => true,
+    ])->assertCreated();
+
+    Mail::fake();
+
+    registerFromSpa()->postJson('/api/v1/memberships/invitations', [
+        'email' => 'segunda@example.com',
+        'roles' => [MembershipRole::Professional->value],
+    ])->assertStatus(409)
+        ->assertJsonPath('error.code', 'plans.feature_unavailable');
+});
+
+test('registering with a non-boolean attends_patients fails validation and persists nothing', function () {
+    registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+        'attends_patients' => 'quizás',
+    ])->assertStatus(422)
+        ->assertJsonValidationErrors('attends_patients');
+
+    $this->assertDatabaseCount('users', 0);
 });
