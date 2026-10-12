@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm, type Resolver } from 'react-hook-form';
@@ -53,7 +54,7 @@ export function ExtendGraceDialog({
     const [open, setOpen] = useState(false);
     // Bounds follow "today" at the moment the dialog opens, not at page mount: a page left open past midnight
     // would otherwise still offer the old "mañana".
-    const [openedAt, setOpenedAt] = useState(() => new Date());
+    const [openedAt, setOpenedAt] = useState(() => DateTime.now());
     const bounds = useMemo(() => graceDateBounds(openedAt), [openedAt]);
     const form = useForm<GraceExtensionValues>({
         resolver: validateAgainstToday,
@@ -98,7 +99,7 @@ export function ExtendGraceDialog({
             open={open}
             onOpenChange={(next) => {
                 if (next) {
-                    setOpenedAt(new Date());
+                    setOpenedAt(DateTime.now());
                 }
                 setOpen(next);
             }}

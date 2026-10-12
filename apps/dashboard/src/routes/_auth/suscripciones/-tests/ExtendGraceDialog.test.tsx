@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { DateTime } from '@/lib/datetime';
 import { notifySuccess } from '@/lib/toast';
 import { renderRoute } from '@/tests/render-route';
 import type { AdminSubscription } from '@/types/subscription';
@@ -56,7 +57,7 @@ async function openDialog() {
 
 describe('grace-schema', () => {
     // 23:30 in Buenos Aires = already Oct 5 in UTC; "today" is still Oct 4.
-    const now = new Date('2026-10-05T02:30:00Z');
+    const now = DateTime.fromISO('2026-10-05T02:30:00Z');
 
     it('bounds the date to tomorrow..today+90 in the reporting timezone', () => {
         expect(graceDateBounds(now)).toEqual({

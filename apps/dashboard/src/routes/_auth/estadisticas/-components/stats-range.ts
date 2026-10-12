@@ -1,8 +1,8 @@
+import { utcDay } from '@/lib/datetime';
 import { reportingDateOffset, shiftDate } from '@/lib/format';
 
 const MAX_RANGE_DAYS = 366;
 const DEFAULT_SPAN_DAYS = 30;
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Client-side mirror of the API's range rules, so an invalid range never leaves the form; `null` = valid. */
 export function rangeError(
@@ -17,10 +17,7 @@ export function rangeError(
         return 'La fecha “Hasta” tiene que ser igual o posterior a “Desde”.';
     }
 
-    const spanDays =
-        (Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) /
-            DAY_MS +
-        1;
+    const spanDays = utcDay(to).diff(utcDay(from), 'days').days + 1;
 
     return spanDays > MAX_RANGE_DAYS
         ? `El rango no puede superar los ${MAX_RANGE_DAYS} días.`
