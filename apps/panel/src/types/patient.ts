@@ -1,6 +1,6 @@
 import type { AppointmentOrigin, AppointmentStatus } from './appointment';
 
-export type DocumentType = 'dni' | 'passport' | 'insurance_id';
+export type DocumentType = 'dni' | 'passport';
 
 export type Sex = 'f' | 'm' | 'u';
 
@@ -19,6 +19,7 @@ export type Patient = {
     sex: Sex | null;
     birth_date: string | null;
     insurance_provider_id: number | null;
+    insurance_member_number: string | null;
     insurance_provider?: InsuranceProvider | null;
     created_at: string;
 };
@@ -49,4 +50,6 @@ export type PatientPayload = {
     sex: Sex | '';
     birth_date: string;
     insurance_provider_id: number | null;
+    // Ignored by the API when there is no provider (#275).
+    insurance_member_number: string;
 };

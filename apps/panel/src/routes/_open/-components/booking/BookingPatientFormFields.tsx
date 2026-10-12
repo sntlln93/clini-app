@@ -14,7 +14,6 @@ import type { BookingPatientFormValues } from './booking-patient-schema';
 const DOCUMENT_TYPE_OPTIONS = [
     { value: 'dni' as const, label: 'DNI' },
     { value: 'passport' as const, label: 'Pasaporte' },
-    { value: 'insurance_id' as const, label: 'Carnet de obra social' },
 ];
 
 type BookingPatientFormFieldsProps = {
@@ -24,7 +23,7 @@ type BookingPatientFormFieldsProps = {
 export function BookingPatientFormFields({
     control,
 }: BookingPatientFormFieldsProps) {
-    // Passports and insurance cards may carry letters, so only a DNI gets the numeric keypad.
+    // Passports may carry letters, so only a DNI gets the numeric keypad.
     const documentType = useWatch({ control, name: 'patient.document_type' });
 
     return (

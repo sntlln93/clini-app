@@ -55,6 +55,7 @@ const EXISTING_PATIENT: Patient = {
     sex: 'm',
     birth_date: '1990-01-01',
     insurance_provider_id: 2,
+    insurance_member_number: '37415820',
     created_at: '2026-01-01T00:00:00Z',
 };
 
@@ -106,6 +107,15 @@ function renderPatientForm(
     return router;
 }
 
+async function pickInsuranceProvider(name: string) {
+    fireEvent.click(screen.getByLabelText('Obra social (opcional)'));
+    const option = await screen.findByRole('option', { name });
+    // base-ui's roving-tabindex needs a real pointer sequence in jsdom; a bare `click` doesn't register.
+    fireEvent.pointerDown(option);
+    fireEvent.pointerUp(option);
+    fireEvent.click(option);
+}
+
 async function fillMinimalPatientForm() {
     fireEvent.change(await screen.findByLabelText('Nombre'), {
         target: { value: 'Juan Perez' },
@@ -144,8 +154,74 @@ describe('PatientForm', () => {
                 sex: '',
                 birth_date: '',
                 insurance_provider_id: null,
+                insurance_member_number: '',
             }),
         );
+    });
+
+    it('asks for the member number once an insurance provider is chosen and sends it with it', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 1 } },
+        });
+        renderPatientForm(undefined, [{ id: 1, name: 'OSDE' }]);
+
+        await fillMinimalPatientForm();
+        expect(screen.queryByLabelText('N° de afiliado')).toBeNull();
+        await pickInsuranceProvider('OSDE');
+
+        const memberNumber = await screen.findByLabelText('N° de afiliado');
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+        await screen.findByText('Ingresá el número de afiliado.');
+        expect(api.post).not.toHaveBeenCalled();
+
+        fireEvent.change(memberNumber, { target: { value: '37415820' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/patients',
+                expect.objectContaining({
+                    insurance_provider_id: 1,
+                    insurance_member_number: '37415820',
+                }),
+            ),
+        );
+    });
+
+    it('lets a provider picked by mistake be undone, dropping the member number requirement', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 1 } },
+        });
+        renderPatientForm(undefined, [{ id: 1, name: 'OSDE' }]);
+
+        await fillMinimalPatientForm();
+        await pickInsuranceProvider('OSDE');
+        await screen.findByLabelText('N° de afiliado');
+
+        await pickInsuranceProvider('Sin obra social');
+        await waitFor(() =>
+            expect(screen.queryByLabelText('N° de afiliado')).toBeNull(),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/patients',
+                expect.objectContaining({ insurance_provider_id: null }),
+            ),
+        );
+    });
+
+    it('offers only DNI and passport as identity documents', async () => {
+        renderPatientForm();
+
+        await screen.findByRole('radio', { name: 'DNI' });
+        expect(screen.getByRole('radio', { name: 'Pasaporte' })).toBeTruthy();
+        expect(
+            screen.queryByRole('radio', { name: 'Carnet de obra social' }),
+        ).toBeNull();
     });
 
     it('shows a client-side validation message for the empty required Nombre field and does not call POST /patients', async () => {
@@ -244,6 +320,18 @@ describe('PatientForm', () => {
 
         fireEvent.click(await screen.findByLabelText('Obra social (opcional)'));
         await screen.findByRole('option', { name: 'OSDE' });
+    });
+
+    it('shows the saved member number in edit mode', async () => {
+        renderPatientForm(EXISTING_PATIENT, [{ id: 2, name: 'Swiss Medical' }]);
+
+        expect(
+            (
+                (await screen.findByLabelText(
+                    'N° de afiliado',
+                )) as HTMLInputElement
+            ).value,
+        ).toBe('37415820');
     });
 
     it('shows the insurance provider name at mount in edit mode, not the raw id', async () => {

@@ -73,9 +73,7 @@ function PacienteDetallePage() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <PatientPersonalDataCard patient={patient} />
                 <PatientContactCard patient={patient} />
-                <PatientInsuranceCard
-                    insuranceProvider={patient.insurance_provider}
-                />
+                <PatientInsuranceCard patient={patient} />
             </div>
 
             <PatientAppointmentHistoryCard appointments={appointments} />

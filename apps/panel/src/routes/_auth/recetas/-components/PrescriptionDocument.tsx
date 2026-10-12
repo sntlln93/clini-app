@@ -5,7 +5,6 @@ import type { Prescription } from '@/types/prescription';
 const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
     dni: 'DNI',
     passport: 'Pasaporte',
-    insurance_id: 'Carnet de obra social',
 };
 
 export const NOT_VALID_LEGEND = 'Documento sin validez como receta electrónica';
@@ -26,6 +25,15 @@ export function PrescriptionDocument({
         prescription.patient_document_number
             ? `${DOCUMENT_TYPE_LABELS[prescription.patient_document_type]} ${prescription.patient_document_number}`
             : null;
+    const insurance = prescription.patient_insurance_provider_name
+        ? [
+              prescription.patient_insurance_provider_name,
+              prescription.patient_insurance_member_number &&
+                  `N° de afiliado ${prescription.patient_insurance_member_number}`,
+          ]
+              .filter(Boolean)
+              .join(' · ')
+        : null;
 
     return (
         <article className="mx-auto max-w-2xl space-y-6 rounded-lg border bg-background p-6 text-foreground print:max-w-none print:rounded-none print:border-0 print:p-0 print:text-black">
@@ -57,6 +65,12 @@ export function PrescriptionDocument({
                     <p>
                         <span className="font-medium">Documento:</span>{' '}
                         {document}
+                    </p>
+                )}
+                {insurance && (
+                    <p>
+                        <span className="font-medium">Obra social:</span>{' '}
+                        {insurance}
                     </p>
                 )}
                 {prescription.diagnosis && (

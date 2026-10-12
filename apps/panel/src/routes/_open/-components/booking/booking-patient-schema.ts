@@ -5,7 +5,7 @@ export const bookingPatientSchema = z.object({
     patient: z.object({
         name: z.string().min(1, 'El nombre y apellido es obligatorio.'),
         document_type: z
-            .union([z.enum(['dni', 'passport', 'insurance_id']), z.literal('')])
+            .union([z.enum(['dni', 'passport']), z.literal('')])
             .refine((value) => value !== '', {
                 message: 'Elegí un tipo de documento.',
             }),

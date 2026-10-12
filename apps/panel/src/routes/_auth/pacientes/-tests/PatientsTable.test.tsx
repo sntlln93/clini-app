@@ -22,6 +22,7 @@ const PATIENTS: Patient[] = [
         sex: null,
         birth_date: null,
         insurance_provider_id: null,
+        insurance_member_number: null,
         insurance_provider: null,
         created_at: '2026-01-01T00:00:00Z',
     },

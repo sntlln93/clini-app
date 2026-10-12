@@ -29,6 +29,7 @@ function startingValues(
         sex: patient?.sex ?? '',
         birth_date: patient?.birth_date ?? '',
         insurance_provider_id: patient?.insurance_provider_id ?? null,
+        insurance_member_number: patient?.insurance_member_number ?? '',
         ...(patient ? {} : initialValues),
     };
 }
@@ -44,6 +45,7 @@ function valuesFromFoundPatient(found: Patient): PatientPayload {
         sex: found.sex ?? '',
         birth_date: found.birth_date ?? '',
         insurance_provider_id: found.insurance_provider_id,
+        insurance_member_number: found.insurance_member_number ?? '',
     };
 }
 
