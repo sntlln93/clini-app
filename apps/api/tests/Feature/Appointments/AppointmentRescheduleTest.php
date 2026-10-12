@@ -33,7 +33,7 @@ test('reschedule response includes the professional, patient and service names o
     ]);
 
     $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -59,7 +59,7 @@ test('rescheduling a scheduled appointment creates a new row, marks the original
     ]);
 
     $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -94,7 +94,7 @@ test('rescheduling a confirmed appointment succeeds', function () {
     ]);
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ])->assertCreated();
 
     expect($original->fresh()->status)->toBe(AppointmentStatus::Rescheduled);
@@ -116,7 +116,7 @@ test('rescheduling from a non-reschedulable status returns 409 with the not-resc
     $countBefore = Appointment::count();
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::AppointmentsNotReschedulableFromStatus->value);
@@ -148,7 +148,7 @@ test('rescheduling to a slot overlapping the appointment\'s own original time ra
     ]);
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ])->assertCreated();
 
     expect($original->fresh()->status)->toBe(AppointmentStatus::Rescheduled);
@@ -181,7 +181,7 @@ test('rescheduling to a slot overlapping a different active appointment rolls ba
     $countBefore = Appointment::count();
 
     $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:15:00',
+        'start_at' => '2026-08-04T09:15:00Z',
     ])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
@@ -219,7 +219,7 @@ test('reason and notes sent in the payload are used on the new appointment', fun
     ]);
 
     $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
         'reason' => 'Motivo nuevo',
         'notes' => 'Notas nuevas',
     ]);
@@ -246,7 +246,7 @@ test('reason and notes omitted from the payload fall back to the original appoin
     ]);
 
     $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -265,7 +265,7 @@ test('rescheduling an appointment belonging to another organization is rejected'
     ]);
 
     $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ]);
 
     $response->assertStatus(403);
@@ -300,11 +300,11 @@ test('a membership holding only appointments.update.own gets 403 rescheduling an
     ]);
 
     $this->actingAs($professional->user)->postJson("/api/v1/appointments/{$anotherAppointment->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ])->assertStatus(403);
 
     $this->actingAs($professional->user)->postJson("/api/v1/appointments/{$ownAppointment->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ])->assertSuccessful();
 });
 
@@ -317,6 +317,6 @@ test('a guest gets 401 rescheduling an appointment', function () {
     ]);
 
     $this->postJson("/api/v1/appointments/{$original->id}/reschedule", [
-        'start_at' => '2026-08-04T09:00:00',
+        'start_at' => '2026-08-04T09:00:00Z',
     ])->assertStatus(401);
 });

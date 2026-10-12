@@ -1,6 +1,7 @@
 import { StatusPill, type StatusTone } from '@/components/StatusPill';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import { DateTime } from '@/lib/datetime';
 import {
     SUBSCRIPTION_SECTION_ID,
     SUBSCRIPTION_STATUS_LABELS,
@@ -135,7 +136,7 @@ export function SubscriptionSection({
                     <p>
                         {subscriptionStatusDetail(
                             subscription,
-                            new Date(),
+                            DateTime.now(),
                             plan?.assigned_by_platform ?? false,
                         )}
                     </p>

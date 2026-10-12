@@ -1,4 +1,4 @@
-import { addDays, toDateInputValue } from './agenda-dates';
+import { DateTime, toCalendarDate } from '@/lib/datetime';
 import type { AgendaViewMode } from './AgendaToolbar';
 
 export type AgendaSearchPatch = {
@@ -9,7 +9,7 @@ export type AgendaSearchPatch = {
 };
 
 type AgendaNavigationOptions = {
-    date: Date;
+    date: DateTime;
     view: AgendaViewMode;
     professionalsCount: number;
     /** Merges the patch into the current search params; a key set to `undefined` drops it from the URL. */
@@ -24,14 +24,14 @@ export function agendaNavigation({
     setSearch,
 }: AgendaNavigationOptions) {
     const step = view === 'day' ? 1 : 7;
-    const updateDate = (next: Date) =>
-        setSearch({ date: toDateInputValue(next) });
+    const updateDate = (next: DateTime) =>
+        setSearch({ date: toCalendarDate(next) });
 
     return {
         updateDate,
-        onPrev: () => updateDate(addDays(date, -step)),
-        onNext: () => updateDate(addDays(date, step)),
-        onToday: () => updateDate(new Date()),
+        onPrev: () => updateDate(date.minus({ days: step })),
+        onNext: () => updateDate(date.plus({ days: step })),
+        onToday: () => updateDate(DateTime.now()),
         onViewChange: (nextView: AgendaViewMode) =>
             setSearch({ view: nextView }),
         onShowCancelledChange: (value: boolean) =>

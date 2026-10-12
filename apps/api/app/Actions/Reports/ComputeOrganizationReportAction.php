@@ -193,7 +193,7 @@ class ComputeOrganizationReportAction implements Action
             ->where('start_at', '>=', $fromUtc)
             ->where('start_at', '<', $toUtc)
             ->toBase()
-            ->selectRaw("membership_id, status, origin, to_char((start_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone])
+            ->selectRaw("membership_id, status, origin, to_char(start_at AT TIME ZONE ?, 'YYYY-MM-DD') as day, count(*) as aggregate", [$dto->timezone])
             ->groupBy('membership_id', 'status', 'origin', 'day')
             ->get();
 
@@ -232,7 +232,7 @@ class ComputeOrganizationReportAction implements Action
             ->where('organization_patient.organization_id', $dto->organizationId)
             ->where('organization_patient.created_at', '>=', $fromUtc)
             ->where('organization_patient.created_at', '<', $toUtc)
-            ->selectRaw("to_char((organization_patient.created_at AT TIME ZONE 'UTC') AT TIME ZONE ?, 'YYYY-MM') as month, count(*) as aggregate", [$dto->timezone])
+            ->selectRaw("to_char(organization_patient.created_at AT TIME ZONE ?, 'YYYY-MM') as month, count(*) as aggregate", [$dto->timezone])
             ->groupBy('month')
             ->pluck('aggregate', 'month');
 

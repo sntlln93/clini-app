@@ -21,20 +21,20 @@ return new class extends Migration
             $table->string('provider');
             $table->string('provider_subscription_id')->nullable()->unique();
             $table->string('status');
-            $table->timestamp('grace_ends_at')->nullable();
+            $table->dateTimeTz('grace_ends_at')->nullable();
             $table->string('grace_reason')->nullable();
-            $table->timestamp('last_payment_at')->nullable();
-            $table->timestamp('last_payment_failed_at')->nullable();
+            $table->dateTimeTz('last_payment_at')->nullable();
+            $table->dateTimeTz('last_payment_failed_at')->nullable();
             // The provider's next scheduled charge, shown as the renewal date.
-            $table->timestampTz('next_payment_at')->nullable();
+            $table->dateTimeTz('next_payment_at')->nullable();
             // When the subscription was cancelled; null unless status = cancelled.
-            $table->timestamp('cancelled_at')->nullable();
+            $table->dateTimeTz('cancelled_at')->nullable();
             // End of the period already paid when an active subscription was
             // cancelled: it keeps write access until then.
-            $table->timestamp('access_ends_at')->nullable();
+            $table->dateTimeTz('access_ends_at')->nullable();
             // Monthly amount last set at the provider, in whole pesos.
             $table->unsignedInteger('amount')->nullable();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->index(['status', 'grace_ends_at']);
         });
@@ -47,7 +47,7 @@ return new class extends Migration
             $table->string('resource_id')->nullable();
             $table->foreignId('subscription_id')->nullable()->constrained()->nullOnDelete();
             $table->json('payload');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['provider', 'notification_id']);
         });

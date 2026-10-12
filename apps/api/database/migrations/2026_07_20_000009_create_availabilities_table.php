@@ -20,7 +20,7 @@ return new class extends Migration
             $table->smallInteger('day_of_week');
             $table->time('start_time');
             $table->time('end_time');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();

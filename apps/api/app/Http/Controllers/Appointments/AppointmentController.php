@@ -43,7 +43,7 @@ class AppointmentController extends Controller
 
         $query = Appointment::query()
             ->visibleTo($membership)
-            ->whereBetween('start_at', [$request->string('from')->toString(), $request->string('to')->toString()]);
+            ->whereBetween('start_at', [CarbonImmutable::parse($request->string('from')->toString())->utc(), CarbonImmutable::parse($request->string('to')->toString())->utc()]);
 
         if ($request->filled('membership_id')) {
             $query->where('membership_id', $request->integer('membership_id'));
@@ -72,7 +72,7 @@ class AppointmentController extends Controller
             patientId: $request->integer('patient_id'),
             serviceId: $request->integer('service_id'),
             createdBy: $user->id,
-            startAt: CarbonImmutable::parse($request->string('start_at')->toString()),
+            startAt: CarbonImmutable::parse($request->string('start_at')->toString())->utc(),
             origin: AppointmentOrigin::Manual,
             reason: $request->filled('reason') ? $request->string('reason')->toString() : null,
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,
@@ -137,7 +137,7 @@ class AppointmentController extends Controller
 
         $rescheduled = $action->handle(new AppointmentReschedulingData(
             appointmentId: $appointment->id,
-            startAt: CarbonImmutable::parse($request->string('start_at')->toString()),
+            startAt: CarbonImmutable::parse($request->string('start_at')->toString())->utc(),
             rescheduledBy: $user->id,
             reason: $request->filled('reason') ? $request->string('reason')->toString() : null,
             notes: $request->filled('notes') ? $request->string('notes')->toString() : null,

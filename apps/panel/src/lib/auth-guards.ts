@@ -30,7 +30,7 @@ export async function requireSession({
     location,
 }: GuardContext & { location?: GuardLocation }) {
     try {
-        await queryClient.ensureQueryData(sessionQueryOptions);
+        return await queryClient.ensureQueryData(sessionQueryOptions);
     } catch {
         throw redirect({
             to: '/login',

@@ -1,6 +1,7 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { fromInstant } from '@/lib/datetime';
 import { formatPriceCents } from '@/lib/price';
 import type {
     BookingConfirmation as BookingConfirmationData,
@@ -16,11 +17,9 @@ type BookingConfirmationProps = {
 };
 
 function formatDateTime(isoInstant: string, timeZone: string): string {
-    return new Intl.DateTimeFormat('es-AR', {
-        dateStyle: 'full',
-        timeStyle: 'short',
-        timeZone,
-    }).format(new Date(isoInstant));
+    return fromInstant(isoInstant)
+        .setZone(timeZone)
+        .toLocaleString({ dateStyle: 'full', timeStyle: 'short' });
 }
 
 function DetailRow({ term, value }: { term: string; value: string }) {

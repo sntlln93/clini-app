@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -41,7 +42,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
 }
 
 // Sunday, 2 August 2026.
-const WEEK_START = new Date(2026, 7, 2);
+const WEEK_START = DateTime.local(2026, 8, 2);
 
 function renderWeekView(props: Partial<AgendaWeekViewProps> = {}) {
     const defaults: AgendaWeekViewProps = {
@@ -90,9 +91,7 @@ describe('AgendaWeekView', () => {
 
         expect(onDayClick).toHaveBeenCalledOnce();
         const [day] = vi.mocked(onDayClick!).mock.calls[0];
-        expect(day.getFullYear()).toBe(2026);
-        expect(day.getMonth()).toBe(7);
-        expect(day.getDate()).toBe(4);
+        expect(day.toISODate()).toBe('2026-08-04');
     });
 
     it('offers quick-create when at least one visible professional is creatable', () => {

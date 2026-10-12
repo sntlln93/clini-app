@@ -25,7 +25,7 @@ return new class extends Migration
             $table->date('date');
             $table->string('name');
             $table->foreignId('province_id')->nullable()->constrained()->restrictOnDelete();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['date', 'province_id'])->nullsNotDistinct();
         });
@@ -35,7 +35,7 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->date('date');
             $table->string('name');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['organization_id', 'date']);
         });

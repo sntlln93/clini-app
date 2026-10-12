@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { describe, expect, it } from 'vitest';
 import {
     formatExceptionRange,
@@ -36,7 +37,7 @@ describe('formatExceptionRange', () => {
 });
 
 describe('isExceptionFinished', () => {
-    const now = new Date('2026-10-12T15:00:00Z');
+    const now = DateTime.fromISO('2026-10-12T15:00:00Z');
 
     it('is finished once end_at is in the past', () => {
         expect(isExceptionFinished('2026-10-12T14:59:00Z', now)).toBe(true);

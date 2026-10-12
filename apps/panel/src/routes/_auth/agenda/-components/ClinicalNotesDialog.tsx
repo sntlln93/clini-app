@@ -1,3 +1,4 @@
+import { formatShortDateTime } from '@/lib/datetime';
 import { useState } from 'react';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
@@ -24,13 +25,6 @@ type ClinicalNotesDialogProps = {
     onOpenChange: (open: boolean) => void;
     appointment: Appointment | null;
 };
-
-function formatTimestamp(iso: string): string {
-    return new Date(iso).toLocaleString('es-AR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    });
-}
 
 // Contextual dialog (ADR 0006): lists the acting membership's own notes for
 // this appointment and resolves add/edit/delete inline, no dedicated page.
@@ -99,7 +93,7 @@ export function ClinicalNotesDialog({
                             <p className="whitespace-pre-wrap">{note.body}</p>
                             <div className="mt-2 flex items-center justify-between gap-2">
                                 <span className="text-xs text-muted-foreground tabular-nums">
-                                    {formatTimestamp(note.updated_at)}
+                                    {formatShortDateTime(note.updated_at)}
                                 </span>
                                 {!restricted && (
                                     <div className="flex gap-2">

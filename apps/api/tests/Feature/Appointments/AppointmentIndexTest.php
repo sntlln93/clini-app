@@ -33,7 +33,7 @@ test('index returns only appointments whose start_at falls in the from/to range,
         'end_at' => '2026-08-10 09:30:00',
     ]);
 
-    $response = $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-05&to=2026-08-06');
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-05T00:00:00Z&to=2026-08-06T00:00:00Z');
 
     $response->assertSuccessful();
     $ids = collect($response->json('data'))->pluck('id')->all();
@@ -59,7 +59,7 @@ test('index never leaks another organization\'s appointments', function () {
         'end_at' => '2026-08-05 10:30:00',
     ]);
 
-    $response = $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-01&to=2026-08-10');
+    $response = $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-01T00:00:00Z&to=2026-08-10T00:00:00Z');
 
     $response->assertSuccessful();
     expect(collect($response->json('data'))->pluck('id')->all())->toBe([$own->id]);
@@ -84,7 +84,7 @@ test('index filtered by membership_id returns only that professional\'s appointm
     ]);
 
     $response = $this->actingAs($membershipA->user)->getJson(
-        "/api/v1/appointments?from=2026-08-01&to=2026-08-10&membership_id={$membershipA->id}"
+        "/api/v1/appointments?from=2026-08-01T00:00:00Z&to=2026-08-10T00:00:00Z&membership_id={$membershipA->id}"
     );
 
     $response->assertSuccessful();
@@ -110,11 +110,11 @@ test('index for a membership holding only appointments.view.own returns only its
         'end_at' => '2026-08-05 11:30:00',
     ]);
 
-    $professionalResponse = $this->actingAs($professional->user)->getJson('/api/v1/appointments?from=2026-08-01&to=2026-08-10');
+    $professionalResponse = $this->actingAs($professional->user)->getJson('/api/v1/appointments?from=2026-08-01T00:00:00Z&to=2026-08-10T00:00:00Z');
     $professionalResponse->assertSuccessful();
     expect(collect($professionalResponse->json('data'))->pluck('id')->all())->toBe([$ownAppointment->id]);
 
-    $ownerResponse = $this->actingAs($owner->user)->getJson('/api/v1/appointments?from=2026-08-01&to=2026-08-10');
+    $ownerResponse = $this->actingAs($owner->user)->getJson('/api/v1/appointments?from=2026-08-01T00:00:00Z&to=2026-08-10T00:00:00Z');
     $ownerResponse->assertSuccessful();
     expect(collect($ownerResponse->json('data'))->pluck('id')->sort()->values()->all())
         ->toBe(collect([$ownAppointment->id, $anotherAppointment->id])->sort()->values()->all());
@@ -123,12 +123,12 @@ test('index for a membership holding only appointments.view.own returns only its
 test('index returns 422 when from or to is missing, and when to is before from', function () {
     $membership = Membership::factory()->create();
 
-    $this->actingAs($membership->user)->getJson('/api/v1/appointments?to=2026-08-10')
+    $this->actingAs($membership->user)->getJson('/api/v1/appointments?to=2026-08-10T00:00:00Z')
         ->assertStatus(422)->assertJsonValidationErrors('from');
 
-    $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-01')
+    $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-01T00:00:00Z')
         ->assertStatus(422)->assertJsonValidationErrors('to');
 
-    $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-10&to=2026-08-01')
+    $this->actingAs($membership->user)->getJson('/api/v1/appointments?from=2026-08-10T00:00:00Z&to=2026-08-01T00:00:00Z')
         ->assertStatus(422)->assertJsonValidationErrors('to');
 });

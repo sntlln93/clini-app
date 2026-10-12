@@ -33,8 +33,8 @@ class SlotSearchRequest extends FormRequest
         return [
             'membership_id' => ['required', 'integer', 'exists:memberships,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
-            'from' => ['required', 'date', "after_or_equal:{$today}", "before_or_equal:{$maxDate}"],
-            'to' => ['required', 'date', 'after_or_equal:from', "before_or_equal:{$maxDate}"],
+            'from' => ['required', 'date_format:Y-m-d', "after_or_equal:{$today}", "before_or_equal:{$maxDate}"],
+            'to' => ['required', 'date_format:Y-m-d', 'after_or_equal:from', "before_or_equal:{$maxDate}"],
         ];
     }
 

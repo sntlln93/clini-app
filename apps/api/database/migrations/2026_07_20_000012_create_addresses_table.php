@@ -21,8 +21,8 @@ return new class extends Migration
             $table->foreignId('city_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('postal_code')->nullable();
             $table->string('country')->nullable();
-            $table->timestamps();
-            $table->softDeletes();
+            $table->timestampsTz();
+            $table->softDeletesTz();
 
             $table->index(['addressable_type', 'addressable_id']);
         });

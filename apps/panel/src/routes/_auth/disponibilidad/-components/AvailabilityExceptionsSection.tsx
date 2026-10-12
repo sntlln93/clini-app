@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { DateTime } from '@/lib/datetime';
 import type { AvailabilityException } from '@/types/availability';
 import { useState } from 'react';
 import { useDeleteAvailabilityException } from '../-hooks/use-availability-exceptions';
@@ -27,7 +28,7 @@ export function AvailabilityExceptionsSection({
     const [isCreating, setIsCreating] = useState(false);
     const canManage = canManageOwn || canManageOrgWide;
     // Taken once on mount; it only decides which rows read as finished.
-    const [now] = useState(() => new Date());
+    const [now] = useState(() => DateTime.now());
 
     function canManageRow(exception: AvailabilityException): boolean {
         return exception.membership_id === null

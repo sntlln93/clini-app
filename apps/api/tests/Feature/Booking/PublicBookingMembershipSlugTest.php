@@ -129,7 +129,7 @@ test('store on a membership slug creates the appointment in that membership\'s o
     $response = $this->postJson('/api/v1/booking/dr-gomez/appointments', [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => [
             'name' => 'Juan Pérez',
             'document_type' => 'dni',

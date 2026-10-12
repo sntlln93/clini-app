@@ -1,3 +1,4 @@
+import { DateTime, fromInstant } from '@/lib/datetime';
 import { formatSubscriptionDate } from '@/lib/subscription';
 import type { Subscription } from '@/types/subscription';
 
@@ -15,7 +16,7 @@ function graceDetail(subscription: Subscription): string {
 
 function cancelledDetail(
     subscription: Subscription,
-    now: Date,
+    now: DateTime,
     assignedByPlatform: boolean,
 ): string {
     const cancelled = subscription.cancelled_at
@@ -26,7 +27,7 @@ function cancelledDetail(
     // after it the organization is on Free — unless Centro is assigned.
     return !assignedByPlatform &&
         subscription.access_ends_at &&
-        new Date(subscription.access_ends_at).getTime() > now.getTime()
+        fromInstant(subscription.access_ends_at) > now
         ? `${cancelled}. Seguís en el plan Consultorio hasta el ${formatSubscriptionDate(subscription.access_ends_at)}.`
         : cancelled;
 }
@@ -34,7 +35,7 @@ function cancelledDetail(
 /** One line describing where the subscription stands, with its relevant date. */
 export function subscriptionStatusDetail(
     subscription: Subscription,
-    now: Date = new Date(),
+    now: DateTime = DateTime.now(),
     assignedByPlatform: boolean = false,
 ): string {
     switch (subscription.status) {

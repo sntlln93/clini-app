@@ -21,8 +21,8 @@ return new class extends Migration
             $table->string('password');
             // Keeps the Authenticatable contract complete; "remember me" is not offered.
             $table->rememberToken();
-            $table->timestamp('last_login_at')->nullable();
-            $table->timestamps();
+            $table->dateTimeTz('last_login_at')->nullable();
+            $table->timestampsTz();
         });
     }
 

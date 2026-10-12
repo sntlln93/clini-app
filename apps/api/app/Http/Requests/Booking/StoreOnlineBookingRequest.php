@@ -7,6 +7,7 @@ namespace App\Http\Requests\Booking;
 use App\Actions\Booking\ListAvailableSlotsAction;
 use App\Enums\DocumentType;
 use App\Models\Organization;
+use App\Rules\Iso8601Instant;
 use App\Support\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
@@ -33,7 +34,7 @@ class StoreOnlineBookingRequest extends FormRequest
         return [
             'membership_id' => ['required', 'integer', 'exists:memberships,id'],
             'service_id' => ['required', 'integer', 'exists:services,id'],
-            'start_at' => ['required', 'date', 'after:now', 'before_or_equal:'.$bookingWindowEnd->toIso8601String()],
+            'start_at' => ['required', new Iso8601Instant, 'after:now', 'before_or_equal:'.$bookingWindowEnd->toIso8601String()],
             'patient.name' => ['required', 'string', 'max:255'],
             'patient.document_type' => ['required', Rule::enum(DocumentType::class)],
             'patient.document_number' => ['required', 'string', 'max:50'],

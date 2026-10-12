@@ -1,6 +1,7 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import type { DateTime } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { AvailabilityException } from '@/types/availability';
 import { formatExceptionRange, isExceptionFinished } from './exception-format';
@@ -12,7 +13,7 @@ const TYPE_LABELS: Record<AvailabilityException['type'], string> = {
 
 type AvailabilityExceptionRowProps = {
     exception: AvailabilityException;
-    now: Date;
+    now: DateTime;
     canManage: boolean;
     isDeleting: boolean;
     onEdit: () => void;

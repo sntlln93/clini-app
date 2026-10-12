@@ -19,8 +19,8 @@ return new class extends Migration
             $table->foreignId('appointment_id');
             $table->foreignId('membership_id');
             $table->text('body');
-            $table->timestamps();
-            $table->softDeletes();
+            $table->timestampsTz();
+            $table->softDeletesTz();
 
             $table->index(['appointment_id', 'membership_id']);
 

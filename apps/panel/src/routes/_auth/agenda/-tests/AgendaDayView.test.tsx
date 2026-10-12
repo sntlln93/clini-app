@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { DateTime } from '@/lib/datetime';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -45,7 +46,7 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
 function renderDayView(props: Partial<AgendaDayViewProps> = {}) {
     const queryClient = new QueryClient();
     const defaults: AgendaDayViewProps = {
-        date: new Date(2026, 7, 3),
+        date: DateTime.local(2026, 8, 3),
         professionals: [buildProfessional()],
         appointments: [],
         canUpdate: () => true,
@@ -210,7 +211,9 @@ describe('AgendaDayView', () => {
     });
 
     it('draws the current-time line only on today', () => {
-        const { container } = renderDayView({ date: new Date(2026, 7, 3) });
+        const { container } = renderDayView({
+            date: DateTime.local(2026, 8, 3),
+        });
         expect(container.querySelector('[data-now-line]')).toBeNull();
     });
 

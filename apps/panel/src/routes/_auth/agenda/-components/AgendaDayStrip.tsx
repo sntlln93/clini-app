@@ -1,50 +1,28 @@
 import { Button } from '@/components/ui/button';
+import { DateTime, isSameDay, startOfWeek } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 
-const DAY_ABBREVIATION_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    weekday: 'short',
-});
-
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-function startOfWeek(date: Date): Date {
-    const result = new Date(date);
-    result.setHours(0, 0, 0, 0);
-    result.setDate(result.getDate() - result.getDay());
-    return result;
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
-}
-
-function dayLabel(day: Date): string {
-    const abbreviation = DAY_ABBREVIATION_FORMAT.format(day).replace('.', '');
-    return `${abbreviation} ${day.getDate()}`;
+function dayLabel(day: DateTime): string {
+    const abbreviation = day
+        .toLocaleString({ weekday: 'short' })
+        .replace('.', '');
+    return `${abbreviation} ${day.day}`;
 }
 
 type AgendaDayStripProps = {
-    date: Date;
-    onDateSelect: (date: Date) => void;
+    date: DateTime;
+    onDateSelect: (date: DateTime) => void;
 };
 
 export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
     const weekStart = startOfWeek(date);
     const days = Array.from({ length: 7 }, (_, index) =>
-        addDays(weekStart, index),
+        weekStart.plus({ days: index }),
     );
-    const today = new Date();
+    const today = DateTime.now();
 
-    const shiftWeek = (weeks: number) => onDateSelect(addDays(date, weeks * 7));
+    const shiftWeek = (weeks: number) => onDateSelect(date.plus({ weeks }));
 
     return (
         <div className="flex min-w-0 items-center gap-1">
@@ -65,7 +43,7 @@ export function AgendaDayStrip({ date, onDateSelect }: AgendaDayStripProps) {
 
                     return (
                         <Button
-                            key={day.toISOString()}
+                            key={day.toISODate()}
                             type="button"
                             variant={selected ? 'default' : 'ghost'}
                             size="sm"

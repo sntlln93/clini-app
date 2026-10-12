@@ -1,3 +1,4 @@
+import { DateTime, formatTime, fromInstant, toInstant } from '@/lib/datetime';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
 
@@ -7,17 +8,15 @@ export type WaitingQueue = {
     waiting: Appointment[];
 };
 
-/** Local-day bounds for "today", the only date this screen ever shows. */
-export function todayRange(now: Date = new Date()): {
+/** The practice's "today" bounds, the only date this screen ever shows. */
+export function todayRange(now: DateTime = DateTime.now()): {
     from: string;
     to: string;
 } {
-    const start = new Date(now);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-
-    return { from: start.toISOString(), to: end.toISOString() };
+    return {
+        from: toInstant(now.startOf('day')),
+        to: toInstant(now.endOf('day')),
+    };
 }
 
 /**
@@ -44,13 +43,16 @@ export function displayPatientName(name: string | null | undefined): string {
 
 // Falls back to the appointment start when the check-in time is missing.
 function arrivalTime(appointment: Appointment): number {
-    return new Date(appointment.arrived_at ?? appointment.start_at).getTime();
+    return fromInstant(
+        appointment.arrived_at ?? appointment.start_at,
+    ).toMillis();
 }
 
 function compareArrival(a: Appointment, b: Appointment): number {
     return (
         arrivalTime(a) - arrivalTime(b) ||
-        new Date(a.start_at).getTime() - new Date(b.start_at).getTime() ||
+        fromInstant(a.start_at).toMillis() -
+            fromInstant(b.start_at).toMillis() ||
         a.id - b.id
     );
 }
@@ -74,14 +76,8 @@ export function buildWaitingQueues(
     }));
 }
 
-const TIME_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-});
-
 export function formatAppointmentTime(iso: string): string {
-    return TIME_FORMAT.format(new Date(iso));
+    return formatTime(fromInstant(iso));
 }
 
 /** Whole minutes between check-in and `now`, or null when the check-in time is unknown. */
@@ -95,7 +91,7 @@ export function minutesSinceArrival(
 
     return Math.max(
         0,
-        Math.floor((now - new Date(arrivedAt).getTime()) / 60_000),
+        Math.floor((now - fromInstant(arrivedAt).toMillis()) / 60_000),
     );
 }
 
@@ -117,5 +113,5 @@ export function formatWaitingTime(minutes: number): string {
 }
 
 export function formatClockTime(timestamp: number): string {
-    return TIME_FORMAT.format(new Date(timestamp));
+    return formatTime(DateTime.fromMillis(timestamp));
 }

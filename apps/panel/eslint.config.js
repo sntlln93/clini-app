@@ -49,6 +49,41 @@ const ROUTER_INVALIDATE_RESTRICTION = {
         'Do not call router.invalidate() directly: it does not refresh a read that lives only in a route loader (ensureQueryData returns the cached value). Use useRefreshPageData() from @/hooks/use-refresh-page-data in the mutation onSuccess instead — see ADR 0007.',
 };
 
+// Dates go through Luxon, wrapped by src/lib/datetime.ts, in the practice's
+// zone (`organizations.timezone`) rather than the browser's — #265. Native
+// `Date` and `Intl.DateTimeFormat` read the browser's zone unless told
+// otherwise, which is how instants ended up shifted by its offset.
+const NATIVE_DATE_MESSAGE =
+    "Use Luxon through @/lib/datetime instead: it reads dates in the practice's zone, not the browser's (#265).";
+const NATIVE_DATE_RESTRICTIONS = [
+    {
+        selector: "NewExpression[callee.name='Date']",
+        message: NATIVE_DATE_MESSAGE,
+    },
+    {
+        selector: "CallExpression[callee.object.name='Date']",
+        message: NATIVE_DATE_MESSAGE,
+    },
+    {
+        selector:
+            "MemberExpression[object.name='Intl'][property.name='DateTimeFormat']",
+        message: NATIVE_DATE_MESSAGE,
+    },
+    {
+        selector:
+            'CallExpression[callee.property.name=/^toLocale(Date|Time)String$/]',
+        message: NATIVE_DATE_MESSAGE,
+    },
+];
+
+// Only src/lib/datetime.ts imports Luxon, so its settings (default zone,
+// locale, throwOnInvalid) apply to every DateTime the panel builds.
+const LUXON_IMPORT_RESTRICTION = {
+    name: 'luxon',
+    message:
+        'Import DateTime and the date helpers from @/lib/datetime, which configures Luxon for the practice (#265).',
+};
+
 export default tseslint.config(
     {
         ignores: [
@@ -125,6 +160,18 @@ export default tseslint.config(
                 'error',
                 ...SSR_DIRECTIVE_RESTRICTIONS,
                 ROUTER_INVALIDATE_RESTRICTION,
+                ...NATIVE_DATE_RESTRICTIONS,
+            ],
+        },
+    },
+    // Tests may build a native Date for fake timers (`vi.setSystemTime`).
+    {
+        files: ['src/**/*.test.{ts,tsx}', 'src/tests/**'],
+        rules: {
+            'no-restricted-syntax': [
+                'error',
+                ...SSR_DIRECTIVE_RESTRICTIONS,
+                ROUTER_INVALIDATE_RESTRICTION,
             ],
         },
     },
@@ -154,7 +201,11 @@ export default tseslint.config(
             'src/hooks/use-route-retry.ts',
         ],
         rules: {
-            'no-restricted-syntax': ['error', ...SSR_DIRECTIVE_RESTRICTIONS],
+            'no-restricted-syntax': [
+                'error',
+                ...SSR_DIRECTIVE_RESTRICTIONS,
+                ...NATIVE_DATE_RESTRICTIONS,
+            ],
         },
     },
     // Structural limits from CLAUDE.md's "Frontend structure": every file
@@ -223,14 +274,24 @@ export default tseslint.config(
         ignores: [
             'src/lib/api-errors.ts',
             'src/lib/api.ts',
+            'src/lib/datetime.ts',
             'src/components/**',
         ],
         rules: {
             'no-restricted-imports': [
                 'error',
                 {
-                    paths: [AXIOS_IMPORT_RESTRICTION],
+                    paths: [AXIOS_IMPORT_RESTRICTION, LUXON_IMPORT_RESTRICTION],
                 },
+            ],
+        },
+    },
+    {
+        files: ['src/lib/api-errors.ts', 'src/lib/api.ts'],
+        rules: {
+            'no-restricted-imports': [
+                'error',
+                { paths: [LUXON_IMPORT_RESTRICTION] },
             ],
         },
     },
@@ -244,7 +305,7 @@ export default tseslint.config(
             'no-restricted-imports': [
                 'error',
                 {
-                    paths: [AXIOS_IMPORT_RESTRICTION],
+                    paths: [AXIOS_IMPORT_RESTRICTION, LUXON_IMPORT_RESTRICTION],
                     patterns: [
                         {
                             group: [
@@ -273,7 +334,7 @@ export default tseslint.config(
             'no-restricted-imports': [
                 'error',
                 {
-                    paths: [AXIOS_IMPORT_RESTRICTION],
+                    paths: [AXIOS_IMPORT_RESTRICTION, LUXON_IMPORT_RESTRICTION],
                     patterns: [
                         {
                             group: [

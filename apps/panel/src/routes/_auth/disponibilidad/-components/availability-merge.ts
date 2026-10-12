@@ -1,5 +1,6 @@
 import { mapToAppError } from '@/lib/api-errors';
 import type { ErrorCode } from '@/lib/error-codes';
+import { formatExceptionRange } from './exception-format';
 
 export type Range = {
     start: string;
@@ -66,14 +67,15 @@ export function mergeSlotDescription(proposal: MergeProposal): string {
     return `Ya tenés ${absorbed.length} horarios ese día (${lista}). Si continuás, quedan combinados en un solo horario de ${mergedRange}.`;
 }
 
+// An exception's ranges are API instants, unlike a weekly slot's clock times, so they're shown in the practice's zone (#265).
 export function mergeExceptionDescription(proposal: MergeProposal): string {
     const { merged, absorbed } = proposal;
-    const mergedRange = `${merged.start} al ${merged.end}`;
+    const mergedRange = formatExceptionRange(merged.start, merged.end);
 
     if (absorbed.length === 1) {
         const [existing] = absorbed;
-        return `Ya tenés una excepción del mismo tipo del ${existing.start} al ${existing.end}. Si continuás, queda una sola del ${mergedRange}, con el motivo que acabás de ingresar.`;
+        return `Ya tenés una excepción del mismo tipo (${formatExceptionRange(existing.start, existing.end)}). Si continuás, queda una sola (${mergedRange}), con el motivo que acabás de ingresar.`;
     }
 
-    return `Ya tenés ${absorbed.length} excepciones del mismo tipo en ese período. Si continuás, quedan combinadas en una sola del ${mergedRange}, con el motivo que acabás de ingresar.`;
+    return `Ya tenés ${absorbed.length} excepciones del mismo tipo en ese período. Si continuás, quedan combinadas en una sola (${mergedRange}), con el motivo que acabás de ingresar.`;
 }

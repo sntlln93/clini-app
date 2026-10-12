@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DateTime } from './datetime';
 import {
     addDaysToIsoDate,
     formatLongIsoDate,
@@ -9,7 +10,7 @@ import {
 describe('todayInTimeZone', () => {
     it("uses the given zone's calendar day, not UTC's", () => {
         // 02:00 UTC is still the previous evening in Buenos Aires (UTC-3).
-        const now = new Date('2026-10-05T02:00:00Z');
+        const now = DateTime.fromISO('2026-10-05T02:00:00Z');
 
         expect(todayInTimeZone('America/Argentina/Buenos_Aires', now)).toBe(
             '2026-10-04',

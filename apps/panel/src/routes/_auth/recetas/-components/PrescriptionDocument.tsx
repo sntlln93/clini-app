@@ -1,3 +1,4 @@
+import { fromInstant } from '@/lib/datetime';
 import type { DocumentType } from '@/types/patient';
 import type { Prescription } from '@/types/prescription';
 
@@ -10,7 +11,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
 export const NOT_VALID_LEGEND = 'Documento sin validez como receta electrónica';
 
 function formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('es-AR', { dateStyle: 'long' });
+    return fromInstant(iso).toLocaleString({ dateStyle: 'long' });
 }
 
 // The printable body of a prescription (issue #31). Not a legally valid

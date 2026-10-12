@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { DateTime } from '@/lib/datetime';
 import { buildProfessional } from '@/tests/fixtures/professional';
 import type { Appointment } from '@/types/appointment';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -51,7 +52,7 @@ describe('calendar/agenda a11y', () => {
         const { container } = render(
             <QueryClientProvider client={queryClient}>
                 <AgendaDayView
-                    date={new Date(2026, 7, 3)}
+                    date={DateTime.local(2026, 8, 3)}
                     professionals={[professional]}
                     appointments={[
                         buildAppointment({ membership_id: professional.id }),

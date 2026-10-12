@@ -1,7 +1,7 @@
+import { type DateTime, fromInstant } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
-import { startOfDay } from './agenda-dates';
 import { INACTIVE_STATUSES } from './appointment-status';
 import { AppointmentCard } from './AppointmentCard';
 
@@ -20,7 +20,7 @@ export function formatHour(hour: number): string {
 }
 
 type AgendaDayColumnProps = {
-    date: Date;
+    date: DateTime;
     hours: number[];
     professional: Professional;
     appointments: Appointment[];
@@ -43,10 +43,10 @@ export function AgendaDayColumn({
 }: AgendaDayColumnProps) {
     const startHour = hours[0];
     const columnHeight = hours.length * HOUR_HEIGHT_PX;
-    const dayStart = startOfDay(date).getTime();
-    // Measured from the day's midnight rather than `getHours()`, so an end past midnight still lands below the last row.
+    const dayStart = date.startOf('day');
+    // Measured from the day's midnight rather than its hour, so an end past midnight still lands below the last row.
     const offsetPx = (iso: string) =>
-        ((new Date(iso).getTime() - dayStart) / 60_000 - startHour * 60) *
+        (fromInstant(iso).diff(dayStart, 'minutes').minutes - startHour * 60) *
         PX_PER_MINUTE;
     // Inactive appointments paint first, so an active one rebooked into the freed slot stays on top.
     const ordered = [...appointments].sort(

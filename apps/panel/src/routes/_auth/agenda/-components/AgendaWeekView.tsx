@@ -1,36 +1,27 @@
 import { Button } from '@/components/ui/button';
+import { type DateTime, fromInstant, isSameDay } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
 import { Plus } from 'lucide-react';
-import { addDays } from './agenda-dates';
 import { INACTIVE_STATUSES } from './appointment-status';
 import { AppointmentCard } from './AppointmentCard';
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
-const dayNameFormatter = new Intl.DateTimeFormat('es-AR', {
+const DAY_NAME_FORMAT = {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-});
-
-function isSameDay(iso: string, date: Date): boolean {
-    const time = new Date(iso);
-    return (
-        time.getFullYear() === date.getFullYear() &&
-        time.getMonth() === date.getMonth() &&
-        time.getDate() === date.getDate()
-    );
-}
+} as const;
 
 export type AgendaWeekViewProps = {
-    weekStart: Date;
+    weekStart: DateTime;
     professionals: Professional[];
     appointments: Appointment[];
     canUpdate: (membership: Professional) => boolean;
     canCreate: (membership: Professional) => boolean;
-    onDayClick?: (day: Date) => void;
+    onDayClick?: (day: DateTime) => void;
 };
 
 export function AgendaWeekView({
@@ -42,7 +33,7 @@ export function AgendaWeekView({
     onDayClick,
 }: AgendaWeekViewProps) {
     const days = Array.from({ length: 7 }, (_, index) =>
-        addDays(weekStart, index),
+        weekStart.plus({ days: index }),
     );
     // A day has no professional of its own, so quick-create needs just one creatable visible professional.
     const canCreateAny = professionals.some(canCreate);
@@ -57,24 +48,24 @@ export function AgendaWeekView({
             {days.map((day, index) => {
                 const dayAppointments = appointments
                     .filter((appointment) =>
-                        isSameDay(appointment.start_at, day),
+                        isSameDay(fromInstant(appointment.start_at), day),
                     )
                     .sort((a, b) => a.start_at.localeCompare(b.start_at));
 
                 return (
                     <div
-                        key={day.toISOString()}
+                        key={day.toISODate()}
                         className="min-w-0 space-y-2 rounded-2xl bg-secondary p-2"
                     >
                         <div className="flex items-center justify-between gap-2">
                             <div className="text-sm font-medium tabular-nums">
-                                {DAY_LABELS[index]} {day.getDate()}
+                                {DAY_LABELS[index]} {day.day}
                             </div>
                             {canCreateAny && (
                                 <Button
                                     variant="ghost"
                                     size="icon-xs"
-                                    aria-label={`Nuevo turno el ${dayNameFormatter.format(day)}`}
+                                    aria-label={`Nuevo turno el ${day.toLocaleString(DAY_NAME_FORMAT)}`}
                                     onClick={() => onDayClick?.(day)}
                                 >
                                     <Plus />

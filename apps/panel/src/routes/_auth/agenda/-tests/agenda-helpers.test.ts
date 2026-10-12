@@ -1,6 +1,6 @@
+import { DateTime, setPracticeTimeZone } from '@/lib/datetime';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
-import { describe, expect, it, vi } from 'vitest';
-import { toInstant, toTimeInputValue } from '../-components/agenda-dates';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { agendaNavigation } from '../-components/agenda-navigation';
 import {
     describeAppointment,
@@ -29,24 +29,8 @@ function buildAppointment(overrides: Partial<Appointment> = {}): Appointment {
     };
 }
 
-// The suite runs in America/Argentina/Buenos_Aires (UTC-3), see vitest.config.ts.
-describe('toInstant', () => {
-    it('reads the inputs as local time and returns the matching UTC instant', () => {
-        const instant = toInstant('2026-08-03', '10:00');
-
-        expect(instant).toBe('2026-08-03T13:00:00.000Z');
-        expect(new Date(instant).getHours()).toBe(10);
-    });
-
-    it('round-trips through toTimeInputValue to the same local hour', () => {
-        expect(
-            toTimeInputValue(new Date(toInstant('2026-08-03', '21:45'))),
-        ).toBe('21:45');
-    });
-});
-
 describe('dayHourRange', () => {
-    const date = new Date(2026, 7, 3);
+    const date = DateTime.local(2026, 8, 3);
 
     it('defaults to 8–20 when every appointment fits inside it', () => {
         expect(dayHourRange([buildAppointment()], date)).toEqual({
@@ -143,7 +127,7 @@ describe('agendaNavigation', () => {
     it('drops showCancelled from the URL when the toggle is turned off', () => {
         const setSearch = vi.fn();
         const navigation = agendaNavigation({
-            date: new Date(2026, 7, 3),
+            date: DateTime.local(2026, 8, 3),
             view: 'day',
             professionalsCount: 2,
             setSearch,
@@ -161,12 +145,32 @@ describe('agendaNavigation', () => {
     it('steps one week at a time in the week view', () => {
         const setSearch = vi.fn();
         agendaNavigation({
-            date: new Date(2026, 7, 3),
+            date: DateTime.local(2026, 8, 3),
             view: 'week',
             professionalsCount: 2,
             setSearch,
         }).onNext();
 
         expect(setSearch).toHaveBeenCalledWith({ date: '2026-08-10' });
+    });
+});
+
+describe("the practice's zone, not the browser's (#265)", () => {
+    afterEach(() => setPracticeTimeZone(null));
+
+    it("formats and lays out appointments in the practice's wall clock", () => {
+        // Bogotá is UTC-5; the browser runs in Buenos Aires (UTC-3).
+        setPracticeTimeZone('America/Bogota');
+        const appointment = buildAppointment({
+            start_at: '2026-08-03T12:00:00.000000Z',
+            end_at: '2026-08-03T12:30:00.000000Z',
+        });
+
+        expect(formatAppointmentMoment(appointment.start_at)).toBe(
+            'lunes 3 de agosto a las 07:00',
+        );
+        expect(
+            dayHourRange([appointment], DateTime.local(2026, 8, 3)).startHour,
+        ).toBe(7);
     });
 });

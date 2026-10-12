@@ -24,8 +24,8 @@ return new class extends Migration
             $table->date('birth_date')->nullable();
             $table->foreignId('insurance_provider_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamps();
-            $table->softDeletes();
+            $table->timestampsTz();
+            $table->softDeletesTz();
 
             $table->unique(['document_type', 'document_number']);
         });

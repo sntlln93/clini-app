@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { describe, expect, it } from 'vitest';
 import {
     formatCurrencyARS,
@@ -44,7 +45,7 @@ describe('format', () => {
 
     it('computes reporting-timezone dates relative to "today"', () => {
         // 23:30 in Buenos Aires: UTC already says Oct 5, the reporting day is still Oct 4.
-        const now = new Date('2026-10-05T02:30:00Z');
+        const now = DateTime.fromISO('2026-10-05T02:30:00Z');
 
         expect(reportingDateOffset(0, now)).toBe('2026-10-04');
         expect(reportingDateOffset(1, now)).toBe('2026-10-05');

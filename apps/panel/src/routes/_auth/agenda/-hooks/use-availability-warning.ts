@@ -1,15 +1,17 @@
 import { api } from '@/lib/api';
+import { type DateTime, fromInstant } from '@/lib/datetime';
 import type { Availability, AvailabilityException } from '@/types/availability';
 import { useQuery } from '@tanstack/react-query';
 
-// blocked exceptions remove availability, extra add it; day_of_week/Date#getDay() share disponibilidad's WeeklyAvailabilitySection 0=Sunday convention.
+// blocked exceptions remove availability, extra add it; day_of_week is 0=Sunday, like disponibilidad's WeeklyAvailabilitySection (Luxon's weekday is 1=Monday…7=Sunday).
 export function isOutsideAvailability(
-    dateTime: Date,
+    dateTime: DateTime,
     availabilities: Availability[],
     exceptions: AvailabilityException[],
 ): boolean {
-    const dayOfWeek = dateTime.getDay();
-    const time = toTimeString(dateTime);
+    // The weekly slots are clock times in the practice's zone, which is `dateTime`'s.
+    const dayOfWeek = dateTime.weekday % 7;
+    const time = dateTime.toFormat('HH:mm:ss');
 
     const withinRecurring = availabilities.some(
         (slot) =>
@@ -36,17 +38,13 @@ export function isOutsideAvailability(
 }
 
 function isWithinExceptionWindow(
-    dateTime: Date,
+    dateTime: DateTime,
     exception: AvailabilityException,
 ): boolean {
-    const start = new Date(exception.start_at);
-    const end = new Date(exception.end_at);
-
-    return dateTime >= start && dateTime < end;
-}
-
-function toTimeString(dateTime: Date): string {
-    return dateTime.toTimeString().slice(0, 8);
+    return (
+        dateTime >= fromInstant(exception.start_at) &&
+        dateTime < fromInstant(exception.end_at)
+    );
 }
 
 export function useAvailabilityWarning(membershipId: number | null) {
@@ -73,7 +71,7 @@ export function useAvailabilityWarning(membershipId: number | null) {
         enabled: membershipId !== null,
     });
 
-    const isOutside = (dateTime: Date): boolean => {
+    const isOutside = (dateTime: DateTime): boolean => {
         if (membershipId === null) {
             return false;
         }

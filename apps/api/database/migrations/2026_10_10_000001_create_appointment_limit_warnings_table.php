@@ -20,7 +20,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->cascadeOnDelete();
             $table->date('month');
-            $table->timestamp('created_at')->useCurrent();
+            $table->dateTimeTz('created_at')->useCurrent();
 
             $table->unique(['organization_id', 'month']);
         });

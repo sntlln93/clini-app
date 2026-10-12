@@ -66,7 +66,7 @@ test('store creates the appointment online, unauthenticated, with a derived end_
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -90,7 +90,7 @@ test('store with an unknown document_number creates the patient and links it to 
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(['document_number' => $documentNumber]),
     ]);
 
@@ -110,7 +110,7 @@ test('store with an already-existing document_number reuses the patient without 
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(['document_number' => '30999888']),
     ]);
 
@@ -127,7 +127,7 @@ test('store with a start_at outside the published schedule returns 409 booking.s
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T20:00:00',
+        'start_at' => '2026-08-03T20:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -150,7 +150,7 @@ test('store with a start_at within the published schedule but already taken retu
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -166,7 +166,7 @@ test('store with a start_at in the past returns 422 and creates no appointment',
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -182,7 +182,7 @@ test('store with a start_at beyond the 60-day booking window returns 422', funct
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-10-19T10:00:00',
+        'start_at' => '2026-10-19T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -259,21 +259,21 @@ test('store with patient.name or patient.document_number missing, or an invalid 
     $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(['name' => '']),
     ])->assertStatus(422)->assertJsonValidationErrors('patient.name');
 
     $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T11:00:00',
+        'start_at' => '2026-08-03T11:00:00Z',
         'patient' => bookingPatientPayload(['document_number' => '']),
     ])->assertStatus(422)->assertJsonValidationErrors('patient.document_number');
 
     $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T12:00:00',
+        'start_at' => '2026-08-03T12:00:00Z',
         'patient' => bookingPatientPayload(['document_type' => 'not-a-real-type']),
     ])->assertStatus(422)->assertJsonValidationErrors('patient.document_type');
 
@@ -287,7 +287,7 @@ test('the 201 confirmation response exposes only confirmation data, no internal 
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -316,7 +316,7 @@ test('store with a membership_id from another organization returns 404 and creat
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $otherMembership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 
@@ -348,7 +348,7 @@ test('store with a service not active for the professional returns 409 appointme
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $membership->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
         'patient' => bookingPatientPayload(),
     ]);
 

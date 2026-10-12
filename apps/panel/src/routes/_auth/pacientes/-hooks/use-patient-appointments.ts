@@ -1,5 +1,6 @@
 import { patientAppointmentsQueryKey } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
+import { DateTime, fromInstant, isSameDay } from '@/lib/datetime';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { queryOptions } from '@tanstack/react-query';
 
@@ -17,14 +18,7 @@ export function patientAppointmentsQueryOptions(patientId: number) {
 }
 
 function isToday(iso: string): boolean {
-    const date = new Date(iso);
-    const now = new Date();
-
-    return (
-        date.getFullYear() === now.getFullYear() &&
-        date.getMonth() === now.getMonth() &&
-        date.getDate() === now.getDate()
-    );
+    return isSameDay(fromInstant(iso), DateTime.now());
 }
 
 // Drives whether "add note" is offered on the patient page (issue #217):
@@ -54,22 +48,21 @@ const UPCOMING_STATUSES = new Set<PatientAppointmentHistoryItem['status']>([
 // Keyed off `end_at` so an appointment in progress still counts as upcoming.
 export function findNextAppointment(
     appointments: PatientAppointmentHistoryItem[],
-    now: Date = new Date(),
+    now: DateTime = DateTime.now(),
 ): PatientAppointmentHistoryItem | null {
     let next: PatientAppointmentHistoryItem | null = null;
 
     for (const appointment of appointments) {
         if (
             !UPCOMING_STATUSES.has(appointment.status) ||
-            new Date(appointment.end_at).getTime() < now.getTime()
+            fromInstant(appointment.end_at) < now
         ) {
             continue;
         }
 
         if (
             next === null ||
-            new Date(appointment.start_at).getTime() <
-                new Date(next.start_at).getTime()
+            fromInstant(appointment.start_at) < fromInstant(next.start_at)
         ) {
             next = appointment;
         }

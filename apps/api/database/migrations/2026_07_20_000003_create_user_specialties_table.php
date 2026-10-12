@@ -17,7 +17,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->foreignId('specialty_id')->constrained()->restrictOnDelete();
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['user_id', 'specialty_id']);
         });

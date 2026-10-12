@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/table';
 import { AppointmentStatusChip } from '@/features/appointment-status/AppointmentStatusChip';
 import { OnlineOriginMark } from '@/features/appointment-status/OnlineOriginMark';
+import { formatShortDateTime } from '@/lib/datetime';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
 import { agendaDaySearch } from './agenda-day-search';
@@ -16,13 +17,6 @@ import { agendaDaySearch } from './agenda-day-search';
 type PatientAppointmentHistoryCardProps = {
     appointments: PatientAppointmentHistoryItem[];
 };
-
-function formatDateTime(iso: string): string {
-    return new Date(iso).toLocaleString('es-AR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    });
-}
 
 export function PatientAppointmentHistoryCard({
     appointments,
@@ -61,7 +55,7 @@ export function PatientAppointmentHistoryCard({
                                                 className="underline-offset-4 hover:underline"
                                             >
                                                 <span className="tabular-nums">
-                                                    {formatDateTime(
+                                                    {formatShortDateTime(
                                                         appointment.start_at,
                                                     )}
                                                 </span>

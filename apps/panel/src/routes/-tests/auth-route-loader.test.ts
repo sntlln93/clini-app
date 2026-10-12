@@ -1,4 +1,6 @@
 import { api } from '@/lib/api';
+import { fromInstant } from '@/lib/datetime';
+import { sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import type { Membership } from '@/types/membership';
 import type { Subscription } from '@/types/subscription';
@@ -105,5 +107,36 @@ describe('/_auth loader', () => {
             loader({ context: { queryClient } }),
         ).resolves.toBeUndefined();
         expect(api.get).toHaveBeenCalledWith('/subscription');
+    });
+});
+
+// Narrowed like `loader` above.
+const beforeLoad = Route.options.beforeLoad as (opts: {
+    context: { queryClient: QueryClient };
+    location: { href: string };
+}) => Promise<void>;
+
+describe('/_auth beforeLoad', () => {
+    it("makes the practice's zone the default before any guarded page reads a date (#265)", async () => {
+        const queryClient = new QueryClient();
+        queryClient.setQueryData(sessionQueryOptions.queryKey, {
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            organization: {
+                id: 1,
+                name: 'Consultorio Norte',
+                slug: 'consultorio-norte',
+                timezone: 'America/Bogota',
+            },
+        });
+
+        await beforeLoad({
+            context: { queryClient },
+            location: { href: '/agenda' },
+        });
+
+        // 14:00 UTC is 09:00 in Bogotá, while the browser (Buenos Aires) would read 11:00.
+        expect(fromInstant('2026-10-12T14:00:00Z').hour).toBe(9);
     });
 });

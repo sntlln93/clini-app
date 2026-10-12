@@ -1,17 +1,18 @@
+import { DateTime } from '@/lib/datetime';
 import { reportingDateOffset } from '@/lib/format';
 import { z } from 'zod';
 
 export const MAX_GRACE_EXTENSION_DAYS = 90;
 
 /** The date input's bounds — tomorrow..today+90 in the reporting timezone, the same "today" the API validates against. */
-export function graceDateBounds(now = new Date()) {
+export function graceDateBounds(now = DateTime.now()) {
     return {
         min: reportingDateOffset(1, now),
         max: reportingDateOffset(MAX_GRACE_EXTENSION_DAYS, now),
     };
 }
 
-export function graceExtensionSchema(now = new Date()) {
+export function graceExtensionSchema(now = DateTime.now()) {
     const { min, max } = graceDateBounds(now);
 
     return z.object({

@@ -4,15 +4,17 @@ import { Button } from '@/components/ui/button';
 import { AppointmentStatusLegend } from '@/features/appointment-status/AppointmentStatusLegend';
 import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
+import {
+    DateTime,
+    fromCalendarDate,
+    toCalendarDate,
+    toInstant,
+} from '@/lib/datetime';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { useState } from 'react';
 import { z } from 'zod';
-import {
-    fromDateInputValue,
-    rangeFor,
-    toDateInputValue,
-} from './-components/agenda-dates';
+import { rangeFor } from './-components/agenda-dates';
 import { agendaNavigation } from './-components/agenda-navigation';
 import { AgendaDayView } from './-components/AgendaDayView';
 import { AgendaProfessionalFilter } from './-components/AgendaProfessionalFilter';
@@ -38,13 +40,14 @@ const agendaSearchSchema = z.object({
 export const Route = createFileRoute('/_auth/agenda/')({
     head: () => titleHead('Agenda'),
     validateSearch: (search) => agendaSearchSchema.parse(search),
+    // Today is resolved in the loader, not here: `loaderDeps` runs before `_auth`'s `beforeLoad` sets the practice's zone.
     loaderDeps: ({ search }) => ({
-        date: search.date ?? toDateInputValue(new Date()),
+        date: search.date,
         view: search.view ?? 'day',
     }),
     loader: async ({ context, deps }) => {
         const { start, end } = rangeFor(
-            fromDateInputValue(deps.date),
+            deps.date ? fromCalendarDate(deps.date) : DateTime.now(),
             deps.view,
         );
 
@@ -52,8 +55,8 @@ export const Route = createFileRoute('/_auth/agenda/')({
             ensureScopedProfessionals(context.queryClient),
             context.queryClient.ensureQueryData(
                 appointmentsQueryOptions({
-                    from: start.toISOString(),
-                    to: end.toISOString(),
+                    from: toInstant(start),
+                    to: toInstant(end),
                 }),
             ),
         ]);
@@ -90,7 +93,7 @@ function AgendaPage() {
     const { canCreate, canUpdate } = useAppointmentPermissions();
     const [formState, setFormState] = useState<FormState>(CLOSED_FORM);
 
-    const date = dateParam ? fromDateInputValue(dateParam) : new Date();
+    const date = dateParam ? fromCalendarDate(dateParam) : DateTime.now();
     const { start: rangeStart } = rangeFor(date, view);
     const creatableProfessionals = professionals.filter(canCreate);
     const visibleProfessionals = selectedProfessionalIds
@@ -119,17 +122,17 @@ function AgendaPage() {
             open: true,
             prefill: {
                 membershipId,
-                date: toDateInputValue(date),
+                date: toCalendarDate(date),
                 time: `${String(hour).padStart(2, '0')}:00`,
             },
         });
     };
 
     // The week grid has no professional axis, so only the date is prefilled (#134).
-    const handleDayClick = (day: Date) => {
+    const handleDayClick = (day: DateTime) => {
         setFormState({
             open: true,
-            prefill: { date: toDateInputValue(day) },
+            prefill: { date: toCalendarDate(day) },
         });
     };
 

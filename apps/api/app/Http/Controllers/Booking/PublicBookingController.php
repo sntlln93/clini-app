@@ -104,7 +104,7 @@ class PublicBookingController extends Controller
             organizationId: $organization->id,
             membershipId: $request->integer('membership_id'),
             serviceId: $request->integer('service_id'),
-            startAt: CarbonImmutable::parse($request->string('start_at')->toString()),
+            startAt: CarbonImmutable::parse($request->string('start_at')->toString())->utc(),
             patientName: $request->string('patient.name')->toString(),
             documentType: DocumentType::from($request->string('patient.document_type')->toString()),
             documentNumber: $request->string('patient.document_number')->toString(),

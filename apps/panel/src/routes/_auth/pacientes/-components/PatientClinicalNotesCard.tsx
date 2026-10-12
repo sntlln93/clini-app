@@ -7,6 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { formatShortDateTime } from '@/lib/datetime';
 import { useWritesRestriction, type WritesRestriction } from '@/lib/plan';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { useState } from 'react';
@@ -21,13 +22,6 @@ type PatientClinicalNotesCardProps = {
     // doesn't have one — drives whether "add note" is offered (issue #217).
     todaysAppointmentId: number | null;
 };
-
-function formatTimestamp(iso: string): string {
-    return new Date(iso).toLocaleString('es-AR', {
-        dateStyle: 'short',
-        timeStyle: 'short',
-    });
-}
 
 const READ_ONLY_REASONS: Record<WritesRestriction, string> = {
     subscription:
@@ -103,7 +97,7 @@ export function PatientClinicalNotesCard({
                                 <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
                                     <span>{note.author_name ?? '—'}</span>
                                     <span className="tabular-nums">
-                                        {formatTimestamp(note.created_at)}
+                                        {formatShortDateTime(note.created_at)}
                                     </span>
                                 </div>
                             </div>

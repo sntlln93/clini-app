@@ -153,7 +153,7 @@ test('Free rejects issuing or editing a prescription, but keeps them readable', 
 test('Free rejects the waiting room', function () {
     $owner = freeOwner();
 
-    $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-05&to=2026-08-06')
+    $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-05T00:00:00Z&to=2026-08-06T00:00:00Z')
         ->assertStatus(409)->assertJsonPath('error', featureUnavailable('waiting_room'));
 });
 
@@ -183,7 +183,7 @@ test('Free over its professional limit makes every agenda write read-only, the p
     $this->actingAs($owner->user)->patchJson("/api/v1/appointments/{$appointment->id}/status", [])->assertStatus(409);
     $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [])->assertStatus(409);
     $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [])->assertStatus(409)->assertJsonPath('error.code', 'plans.professional_limit_exceeded');
-    $this->actingAs($owner->user)->getJson('/api/v1/appointments?from=2026-01-01&to=2027-01-01')->assertOk();
+    $this->actingAs($owner->user)->getJson('/api/v1/appointments?from=2026-01-01T00:00:00Z&to=2027-01-01T00:00:00Z')->assertOk();
 
     // Deactivating the extra professional lifts it: nobody is deactivated for the owner.
     $this->actingAs($owner->user)->deleteJson("/api/v1/memberships/{$professionals[1]->id}")->assertSuccessful();
@@ -218,7 +218,7 @@ test('the waiting room lists only the arrived appointments in range, with the ag
     ]);
     Appointment::factory()->create(['status' => AppointmentStatus::Arrived, 'start_at' => '2026-08-05 10:00:00', 'end_at' => '2026-08-05 10:30:00']);
 
-    $response = $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-05&to=2026-08-06');
+    $response = $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-05T00:00:00Z&to=2026-08-06T00:00:00Z');
 
     $response->assertOk();
     expect(collect($response->json('data'))->pluck('id')->all())->toBe([$arrived->id]);
@@ -228,7 +228,7 @@ test('the waiting room lists only the arrived appointments in range, with the ag
 test('the waiting room validates its range', function () {
     $owner = Membership::factory()->onPaidPlan()->owner()->create();
 
-    $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-10&to=2026-08-01')
+    $this->actingAs($owner->user)->getJson('/api/v1/waiting-room?from=2026-08-10T00:00:00Z&to=2026-08-01T00:00:00Z')
         ->assertStatus(422)->assertJsonValidationErrors('to');
     $this->actingAs($owner->user)->getJson('/api/v1/waiting-room')
         ->assertStatus(422)->assertJsonValidationErrors(['from', 'to']);

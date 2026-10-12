@@ -100,9 +100,9 @@ test('Free accepts the 40th appointment of the month and rejects the 41st with 4
     [$owner, $professionalService] = limitFixture();
     plantAppointments($owner, 39, '2026-11-02 13:00:00');
 
-    bookManually($owner, $professionalService, '2026-11-20T13:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
 
-    bookManually($owner, $professionalService, '2026-11-21T13:00:00')
+    bookManually($owner, $professionalService, '2026-11-21T13:00:00Z')
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::PlansAppointmentLimitReached->value)
         ->assertJsonPath('error.context', ['appointment_limit' => 40, 'month' => '2026-11']);
@@ -115,12 +115,12 @@ test('the month is the appointment\'s own, in the organization\'s timezone', fun
     // 2026-12-01 01:00 UTC is still November 30 in Buenos Aires.
     plantAppointments($owner, 40, '2026-12-01 01:00:00');
 
-    bookManually($owner, $professionalService, '2026-11-15T13:00:00')
+    bookManually($owner, $professionalService, '2026-11-15T13:00:00Z')
         ->assertStatus(409)
         ->assertJsonPath('error.context.month', '2026-11');
 
     // 2026-12-01 03:00 UTC is December 1 at midnight in Buenos Aires: a new month.
-    bookManually($owner, $professionalService, '2026-12-01T03:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-12-01T03:00:00Z')->assertCreated();
 });
 
 test('cancelled and rescheduled appointments free their place in the month', function () {
@@ -129,16 +129,16 @@ test('cancelled and rescheduled appointments free their place in the month', fun
     plantAppointments($owner, 1, '2026-11-03 13:00:00', ['status' => AppointmentStatus::Cancelled]);
     plantAppointments($owner, 1, '2026-11-03 14:00:00', ['status' => AppointmentStatus::Rescheduled]);
 
-    bookManually($owner, $professionalService, '2026-11-20T13:00:00')->assertCreated();
-    bookManually($owner, $professionalService, '2026-11-20T14:00:00')->assertCreated();
-    bookManually($owner, $professionalService, '2026-11-20T15:00:00')->assertStatus(409);
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T14:00:00Z')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T15:00:00Z')->assertStatus(409);
 });
 
 test('paid plans have no monthly limit', function (Closure $organization) {
     [$owner, $professionalService] = limitFixture($organization());
     plantAppointments($owner, 40, '2026-11-02 13:00:00');
 
-    bookManually($owner, $professionalService, '2026-11-20T13:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
 
     Notification::assertNothingSent();
 })->with([
@@ -166,7 +166,7 @@ test('online booking is rejected at the limit without registering the patient, a
     $response = $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $owner->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-11-09T10:00:00',
+        'start_at' => '2026-11-09T10:00:00Z',
         'patient' => [
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
@@ -195,13 +195,13 @@ test('rescheduling within a full month is allowed, into another full month it is
     ]);
 
     $this->actingAs($owner->user)
-        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-12-10T13:00:00'])
+        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-12-10T13:00:00Z'])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::PlansAppointmentLimitReached->value);
     expect($original->fresh()?->status)->toBe(AppointmentStatus::Scheduled);
 
     $this->actingAs($owner->user)
-        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-11-11T13:00:00'])
+        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-11-11T13:00:00Z'])
         ->assertCreated();
 });
 
@@ -217,10 +217,10 @@ test('a month already over the limit, after a downgrade, still lets its appointm
     ]);
 
     $this->actingAs($owner->user)
-        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-11-11T13:00:00'])
+        ->postJson("/api/v1/appointments/{$original->id}/reschedule", ['start_at' => '2026-11-11T13:00:00Z'])
         ->assertCreated();
 
-    bookManually($owner, $professionalService, '2026-11-12T13:00:00')->assertStatus(409);
+    bookManually($owner, $professionalService, '2026-11-12T13:00:00Z')->assertStatus(409);
 });
 
 test('online booking of a service the professional no longer offers reports that, not the full month', function () {
@@ -233,7 +233,7 @@ test('online booking of a service the professional no longer offers reports that
     $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
         'membership_id' => $owner->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-11-09T10:00:00',
+        'start_at' => '2026-11-09T10:00:00Z',
         'patient' => [
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
@@ -250,10 +250,10 @@ test('the 35th appointment of the month warns the owners by mail, once per month
     $staff = Membership::factory()->staff()->create(['organization_id' => $owner->organization_id]);
     plantAppointments($owner, 33, '2026-11-02 13:00:00');
 
-    bookManually($owner, $professionalService, '2026-11-20T13:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
     Notification::assertNothingSent();
 
-    $response = bookManually($owner, $professionalService, '2026-11-20T14:00:00')->assertCreated();
+    $response = bookManually($owner, $professionalService, '2026-11-20T14:00:00Z')->assertCreated();
 
     Notification::assertSentTo(
         [$owner->user, $coOwner->user],
@@ -267,8 +267,8 @@ test('the 35th appointment of the month warns the owners by mail, once per month
 
     // Dropping below the threshold and climbing back doesn't warn again.
     Appointment::query()->findOrFail($response->json('data.id'))->update(['status' => AppointmentStatus::Cancelled]);
-    bookManually($owner, $professionalService, '2026-11-20T15:00:00')->assertCreated();
-    bookManually($owner, $professionalService, '2026-11-20T16:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T15:00:00Z')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T16:00:00Z')->assertCreated();
 
     Notification::assertSentTimes(AppointmentLimitApproachingNotification::class, 2);
     expect(AppointmentLimitWarning::query()->count())->toBe(1);
@@ -279,8 +279,8 @@ test('each month gets its own warning', function () {
     plantAppointments($owner, 34, '2026-11-02 13:00:00');
     plantAppointments($owner, 34, '2026-12-02 13:00:00');
 
-    bookManually($owner, $professionalService, '2026-11-20T13:00:00')->assertCreated();
-    bookManually($owner, $professionalService, '2026-12-20T13:00:00')->assertCreated();
+    bookManually($owner, $professionalService, '2026-11-20T13:00:00Z')->assertCreated();
+    bookManually($owner, $professionalService, '2026-12-20T13:00:00Z')->assertCreated();
 
     Notification::assertSentTimes(AppointmentLimitApproachingNotification::class, 2);
     expect(AppointmentLimitWarning::query()->pluck('month')->map->format('Y-m-d')->sort()->values()->all())
@@ -392,7 +392,7 @@ test('the 40th appointment is serialised per organization: a concurrent booking 
             'membership_id' => $membershipId,
             'patient_id' => $loserPatient->id,
             'service_id' => $serviceId,
-            'start_at' => '2026-11-21T10:00:00',
+            'start_at' => '2026-11-21T10:00:00Z',
         ]);
 
         expect($competitorGotLock)->toBeFalse();

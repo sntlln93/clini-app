@@ -20,8 +20,8 @@ return new class extends Migration
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->text('diagnosis')->nullable();
-            $table->timestamp('issued_at');
-            $table->timestamps();
+            $table->dateTimeTz('issued_at');
+            $table->timestampsTz();
 
             $table->index(['appointment_id', 'membership_id']);
             $table->index(['patient_id', 'membership_id']);
@@ -40,7 +40,7 @@ return new class extends Migration
             $table->string('presentation')->nullable();
             $table->string('dosage', 500);
             $table->unsignedInteger('quantity');
-            $table->timestamps();
+            $table->timestampsTz();
 
             $table->unique(['prescription_id', 'position']);
         });

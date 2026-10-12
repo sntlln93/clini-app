@@ -20,9 +20,9 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { fromInstant, toCalendarDate, toTimeInputValue } from '@/lib/datetime';
 import type { Appointment } from '@/types/appointment';
 import { useRescheduleSubmit } from '../-hooks/use-reschedule-submit';
-import { toDateInputValue, toTimeInputValue } from './agenda-dates';
 import { describeAppointment } from './appointment-format';
 import {
     rescheduleSchema,
@@ -53,9 +53,9 @@ export function RescheduleAppointmentDialog({
     useEffect(() => {
         if (open && appointment) {
             // Both halves in local time — slicing the ISO string would take the UTC date, a day ahead for a late-evening appointment.
-            const startAt = new Date(appointment.start_at);
+            const startAt = fromInstant(appointment.start_at);
             form.reset({
-                date: toDateInputValue(startAt),
+                date: toCalendarDate(startAt),
                 time: toTimeInputValue(startAt),
             });
         }

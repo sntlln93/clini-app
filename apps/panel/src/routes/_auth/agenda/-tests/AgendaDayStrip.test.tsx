@@ -1,31 +1,14 @@
+import { DateTime, isSameDay, startOfWeek } from '@/lib/datetime';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { AgendaDayStrip } from '../-components/AgendaDayStrip';
 
-const DAY_ABBREVIATION_FORMAT = new Intl.DateTimeFormat('es-AR', {
-    weekday: 'short',
-});
-
-function expectedDayLabel(day: Date): string {
-    return `${DAY_ABBREVIATION_FORMAT.format(day).replace('.', '')} ${day.getDate()}`;
+function expectedDayLabel(day: DateTime): string {
+    return `${day.toLocaleString({ weekday: 'short' }).replace('.', '')} ${day.day}`;
 }
 
-function addDays(date: Date, days: number): Date {
-    const result = new Date(date);
-    result.setDate(result.getDate() + days);
-    return result;
-}
-
-function startOfWeek(date: Date): Date {
-    return addDays(date, -date.getDay());
-}
-
-function isSameDay(a: Date, b: Date): boolean {
-    return (
-        a.getFullYear() === b.getFullYear() &&
-        a.getMonth() === b.getMonth() &&
-        a.getDate() === b.getDate()
-    );
+function addDays(date: DateTime, days: number): DateTime {
+    return date.plus({ days });
 }
 
 function dayButtons(): HTMLElement[] {
@@ -36,7 +19,7 @@ function dayButtons(): HTMLElement[] {
 
 describe('AgendaDayStrip', () => {
     // A Wednesday, so the week it belongs to runs Sunday–Saturday around it.
-    const date = new Date(2026, 7, 5);
+    const date = DateTime.local(2026, 8, 5);
 
     it('renders exactly 7 day buttons for the week, each labelled with the weekday abbreviation and day number', () => {
         render(<AgendaDayStrip date={date} onDateSelect={vi.fn()} />);
@@ -73,9 +56,9 @@ describe('AgendaDayStrip', () => {
         );
 
         expect(onDateSelect).toHaveBeenCalledTimes(1);
-        expect(isSameDay(onDateSelect.mock.calls[0][0] as Date, target)).toBe(
-            true,
-        );
+        expect(
+            isSameDay(onDateSelect.mock.calls[0][0] as DateTime, target),
+        ).toBe(true);
     });
 
     it('shifts the window one week back with ‹ and one week forward with ›', () => {
@@ -86,22 +69,28 @@ describe('AgendaDayStrip', () => {
             screen.getByRole('button', { name: 'Semana anterior' }),
         );
         expect(
-            isSameDay(onDateSelect.mock.calls[0][0] as Date, addDays(date, -7)),
+            isSameDay(
+                onDateSelect.mock.calls[0][0] as DateTime,
+                addDays(date, -7),
+            ),
         ).toBe(true);
 
         fireEvent.click(
             screen.getByRole('button', { name: 'Semana siguiente' }),
         );
         expect(
-            isSameDay(onDateSelect.mock.calls[1][0] as Date, addDays(date, 7)),
+            isSameDay(
+                onDateSelect.mock.calls[1][0] as DateTime,
+                addDays(date, 7),
+            ),
         ).toBe(true);
     });
 
     it("marks today's button with aria-current=date, independent of the selected day", () => {
-        const today = new Date();
+        const today = DateTime.now();
         render(
             <AgendaDayStrip
-                date={addDays(today, today.getDay() === 0 ? 1 : -1)}
+                date={addDays(today, today.weekday === 7 ? 1 : -1)}
                 onDateSelect={vi.fn()}
             />,
         );

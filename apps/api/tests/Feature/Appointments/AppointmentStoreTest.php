@@ -13,6 +13,7 @@ use App\Models\ProfessionalService;
 use App\Models\Service;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use Illuminate\Support\Facades\DB;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
@@ -47,7 +48,7 @@ test('store creates the appointment scheduled, manual, with created_by and deriv
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -72,7 +73,7 @@ test('store response includes the professional, patient and service names', func
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ]);
 
     $response->assertCreated();
@@ -90,7 +91,7 @@ test('store returns 409 when no professional_services row exists for the members
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $service->id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::AppointmentsServiceNotActiveForProfessional->value);
@@ -109,7 +110,7 @@ test('store returns 409 when the professional_services row exists but is inactiv
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:00:00',
+        'start_at' => '2026-08-03T10:00:00Z',
     ])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::AppointmentsServiceNotActiveForProfessional->value);
@@ -136,7 +137,7 @@ test('store returns 409 when the new appointment overlaps an existing active app
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:15:00',
+        'start_at' => '2026-08-03T10:15:00Z',
     ])
         ->assertStatus(409)
         ->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
@@ -163,7 +164,7 @@ test('store succeeds when the new appointment starts exactly when an existing on
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:30:00',
+        'start_at' => '2026-08-03T10:30:00Z',
     ])->assertCreated();
 });
 
@@ -188,7 +189,7 @@ test('store succeeds when the only overlapping appointment has status cancelled'
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:15:00',
+        'start_at' => '2026-08-03T10:15:00Z',
     ])->assertCreated();
 });
 
@@ -213,7 +214,7 @@ test('store succeeds when the only overlapping appointment has status reschedule
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T10:15:00',
+        'start_at' => '2026-08-03T10:15:00Z',
     ])->assertCreated();
 });
 
@@ -262,7 +263,7 @@ test('store returns 409 when the same physical professional in a different organ
         'membership_id' => $membershipB->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalServiceB->service_id,
-        'start_at' => '2026-08-03T10:15:00',
+        'start_at' => '2026-08-03T10:15:00Z',
     ]);
 
     $response->assertStatus(409)->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
@@ -299,7 +300,7 @@ test('store succeeds when a different professional has an overlapping appointmen
         'membership_id' => $membershipB->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalServiceB->service_id,
-        'start_at' => '2026-08-03T10:15:00',
+        'start_at' => '2026-08-03T10:15:00Z',
     ])->assertCreated();
 });
 
@@ -326,21 +327,21 @@ test('authorization on store: owner creates for any professional, a professional
         'membership_id' => $anotherMember->id,
         'patient_id' => $patient1->id,
         'service_id' => $anotherMemberService->service_id,
-        'start_at' => '2026-08-03T09:00:00',
+        'start_at' => '2026-08-03T09:00:00Z',
     ])->assertCreated();
 
     $this->actingAs($professional->user)->postJson('/api/v1/appointments', [
         'membership_id' => $professional->id,
         'patient_id' => $patient2->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T09:00:00',
+        'start_at' => '2026-08-03T09:00:00Z',
     ])->assertCreated();
 
     $this->actingAs($professional->user)->postJson('/api/v1/appointments', [
         'membership_id' => $anotherMember->id,
         'patient_id' => $patient3->id,
         'service_id' => $anotherMemberService->service_id,
-        'start_at' => '2026-08-03T11:00:00',
+        'start_at' => '2026-08-03T11:00:00Z',
     ])->assertStatus(403);
 });
 
@@ -356,7 +357,7 @@ test('a guest gets 401 on store', function () {
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
         'service_id' => $professionalService->service_id,
-        'start_at' => '2026-08-03T13:00:00',
+        'start_at' => '2026-08-03T13:00:00Z',
     ])->assertStatus(401);
 });
 
@@ -441,7 +442,7 @@ test('two concurrent requests booking the identical slot: only one appointment i
             'membership_id' => $membershipId,
             'patient_id' => $loserPatient->id,
             'service_id' => $serviceId,
-            'start_at' => '2026-08-03T10:15:00',
+            'start_at' => '2026-08-03T10:15:00Z',
         ]);
 
         $response->assertStatus(409)->assertJsonPath('error.code', ErrorCode::AppointmentsSlotTaken->value);
@@ -460,3 +461,44 @@ test('two concurrent requests booking the identical slot: only one appointment i
         $race->exec("DELETE FROM patients WHERE id = {$racerPatientId}");
     };
 });
+
+test('store reads a start_at with an offset as that instant and saves it in UTC (#265)', function () {
+    $membership = Membership::factory()->create();
+    $professionalService = ProfessionalService::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'duration_minutes' => 30,
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
+        'membership_id' => $membership->id,
+        'patient_id' => Patient::factory()->create()->id,
+        'service_id' => $professionalService->service_id,
+        'start_at' => '2026-08-03T07:00:00-03:00',
+    ]);
+
+    $response->assertCreated()->assertJsonPath('data.start_at', '2026-08-03T10:00:00.000000Z');
+    expect(DB::table('appointments')->where('id', $response->json('data.id'))->value('start_at'))->toBe('2026-08-03 10:00:00+00');
+});
+
+test('store rejects a start_at without an offset with 422 (#265)', function (string $startAt) {
+    $membership = Membership::factory()->create();
+    $professionalService = ProfessionalService::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+
+    $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
+        'membership_id' => $membership->id,
+        'patient_id' => Patient::factory()->create()->id,
+        'service_id' => $professionalService->service_id,
+        'start_at' => $startAt,
+    ])->assertStatus(422)->assertJsonValidationErrors('start_at');
+
+    expect(Appointment::count())->toBe(0);
+})->with([
+    'local wall clock' => '2026-08-03T10:00',
+    'space-separated' => '2026-08-03 10:00:00',
+    'calendar date' => '2026-08-03',
+    'impossible moment' => '2026-02-30T10:00:00Z',
+]);

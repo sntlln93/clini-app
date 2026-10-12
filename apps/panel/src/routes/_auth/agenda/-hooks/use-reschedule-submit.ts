@@ -1,9 +1,9 @@
+import { fromDateAndTime, toInstant } from '@/lib/datetime';
 import type { ErrorCode } from '@/lib/error-codes';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import { useState } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
-import { toInstant } from '../-components/agenda-dates';
 import type { RescheduleFormValues } from '../-components/appointment-schemas';
 import { useRescheduleAppointment } from './use-appointments';
 import { useAvailabilityWarning } from './use-availability-warning';
@@ -37,7 +37,7 @@ export function useRescheduleSubmit(
             await mutateAsync({
                 appointmentId: appointment.id,
                 patientId: appointment.patient_id,
-                startAt: toInstant(values.date, values.time),
+                startAt: toInstant(fromDateAndTime(values.date, values.time)),
             });
             onDone();
         } catch (error) {
@@ -55,7 +55,7 @@ export function useRescheduleSubmit(
             return;
         }
 
-        if (isOutside(new Date(`${values.date}T${values.time}`))) {
+        if (isOutside(fromDateAndTime(values.date, values.time))) {
             setShowWarning(true);
             return;
         }

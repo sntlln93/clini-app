@@ -1,3 +1,4 @@
+import { DateTime } from '@/lib/datetime';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -7,7 +8,7 @@ import {
 
 function renderToolbar(view: AgendaViewMode, showCancelled = false) {
     const props = {
-        date: new Date(2026, 7, 5),
+        date: DateTime.local(2026, 8, 5),
         view,
         onPrev: vi.fn(),
         onNext: vi.fn(),

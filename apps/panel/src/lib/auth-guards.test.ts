@@ -17,11 +17,11 @@ const user: SessionUser = {
 const unauthorized = { isAxiosError: true, response: { status: 401 } };
 
 describe('requireSession', () => {
-    it('resolves without throwing when GET /me returns a user, and caches it', async () => {
+    it('resolves with the user when GET /me returns one, and caches it', async () => {
         vi.mocked(api.get).mockResolvedValueOnce({ data: user });
         const queryClient = new QueryClient();
 
-        await expect(requireSession({ queryClient })).resolves.toBeUndefined();
+        await expect(requireSession({ queryClient })).resolves.toEqual(user);
 
         expect(api.get).toHaveBeenCalledWith('/me');
         expect(queryClient.getQueryData(sessionQueryOptions.queryKey)).toEqual(
