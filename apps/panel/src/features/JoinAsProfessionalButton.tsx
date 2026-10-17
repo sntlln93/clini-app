@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { useJoinAsProfessional } from '@/hooks/use-join-as-professional';
+import { useOwnProfessionalRole } from '@/hooks/use-own-professional-role';
 import { sessionHasPermission, type SessionUser } from '@/lib/session';
 import type { Membership } from '@/types/membership';
 
@@ -29,10 +29,10 @@ export function JoinAsProfessionalButton({
 }: {
     membership: Membership;
 }) {
-    const join = useJoinAsProfessional(membership);
+    const join = useOwnProfessionalRole(membership);
 
     return (
-        <Button onClick={() => join.mutate()} disabled={join.isPending}>
+        <Button onClick={() => join.mutate(true)} disabled={join.isPending}>
             {join.isPending && <Spinner data-icon="inline-start" aria-hidden />}
             Sumarme como profesional
         </Button>
