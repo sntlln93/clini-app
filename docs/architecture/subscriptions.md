@@ -61,7 +61,7 @@ Consultorio se puede pagar por año con un descuento sobre el precio mensual.
   - en `grace` se regulariza el preapproval existente con su frecuencia, diga lo que diga el request: lo que se debe es su período.
 - **Cancelar a mitad de año:** igual que la mensual. Sigue en Consultorio hasta la fecha de renovación (`access_ends_at`), sin reintegro de la parte no usada; después pasa a Gratis.
 - **Cobro anual fallido:** abre la misma gracia de 7 días, y al vencer deja la agenda en solo lectura.
-- **Cambiar de frecuencia con la suscripción activa** (de mensual a anual o al revés al terminar el período) queda fuera de #240: necesita un preapproval nuevo que el dueño autorice en Mercado Pago, que no cobre hasta el fin del período vigente (`auto_recurring.start_date`) y que reemplace al anterior recién cuando quede autorizado, y ese comportamiento hay que validarlo en el sandbox. Mientras tanto, el dueño puede cancelar (conserva el período pago) y volver a suscribirse con la otra frecuencia cuando termine.
+- **Cambiar de frecuencia con la suscripción activa** (de mensual a anual o al revés al terminar el período) queda fuera de #240: necesita un preapproval nuevo que el dueño autorice en Mercado Pago, que no cobre hasta el fin del período vigente (`auto_recurring.start_date`) y que reemplace al anterior recién cuando quede autorizado, y ese comportamiento hay que validarlo en el sandbox (#310). Mientras tanto, el dueño puede cancelar (conserva el período pago) y volver a suscribirse con la otra frecuencia cuando termine.
 
 ## Endpoints
 
@@ -184,7 +184,7 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 - **Web Push** para los avisos de gracia/vencimiento (no existe infraestructura de push todavía): por ahora solo mail.
 - Prueba gratuita de Consultorio y cobro de consultas (#29, que reutiliza este adapter).
 - Comprar turnos extra sueltos (#238 lo deja fuera). La grilla pública sigue mostrando horarios de un mes lleno: el rechazo llega al confirmar.
-- Cambiar de frecuencia con la suscripción activa (ver Pago anual) y el reintegro de la parte no usada de un año cancelado.
+- Cambiar de frecuencia con la suscripción activa (#310, ver Pago anual) y el reintegro de la parte no usada de un año cancelado.
 - Funciones exclusivas de Centro (#243 a #245). Los reportes (#242) están en [reports.md](reports.md).
 - Precio de Centro: se cobra por fuera de la plataforma y no se modela.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
