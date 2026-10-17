@@ -1,6 +1,7 @@
 import type { StatusTone } from '@/components/StatusPill';
 import type { MembershipRole, MembershipStatus } from '@/types/admin';
 import type { AdminAuditAction, AuditSubjectType } from '@/types/audit';
+import type { ContactRequestStatus } from '@/types/contact-request';
 import type { OrganizationPlan } from '@/types/organization';
 import type { ActivityKind } from '@/types/overview';
 import type {
@@ -86,6 +87,25 @@ export const AUDIT_ACTION_LABELS: Record<AdminAuditAction, string> = {
     'users.block': 'Bloqueó un usuario',
     'users.unblock': 'Desbloqueó un usuario',
     'subscriptions.extend_grace': 'Extendió un período de gracia',
+    'contact_requests.change_status': 'Cambió el estado de una consulta',
+};
+
+export const CONTACT_REQUEST_STATUS_LABELS: Record<
+    ContactRequestStatus,
+    string
+> = {
+    new: 'Nueva',
+    in_progress: 'En curso',
+    closed: 'Cerrada',
+};
+
+export const CONTACT_REQUEST_STATUS_TONES: Record<
+    ContactRequestStatus,
+    StatusTone
+> = {
+    new: 'info',
+    in_progress: 'warning',
+    closed: 'neutral',
 };
 
 export const PLAN_LABELS: Record<OrganizationPlan, string> = {
@@ -98,6 +118,7 @@ export const AUDIT_SUBJECT_LABELS: Record<AuditSubjectType, string> = {
     organization: 'Organización',
     user: 'Usuario',
     subscription: 'Suscripción',
+    contact_request: 'Consulta',
 };
 
 export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {

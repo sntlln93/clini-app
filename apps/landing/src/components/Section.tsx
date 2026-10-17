@@ -8,6 +8,8 @@ type SectionProps = {
     lead?: ReactNode;
     children: ReactNode;
     className?: string;
+    /** `h1` when the section is the page's own title (e.g. /contacto). */
+    titleAs?: 'h1' | 'h2';
 };
 
 /**
@@ -21,6 +23,7 @@ export function Section({
     lead,
     children,
     className,
+    titleAs: Title = 'h2',
 }: SectionProps) {
     const titleId = useId();
 
@@ -33,12 +36,12 @@ export function Section({
             <div className="mb-10 grid grid-cols-1 gap-4 md:grid-cols-[7.5rem_1fr] md:gap-8">
                 <span className="text-muted-foreground">{eyebrow}</span>
                 <div>
-                    <h2
+                    <Title
                         id={titleId}
                         className="max-w-[22ch] text-3xl leading-tight tracking-tight md:text-[2.75rem]"
                     >
                         {title}
-                    </h2>
+                    </Title>
                     {lead && (
                         <p className="mt-4 max-w-[60ch] text-xl leading-snug font-light text-muted-foreground">
                             {lead}

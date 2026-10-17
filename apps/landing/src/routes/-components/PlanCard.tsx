@@ -15,8 +15,8 @@ function cta(plan: Plan, billing: Billing): { href: string; label: string } {
             label: 'Elegir Consultorio',
         };
     }
-    if (plan.id === 'centro' && contactUrl) {
-        return { href: contactUrl, label: 'Coordinar una llamada' };
+    if (plan.id === 'centro') {
+        return { href: contactUrl('centro'), label: 'Coordinar una llamada' };
     }
     return { href: registerUrl, label: 'Empezar gratis' };
 }

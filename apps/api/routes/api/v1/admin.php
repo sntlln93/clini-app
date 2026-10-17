@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\AuthController;
+use App\Http\Controllers\Admin\ContactRequestController;
+use App\Http\Controllers\Admin\ContactRequestStatusController;
 use App\Http\Controllers\Admin\OrganizationController;
 use App\Http\Controllers\Admin\OrganizationPlanController;
 use App\Http\Controllers\Admin\OrganizationSuspensionController;
@@ -47,5 +49,7 @@ Route::prefix('admin')->middleware('admin.origin')->group(function (): void {
         Route::get('subscription-events', [SubscriptionEventController::class, 'index']);
         Route::get('audit-logs', [AuditLogController::class, 'index']);
         Route::get('platform-admins', [PlatformAdminController::class, 'index']);
+        Route::get('contact-requests', [ContactRequestController::class, 'index']);
+        Route::put('contact-requests/{contactRequest}/status', [ContactRequestStatusController::class, 'update'])->whereNumber('contactRequest');
     });
 });

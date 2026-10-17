@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Admin;
 
 use App\Enums\AdminAuditAction;
+use App\Enums\AdminAuditSubject;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -27,7 +28,7 @@ class IndexAuditLogRequest extends FormRequest
         return [
             'action' => ['nullable', Rule::enum(AdminAuditAction::class)],
             'platform_admin_id' => ['nullable', 'integer', 'exists:platform_admins,id'],
-            'subject_type' => ['nullable', 'required_with:subject_id', 'in:organization,user,subscription'],
+            'subject_type' => ['nullable', 'required_with:subject_id', Rule::enum(AdminAuditSubject::class)],
             'subject_id' => ['nullable', 'integer', 'min:1'],
             'from' => ['nullable', 'date_format:Y-m-d'],
             'to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:from'],

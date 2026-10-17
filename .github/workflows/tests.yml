@@ -115,8 +115,9 @@ jobs:
       # The dashboard (:5175) is a second stateful SPA origin and the only
       # origin allowed on /api/v1/admin/*. Job env wins over apps/api/.env
       # (Dotenv never overrides an existing variable), and `php artisan serve
-      # --no-reload` passes it through to the app.
-      FRONTEND_URL: http://localhost:5174,http://localhost:5175
+      # --no-reload` passes it through to the app. The landing (:5176) is a
+      # CORS origin for its contact form, never a stateful one (ADR 0011).
+      FRONTEND_URL: http://localhost:5174,http://localhost:5175,http://localhost:5176
       SANCTUM_STATEFUL_DOMAINS: localhost:5174,localhost:5175
       ADMIN_ALLOWED_ORIGINS: http://localhost:5175
 

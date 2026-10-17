@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ContactRequest;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -15,3 +16,6 @@ Schedule::command('reminders:send-due')->everyMinute()->withoutOverlapping();
 Schedule::command('holidays:sync')->monthly()->withoutOverlapping();
 
 Schedule::command('subscriptions:expire-grace')->daily()->withoutOverlapping();
+
+// Closed contact requests past their retention window (config/contact.php).
+Schedule::command('model:prune', ['--model' => [ContactRequest::class]])->daily()->withoutOverlapping();

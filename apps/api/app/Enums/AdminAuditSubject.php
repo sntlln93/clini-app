@@ -13,4 +13,5 @@ enum AdminAuditSubject: string
     case Organization = 'organization';
     case User = 'user';
     case Subscription = 'subscription';
+    case ContactRequest = 'contact_request';
 }

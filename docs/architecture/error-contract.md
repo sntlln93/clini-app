@@ -81,6 +81,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `users.already_blocked` | 409 | `BlockUserAction` (dashboard) | |
 | `users.not_blocked` | 409 | `UnblockUserAction` (dashboard) | |
 | `users.email_already_verified` | 409 | `VerifyUserEmailManuallyAction` (dashboard) | |
+| `contact_requests.status_unchanged` | 409 | `ChangeContactRequestStatusAction` (dashboard) | |
 
 Las rutas `/api/v1/admin/*` suman un rechazo que **no** es un código de dominio: `EnsureDashboardOrigin` responde un `403 {"message":"Forbidden."}` plano (sin sobre `error`) cuando el `Origin`/`Referer` del pedido no está en `ADMIN_ALLOWED_ORIGINS`. Es una aserción de seguridad, no un flujo de negocio — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
 

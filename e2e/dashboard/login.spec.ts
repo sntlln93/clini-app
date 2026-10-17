@@ -1,8 +1,10 @@
 import { expect, test } from '../fixtures';
+import { sendContactForm } from '../landing/contact-form';
 
 const API_URL = process.env.E2E_API_URL ?? 'http://localhost:8080';
 const DASHBOARD_URL = process.env.E2E_DASHBOARD_URL ?? 'http://localhost:5175';
 const PANEL_URL = process.env.E2E_BASE_URL ?? 'http://localhost:5174';
+const LANDING_URL = process.env.E2E_LANDING_URL ?? 'http://localhost:5176';
 
 // The anonymous session probe (`GET /api/v1/admin/me`) that both `_auth` and
 // `_public` run: a 401 at the network level, plus the console noise the
@@ -19,7 +21,9 @@ const OPERATOR_EMAIL = 'operador@test.com';
 const OPERATOR_PASSWORD = 'password';
 
 // The admin login is throttled at 5/min per email+ip: this file makes at most
-// two attempts per run (×2 with CI's `retries: 1`).
+// two attempts per run (×2 with CI's `retries: 1`), and is the dashboard
+// suite's only login — new logged-in checks go inside the test below.
+// That is why the contact inbox (#248) is checked there too.
 
 test.describe('dashboard redirects an anonymous visitor to login', () => {
     test.use({
@@ -59,9 +63,21 @@ test.describe('operator login', () => {
         },
     });
 
-    test('an operator logs in, is unknown to the clinic API, and logs out', async ({
+    test('an operator logs in, reads the landing contact inbox, is unknown to the clinic API, and logs out', async ({
         page,
     }) => {
+        const contactName = `Contacto e2e ${Date.now()}`;
+        const contactMessage = `Mensaje de ${contactName}: queremos migrar la agenda.`;
+
+        await test.step('a visitor sends the landing contact form', async () => {
+            await page.goto(`${LANDING_URL}/contacto?plan=centro`);
+            await sendContactForm(page, {
+                name: contactName,
+                email: 'contacto@e2e.test',
+                message: contactMessage,
+            });
+        });
+
         await page.goto('/login');
         await page.getByLabel('Correo electrónico').fill(OPERATOR_EMAIL);
         await page.getByLabel('Contraseña').fill(OPERATOR_PASSWORD);
@@ -76,6 +92,34 @@ test.describe('operator login', () => {
                 .getByLabel('Navegación principal')
                 .getByRole('link', { name: 'Organizaciones' }),
         ).toBeVisible();
+
+        await test.step('the request is in Contactos, and its status changes', async () => {
+            await page
+                .getByLabel('Navegación principal')
+                .getByRole('link', { name: 'Contactos' })
+                .click();
+            await expect(
+                page.getByRole('heading', { name: 'Contactos', level: 1 }),
+            ).toBeVisible();
+
+            const row = page.getByRole('row').filter({ hasText: contactName });
+            await expect(row).toContainText('Nueva');
+            await row
+                .getByRole('button', {
+                    name: `Ver la consulta de ${contactName}`,
+                })
+                .click();
+
+            const dialog = page.getByRole('dialog');
+            await expect(dialog).toContainText(contactMessage);
+            await expect(dialog).toContainText('Centro');
+            await dialog
+                .getByRole('button', { name: 'Marcar en curso' })
+                .click();
+
+            await expect(dialog).toBeHidden();
+            await expect(row).toContainText('En curso');
+        });
 
         // Same browser session, clinic API as the panel calls it: the
         // operator is not a clinic user.

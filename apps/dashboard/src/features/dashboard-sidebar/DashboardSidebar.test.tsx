@@ -18,7 +18,7 @@ function renderSidebar(path: string) {
 }
 
 describe('DashboardSidebar', () => {
-    it('lists the six sections in order', async () => {
+    it('lists the seven sections in order', async () => {
         await renderSidebar('/');
 
         const nav = screen.getByRole('navigation', {
@@ -34,6 +34,7 @@ describe('DashboardSidebar', () => {
             'Usuarios',
             'Suscripciones',
             'Estadísticas',
+            'Contactos',
             'Auditoría',
         ]);
     });

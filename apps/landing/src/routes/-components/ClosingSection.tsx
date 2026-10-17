@@ -19,15 +19,9 @@ export function ClosingSection() {
                 </h2>
                 <div className="flex flex-wrap gap-3">
                     <CtaLink href={registerUrl}>Empezar gratis</CtaLink>
-                    {contactUrl ? (
-                        <CtaLink href={contactUrl} variant="outline">
-                            Hablar con nosotros
-                        </CtaLink>
-                    ) : (
-                        <CtaLink href="#precio" variant="outline">
-                            Ver planes
-                        </CtaLink>
-                    )}
+                    <CtaLink href={contactUrl()} variant="outline">
+                        Hablar con nosotros
+                    </CtaLink>
                 </div>
             </div>
         </section>
