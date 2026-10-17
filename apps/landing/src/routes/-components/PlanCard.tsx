@@ -1,4 +1,4 @@
-import { contactUrl, registerUrl } from '@/lib/links';
+import { consultorioRegisterUrl, contactUrl, registerUrl } from '@/lib/links';
 import { CONSULTORIO_MONTHLY, type Billing } from '@/lib/pricing';
 import { cn } from '@/lib/utils';
 import { Check, Minus } from 'lucide-react';
@@ -10,7 +10,7 @@ type PlanCardProps = { plan: Plan; billing: Billing };
 
 function cta(plan: Plan): { href: string; label: string } {
     if (plan.id === 'consultorio') {
-        return { href: registerUrl, label: 'Elegir Consultorio' };
+        return { href: consultorioRegisterUrl, label: 'Elegir Consultorio' };
     }
     if (plan.id === 'centro' && contactUrl) {
         return { href: contactUrl, label: 'Coordinar una llamada' };

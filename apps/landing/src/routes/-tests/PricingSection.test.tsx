@@ -7,6 +7,16 @@ function consultorioCard() {
 }
 
 describe('PricingSection', () => {
+    it('signs up for Consultorio with the plan, so the panel says where to activate it (#286)', () => {
+        render(<PricingSection />);
+
+        expect(
+            within(consultorioCard())
+                .getByRole('link', { name: 'Elegir Consultorio' })
+                .getAttribute('href'),
+        ).toMatch(/\/registro\?plan=consultorio$/);
+    });
+
     it('shows monthly prices by default', () => {
         render(<PricingSection />);
 
