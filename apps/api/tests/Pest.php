@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\ContactRequest;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\PlatformAdmin;
@@ -107,7 +108,7 @@ function freshRequestState(): void
 }
 
 /**
- * Fills the `{organization}`, `{user}` and `{subscription}` placeholders of
+ * Fills the `{organization}`, `{user}`, `{subscription}` and `{contactRequest}` placeholders of
  * an admin route template (tests/Datasets/AdminRoutes.php) with real ids.
  */
 function adminRouteUri(string $template): string
@@ -115,10 +116,11 @@ function adminRouteUri(string $template): string
     $organization = Organization::factory()->create();
     $subscription = Subscription::factory()->create(['organization_id' => $organization->id]);
     $user = User::factory()->create();
+    $contactRequest = ContactRequest::factory()->create();
 
     return str_replace(
-        ['{organization}', '{user}', '{subscription}'],
-        [(string) $organization->id, (string) $user->id, (string) $subscription->id],
+        ['{organization}', '{user}', '{subscription}', '{contactRequest}'],
+        [(string) $organization->id, (string) $user->id, (string) $subscription->id, (string) $contactRequest->id],
         $template,
     );
 }

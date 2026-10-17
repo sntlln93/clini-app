@@ -44,7 +44,8 @@ export type ErrorCode =
     | 'plans.assignment_unchanged'
     | 'plans.subscription_live'
     | 'plans.appointment_limit_reached'
-    | 'booking.link_not_found';
+    | 'booking.link_not_found'
+    | 'contact_requests.status_unchanged';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -128,6 +129,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La organización tiene una suscripción que todavía puede cobrar. Primero hay que cancelarla.',
     'plans.appointment_limit_reached':
         'Llegaste al límite de turnos del mes que incluye el plan Gratis. Pasá a Consultorio desde Ajustes para seguir cargando turnos.',
+    'contact_requests.status_unchanged':
+        'La consulta ya tiene ese estado. Actualizá la página para ver su estado actual.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

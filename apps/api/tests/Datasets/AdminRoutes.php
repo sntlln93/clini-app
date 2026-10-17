@@ -13,6 +13,7 @@ dataset('admin_routes', [
     'organizations show' => ['get', '/api/v1/admin/organizations/{organization}'],
     'organizations suspend' => ['post', '/api/v1/admin/organizations/{organization}/suspension'],
     'organizations reactivate' => ['delete', '/api/v1/admin/organizations/{organization}/suspension'],
+    'organizations assign plan' => ['put', '/api/v1/admin/organizations/{organization}/plan'],
     'users index' => ['get', '/api/v1/admin/users'],
     'users show' => ['get', '/api/v1/admin/users/{user}'],
     'users block' => ['post', '/api/v1/admin/users/{user}/block'],
@@ -24,4 +25,6 @@ dataset('admin_routes', [
     'subscription events' => ['get', '/api/v1/admin/subscription-events'],
     'audit logs' => ['get', '/api/v1/admin/audit-logs'],
     'platform admins' => ['get', '/api/v1/admin/platform-admins'],
+    'contact requests index' => ['get', '/api/v1/admin/contact-requests'],
+    'contact requests status' => ['put', '/api/v1/admin/contact-requests/{contactRequest}/status'],
 ]);

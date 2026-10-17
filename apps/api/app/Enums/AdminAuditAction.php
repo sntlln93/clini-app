@@ -19,4 +19,5 @@ enum AdminAuditAction: string
     case UserBlocked = 'users.block';
     case UserUnblocked = 'users.unblock';
     case SubscriptionGraceExtended = 'subscriptions.extend_grace';
+    case ContactRequestStatusChanged = 'contact_requests.change_status';
 }
