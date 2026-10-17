@@ -13,13 +13,10 @@ test.use({
     },
 });
 
-async function register(page: Page) {
+async function fillRegistration(page: Page, path: string) {
     const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
-    await page.goto('/registro?plan=consultorio');
-    await expect(
-        page.getByText(/Tu cuenta empieza en el plan Gratis/),
-    ).toBeVisible();
+    await page.goto(path);
     await expect(page.getByRole('checkbox')).toHaveCount(0);
     await page.getByLabel('Nombre', { exact: true }).fill('Dueña Nueva');
     await page
@@ -30,6 +27,11 @@ async function register(page: Page) {
         .fill(`duena-${suffix}@test.com`);
     await page.getByLabel('Contraseña', { exact: true }).fill('password123');
     await page.getByLabel('Confirmar contraseña').fill('password123');
+}
+
+async function register(page: Page) {
+    await fillRegistration(page, '/registro');
+    await expect(page.getByRole('radio', { name: /Gratis/ })).toBeChecked();
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
     await expect(page).toHaveURL(/\/agenda/);
 }
@@ -132,4 +134,33 @@ test('an owner who only manages steps out from Ajustes and back in from the chec
     await expect(
         checklist(page).getByText('Sumá a quien atiende (listo)'),
     ).toBeVisible();
+});
+
+test('choosing Consultorio from the landing creates the account and goes to the Mercado Pago checkout', async ({
+    page,
+}) => {
+    // No Mercado Pago in e2e: stand in for the checkout start and its page.
+    const checkoutUrl = 'https://checkout.example.test/preapproval';
+    await page.route(/\/api\/v1\/subscription$/, (route) =>
+        route.request().method() === 'POST'
+            ? route.fulfill({
+                  status: 201,
+                  json: { data: { init_point: checkoutUrl } },
+              })
+            : route.fallback(),
+    );
+    await page.route(`${checkoutUrl}**`, (route) =>
+        route.fulfill({
+            contentType: 'text/html',
+            body: '<title>Checkout</title>',
+        }),
+    );
+
+    await fillRegistration(page, '/registro?plan=consultorio');
+    await expect(
+        page.getByRole('radio', { name: /Consultorio/ }),
+    ).toBeChecked();
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+
+    await expect(page).toHaveURL(checkoutUrl);
 });
