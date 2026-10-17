@@ -101,17 +101,22 @@ services:
             # second stateful SPA origin, and the only origin allowed on the
             # admin routes. Exported env wins over apps/api/.env (Dotenv
             # never overrides an existing variable), so a dev's local .env
-            # can't break the run.
-            FRONTEND_URL: 'http://localhost:5174,http://localhost:5175'
+            # can't break the run. The landing (:5176) is a CORS origin for
+            # its contact form, but never a stateful one (ADR 0011).
+            FRONTEND_URL: 'http://localhost:5174,http://localhost:5175,http://localhost:5176'
             SANCTUM_STATEFUL_DOMAINS: 'localhost:5174,localhost:5175'
             ADMIN_ALLOWED_ORIGINS: 'http://localhost:5175'
+            # Vite prefers an exported variable over .env, so a landing .env
+            # copied before the contact form (#248) still reaches the API.
+            VITE_API_URL: 'http://localhost:8080'
         volumes:
             - '.:/workspace'
         networks:
             - sail
         command: >
             sh -c "cd apps/api && composer install --no-interaction --prefer-dist &&
-            php artisan migrate --force && php artisan db:seed --force && cd /workspace &&
+            php artisan migrate --force && php artisan db:seed --force &&
+            php artisan cache:clear && cd /workspace &&
             npm install &&
             cp -n apps/dashboard/.env.example apps/dashboard/.env &&
             cp -n apps/landing/.env.example apps/landing/.env &&

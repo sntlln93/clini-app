@@ -35,7 +35,8 @@ export default defineConfig({
                     process.env.E2E_DASHBOARD_URL ?? 'http://localhost:5175',
             },
         },
-        // The public landing (server-rendered, no API calls, no session).
+        // The public landing (server-rendered, no session; its only API
+        // call is the contact form's anonymous POST).
         {
             name: 'landing',
             testMatch: /landing\/.*\.spec\.ts$/,
