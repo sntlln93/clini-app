@@ -1,6 +1,10 @@
 import { api } from '@/lib/api';
 import { DateTime, fromInstant } from '@/lib/datetime';
-import type { Subscription, SubscriptionStatus } from '@/types/subscription';
+import type {
+    Subscription,
+    SubscriptionBilling,
+    SubscriptionStatus,
+} from '@/types/subscription';
 import { queryOptions, useQuery } from '@tanstack/react-query';
 
 export const subscriptionQueryOptions = queryOptions({
@@ -25,14 +29,32 @@ export function useSubscription(): Subscription | null | undefined {
 }
 
 /**
- * Starts (or resumes) the organization's Mercado Pago checkout and resolves
- * with the URL to send the browser to: from Ajustes, and right after
- * registering on Consultorio (#286).
+ * Starts (or resumes) the organization's Mercado Pago checkout, charging
+ * every month or every year (#240), and resolves with the URL to send the
+ * browser to: from Ajustes, and right after registering on Consultorio
+ * (#286).
  */
-export function startSubscriptionCheckout(): Promise<string> {
+export function startSubscriptionCheckout(
+    billing: SubscriptionBilling,
+): Promise<string> {
     return api
-        .post<{ data: { init_point: string } }>('/subscription')
+        .post<{ data: { init_point: string } }>('/subscription', { billing })
         .then((response) => response.data.data.init_point);
+}
+
+/**
+ * The billing the organization is actually paying on: a checkout started
+ * after a cancellation or an expiry already stores the billing (and amount)
+ * of a Mercado Pago subscription nobody has paid yet, so only an active or
+ * in-grace row's billing describes a charge (#240). Anything else reads as
+ * monthly, the copy's default.
+ */
+export function chargingBilling(
+    subscription: Subscription | null | undefined,
+): SubscriptionBilling {
+    return subscription?.status === 'active' || subscription?.status === 'grace'
+        ? subscription.billing
+        : 'monthly';
 }
 
 /** Anchor of Ajustes' subscription section, the target of the panel banner's link. */

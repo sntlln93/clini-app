@@ -1,6 +1,7 @@
 import {
     planIncludes,
     planQueryOptions,
+    practiceAmount,
     practiceMonthlyAmount,
     useAppointmentChangeQueryKeys,
     useWritesRestricted,
@@ -106,6 +107,24 @@ describe('planIncludes', () => {
         expect(planIncludes(buildPlan('free'), 'prescriptions')).toBe(false);
         expect(planIncludes(buildPlan('center'), 'team')).toBe(true);
         expect(planIncludes(undefined, 'waiting_room')).toBe(true);
+    });
+});
+
+describe('practiceAmount', () => {
+    const pricing = buildPlan('practice', {
+        practice_pricing: {
+            base_amount: 15001,
+            included_professionals: 5,
+            extra_professional_amount: 0,
+            annual_discount_percent: 40,
+            currency: 'ARS',
+        },
+    }).practice_pricing;
+
+    it('charges twelve discounted months, each rounded to whole pesos first, like the API (#240)', () => {
+        // $ 15.001 × 60% = $ 9.000,60 → $ 9.001 a month (PracticePricingTest).
+        expect(practiceAmount(pricing, 1, 'annual')).toBe(108012);
+        expect(practiceAmount(pricing, 1, 'monthly')).toBe(15001);
     });
 });
 

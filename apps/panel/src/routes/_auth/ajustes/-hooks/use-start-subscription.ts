@@ -1,6 +1,7 @@
 import { navigateToExternalUrl } from '@/lib/external-navigation';
 import { startSubscriptionCheckout } from '@/lib/subscription';
 import { notifyError } from '@/lib/toast';
+import type { SubscriptionBilling } from '@/types/subscription';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 
@@ -16,7 +17,8 @@ import { useEffect } from 'react';
  */
 export function useStartSubscription() {
     const mutation = useMutation({
-        mutationFn: startSubscriptionCheckout,
+        mutationFn: (billing: SubscriptionBilling) =>
+            startSubscriptionCheckout(billing),
         onSuccess: (initPoint) => navigateToExternalUrl(initPoint),
         onError: (error) =>
             notifyError(error, 'No se pudo iniciar el pago de la suscripción'),
@@ -36,7 +38,7 @@ export function useStartSubscription() {
     }, [reset]);
 
     return {
-        start: () => mutation.mutate(),
+        start: (billing: SubscriptionBilling) => mutation.mutate(billing),
         isRedirecting: mutation.isPending || mutation.isSuccess,
     };
 }

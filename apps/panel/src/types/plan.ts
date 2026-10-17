@@ -29,6 +29,8 @@ export type Plan = {
         base_amount: number;
         included_professionals: number;
         extra_professional_amount: number;
+        /** Off the monthly price when paying the whole year (#240). */
+        annual_discount_percent: number;
         currency: string;
     };
 };

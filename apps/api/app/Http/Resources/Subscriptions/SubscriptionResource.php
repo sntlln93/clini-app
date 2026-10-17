@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Subscriptions;
 
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionStatus;
 use App\Models\Subscription;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,8 @@ class SubscriptionResource extends JsonResource
 
         /** @var SubscriptionStatus $status */
         $status = $subscription->status;
+        /** @var SubscriptionBilling $billing */
+        $billing = $subscription->billing;
 
         return [
             'status' => $status->value,
@@ -35,6 +38,7 @@ class SubscriptionResource extends JsonResource
             'next_payment_at' => $subscription->next_payment_at?->toIso8601String(),
             'cancelled_at' => $subscription->cancelled_at?->toIso8601String(),
             'access_ends_at' => $subscription->access_ends_at?->toIso8601String(),
+            'billing' => $billing->value,
             'amount' => $subscription->amount,
         ];
     }

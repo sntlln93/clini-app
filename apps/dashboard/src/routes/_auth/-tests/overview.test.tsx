@@ -41,7 +41,10 @@ describe('KpiGrid', () => {
             .getByText('MRR estimado')
             .closest('[data-slot="card"]');
         expect(normalize(mrr?.textContent ?? null)).toContain('$ 15.000');
-        screen.getByText('Suscripciones activas y en gracia × precio del plan');
+        screen.getByText(
+            'Lo que cobra por mes cada suscripción activa o en gracia; una anual cuenta su cobro dividido por 12',
+        );
+        expect(normalize(mrr?.textContent ?? null)).not.toContain('×');
     });
 
     it('renders the subscription breakdown, "Sin suscripción" included', () => {

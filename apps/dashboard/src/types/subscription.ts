@@ -9,6 +9,9 @@ export const SUBSCRIPTION_STATUSES = [
 ] as const;
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
+/** How often it charges (#240), fixed per Mercado Pago subscription. */
+export type SubscriptionBilling = 'monthly' | 'annual';
+
 export const GRACE_REASONS = ['payment_failed', 'paused'] as const;
 export type GraceReason = (typeof GRACE_REASONS)[number];
 
@@ -29,7 +32,8 @@ export type AdminSubscription = {
     cancelled_at: string | null;
     /** End of the period a cancelled subscription had already paid: it stays on Consultorio until then (#237). */
     access_ends_at: string | null;
-    /** Monthly amount last set at Mercado Pago, in whole pesos. */
+    billing: SubscriptionBilling;
+    /** Amount of each charge (a month or a year, by `billing`) last set at Mercado Pago, in whole pesos. */
     amount: number | null;
     created_at: string;
     updated_at: string;

@@ -9,12 +9,12 @@ use App\Actions\Subscriptions\StartSubscriptionCheckoutAction;
 use App\Data\Subscriptions\SubscriptionCancellationData;
 use App\Data\Subscriptions\SubscriptionCheckoutData;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Subscriptions\StartSubscriptionCheckoutRequest;
 use App\Http\Resources\Subscriptions\SubscriptionResource;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 
 class SubscriptionController extends Controller
@@ -35,7 +35,7 @@ class SubscriptionController extends Controller
         return new SubscriptionResource($subscription);
     }
 
-    public function store(Request $request, StartSubscriptionCheckoutAction $action, CurrentOrganization $currentOrganization): JsonResponse
+    public function store(StartSubscriptionCheckoutRequest $request, StartSubscriptionCheckoutAction $action, CurrentOrganization $currentOrganization): JsonResponse
     {
         Gate::authorize('create', Subscription::class);
 
@@ -45,6 +45,7 @@ class SubscriptionController extends Controller
         $initPoint = $action->handle(new SubscriptionCheckoutData(
             organizationId: $currentOrganization->getOrFail(),
             payerEmail: $user->email,
+            billing: $request->billing(),
         ));
 
         return response()->json(['data' => ['init_point' => $initPoint]]);

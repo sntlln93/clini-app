@@ -307,7 +307,86 @@ describe('SubscriptionSection', () => {
                 'https://mp.example/checkout/1',
             ),
         );
-        expect(api.post).toHaveBeenCalledWith('/subscription');
+        expect(api.post).toHaveBeenCalledWith('/subscription', {
+            billing: 'monthly',
+        });
+    });
+
+    it('offers paying the year, priced for the active professionals, and starts that checkout', async () => {
+        vi.mocked(api.post).mockResolvedValue({
+            data: { data: { init_point: 'https://mp.example/checkout/1' } },
+        });
+        renderSection(null, {
+            plan: buildPlan('free', { active_professionals: 1 }),
+        });
+
+        const choice = screen.getByRole('radiogroup', {
+            name: 'Forma de pago',
+        });
+        expect(plainText(choice)).toContain('$ 15.000 por mes');
+        expect(plainText(choice)).toContain(
+            'Un pago de $ 108.000 por año ($ 9.000 por mes). Ahorrás $ 72.000.',
+        );
+        fireEvent.click(
+            within(choice).getByRole('radio', {
+                name: /Anual, con 40% de descuento/,
+            }),
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Pasar a Consultorio' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/subscription', {
+                billing: 'annual',
+            }),
+        );
+    });
+
+    it('preselects the billing of a cancelled subscription when subscribing again', () => {
+        renderSection(
+            subscription({ status: 'cancelled', billing: 'annual' }),
+            {
+                plan: buildPlan('free'),
+            },
+        );
+
+        expect(
+            screen
+                .getByRole('radio', { name: /Anual/ })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
+    });
+
+    it('regularizes a grace period with the billing it has, offering no choice', async () => {
+        vi.mocked(api.post).mockResolvedValue({
+            data: { data: { init_point: 'https://mp.example/checkout/1' } },
+        });
+        renderSection(
+            subscription({
+                status: 'grace',
+                billing: 'annual',
+                grace_days_left: 3,
+            }),
+            { plan: buildPlan('practice') },
+        );
+
+        expect(screen.queryByRole('radiogroup')).toBeNull();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Regularizar pago' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/subscription', {
+                billing: 'annual',
+            }),
+        );
+    });
+
+    it('offers no billing choice to someone who is not the owner', () => {
+        renderSection(null, { isOwner: false, plan: buildPlan('free') });
+
+        expect(screen.queryByRole('radiogroup')).toBeNull();
     });
 
     it('disables the button with a spinner while the checkout starts, and keeps it so after redirecting', async () => {
@@ -552,6 +631,48 @@ describe('SubscriptionSection', () => {
             expect(
                 plainText(screen.getByText(/Tu suscripción es de/)),
             ).toContain('$ 20.000 por mes');
+        });
+
+        it('shows a yearly subscription per year, repriced only at its renewal', () => {
+            renderSection(subscription({ billing: 'annual', amount: 108000 }), {
+                plan: buildPlan('practice', { active_professionals: 2 }),
+            });
+
+            const detail = plainText(screen.getByText(/Tu suscripción es de/));
+            expect(detail).toContain(
+                '$ 108.000 por año, con 2 profesionales activos',
+            );
+            expect(detail).toContain('con 40% de descuento por pagar el año');
+            expect(detail).toContain(
+                'el monto nuevo rige desde la próxima renovación',
+            );
+        });
+
+        it('keeps the monthly copy while a yearly checkout started after cancelling is still unpaid', () => {
+            renderSection(
+                subscription({
+                    status: 'cancelled',
+                    billing: 'annual',
+                    amount: 108000,
+                    access_ends_at: '2099-01-01T12:00:00+00:00',
+                }),
+                { plan: buildPlan('practice', { active_professionals: 2 }) },
+            );
+
+            const detail = plainText(screen.getByText(/Tu suscripción es de/));
+            expect(detail).toContain('$ 15.000 por mes');
+            expect(detail).not.toContain('por año');
+        });
+
+        it('computes a yearly amount with the API formula when none is stored yet', () => {
+            renderSection(subscription({ billing: 'annual' }), {
+                plan: buildPlan('practice', { active_professionals: 6 }),
+            });
+
+            // $ 20.000 × 60% = $ 12.000 a month.
+            expect(
+                plainText(screen.getByText(/Tu suscripción es de/)),
+            ).toContain('$ 144.000 por año');
         });
 
         it('on Centro, dates a cancelled subscription without promising Consultorio or Gratis', () => {

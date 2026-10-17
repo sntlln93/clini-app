@@ -8,9 +8,12 @@ import type { Plan } from './plans';
 
 type PlanCardProps = { plan: Plan; billing: Billing };
 
-function cta(plan: Plan): { href: string; label: string } {
+function cta(plan: Plan, billing: Billing): { href: string; label: string } {
     if (plan.id === 'consultorio') {
-        return { href: consultorioRegisterUrl, label: 'Elegir Consultorio' };
+        return {
+            href: consultorioRegisterUrl(billing),
+            label: 'Elegir Consultorio',
+        };
     }
     if (plan.id === 'centro' && contactUrl) {
         return { href: contactUrl, label: 'Coordinar una llamada' };
@@ -20,7 +23,7 @@ function cta(plan: Plan): { href: string; label: string } {
 
 export function PlanCard({ plan, billing }: PlanCardProps) {
     const featured = plan.id === 'consultorio';
-    const action = cta(plan);
+    const action = cta(plan, billing);
 
     return (
         <article

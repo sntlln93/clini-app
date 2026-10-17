@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionGraceReason;
 use App\Enums\SubscriptionStatus;
 use App\Support\Concerns\BelongsToOrganization;
@@ -15,7 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at', 'access_ends_at', 'amount'])]
+#[Fillable(['organization_id', 'provider', 'provider_subscription_id', 'status', 'grace_ends_at', 'grace_reason', 'last_payment_at', 'last_payment_failed_at', 'next_payment_at', 'cancelled_at', 'access_ends_at', 'billing', 'amount'])]
 class Subscription extends Model
 {
     /** @use HasFactory<SubscriptionFactory> */
@@ -25,6 +26,16 @@ class Subscription extends Model
 
     /** Days a failed charge keeps full access before the subscription expires. */
     public const GRACE_DAYS = 7;
+
+    /**
+     * Mirrors the column default, so a row created without one reads as
+     * monthly before it is ever refreshed.
+     *
+     * @var array<string, mixed>
+     */
+    protected $attributes = [
+        'billing' => 'monthly',
+    ];
 
     /**
      * @return array<string, string>
@@ -40,6 +51,7 @@ class Subscription extends Model
             'next_payment_at' => 'immutable_datetime',
             'cancelled_at' => 'immutable_datetime',
             'access_ends_at' => 'immutable_datetime',
+            'billing' => SubscriptionBilling::class,
             'amount' => 'integer',
         ];
     }

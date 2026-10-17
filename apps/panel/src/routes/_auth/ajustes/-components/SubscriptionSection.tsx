@@ -8,8 +8,14 @@ import {
     isSubscriptionCancellable,
 } from '@/lib/subscription';
 import type { Plan } from '@/types/plan';
-import type { Subscription, SubscriptionStatus } from '@/types/subscription';
+import type {
+    Subscription,
+    SubscriptionBilling,
+    SubscriptionStatus,
+} from '@/types/subscription';
+import { useState } from 'react';
 import { useStartSubscription } from '../-hooks/use-start-subscription';
+import { BillingChoice } from './BillingChoice';
 import { CancelSubscriptionButton } from './CancelSubscriptionButton';
 import { PlanSummary } from './PlanSummary';
 import {
@@ -54,6 +60,15 @@ function actionLabel(
     }
 }
 
+/**
+ * Grace regularizes the Mercado Pago subscription it has, so its billing
+ * stays; every other checkout creates a new one, whose billing the owner
+ * picks (#240).
+ */
+function offersBillingChoice(subscription: Subscription | null): boolean {
+    return subscription?.status !== 'grace';
+}
+
 export function SubscriptionSection({
     subscription,
     plan,
@@ -62,6 +77,9 @@ export function SubscriptionSection({
 }: SubscriptionSectionProps) {
     const { start, isRedirecting } = useStartSubscription();
     const label = actionLabel(subscription, plan);
+    const [billing, setBilling] = useState<SubscriptionBilling>(
+        subscription?.billing ?? 'monthly',
+    );
     const lastPayment = subscription ? lastPaymentDetail(subscription) : null;
 
     return (
@@ -79,11 +97,21 @@ export function SubscriptionSection({
                 </h2>
                 <p className="text-sm text-muted-foreground">
                     El plan define qué funciones tiene el consultorio. El plan
-                    Consultorio se cobra todos los meses con Mercado Pago.
+                    Consultorio se cobra con Mercado Pago, todos los meses o una
+                    vez por año.
                 </p>
             </div>
 
             {plan && <PlanSummary plan={plan} subscription={subscription} />}
+
+            {label && isOwner && plan && offersBillingChoice(subscription) && (
+                <BillingChoice
+                    plan={plan}
+                    value={billing}
+                    onValueChange={setBilling}
+                    disabled={isRedirecting}
+                />
+            )}
 
             <div className="flex flex-wrap items-center gap-3">
                 {subscription ? (
@@ -103,7 +131,7 @@ export function SubscriptionSection({
                         type="button"
                         size="sm"
                         disabled={isRedirecting}
-                        onClick={start}
+                        onClick={() => start(billing)}
                     >
                         {isRedirecting ? (
                             <>

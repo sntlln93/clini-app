@@ -11,6 +11,7 @@ use App\Data\Subscriptions\ProviderSubscriptionData;
 use App\Data\Subscriptions\SubscriptionCheckoutData;
 use App\Data\Subscriptions\SubscriptionSignupData;
 use App\Enums\Plan;
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionStatus;
 use App\Exceptions\Plans\CenterPlanAssignedException;
 use App\Exceptions\Subscriptions\SubscriptionAlreadyActiveException;
@@ -39,9 +40,14 @@ use Illuminate\Support\Facades\DB;
  * it once that preapproval is authorized or charged.
  *
  * A new provider subscription charges the Practice price for the
- * organization's current active professionals (stored as `amount`); later
- * changes go through SyncSubscriptionAmountAction. An organization on
- * Center is billed outside the platform and can't check out.
+ * organization's current active professionals (stored as `amount`) every
+ * month or every year, as the owner chose (`billing`, #240); later
+ * professional changes go through SyncSubscriptionAmountAction. The
+ * provider can't change a subscription's frequency, so a pending checkout
+ * is reused only for the same billing — choosing the other one replaces it
+ * like a paused one — while grace regularizes the period it owes, keeping
+ * its billing whatever the request says. An organization on Center is
+ * billed outside the platform and can't check out.
  *
  * Runs under a lock on the organization row so two concurrent checkout
  * starts (two owners, two tabs) can't both create a provider subscription
@@ -81,11 +87,13 @@ final class StartSubscriptionCheckoutAction implements Action
                 throw new SubscriptionAlreadyActiveException($organization->id);
             }
 
+            $billing = $this->billing($subscription, $dto->billing);
             $previous = $this->previousProviderSubscription($subscription);
             $live = $previous !== null && $previous->status !== SubscriptionStatus::Cancelled ? $previous : null;
 
             if ($live !== null) {
                 $reusable = in_array($status, [SubscriptionStatus::Pending, SubscriptionStatus::Grace], true)
+                    && $subscription?->billing === $billing
                     && ! $live->paused
                     && $live->initPoint !== null;
 
@@ -94,7 +102,7 @@ final class StartSubscriptionCheckoutAction implements Action
                 }
             }
 
-            $amount = $this->pricing->monthlyAmount($this->plans->activeProfessionals($organization->id));
+            $amount = $this->pricing->amount($this->plans->activeProfessionals($organization->id), $billing);
 
             $created = $this->gateway->createSubscription(new SubscriptionSignupData(
                 externalReference: (string) $organization->id,
@@ -102,6 +110,7 @@ final class StartSubscriptionCheckoutAction implements Action
                 reason: 'Suscripción Clini — '.$organization->name,
                 amount: $amount,
                 currency: $this->pricing->currency(),
+                billing: $billing,
             ));
 
             if ($created->initPoint === null) {
@@ -114,6 +123,7 @@ final class StartSubscriptionCheckoutAction implements Action
                     'provider' => $this->gateway->provider(),
                     'provider_subscription_id' => $created->id,
                     'status' => $status ?? SubscriptionStatus::Pending,
+                    'billing' => $billing,
                     'amount' => $amount,
                 ],
             );
@@ -128,6 +138,23 @@ final class StartSubscriptionCheckoutAction implements Action
 
             return $created->initPoint;
         });
+    }
+
+    /**
+     * Grace owes the current period of the subscription it has, so it is
+     * regularized with that subscription's billing; anything else creates
+     * (or replaces) a checkout with the requested one.
+     */
+    private function billing(?Subscription $subscription, SubscriptionBilling $requested): SubscriptionBilling
+    {
+        if ($subscription?->status === SubscriptionStatus::Grace) {
+            /** @var SubscriptionBilling $current */
+            $current = $subscription->billing;
+
+            return $current;
+        }
+
+        return $requested;
     }
 
     private function previousProviderSubscription(?Subscription $subscription): ?ProviderSubscriptionData

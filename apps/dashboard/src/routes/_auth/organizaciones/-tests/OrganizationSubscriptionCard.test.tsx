@@ -24,6 +24,7 @@ const SUBSCRIPTION: AdminSubscription = {
     next_payment_at: null,
     cancelled_at: null,
     access_ends_at: null,
+    billing: 'monthly',
     amount: 25000,
     created_at: '2026-10-01T12:00:00+00:00',
     updated_at: '2026-10-01T12:00:00+00:00',
@@ -48,6 +49,24 @@ describe('OrganizationSubscriptionCard', () => {
 
         expect(rowValue('Plan')).toBe('Consultorio');
         expect(rowValue('Monto mensual')).toBe('$ 25.000');
+    });
+
+    it("labels a yearly subscription's amount as the yearly charge", async () => {
+        await renderRoute(
+            <OrganizationSubscriptionCard
+                plan="practice"
+                assignedPlan={null}
+                subscription={{
+                    ...SUBSCRIPTION,
+                    billing: 'annual',
+                    amount: 108000,
+                }}
+            />,
+            { path: '/organizaciones/7' },
+        );
+
+        expect(rowValue('Monto anual')).toBe('$ 108.000');
+        expect(screen.queryByText('Monto mensual')).toBeNull();
     });
 
     it('marks Centro as assigned by Clini, with no subscription', async () => {

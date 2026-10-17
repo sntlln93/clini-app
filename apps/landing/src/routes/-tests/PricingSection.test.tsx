@@ -48,6 +48,18 @@ describe('PricingSection', () => {
         screen.getByText(/Un solo pago al año con Mercado Pago/);
     });
 
+    it('signs up for Consultorio paid yearly when annual is chosen (#240)', () => {
+        render(<PricingSection />);
+
+        fireEvent.click(screen.getByRole('radio', { name: 'Anual' }));
+
+        expect(
+            within(consultorioCard())
+                .getByRole('link', { name: 'Elegir Consultorio' })
+                .getAttribute('href'),
+        ).toMatch(/\/registro\?plan=consultorio&pago=anual$/);
+    });
+
     it('offers the free plan with unlimited appointments, matching the API default (#300)', () => {
         render(<PricingSection />);
 

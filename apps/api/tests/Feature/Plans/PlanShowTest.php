@@ -44,6 +44,7 @@ test('a new organization with no subscription is on Free, with every paid functi
                 'base_amount' => 15000,
                 'included_professionals' => 5,
                 'extra_professional_amount' => 5000,
+                'annual_discount_percent' => 40,
                 'currency' => 'ARS',
             ],
         ]]);

@@ -10,6 +10,7 @@ use App\Data\Admin\ActivityFeedQueryData;
 use App\Data\Admin\OverviewPeriodData;
 use App\Data\Admin\PlatformOverviewData;
 use App\Enums\AppointmentStatus;
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionStatus;
 use App\Models\Appointment;
 use App\Models\Organization;
@@ -133,8 +134,8 @@ class ComputePlatformOverviewAction implements Action
 
     /**
      * Estimated monthly recurring revenue: the amount of every subscription
-     * still paying (active + grace), or the Practice base price for one
-     * with no stored amount.
+     * still paying (active + grace), spread per month for an annual one
+     * (#240), or the Practice base price for one with no stored amount.
      *
      * @return array<string, int|string>
      */
@@ -142,14 +143,21 @@ class ComputePlatformOverviewAction implements Action
     {
         $planAmount = $this->pricing->baseAmount();
 
-        $amounts = Subscription::withoutGlobalScope('organization')
+        $subscriptions = Subscription::withoutGlobalScope('organization')
             ->ofLiveOrganization()
             ->whereIn('status', [SubscriptionStatus::Active, SubscriptionStatus::Grace])
-            ->pluck('amount');
-        $paying = $amounts->count();
+            ->get(['amount', 'billing']);
+        $paying = $subscriptions->count();
 
         return [
-            'amount' => $amounts->sum(fn (mixed $amount): int => is_numeric($amount) ? (int) $amount : $planAmount),
+            'amount' => $subscriptions->sum(function (Subscription $subscription) use ($planAmount): int {
+                /** @var SubscriptionBilling $billing */
+                $billing = $subscription->billing;
+
+                return $subscription->amount !== null
+                    ? $this->pricing->monthlyEquivalent($subscription->amount, $billing)
+                    : $planAmount;
+            }),
             'currency' => $this->pricing->currency(),
             'paying_subscriptions' => $paying,
             'plan_amount' => $planAmount,

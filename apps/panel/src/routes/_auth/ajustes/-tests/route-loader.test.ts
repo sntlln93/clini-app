@@ -68,6 +68,7 @@ const GRACE_SUBSCRIPTION: Subscription = {
     next_payment_at: null,
     cancelled_at: null,
     access_ends_at: null,
+    billing: 'monthly',
     amount: null,
 };
 

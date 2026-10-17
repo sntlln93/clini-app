@@ -32,7 +32,10 @@ return new class extends Migration
             // End of the period already paid when an active subscription was
             // cancelled: it keeps write access until then.
             $table->dateTimeTz('access_ends_at')->nullable();
-            // Monthly amount last set at the provider, in whole pesos.
+            // How often it charges (SubscriptionBilling): fixed per preapproval.
+            $table->string('billing')->default('monthly');
+            // Amount of each charge (per month or per year, by `billing`)
+            // last set at the provider, in whole pesos.
             $table->unsignedInteger('amount')->nullable();
             $table->timestampsTz();
 

@@ -119,6 +119,15 @@ test('MRR adds the amount each paying subscription charges, the base price for o
     ]);
 });
 
+test('MRR spreads a yearly subscription\'s amount over its twelve months', function () {
+    $fixture = overviewFixture();
+    $fixture['active']->subscription()->withoutGlobalScope('organization')->update(['amount' => 108000, 'billing' => 'annual']);
+
+    expect(actingAsAdmin()->getJson('/api/v1/admin/overview')->json('data.kpis.mrr'))->toBe([
+        'amount' => 24000, 'currency' => 'ARS', 'paying_subscriptions' => 2, 'plan_amount' => 15000,
+    ]);
+});
+
 test('the series has one zero-filled point per local day, ascending, bucketed in the reporting timezone', function () {
     overviewFixture();
 
@@ -189,8 +198,10 @@ test('recent activity merges organizations, users and subscription events newest
     rsort($sorted);
     expect($occurredAt)->toBe($sorted);
 
+    // Organizations and users created at the same frozen instant tie, so
+    // their relative order is up to the database: count kinds, not order.
     $kinds = array_count_values(array_column($activity, 'kind'));
-    expect($kinds)->toBe(['subscription_event' => 1, 'organization_created' => 3, 'user_registered' => 3]);
+    expect($kinds)->toEqual(['subscription_event' => 1, 'organization_created' => 3, 'user_registered' => 3]);
 
     $labels = array_map(fn (array $item): string => $item['subject']['label'], $activity);
     expect($labels)->toContain('owner@clini.test', 'Consultorio Suspendido');

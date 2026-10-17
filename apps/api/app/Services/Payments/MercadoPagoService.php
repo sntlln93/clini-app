@@ -57,7 +57,7 @@ final class MercadoPagoService implements SubscriptionGateway
             'external_reference' => $signup->externalReference,
             'payer_email' => $signup->payerEmail,
             'auto_recurring' => [
-                'frequency' => 1,
+                'frequency' => $signup->billing->months(),
                 'frequency_type' => 'months',
                 'transaction_amount' => $signup->amount,
                 'currency_id' => $signup->currency,

@@ -51,6 +51,7 @@ class PlanResource extends JsonResource
                 'base_amount' => $pricing->baseAmount(),
                 'included_professionals' => $pricing->includedProfessionals(),
                 'extra_professional_amount' => $pricing->extraProfessionalAmount(),
+                'annual_discount_percent' => $pricing->annualDiscountPercent(),
                 'currency' => $pricing->currency(),
             ],
         ];
