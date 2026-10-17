@@ -189,8 +189,10 @@ test('recent activity merges organizations, users and subscription events newest
     rsort($sorted);
     expect($occurredAt)->toBe($sorted);
 
+    // Organizations and users created at the same frozen instant tie, so
+    // their relative order is up to the database: count kinds, not order.
     $kinds = array_count_values(array_column($activity, 'kind'));
-    expect($kinds)->toBe(['subscription_event' => 1, 'organization_created' => 3, 'user_registered' => 3]);
+    expect($kinds)->toEqual(['subscription_event' => 1, 'organization_created' => 3, 'user_registered' => 3]);
 
     $labels = array_map(fn (array $item): string => $item['subject']['label'], $activity);
     expect($labels)->toContain('owner@clini.test', 'Consultorio Suspendido');
