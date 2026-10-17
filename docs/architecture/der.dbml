@@ -451,7 +451,8 @@ Table subscriptions {
   next_payment_at timestamptz [null, note: 'Provider next scheduled charge (preapproval next_payment_date), shown as the renewal date']
   cancelled_at timestamp [null, note: 'When the subscription was cancelled; set only while status = cancelled, cleared on reactivation']
   access_ends_at timestamp [null, note: 'End of the period an active subscription had already paid when cancelled; it stays on Practice until then, on Free after it. Cleared on reactivation']
-  amount integer [null, note: 'Monthly amount last set at the provider, in whole pesos: base + extra professionals (config/plans.php)']
+  billing varchar [not null, default: 'monthly', note: 'SubscriptionBilling: monthly | annual (#240). Fixed per preapproval: the provider cannot change its frequency']
+  amount integer [null, note: 'Amount of each charge (a month or a year, by billing) last set at the provider, in whole pesos: base + extra professionals, the annual discount off a yearly one (config/plans.php)']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 

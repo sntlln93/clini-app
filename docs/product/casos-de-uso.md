@@ -29,8 +29,9 @@ Convenciones:
 - **Precondición**: existe un `User` recién registrado.
 - **Flujo**: el usuario crea una organización (consultorio) y queda vinculado a ella
   como dueño y profesional (#286). Elige Gratis o Consultorio: la cuenta se crea en
-  Gratis y, si eligió Consultorio, sigue al checkout de Mercado Pago (el mismo de
-  Ajustes); si el pago no se completa, queda en Gratis. La Agenda le muestra «Primeros
+  Gratis y, si eligió Consultorio, elige pagar por mes o por año (#240) y sigue al
+  checkout de Mercado Pago (el mismo de Ajustes); si el pago no se completa, queda en
+  Gratis. La Agenda le muestra «Primeros
   pasos» (quién atiende, servicios, horarios y, como opcionales, el plan y el link de
   reservas) hasta que la organización puede dar turnos. Si solo administra, se excluye
   como profesional desde Ajustes.
