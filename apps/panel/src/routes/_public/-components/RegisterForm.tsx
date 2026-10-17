@@ -11,8 +11,12 @@ import {
     PASSWORD_TOO_SHORT_MESSAGE,
 } from '@/lib/password';
 import { useRegister } from '../-hooks/use-register';
-import { PlanIntentNote, type PaidPlanIntent } from './PlanIntentNote';
 import { RegisterFormFields } from './RegisterFormFields';
+import {
+    REGISTER_PLANS,
+    RegisterPlanField,
+    type RegisterPlan,
+} from './RegisterPlanField';
 
 const registerSchema = z
     .object({
@@ -29,6 +33,7 @@ const registerSchema = z
             .min(1, 'La contraseña es obligatoria.')
             .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
         password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
+        plan: z.enum(REGISTER_PLANS),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
@@ -38,11 +43,11 @@ const registerSchema = z
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
 type RegisterFormProps = {
-    /** The paid plan the visitor picked on the landing, if any. */
-    plan?: PaidPlanIntent;
+    /** The plan the visitor picked on the landing, preselected. */
+    plan?: RegisterPlan;
 };
 
-export function RegisterForm({ plan }: RegisterFormProps) {
+export function RegisterForm({ plan = 'gratis' }: RegisterFormProps) {
     const form = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -51,9 +56,10 @@ export function RegisterForm({ plan }: RegisterFormProps) {
             email: '',
             password: '',
             password_confirmation: '',
+            plan,
         },
     });
-    const { mutateAsync } = useRegister();
+    const { mutateAsync, isRedirectingToCheckout } = useRegister();
 
     async function onSubmit(values: RegisterFormValues) {
         try {
@@ -78,8 +84,6 @@ export function RegisterForm({ plan }: RegisterFormProps) {
                     </p>
                 </div>
 
-                {plan && <PlanIntentNote plan={plan} />}
-
                 {form.formState.errors.root && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
                         {form.formState.errors.root.message}
@@ -88,14 +92,20 @@ export function RegisterForm({ plan }: RegisterFormProps) {
 
                 <RegisterFormFields control={form.control} />
 
+                <RegisterPlanField control={form.control} />
+
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={form.formState.isSubmitting}
+                    // The account exists once the checkout starts: a second submit would only fail.
+                    disabled={
+                        form.formState.isSubmitting || isRedirectingToCheckout
+                    }
                 >
-                    {form.formState.isSubmitting
-                        ? 'Creando cuenta…'
-                        : 'Crear cuenta'}
+                    {submitLabel(
+                        form.formState.isSubmitting,
+                        isRedirectingToCheckout,
+                    )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
@@ -111,4 +121,12 @@ export function RegisterForm({ plan }: RegisterFormProps) {
             </form>
         </Form>
     );
+}
+
+function submitLabel(isSubmitting: boolean, isRedirecting: boolean): string {
+    if (isRedirecting) {
+        return 'Yendo a Mercado Pago…';
+    }
+
+    return isSubmitting ? 'Creando cuenta…' : 'Crear cuenta';
 }

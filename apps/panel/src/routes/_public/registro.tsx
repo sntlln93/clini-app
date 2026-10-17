@@ -1,13 +1,13 @@
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
-import { PAID_PLAN_INTENTS } from './-components/PlanIntentNote';
 import { RegisterForm } from './-components/RegisterForm';
+import { REGISTER_PLANS } from './-components/RegisterPlanField';
 
-// `plan`: the paid plan a landing CTA links with (#286). Any other value is
-// dropped rather than failing the page.
+// `plan`: the plan a landing CTA links with, preselected (#286). Any other
+// value is dropped rather than failing the page.
 const registroSearchSchema = z.object({
-    plan: z.enum(PAID_PLAN_INTENTS).optional().catch(undefined),
+    plan: z.enum(REGISTER_PLANS).optional().catch(undefined),
 });
 
 export const Route = createFileRoute('/_public/registro')({

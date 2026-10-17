@@ -5,13 +5,16 @@ import { Route } from '../registro';
 // Cast narrows the union type back to the plain function this route passes.
 const validateSearch = Route.options.validateSearch as (
     search: Record<string, unknown>,
-) => { plan?: 'consultorio' };
+) => { plan?: 'gratis' | 'consultorio' };
 
 describe('/registro validateSearch', () => {
-    it('reads the paid plan a landing CTA links with', () => {
+    it('reads the plan a landing CTA links with', () => {
         expect(validateSearch(defaultParseSearch('?plan=consultorio'))).toEqual(
             { plan: 'consultorio' },
         );
+        expect(validateSearch(defaultParseSearch('?plan=gratis'))).toEqual({
+            plan: 'gratis',
+        });
     });
 
     it('parses a plain visit to no plan', () => {
