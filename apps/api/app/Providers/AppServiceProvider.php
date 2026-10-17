@@ -45,5 +45,14 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(5)
                 ->by((is_string($email) ? Str::lower(trim($email)) : '').'|'.$request->ip());
         });
+
+        // The landing's contact form (`throttle:contact`, #248): 5 per minute
+        // and 20 per hour per IP. Behind a proxy without trusted-proxy config
+        // every visitor shares the proxy's IP, so the limits become global
+        // (docs/architecture/infrastructure.md).
+        RateLimiter::for('contact', fn (Request $request): array => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(20)->by($request->ip()),
+        ]);
     }
 }

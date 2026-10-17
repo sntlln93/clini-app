@@ -17,6 +17,9 @@ Route::prefix('v1')->group(function (): void {
     // the {slug} route parameter via the `public-organization` middleware.
     require __DIR__.'/api/v1/booking.php';
 
+    // The landing's contact form is sent by an anonymous visitor (ADR 0011).
+    require __DIR__.'/api/v1/contact.php';
+
     // Payment-provider webhooks are server-to-server calls with no session;
     // they authenticate through their own signature header instead.
     require __DIR__.'/api/v1/webhooks.php';
