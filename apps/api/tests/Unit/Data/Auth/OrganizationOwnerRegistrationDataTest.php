@@ -11,7 +11,6 @@ test('toArray returns every constructor value under its own key', function () {
         password: 'password123',
         organizationName: 'Clínica Norte',
         timezone: 'America/Argentina/Buenos_Aires',
-        attendsPatients: true,
     );
 
     expect($dto->toArray())->toBe([
@@ -20,7 +19,6 @@ test('toArray returns every constructor value under its own key', function () {
         'password' => 'password123',
         'organizationName' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
-        'attendsPatients' => true,
     ]);
 });
 
@@ -31,7 +29,6 @@ test('toArray keys stay in sync with the promoted constructor parameters', funct
         password: 'password123',
         organizationName: 'Clínica Norte',
         timezone: 'America/Argentina/Buenos_Aires',
-        attendsPatients: true,
     );
 
     $constructor = new ReflectionClass(OrganizationOwnerRegistrationData::class)->getConstructor();

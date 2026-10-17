@@ -14,7 +14,6 @@ final readonly class OrganizationOwnerRegistrationData implements Data
         public string $password,
         public string $organizationName,
         public string $timezone,
-        public bool $attendsPatients,
     ) {}
 
     /**
@@ -28,7 +27,6 @@ final readonly class OrganizationOwnerRegistrationData implements Data
             'password' => $this->password,
             'organizationName' => $this->organizationName,
             'timezone' => $this->timezone,
-            'attendsPatients' => $this->attendsPatients,
         ];
     }
 }
