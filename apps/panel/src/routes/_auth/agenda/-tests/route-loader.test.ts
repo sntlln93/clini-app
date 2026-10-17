@@ -285,3 +285,77 @@ describe('/agenda loader for a session with none of the roster permissions and a
         expect(result).toMatchObject({ professionals: [] });
     });
 });
+
+describe('/agenda loader setup progress (#286)', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    function mockApiGetAsManager(progress: unknown) {
+        vi.mocked(api.get).mockImplementation((url: string) => {
+            if (url === '/me') {
+                return Promise.resolve({
+                    data: {
+                        id: 1,
+                        name: 'Ana Ejemplo',
+                        email: 'ana@clini.app',
+                        permissions: ['memberships.view', 'memberships.manage'],
+                    },
+                });
+            }
+            if (url === '/memberships') {
+                return Promise.resolve({ data: { data: PROFESSIONALS } });
+            }
+            if (url === '/appointments') {
+                return Promise.resolve({ data: { data: [] } });
+            }
+            if (url === '/organization/setup') {
+                return Promise.resolve({ data: { data: progress } });
+            }
+            return Promise.reject(new Error(`unexpected GET ${url}`));
+        });
+    }
+
+    it('reads the progress fresh on every load for whoever manages the team', async () => {
+        const queryClient = new QueryClient();
+        const pending = {
+            has_professional: true,
+            has_service: false,
+            has_availability: false,
+            ready: false,
+        };
+        const ready = {
+            has_professional: true,
+            has_service: true,
+            has_availability: true,
+            ready: true,
+        };
+        mockApiGetAsManager(pending);
+
+        const first = await loader({
+            context: { queryClient },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+        expect(first).toMatchObject({ setupProgress: pending });
+
+        // A step completed on another page shows up on the next visit.
+        mockApiGetAsManager(ready);
+        const second = await loader({
+            context: { queryClient },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+        expect(second).toMatchObject({ setupProgress: ready });
+    });
+
+    it('skips it for anyone who does not manage the team', async () => {
+        mockApiGet();
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+            deps: { date: '2026-01-15', view: 'day' },
+        });
+
+        expect(result).toMatchObject({ setupProgress: null });
+        expect(api.get).not.toHaveBeenCalledWith('/organization/setup');
+    });
+});
