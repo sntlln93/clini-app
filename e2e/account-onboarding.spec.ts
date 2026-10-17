@@ -160,7 +160,46 @@ test('choosing Consultorio from the landing creates the account and goes to the 
     await expect(
         page.getByRole('radio', { name: /Consultorio/ }),
     ).toBeChecked();
+    await expect(page.getByRole('radio', { name: /Mensual/ })).toBeChecked();
+    const checkout = page.waitForRequest(
+        (request) =>
+            request.method() === 'POST' &&
+            /\/api\/v1\/subscription$/.test(request.url()),
+    );
     await page.getByRole('button', { name: 'Crear cuenta' }).click();
 
+    expect((await checkout).postDataJSON()).toEqual({ billing: 'monthly' });
+    await expect(page).toHaveURL(checkoutUrl);
+});
+
+test('paying the year from the landing starts a yearly checkout (#240)', async ({
+    page,
+}) => {
+    const checkoutUrl = 'https://checkout.example.test/preapproval-anual';
+    await page.route(/\/api\/v1\/subscription$/, (route) =>
+        route.request().method() === 'POST'
+            ? route.fulfill({
+                  status: 201,
+                  json: { data: { init_point: checkoutUrl } },
+              })
+            : route.fallback(),
+    );
+    await page.route(`${checkoutUrl}**`, (route) =>
+        route.fulfill({
+            contentType: 'text/html',
+            body: '<title>Checkout</title>',
+        }),
+    );
+
+    await fillRegistration(page, '/registro?plan=consultorio&pago=anual');
+    await expect(page.getByRole('radio', { name: /Anual/ })).toBeChecked();
+    const checkout = page.waitForRequest(
+        (request) =>
+            request.method() === 'POST' &&
+            /\/api\/v1\/subscription$/.test(request.url()),
+    );
+    await page.getByRole('button', { name: 'Crear cuenta' }).click();
+
+    expect((await checkout).postDataJSON()).toEqual({ billing: 'annual' });
     await expect(page).toHaveURL(checkoutUrl);
 });
