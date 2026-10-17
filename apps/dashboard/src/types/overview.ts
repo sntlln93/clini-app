@@ -52,7 +52,12 @@ export type OverviewSeriesPoint = {
 export type RecentActivity = {
     kind: ActivityKind;
     occurred_at: string;
-    subject: { type: AuditSubjectType; id: number; label: string };
+    /** Contact requests are never part of the activity feed. */
+    subject: {
+        type: Exclude<AuditSubjectType, 'contact_request'>;
+        id: number;
+        label: string;
+    };
     detail: string | null;
 };
 

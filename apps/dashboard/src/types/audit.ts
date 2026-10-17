@@ -10,6 +10,7 @@ export const AUDIT_ACTIONS = [
     'users.block',
     'users.unblock',
     'subscriptions.extend_grace',
+    'contact_requests.change_status',
 ] as const;
 export type AdminAuditAction = (typeof AUDIT_ACTIONS)[number];
 
@@ -17,6 +18,7 @@ export const AUDIT_SUBJECT_TYPES = [
     'organization',
     'user',
     'subscription',
+    'contact_request',
 ] as const;
 export type AuditSubjectType = (typeof AUDIT_SUBJECT_TYPES)[number];
 

@@ -1,5 +1,6 @@
 import { MEMBERSHIP_ROLES, MEMBERSHIP_STATUSES } from '@/types/admin';
 import { AUDIT_ACTIONS, AUDIT_SUBJECT_TYPES } from '@/types/audit';
+import { CONTACT_REQUEST_STATUSES } from '@/types/contact-request';
 import { ACTIVITY_KINDS } from '@/types/overview';
 import {
     APPOINTMENT_ORIGINS,
@@ -15,6 +16,7 @@ import {
     APPOINTMENT_STATUS_LABELS,
     AUDIT_ACTION_LABELS,
     AUDIT_SUBJECT_LABELS,
+    CONTACT_REQUEST_STATUS_LABELS,
     GRACE_REASON_LABELS,
     MEMBERSHIP_ROLE_LABELS,
     MEMBERSHIP_STATUS_LABELS,
@@ -37,6 +39,11 @@ const CASES: Array<[string, readonly string[], Record<string, string>]> = [
     ['audit action', AUDIT_ACTIONS, AUDIT_ACTION_LABELS],
     ['audit subject', AUDIT_SUBJECT_TYPES, AUDIT_SUBJECT_LABELS],
     ['activity kind', ACTIVITY_KINDS, ACTIVITY_KIND_LABELS],
+    [
+        'contact request status',
+        CONTACT_REQUEST_STATUSES,
+        CONTACT_REQUEST_STATUS_LABELS,
+    ],
 ];
 
 describe('Spanish label maps', () => {
