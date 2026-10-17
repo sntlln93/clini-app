@@ -12,6 +12,7 @@ import {
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { PaidPlanIntent } from '../-components/PlanIntentNote';
 import { RegisterForm } from '../-components/RegisterForm';
 
 vi.mock('@/lib/datetime', async (importOriginal) => ({
@@ -29,7 +30,7 @@ function unauthorizedError(data: unknown) {
     return { isAxiosError: true, response: { status: 422, data } };
 }
 
-function renderRegisterForm() {
+function renderRegisterForm(plan?: PaidPlanIntent) {
     const queryClient = new QueryClient();
     const rootRoute = createRootRoute({
         component: () => (
@@ -41,7 +42,7 @@ function renderRegisterForm() {
     const registerRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/registro',
-        component: RegisterForm,
+        component: () => <RegisterForm plan={plan} />,
     });
     const loginRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -108,33 +109,34 @@ describe('RegisterForm', () => {
                 organization_name: 'Consultorio Ana',
                 password: 'secreta123',
                 password_confirmation: 'secreta123',
-                attends_patients: true,
                 timezone: STUB_TIMEZONE,
             }),
         );
     });
 
-    it('registers the owner as a professional by default, and not once unticked', async () => {
-        vi.mocked(api.post).mockResolvedValueOnce({
-            data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
-        });
+    it('does not ask whether the owner attends patients (#286)', async () => {
         renderRegisterForm();
-        await fillForm();
+        await screen.findByLabelText('Nombre');
 
-        const attends = screen.getByRole('checkbox', {
-            name: 'También atiendo pacientes',
-        });
-        expect(attends.getAttribute('aria-checked')).toBe('true');
+        expect(screen.queryByRole('checkbox')).toBeNull();
+        expect(screen.queryByText(/atiendo pacientes/i)).toBeNull();
+    });
 
-        fireEvent.click(attends);
-        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+    it('tells a visitor who picked Consultorio that the account starts on Free and where to activate it', async () => {
+        renderRegisterForm('consultorio');
 
-        await waitFor(() =>
-            expect(api.post).toHaveBeenCalledWith(
-                '/register',
-                expect.objectContaining({ attends_patients: false }),
+        expect(
+            await screen.findByText(
+                'Tu cuenta empieza en el plan Gratis. Cuando termines de configurar el consultorio, activá Consultorio desde Ajustes › Plan y suscripción.',
             ),
-        );
+        ).toBeTruthy();
+    });
+
+    it('shows no plan note without a plan', async () => {
+        renderRegisterForm();
+        await screen.findByLabelText('Nombre');
+
+        expect(screen.queryByText(/empieza en el plan Gratis/)).toBeNull();
     });
 
     it('renders per-field errors from a 422 and keeps the typed values', async () => {

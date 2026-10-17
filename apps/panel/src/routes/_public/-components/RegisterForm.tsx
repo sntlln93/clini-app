@@ -11,6 +11,7 @@ import {
     PASSWORD_TOO_SHORT_MESSAGE,
 } from '@/lib/password';
 import { useRegister } from '../-hooks/use-register';
+import { PlanIntentNote, type PaidPlanIntent } from './PlanIntentNote';
 import { RegisterFormFields } from './RegisterFormFields';
 
 const registerSchema = z
@@ -28,7 +29,6 @@ const registerSchema = z
             .min(1, 'La contraseña es obligatoria.')
             .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
         password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
-        attends_patients: z.boolean(),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
@@ -37,7 +37,12 @@ const registerSchema = z
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export function RegisterForm() {
+type RegisterFormProps = {
+    /** The paid plan the visitor picked on the landing, if any. */
+    plan?: PaidPlanIntent;
+};
+
+export function RegisterForm({ plan }: RegisterFormProps) {
     const form = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -46,8 +51,6 @@ export function RegisterForm() {
             email: '',
             password: '',
             password_confirmation: '',
-            // Most owners of a small practice see patients themselves (#278).
-            attends_patients: true,
         },
     });
     const { mutateAsync } = useRegister();
@@ -74,6 +77,8 @@ export function RegisterForm() {
                         Registrá tu consultorio en Clini
                     </p>
                 </div>
+
+                {plan && <PlanIntentNote plan={plan} />}
 
                 {form.formState.errors.root && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
