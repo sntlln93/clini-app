@@ -1,5 +1,5 @@
-import { api } from '@/lib/api';
 import { navigateToExternalUrl } from '@/lib/external-navigation';
+import { startSubscriptionCheckout } from '@/lib/subscription';
 import { notifyError } from '@/lib/toast';
 import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
@@ -16,10 +16,7 @@ import { useEffect } from 'react';
  */
 export function useStartSubscription() {
     const mutation = useMutation({
-        mutationFn: () =>
-            api
-                .post<{ data: { init_point: string } }>('/subscription')
-                .then((response) => response.data.data.init_point),
+        mutationFn: startSubscriptionCheckout,
         onSuccess: (initPoint) => navigateToExternalUrl(initPoint),
         onError: (error) =>
             notifyError(error, 'No se pudo iniciar el pago de la suscripción'),

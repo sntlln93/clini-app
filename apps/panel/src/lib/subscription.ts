@@ -24,6 +24,17 @@ export function useSubscription(): Subscription | null | undefined {
     return data;
 }
 
+/**
+ * Starts (or resumes) the organization's Mercado Pago checkout and resolves
+ * with the URL to send the browser to: from Ajustes, and right after
+ * registering on Consultorio (#286).
+ */
+export function startSubscriptionCheckout(): Promise<string> {
+    return api
+        .post<{ data: { init_point: string } }>('/subscription')
+        .then((response) => response.data.data.init_point);
+}
+
 /** Anchor of Ajustes' subscription section, the target of the panel banner's link. */
 export const SUBSCRIPTION_SECTION_ID = 'suscripcion';
 
