@@ -43,7 +43,7 @@ SPA de las clínicas: profesionales, dueños, administradores y recepción, aute
 
 ## Frontend (dashboard)
 
-SPA de los **operadores de la plataforma** (el equipo de Clini, no las clínicas), en `apps/dashboard`: resumen con KPIs y series diarias, organizaciones, usuarios, suscripciones (con el log de webhooks del proveedor), estadísticas de uso y auditoría, más las acciones de moderación (suspender/reactivar una organización, bloquear/desbloquear un usuario, verificar un correo, extender una gracia). Todas quedan auditadas en `admin_audit_logs`.
+SPA de los **operadores de la plataforma** (el equipo de Clini, no las clínicas), en `apps/dashboard`: resumen con KPIs y series diarias, organizaciones, usuarios, suscripciones (con el log de webhooks del proveedor), estadísticas de uso, contactos (las consultas comerciales de la landing) y auditoría, más las acciones de moderación (suspender/reactivar una organización, bloquear/desbloquear un usuario, verificar un correo, extender una gracia, cambiar el estado de una consulta). Todas quedan auditadas en `admin_audit_logs`.
 
 - Mismo stack, versiones y convenciones que el panel (ADR 0003/0006/0007/0009): loaders + `ensureQueryData`, estado de la request en la URL, `RouteErrorState`, shadcn/ui (`base-nova`) más el `chart` de shadcn (recharts) para los gráficos.
 - Consume `/api/v1/admin/*` de la misma API, con su propia identidad: tabla `platform_admins` + guard de sesión `admin` (`auth:admin`), nunca `auth:sanctum`, y rutas restringidas al origen del dashboard (`ADMIN_ALLOWED_ORIGINS`). Ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
@@ -52,10 +52,10 @@ SPA de los **operadores de la plataforma** (el equipo de Clini, no las clínicas
 
 ## Frontend (landing)
 
-Sitio público de Clini en `apps/landing`. Cuenta el producto, muestra los planes y enlaza al registro y al login del panel. No habla con la API.
+Sitio público de Clini en `apps/landing`. Cuenta el producto, muestra los planes y enlaza al registro y al login del panel. Su única llamada a la API es el formulario de contacto comercial de `/contacto` (#248): un `POST /api/v1/contact` anónimo y sin sesión, cuyos mensajes se leen en el módulo Contactos del dashboard.
 
 - Mismo stack y convenciones que panel y dashboard, pero **con SSR**: TanStack Start sobre Vite, servido por Nitro como servidor Node. Ver [ADR 0011](../adr/0011-landing-con-ssr-en-tanstack-start.md).
-- `VITE_PANEL_URL` (build arg) es el origen del panel. `VITE_CONTACT_URL` (opcional) es el contacto comercial del plan Centro.
+- `VITE_PANEL_URL` (build arg) es el origen del panel y `VITE_API_URL` (build arg), el de la API a la que envía el formulario de contacto.
 - Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: las funciones exclusivas de Centro (#243 a #246). El pago anual existe desde #240.
 
 ## Infraestructura

@@ -54,13 +54,13 @@ SPA separada para los operadores de la plataforma (no para las clínicas): resum
 Para que la API acepte al dashboard en dev, `apps/api/.env` necesita su origen (ya está en `.env.example`; un `.env` copiado antes de este cambio hay que actualizarlo a mano y reiniciar `laravel.test`):
 
 ```dotenv
-FRONTEND_URL=http://localhost:5174,http://localhost:5175   # el panel siempre primero
+FRONTEND_URL=http://localhost:5174,http://localhost:5175,http://localhost:5176   # el panel siempre primero
 SANCTUM_STATEFUL_DOMAINS=localhost:5174,localhost:5175
 ADMIN_ALLOWED_ORIGINS=http://localhost:5175
 ADMIN_REPORTING_TIMEZONE=America/Argentina/Buenos_Aires
 ```
 
-`FRONTEND_URL` se lee como lista y su **primer** elemento es la URL del panel que usan los links de los mails (invitaciones, verificación, retorno de la suscripción) — por eso el panel va primero. `ADMIN_ALLOWED_ORIGINS` es la lista de orígenes desde los que se aceptan las rutas `/api/v1/admin/*` (falla cerrada: sin la variable, solo `http://localhost:5175`). Sin estas líneas el dashboard queda bloqueado por CORS.
+`FRONTEND_URL` se lee como lista y su **primer** elemento es la URL del panel que usan los links de los mails (invitaciones, verificación, retorno de la suscripción) — por eso el panel va primero. La landing (`:5176`) va solo para CORS: su formulario de contacto le pega a `POST /api/v1/contact` sin sesión, así que **no** va en `SANCTUM_STATEFUL_DOMAINS`. `apps/landing/.env` necesita `VITE_API_URL=http://localhost:8080` (está en su `.env.example`). `ADMIN_ALLOWED_ORIGINS` es la lista de orígenes desde los que se aceptan las rutas `/api/v1/admin/*` (falla cerrada: sin la variable, solo `http://localhost:5175`). Sin estas líneas el dashboard queda bloqueado por CORS.
 
 `artisan serve` (lo que corre `laravel.test`) **ignora** las variables exportadas al contenedor que también estén definidas en `apps/api/.env`: re-lee el archivo en el proceso hijo. Cambiar estos valores es siempre editando `apps/api/.env`, no con `environment:` en compose.
 

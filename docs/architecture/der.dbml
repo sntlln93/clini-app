@@ -493,8 +493,8 @@ Table platform_admins {
 Table admin_audit_logs {
   id bigint [pk, increment]
   platform_admin_id bigint [not null]
-  action varchar [not null, note: 'AdminAuditAction: auth.login, auth.logout, organizations.suspend, organizations.reactivate, organizations.assign_plan, users.verify_email, users.block, users.unblock, subscriptions.extend_grace']
-  subject_type varchar [null, note: 'AdminAuditSubject: organization | user | subscription; null for auth.* rows. A plain string, not a morph relation']
+  action varchar [not null, note: 'AdminAuditAction: auth.login, auth.logout, organizations.suspend, organizations.reactivate, organizations.assign_plan, users.verify_email, users.block, users.unblock, subscriptions.extend_grace, contact_requests.change_status']
+  subject_type varchar [null, note: 'AdminAuditSubject: organization | user | subscription | contact_request; null for auth.* rows. A plain string, not a morph relation']
   subject_id bigint [null]
   metadata jsonb [not null, default: '{}', note: 'subject_label snapshot, reason/note, previous_* values']
   ip varchar(45) [null]
@@ -507,6 +507,29 @@ Table admin_audit_logs {
   }
 
   Note: 'Append-only (no updated_at). Written in the same transaction as the operator mutation it records.'
+}
+
+Table contact_requests {
+  id bigint [pk, increment]
+  name varchar(120) [not null]
+  email varchar [not null]
+  phone varchar(40) [null]
+  organization_name varchar(120) [null]
+  team_size smallint [null, note: 'Professionals the visitor said they have']
+  plan varchar [null, note: 'Plan of interest: free | practice | center; null = not said']
+  message text [not null]
+  status varchar [not null, default: 'new', note: 'ContactRequestStatus: new | in_progress | closed']
+  handled_by_id bigint [null, note: 'The operator who last changed the status']
+  closed_at timestamp [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (status, created_at)
+    closed_at
+  }
+
+  Note: 'Commercial contact requests from the landing form (#248, ADR 0011). Platform data, not tenant data. Closed requests are pruned after CONTACT_RETENTION_DAYS (default 180).'
 }
 
 Ref: memberships.organization_id > organizations.id [delete: restrict]
@@ -555,3 +578,4 @@ Ref: subscriptions.organization_id > organizations.id [delete: cascade]
 Ref: appointment_limit_warnings.organization_id > organizations.id [delete: cascade]
 Ref: subscription_events.subscription_id > subscriptions.id [delete: set null]
 Ref: admin_audit_logs.platform_admin_id > platform_admins.id [delete: restrict]
+Ref: contact_requests.handled_by_id > platform_admins.id [delete: set null]
