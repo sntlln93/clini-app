@@ -10,6 +10,7 @@ use App\Contracts\SubscriptionGateway;
 use App\Data\Subscriptions\ProviderPaymentData;
 use App\Data\Subscriptions\ProviderSubscriptionData;
 use App\Data\Subscriptions\SubscriptionNotificationData;
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionGraceReason;
 use App\Enums\SubscriptionNotificationKind;
 use App\Enums\SubscriptionPaymentOutcome;
@@ -261,7 +262,9 @@ final class HandleSubscriptionNotificationAction implements Action
             return;
         }
 
-        $amount = $this->pricing->monthlyAmount($this->plans->activeProfessionals($subscription->organization_id));
+        /** @var SubscriptionBilling $billing */
+        $billing = $subscription->billing;
+        $amount = $this->pricing->amount($this->plans->activeProfessionals($subscription->organization_id), $billing);
 
         if ($subscription->amount !== $amount) {
             SyncSubscriptionAmountJob::dispatch($subscription->organization_id);

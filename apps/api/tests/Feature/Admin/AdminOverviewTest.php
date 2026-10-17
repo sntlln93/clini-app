@@ -119,6 +119,15 @@ test('MRR adds the amount each paying subscription charges, the base price for o
     ]);
 });
 
+test('MRR spreads a yearly subscription\'s amount over its twelve months', function () {
+    $fixture = overviewFixture();
+    $fixture['active']->subscription()->withoutGlobalScope('organization')->update(['amount' => 108000, 'billing' => 'annual']);
+
+    expect(actingAsAdmin()->getJson('/api/v1/admin/overview')->json('data.kpis.mrr'))->toBe([
+        'amount' => 24000, 'currency' => 'ARS', 'paying_subscriptions' => 2, 'plan_amount' => 15000,
+    ]);
+});
+
 test('the series has one zero-filled point per local day, ascending, bucketed in the reporting timezone', function () {
     overviewFixture();
 

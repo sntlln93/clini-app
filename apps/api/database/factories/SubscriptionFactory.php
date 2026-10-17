@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionGraceReason;
 use App\Enums\SubscriptionStatus;
 use App\Models\Organization;
@@ -31,6 +32,11 @@ class SubscriptionFactory extends Factory
     public function withStatus(SubscriptionStatus $status): static
     {
         return $this->state(fn (array $attributes): array => ['status' => $status]);
+    }
+
+    public function annual(): static
+    {
+        return $this->state(fn (array $attributes): array => ['billing' => SubscriptionBilling::Annual]);
     }
 
     public function renewingAt(\DateTimeInterface $nextPaymentAt): static

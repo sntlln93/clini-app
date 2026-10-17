@@ -30,6 +30,7 @@ function configureMercadoPago(): void
         'plans.practice.base_amount' => 15000,
         'plans.practice.included_professionals' => 5,
         'plans.practice.extra_professional_amount' => 5000,
+        'plans.practice.annual_discount_percent' => 40,
         'plans.practice.currency' => 'ARS',
     ]);
 }

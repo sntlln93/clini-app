@@ -8,6 +8,7 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Contracts\SubscriptionGateway;
 use App\Data\Subscriptions\SubscriptionAmountSyncData;
+use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionStatus;
 use App\Models\Organization;
 use App\Models\Subscription;
@@ -17,8 +18,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * Brings the provider subscription's amount in line with the organization's
- * active professionals (PracticePricing), from its next charge on, with no
- * proration (ADR 0014). Recomputed from the current state on every run, so
+ * active professionals (PracticePricing) for its billing, from its next
+ * charge on, with no proration (ADR 0014): on annual billing, the next
+ * yearly renewal (#240). Recomputed from the current state on every run, so
  * a retry or a late duplicate never applies a stale amount; a provider
  * failure throws before the stored amount changes, for the job to retry.
  *
@@ -60,7 +62,9 @@ final class SyncSubscriptionAmountAction implements Action
                 return $subscription;
             }
 
-            $amount = $this->pricing->monthlyAmount($this->plans->activeProfessionals($organization->id));
+            /** @var SubscriptionBilling $billing */
+            $billing = $subscription->billing;
+            $amount = $this->pricing->amount($this->plans->activeProfessionals($organization->id), $billing);
 
             if ($subscription->amount !== $amount) {
                 $this->gateway->updateSubscriptionAmount($providerId, $amount, $this->pricing->currency());
