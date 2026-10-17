@@ -30,7 +30,7 @@ const OPTIONS: { value: RegisterPlan; title: string; description: string }[] = [
         value: 'consultorio',
         title: 'Consultorio',
         description:
-            'Equipo, sala de espera, recetas y más. Al crear la cuenta te llevamos a Mercado Pago para el pago mensual.',
+            'Equipo, sala de espera, recetas y más. Al crear la cuenta te llevamos a Mercado Pago para el pago.',
     },
 ];
 

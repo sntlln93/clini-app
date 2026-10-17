@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { z } from 'zod';
 
 import { Button } from '@/components/ui/button';
@@ -10,7 +10,9 @@ import {
     PASSWORD_MIN_LENGTH,
     PASSWORD_TOO_SHORT_MESSAGE,
 } from '@/lib/password';
+import type { SubscriptionBilling } from '@/types/subscription';
 import { useRegister } from '../-hooks/use-register';
+import { RegisterBillingField } from './RegisterBillingField';
 import { RegisterFormFields } from './RegisterFormFields';
 import {
     REGISTER_PLANS,
@@ -34,6 +36,7 @@ const registerSchema = z
             .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
         password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
         plan: z.enum(REGISTER_PLANS),
+        billing: z.enum(['monthly', 'annual']),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
@@ -45,9 +48,14 @@ export type RegisterFormValues = z.infer<typeof registerSchema>;
 type RegisterFormProps = {
     /** The plan the visitor picked on the landing, preselected. */
     plan?: RegisterPlan;
+    /** How the landing's visitor chose to pay Consultorio, preselected. */
+    billing?: SubscriptionBilling;
 };
 
-export function RegisterForm({ plan = 'gratis' }: RegisterFormProps) {
+export function RegisterForm({
+    plan = 'gratis',
+    billing = 'monthly',
+}: RegisterFormProps) {
     const form = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -57,8 +65,10 @@ export function RegisterForm({ plan = 'gratis' }: RegisterFormProps) {
             password: '',
             password_confirmation: '',
             plan,
+            billing,
         },
     });
+    const chosenPlan = useWatch({ control: form.control, name: 'plan' });
     const { mutateAsync, isRedirectingToCheckout } = useRegister();
 
     async function onSubmit(values: RegisterFormValues) {
@@ -93,6 +103,10 @@ export function RegisterForm({ plan = 'gratis' }: RegisterFormProps) {
                 <RegisterFormFields control={form.control} />
 
                 <RegisterPlanField control={form.control} />
+
+                {chosenPlan === 'consultorio' && (
+                    <RegisterBillingField control={form.control} />
+                )}
 
                 <Button
                     type="submit"

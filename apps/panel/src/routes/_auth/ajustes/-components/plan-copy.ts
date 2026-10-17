@@ -1,5 +1,6 @@
-import { practiceMonthlyAmount } from '@/lib/plan';
+import { billingPeriodLabel, practiceAmount } from '@/lib/plan';
 import { formatPesos } from '@/lib/price';
+import { chargingBilling } from '@/lib/subscription';
 import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 
@@ -34,14 +35,23 @@ export function planDetail(
         case 'free':
             return `Incluye 1 profesional, ${appointmentsLabel(plan.appointment_limit)}, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas, un link de reservas para cada profesional y tu logo en la página de reservas, sin «Hecho con Clini»: ${practicePriceDetail(plan.practice_pricing)}.`;
         case 'practice': {
+            const billing = chargingBilling(subscription);
+            // An unpaid checkout's stored amount isn't what is being charged.
+            const stored =
+                subscription?.billing === billing ? subscription.amount : null;
             const amount =
-                subscription?.amount ??
-                practiceMonthlyAmount(
+                stored ??
+                practiceAmount(
                     plan.practice_pricing,
                     plan.active_professionals,
+                    billing,
                 );
+            const detail = `Tu suscripción es de ${formatPesos(amount)} ${billingPeriodLabel(billing)}, con ${professionalsLabel(plan.active_professionals)}: ${practicePriceDetail(plan.practice_pricing)}`;
 
-            return `Tu suscripción es de ${formatPesos(amount)} por mes, con ${professionalsLabel(plan.active_professionals)}: ${practicePriceDetail(plan.practice_pricing)}.`;
+            // A yearly charge is repriced only at its next renewal, never prorated (#240).
+            return billing === 'annual'
+                ? `${detail}, con ${plan.practice_pricing.annual_discount_percent}% de descuento por pagar el año. Si cambian los profesionales, el monto nuevo rige desde la próxima renovación.`
+                : `${detail}.`;
         }
         case 'center':
             return 'El plan Centro lo gestiona el equipo de Clini: sin límite de profesionales y con todas las funciones del panel.';

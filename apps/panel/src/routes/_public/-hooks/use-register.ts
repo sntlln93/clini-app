@@ -8,6 +8,7 @@ import {
     SUBSCRIPTION_SECTION_ID,
 } from '@/lib/subscription';
 import { notifyError } from '@/lib/toast';
+import type { SubscriptionBilling } from '@/types/subscription';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import type { RegisterPlan } from '../-components/RegisterPlanField';
@@ -19,6 +20,7 @@ type RegisterPayload = {
     password_confirmation: string;
     organization_name: string;
     plan: RegisterPlan;
+    billing: SubscriptionBilling;
 };
 
 /**
@@ -32,7 +34,7 @@ export function useRegister() {
     const navigate = useNavigate();
 
     const mutation = useMutation({
-        mutationFn: async ({ plan, ...payload }: RegisterPayload) => {
+        mutationFn: async ({ plan, billing, ...payload }: RegisterPayload) => {
             const user = await api
                 .post<SessionUser>('/register', {
                     ...payload,
@@ -47,7 +49,7 @@ export function useRegister() {
             }
 
             try {
-                navigateToExternalUrl(await startSubscriptionCheckout());
+                navigateToExternalUrl(await startSubscriptionCheckout(billing));
                 return 'checkout' as const;
             } catch (error) {
                 notifyError(

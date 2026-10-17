@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import { browserTimeZone } from '@/lib/datetime';
 import { navigateToExternalUrl } from '@/lib/external-navigation';
 import { sessionQueryOptions } from '@/lib/session';
+import type { SubscriptionBilling } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -35,7 +36,10 @@ function unauthorizedError(data: unknown) {
     return { isAxiosError: true, response: { status: 422, data } };
 }
 
-function renderRegisterForm(plan?: RegisterPlan) {
+function renderRegisterForm(
+    plan?: RegisterPlan,
+    billing?: SubscriptionBilling,
+) {
     const queryClient = new QueryClient();
     const rootRoute = createRootRoute({
         component: () => (
@@ -47,7 +51,7 @@ function renderRegisterForm(plan?: RegisterPlan) {
     const registerRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/registro',
-        component: () => <RegisterForm plan={plan} />,
+        component: () => <RegisterForm plan={plan} billing={billing} />,
     });
     const loginRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -196,13 +200,60 @@ describe('RegisterForm', () => {
             '/register',
             expect.not.objectContaining({ plan: expect.anything() }),
         );
-        expect(api.post).toHaveBeenNthCalledWith(2, '/subscription');
+        expect(api.post).toHaveBeenNthCalledWith(
+            1,
+            '/register',
+            expect.not.objectContaining({ billing: expect.anything() }),
+        );
+        expect(api.post).toHaveBeenNthCalledWith(2, '/subscription', {
+            billing: 'monthly',
+        });
         // The account already exists: a second submit could only fail.
         const button = await screen.findByRole('button', {
             name: 'Yendo a Mercado Pago…',
         });
         expect(button.hasAttribute('disabled')).toBe(true);
         expect(screen.queryByText('Agenda')).toBeNull();
+    });
+
+    it('asks how to pay only once Consultorio is the chosen plan', async () => {
+        renderRegisterForm();
+
+        await screen.findByRole('radio', { name: /Gratis/ });
+        expect(screen.queryByRole('radio', { name: /Anual/ })).toBeNull();
+
+        fireEvent.click(screen.getByRole('radio', { name: /Consultorio/ }));
+
+        expect(
+            (
+                await screen.findByRole('radio', { name: /Mensual/ })
+            ).getAttribute('aria-checked'),
+        ).toBe('true');
+    });
+
+    it('on Consultorio paid yearly starts a yearly checkout, as the landing preselected it', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({
+                data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+            })
+            .mockResolvedValueOnce({
+                data: { data: { init_point: 'https://mp.example/checkout' } },
+            });
+        renderRegisterForm('consultorio', 'annual');
+        await fillForm();
+
+        expect(
+            (await screen.findByRole('radio', { name: /Anual/ })).getAttribute(
+                'aria-checked',
+            ),
+        ).toBe('true');
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenNthCalledWith(2, '/subscription', {
+                billing: 'annual',
+            }),
+        );
     });
 
     it('sends a Consultorio account whose checkout fails to start to Ajustes, to retry it', async () => {

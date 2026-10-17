@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import { mapToAppError } from '@/lib/api-errors';
 import { useSubscription } from '@/lib/subscription';
 import type { Plan, PlanFeature, PlanId } from '@/types/plan';
+import type { SubscriptionBilling } from '@/types/subscription';
 import type { QueryKey } from '@tanstack/react-query';
 import { queryOptions, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -109,4 +110,28 @@ export function practiceMonthlyAmount(
     );
 
     return pricing.base_amount + extra * pricing.extra_professional_amount;
+}
+
+/**
+ * What each Practice charge costs on `billing`, the API's own formula (#240):
+ * a month, or twelve months with the annual discount off, the discounted
+ * month rounded to whole pesos first.
+ */
+export function practiceAmount(
+    pricing: Plan['practice_pricing'],
+    activeProfessionals: number,
+    billing: SubscriptionBilling,
+): number {
+    const monthly = practiceMonthlyAmount(pricing, activeProfessionals);
+
+    return billing === 'annual'
+        ? Math.round(
+              (monthly * (100 - pricing.annual_discount_percent)) / 100,
+          ) * 12
+        : monthly;
+}
+
+/** «por mes» or «por año», after an amount charged on `billing`. */
+export function billingPeriodLabel(billing: SubscriptionBilling): string {
+    return billing === 'annual' ? 'por año' : 'por mes';
 }

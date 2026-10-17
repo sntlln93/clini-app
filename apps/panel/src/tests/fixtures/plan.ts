@@ -29,6 +29,7 @@ export function buildPlan(plan: PlanId, overrides: Partial<Plan> = {}): Plan {
             base_amount: 15000,
             included_professionals: 5,
             extra_professional_amount: 5000,
+            annual_discount_percent: 40,
             currency: 'ARS',
         },
         ...overrides,

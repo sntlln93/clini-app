@@ -1,6 +1,12 @@
 export type SubscriptionStatus =
     'pending' | 'active' | 'grace' | 'expired' | 'cancelled';
 
+/**
+ * How often it charges (#240): fixed per Mercado Pago subscription, which
+ * can't change its frequency, so the other one takes a new checkout.
+ */
+export type SubscriptionBilling = 'monthly' | 'annual';
+
 /** GET /subscription's `data`; null for an organization that never subscribed. */
 export type Subscription = {
     status: SubscriptionStatus;
@@ -19,6 +25,7 @@ export type Subscription = {
      * (#237). Null unless `cancelled`.
      */
     access_ends_at: string | null;
-    /** Monthly amount last set at Mercado Pago, in whole pesos. */
+    billing: SubscriptionBilling;
+    /** Amount of each charge (a month or a year, by `billing`) last set at Mercado Pago, in whole pesos. */
     amount: number | null;
 };

@@ -1,7 +1,10 @@
 import { planQueryOptions } from '@/lib/plan';
+import { subscriptionQueryOptions } from '@/lib/subscription';
 import { buildPlan } from '@/tests/fixtures/plan';
+import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { MembershipRole } from '@/types/membership';
 import type { Plan } from '@/types/plan';
+import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -15,10 +18,20 @@ vi.mock('@tanstack/react-router', () => ({
     ),
 }));
 
-function renderNote(plan: Plan | undefined, roles: MembershipRole[]) {
+function renderNote(
+    plan: Plan | undefined,
+    roles: MembershipRole[],
+    subscription?: Subscription,
+) {
     const queryClient = new QueryClient();
     if (plan) {
         queryClient.setQueryData(planQueryOptions.queryKey, plan);
+    }
+    if (subscription) {
+        queryClient.setQueryData(
+            subscriptionQueryOptions.queryKey,
+            subscription,
+        );
     }
 
     return render(
@@ -55,6 +68,29 @@ describe('MemberPlanNote', () => {
 
         expect(plainText(container)).toContain(
             'Con este profesional, tu suscripción pasa a $ 20.000 por mes desde el próximo cobro: 6 profesionales activos, con 5 incluidos.',
+        );
+    });
+
+    it('quotes monthly while a yearly checkout is unpaid', () => {
+        const { container } = renderNote(
+            buildPlan('practice', { active_professionals: 5 }),
+            ['professional'],
+            buildSubscription('cancelled', { billing: 'annual' }),
+        );
+
+        expect(plainText(container)).toContain('$ 20.000 por mes');
+    });
+
+    it('on a yearly subscription shows the new yearly amount, from its next renewal', () => {
+        const { container } = renderNote(
+            buildPlan('practice', { active_professionals: 5 }),
+            ['professional'],
+            buildSubscription('active', { billing: 'annual' }),
+        );
+
+        // $ 20.000 × 60% = $ 12.000 a month.
+        expect(plainText(container)).toContain(
+            'Con este profesional, tu suscripción pasa a $ 144.000 por año desde la próxima renovación anual: 6 profesionales activos, con 5 incluidos.',
         );
     });
 
