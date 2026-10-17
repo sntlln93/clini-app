@@ -1,5 +1,5 @@
 import { expectNoA11yViolations } from '@/tests/a11y';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LandingPage } from '../-components/LandingPage';
 
@@ -15,6 +15,37 @@ describe('LandingPage', () => {
         })) {
             expect(link.getAttribute('href')).toMatch(/\/registro$/);
         }
+    });
+
+    it('sends the commercial calls to action to the contact form', () => {
+        render(<LandingPage />);
+
+        expect(
+            screen
+                .getByRole('link', { name: 'Coordinar una llamada' })
+                .getAttribute('href'),
+        ).toBe('/contacto?plan=centro');
+        expect(
+            screen
+                .getByRole('link', { name: 'Hablar con nosotros' })
+                .getAttribute('href'),
+        ).toBe('/contacto');
+    });
+
+    it('roots the header links at the home page, so they work from /contacto too', () => {
+        render(<LandingPage />);
+
+        const nav = screen.getByRole('navigation', { name: 'Principal' });
+        for (const name of ['Cómo funciona', 'Precio', 'Preguntas']) {
+            expect(
+                within(nav).getByRole('link', { name }).getAttribute('href'),
+            ).toMatch(/^\/#/);
+        }
+        expect(
+            screen
+                .getByRole('link', { name: 'Clini, inicio' })
+                .getAttribute('href'),
+        ).toBe('/#top');
     });
 
     it('shows every appointment status in the agenda legend', () => {

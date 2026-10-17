@@ -19,7 +19,8 @@ export function CtaLink({
     children,
 }: CtaLinkProps) {
     // A plain anchor styled as a button (shadcn's documented pattern for
-    // links): these go to another app or an in-page section, never a route.
+    // links): another app, an in-page section or a full page load of
+    // /contacto, never a client-side route change.
     return (
         <a
             href={href}

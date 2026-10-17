@@ -27,6 +27,14 @@ RUN test -n "$VITE_PANEL_URL" || { \
       echo "ERROR: falta VITE_PANEL_URL. Es un build arg (--build-arg VITE_PANEL_URL=https://panel.ejemplo.com), no una variable de runtime: se hornea en el bundle y definirla al levantar el contenedor no tiene ningún efecto." >&2; \
       exit 1; \
     }
+# The API's public origin: the contact form posts to its /api/v1/contact
+# (the landing's only call to the API, ADR 0011).
+ARG VITE_API_URL
+ENV VITE_API_URL=${VITE_API_URL}
+RUN test -n "$VITE_API_URL" || { \
+      echo "ERROR: falta VITE_API_URL. Es un build arg (--build-arg VITE_API_URL=https://api.ejemplo.com), no una variable de runtime: se hornea en el bundle y definirla al levantar el contenedor no tiene ningún efecto." >&2; \
+      exit 1; \
+    }
 RUN npm run build --workspace=apps/landing
 
 FROM node:24-bookworm-slim AS runtime

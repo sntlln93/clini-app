@@ -10,8 +10,8 @@ import tseslint from 'typescript-eslint';
 import requireNativeButton from './eslint-rules/require-native-button.js';
 
 // Same rule set as apps/panel and apps/dashboard, minus what only applies to
-// an API client (the axios and router.invalidate() restrictions): the
-// landing never calls the API.
+// an axios client with loaders (the axios and router.invalidate()
+// restrictions): the landing's one API call is the contact form's `fetch`.
 export default tseslint.config(
     {
         ignores: [
