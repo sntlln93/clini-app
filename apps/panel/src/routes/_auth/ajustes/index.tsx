@@ -8,6 +8,7 @@ import { sessionHasPermission, sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AttendPatientsSection } from './-components/AttendPatientsSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { OrganizationBookingLinkSection } from './-components/OrganizationBookingLinkSection';
@@ -18,6 +19,7 @@ import { SubscriptionSection } from './-components/SubscriptionSection';
 import { ThemeToggle } from './-components/ThemeToggle';
 import { loadOrganizationSettings } from './-hooks/load-organization-settings';
 import { loadProfessionalAssignments } from './-hooks/load-professional-assignments';
+import { ownMemberships } from './-hooks/own-memberships';
 import {
     catalogServicesQueryOptions,
     catalogSpecialtiesQueryOptions,
@@ -106,12 +108,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
             catalogServices,
             mySpecialties,
             professionals,
-            // Only a professional can hold a link of their own (CU-52); the API rejects anyone else's.
-            ownProfessionalMembership: session.membership?.roles.includes(
-                'professional',
-            )
-                ? session.membership
-                : null,
+            ...ownMemberships(session),
             organizationSlug: session.organization?.slug ?? null,
             organizationSettings,
             ...assignments,
@@ -135,6 +132,7 @@ function AjustesPage() {
         mySpecialties,
         professionals,
         ownProfessionalMembership,
+        managedOwnMembership,
         organizationSlug,
         organizationSettings,
         credentialsByMembership,
@@ -196,6 +194,13 @@ function AjustesPage() {
 
             {organizationSettings && (
                 <OrganizationBookingSettings settings={organizationSettings} />
+            )}
+
+            {managedOwnMembership && (
+                <>
+                    <Separator />
+                    <AttendPatientsSection membership={managedOwnMembership} />
+                </>
             )}
 
             <Separator />
