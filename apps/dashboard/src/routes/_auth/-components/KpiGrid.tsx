@@ -46,9 +46,10 @@ export function KpiGrid({ kpis }: { kpis: OverviewKpis }) {
                 title="MRR estimado"
                 value={formatCurrencyARS(mrr.amount, mrr.currency)}
                 details={[
-                    `${formatNumber(mrr.paying_subscriptions)} suscripciones pagas × ${formatCurrencyARS(mrr.plan_amount, mrr.currency)}`,
+                    `${formatNumber(mrr.paying_subscriptions)} suscripciones pagas`,
                 ]}
-                hint="Suscripciones activas y en gracia × precio del plan"
+                // An annual subscription counts its yearly charge spread over 12 months (#240).
+                hint="Lo que cobra por mes cada suscripción activa o en gracia; una anual cuenta su cobro dividido por 12"
             />
             <SubscriptionStatusKpi counts={kpis.subscriptions} />
         </section>

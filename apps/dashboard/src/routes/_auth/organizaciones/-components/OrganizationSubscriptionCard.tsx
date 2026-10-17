@@ -52,7 +52,13 @@ export function OrganizationSubscriptionCard({
                         {assignedPlan !== null && ' (asignado por Clini)'}
                     </Row>
                     {subscription?.amount != null && (
-                        <Row label="Monto mensual">
+                        <Row
+                            label={
+                                subscription.billing === 'annual'
+                                    ? 'Monto anual'
+                                    : 'Monto mensual'
+                            }
+                        >
                             {formatCurrencyARS(subscription.amount)}
                         </Row>
                     )}
