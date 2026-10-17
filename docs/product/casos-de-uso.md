@@ -27,11 +27,20 @@ Convenciones:
 
 - **Actor**: profesional independiente que se registra.
 - **Precondición**: existe un `User` recién registrado.
-- **Flujo**: el usuario crea una organización (consultorio) y queda vinculado a ella.
+- **Flujo**: el usuario crea una organización (consultorio) y queda vinculado a ella
+  como dueño y profesional (#286). Elige Gratis o Consultorio: la cuenta se crea en
+  Gratis y, si eligió Consultorio, sigue al checkout de Mercado Pago (el mismo de
+  Ajustes); si el pago no se completa, queda en Gratis. La Agenda le muestra «Primeros
+  pasos» (quién atiende, servicios, horarios y, como opcionales, el plan y el link de
+  reservas) hasta que la organización puede dar turnos. Si solo administra, se excluye
+  como profesional desde Ajustes.
 - **Invariantes**:
   - Un `User` puede existir sin pertenecer todavía a ninguna organización, o
     quedar vinculado en el mismo acto de creación.
   - Toda organización tiene al menos un miembro con capacidad administrativa.
+  - «Primeros pasos» no guarda estado propio: se deriva de los datos (al menos un
+    profesional activo, uno con un servicio activo y uno con horario semanal) y no
+    bloquea el uso del panel.
 
 ### CU-02 · Un profesional pertenece a varias organizaciones
 

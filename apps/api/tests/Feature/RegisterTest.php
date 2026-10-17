@@ -51,7 +51,7 @@ test('a visitor can register a new organization as its owner', function () {
     ]);
 
     $membership = Membership::where('user_id', $user->id)->firstOrFail();
-    expect($membership->roles)->toBe([MembershipRole::Owner]);
+    expect($membership->roles)->toBe([MembershipRole::Owner, MembershipRole::Professional]);
 });
 
 test('registering logs the user in', function () {
@@ -161,7 +161,7 @@ test('registering with an invalid timezone fails validation and persists nothing
     $this->assertDatabaseCount('memberships', 0);
 });
 
-test('an owner who attends patients registers as owner and professional', function () {
+test('the owner registers as owner and professional without being asked', function () {
     registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
@@ -169,7 +169,6 @@ test('an owner who attends patients registers as owner and professional', functi
         'password_confirmation' => 'password123',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
-        'attends_patients' => true,
     ])->assertCreated()
         ->assertJsonPath('roles', [MembershipRole::Owner->value, MembershipRole::Professional->value]);
 
@@ -178,7 +177,7 @@ test('an owner who attends patients registers as owner and professional', functi
     expect($membership->roles)->toBe([MembershipRole::Owner, MembershipRole::Professional]);
 });
 
-test('an owner who does not attend patients registers as owner only', function () {
+test('the retired attends_patients flag no longer registers an owner who is not a professional', function () {
     registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
@@ -189,7 +188,8 @@ test('an owner who does not attend patients registers as owner only', function (
         'attends_patients' => false,
     ])->assertCreated();
 
-    expect(Membership::query()->withoutGlobalScope('organization')->sole()->roles)->toBe([MembershipRole::Owner]);
+    expect(Membership::query()->withoutGlobalScope('organization')->sole()->roles)
+        ->toBe([MembershipRole::Owner, MembershipRole::Professional]);
 });
 
 test('the registering owner fills the Free plan professional slot', function () {
@@ -200,7 +200,6 @@ test('the registering owner fills the Free plan professional slot', function () 
         'password_confirmation' => 'password123',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
-        'attends_patients' => true,
     ])->assertCreated();
 
     Mail::fake();
@@ -210,19 +209,4 @@ test('the registering owner fills the Free plan professional slot', function () 
         'roles' => [MembershipRole::Professional->value],
     ])->assertStatus(409)
         ->assertJsonPath('error.code', 'plans.feature_unavailable');
-});
-
-test('registering with a non-boolean attends_patients fails validation and persists nothing', function () {
-    registerFromSpa()->postJson('/api/v1/register', [
-        'name' => 'Ana Owner',
-        'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
-        'organization_name' => 'Clínica Norte',
-        'timezone' => 'America/Argentina/Buenos_Aires',
-        'attends_patients' => 'quizás',
-    ])->assertStatus(422)
-        ->assertJsonValidationErrors('attends_patients');
-
-    $this->assertDatabaseCount('users', 0);
 });

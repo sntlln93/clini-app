@@ -1,6 +1,5 @@
 import type { Control } from 'react-hook-form';
 
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     FormControl,
     FormDescription,
@@ -106,33 +105,6 @@ export function RegisterFormFields({ control }: RegisterFormFieldsProps) {
                                 />
                             }
                         />
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-
-            <FormField
-                control={control}
-                name="attends_patients"
-                render={({ field }) => (
-                    <FormItem>
-                        <div className="flex flex-row items-center gap-2">
-                            <FormControl
-                                render={
-                                    <Checkbox
-                                        checked={field.value}
-                                        onCheckedChange={(checked) =>
-                                            field.onChange(checked === true)
-                                        }
-                                    />
-                                }
-                            />
-                            <FormLabel>También atiendo pacientes</FormLabel>
-                        </div>
-                        <FormDescription>
-                            Vas a aparecer en la agenda como profesional y vas a
-                            poder cargar tus turnos.
-                        </FormDescription>
                         <FormMessage />
                     </FormItem>
                 )}

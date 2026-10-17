@@ -18,8 +18,10 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
 /**
- * An owner who also attends patients (#278) starts as a professional too,
- * through the same plan rule as any other professional joining.
+ * The owner always starts as a professional too (#286): a new account is on
+ * Free, where the owner is the expected professional, and goes through the
+ * same plan rule as any other professional joining. An owner who only
+ * manages steps out later from Ajustes.
  *
  * @implements Action<OrganizationOwnerRegistrationData>
  */
@@ -47,17 +49,12 @@ class RegisterOrganizationOwnerAction implements Action
                 'timezone' => $dto->timezone,
             ]);
 
-            $roles = [MembershipRole::Owner];
-
-            if ($dto->attendsPatients) {
-                $this->plans->ensureAllowsMember($organization->id, [MembershipRole::Professional]);
-                $roles[] = MembershipRole::Professional;
-            }
+            $this->plans->ensureAllowsMember($organization->id, [MembershipRole::Professional]);
 
             Membership::create([
                 'organization_id' => $organization->id,
                 'user_id' => $user->id,
-                'roles' => $roles,
+                'roles' => [MembershipRole::Owner, MembershipRole::Professional],
                 'status' => MembershipStatus::Active,
             ]);
 

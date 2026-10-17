@@ -26,6 +26,8 @@ import {
     type AppointmentPrefill,
 } from './-components/AppointmentFormDialog';
 import { isProfessionalFilterEmpty } from './-components/professional-filter';
+import { SetupChecklist } from './-components/SetupChecklist';
+import { loadSetupProgress } from './-hooks/setup-progress';
 import { useAppointmentPermissions } from './-hooks/use-appointment-permissions';
 import { appointmentsQueryOptions } from './-hooks/use-appointments';
 
@@ -51,7 +53,7 @@ export const Route = createFileRoute('/_auth/agenda/')({
             deps.view,
         );
 
-        const [professionals, appointments] = await Promise.all([
+        const [professionals, appointments, setupProgress] = await Promise.all([
             ensureScopedProfessionals(context.queryClient),
             context.queryClient.ensureQueryData(
                 appointmentsQueryOptions({
@@ -59,9 +61,10 @@ export const Route = createFileRoute('/_auth/agenda/')({
                     to: toInstant(end),
                 }),
             ),
+            loadSetupProgress(context.queryClient),
         ]);
 
-        return { professionals, appointments };
+        return { professionals, appointments, setupProgress };
     },
     pendingComponent: () => <ListSkeleton rows={5} />,
     errorComponent: RouteErrorState,
@@ -83,8 +86,13 @@ function AgendaPage() {
         showCancelled = false,
     } = Route.useSearch();
     const navigate = Route.useNavigate();
-    const { professionals, appointments: loadedAppointments } =
-        Route.useLoaderData();
+    const {
+        professionals,
+        appointments: loadedAppointments,
+        setupProgress,
+    } = Route.useLoaderData();
+    // The checklist already explains an empty agenda to whoever can fix it.
+    const showSetup = setupProgress !== null && !setupProgress.ready;
     // Cancelled/rescheduled appointments no longer hold their slot, so by default they don't cover it either.
     const appointments = filterAgendaAppointments(
         loadedAppointments,
@@ -150,6 +158,8 @@ function AgendaPage() {
                 )}
             </div>
 
+            {showSetup && <SetupChecklist progress={setupProgress} />}
+
             {professionals.length > 0 && (
                 <AgendaProfessionalFilter
                     professionals={professionals}
@@ -178,7 +188,7 @@ function AgendaPage() {
                     onShowCancelledChange={navigation.onShowCancelledChange}
                 />
 
-                {professionals.length === 0 && (
+                {professionals.length === 0 && !showSetup && (
                     <div className="px-5 pb-5">
                         <NoProfessionalsEmptyState description="Invitá a un profesional para empezar a cargar turnos." />
                     </div>

@@ -48,6 +48,15 @@ class MembershipPolicy extends OrganizationScopedPolicy
     }
 
     /**
+     * The setup checklist (#286) walks through inviting professionals and
+     * assigning them, so it goes to whoever manages the team.
+     */
+    public function viewSetup(User $user): bool
+    {
+        return $this->allows($user, Permission::MembershipsManage);
+    }
+
+    /**
      * Authorizes inviting a new member: there is no persisted Membership
      * yet at invite time, so this only checks the org-wide permission.
      */

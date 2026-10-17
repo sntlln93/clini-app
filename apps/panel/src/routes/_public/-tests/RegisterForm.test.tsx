@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { browserTimeZone } from '@/lib/datetime';
+import { navigateToExternalUrl } from '@/lib/external-navigation';
 import { sessionQueryOptions } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -13,10 +14,15 @@ import {
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RegisterForm } from '../-components/RegisterForm';
+import type { RegisterPlan } from '../-components/RegisterPlanField';
 
 vi.mock('@/lib/datetime', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@/lib/datetime')>()),
     browserTimeZone: vi.fn(),
+}));
+
+vi.mock('@/lib/external-navigation', () => ({
+    navigateToExternalUrl: vi.fn(),
 }));
 
 vi.mock('@/lib/api', () => ({
@@ -29,7 +35,7 @@ function unauthorizedError(data: unknown) {
     return { isAxiosError: true, response: { status: 422, data } };
 }
 
-function renderRegisterForm() {
+function renderRegisterForm(plan?: RegisterPlan) {
     const queryClient = new QueryClient();
     const rootRoute = createRootRoute({
         component: () => (
@@ -41,7 +47,7 @@ function renderRegisterForm() {
     const registerRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/registro',
-        component: RegisterForm,
+        component: () => <RegisterForm plan={plan} />,
     });
     const loginRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -53,10 +59,16 @@ function renderRegisterForm() {
         path: '/agenda',
         component: () => <div>Agenda</div>,
     });
+    const ajustesRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/ajustes',
+        component: () => <div>Ajustes</div>,
+    });
     const routeTree = rootRoute.addChildren([
         registerRoute,
         loginRoute,
         agendaRoute,
+        ajustesRoute,
     ]);
     const router = createRouter({
         routeTree,
@@ -88,6 +100,9 @@ async function fillForm() {
 describe('RegisterForm', () => {
     beforeEach(() => {
         vi.mocked(browserTimeZone).mockReturnValue(STUB_TIMEZONE);
+        vi.mocked(api.post).mockReset();
+        vi.mocked(api.get).mockReset();
+        vi.mocked(navigateToExternalUrl).mockReset();
     });
 
     it('sends the form fields plus the auto-detected timezone, and renders no timezone input', async () => {
@@ -108,33 +123,101 @@ describe('RegisterForm', () => {
                 organization_name: 'Consultorio Ana',
                 password: 'secreta123',
                 password_confirmation: 'secreta123',
-                attends_patients: true,
                 timezone: STUB_TIMEZONE,
             }),
         );
     });
 
-    it('registers the owner as a professional by default, and not once unticked', async () => {
+    it('does not ask whether the owner attends patients (#286)', async () => {
+        renderRegisterForm();
+        await screen.findByLabelText('Nombre');
+
+        expect(screen.queryByRole('checkbox')).toBeNull();
+        expect(screen.queryByText(/atiendo pacientes/i)).toBeNull();
+    });
+
+    it('preselects Gratis, or the plan the landing linked with (#286)', async () => {
+        renderRegisterForm();
+
+        expect(
+            (await screen.findByRole('radio', { name: /Gratis/ })).getAttribute(
+                'aria-checked',
+            ),
+        ).toBe('true');
+    });
+
+    it('preselects Consultorio when the landing linked with it', async () => {
+        renderRegisterForm('consultorio');
+
+        expect(
+            (
+                await screen.findByRole('radio', { name: /Consultorio/ })
+            ).getAttribute('aria-checked'),
+        ).toBe('true');
+    });
+
+    it('on Gratis goes to the agenda and starts no checkout', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
         });
         renderRegisterForm();
         await fillForm();
 
-        const attends = screen.getByRole('checkbox', {
-            name: 'También atiendo pacientes',
-        });
-        expect(attends.getAttribute('aria-checked')).toBe('true');
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
-        fireEvent.click(attends);
+        await screen.findByText('Agenda');
+        expect(api.post).toHaveBeenCalledTimes(1);
+        expect(navigateToExternalUrl).not.toHaveBeenCalled();
+    });
+
+    it('on Consultorio registers without the plan, then sends the browser to the checkout', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({
+                data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+            })
+            .mockResolvedValueOnce({
+                data: { data: { init_point: 'https://mp.example/checkout' } },
+            });
+        renderRegisterForm();
+        await fillForm();
+        fireEvent.click(
+            await screen.findByRole('radio', { name: /Consultorio/ }),
+        );
+
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
         await waitFor(() =>
-            expect(api.post).toHaveBeenCalledWith(
-                '/register',
-                expect.objectContaining({ attends_patients: false }),
+            expect(navigateToExternalUrl).toHaveBeenCalledWith(
+                'https://mp.example/checkout',
             ),
         );
+        expect(api.post).toHaveBeenNthCalledWith(
+            1,
+            '/register',
+            expect.not.objectContaining({ plan: expect.anything() }),
+        );
+        expect(api.post).toHaveBeenNthCalledWith(2, '/subscription');
+        // The account already exists: a second submit could only fail.
+        const button = await screen.findByRole('button', {
+            name: 'Yendo a Mercado Pago…',
+        });
+        expect(button.hasAttribute('disabled')).toBe(true);
+        expect(screen.queryByText('Agenda')).toBeNull();
+    });
+
+    it('sends a Consultorio account whose checkout fails to start to Ajustes, to retry it', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({
+                data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+            })
+            .mockRejectedValueOnce(new Error('network'));
+        renderRegisterForm('consultorio');
+        await fillForm();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        await screen.findByText('Ajustes');
+        expect(navigateToExternalUrl).not.toHaveBeenCalled();
     });
 
     it('renders per-field errors from a 422 and keeps the typed values', async () => {

@@ -12,6 +12,11 @@ import {
 } from '@/lib/password';
 import { useRegister } from '../-hooks/use-register';
 import { RegisterFormFields } from './RegisterFormFields';
+import {
+    REGISTER_PLANS,
+    RegisterPlanField,
+    type RegisterPlan,
+} from './RegisterPlanField';
 
 const registerSchema = z
     .object({
@@ -28,7 +33,7 @@ const registerSchema = z
             .min(1, 'La contraseña es obligatoria.')
             .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
         password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
-        attends_patients: z.boolean(),
+        plan: z.enum(REGISTER_PLANS),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
@@ -37,7 +42,12 @@ const registerSchema = z
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;
 
-export function RegisterForm() {
+type RegisterFormProps = {
+    /** The plan the visitor picked on the landing, preselected. */
+    plan?: RegisterPlan;
+};
+
+export function RegisterForm({ plan = 'gratis' }: RegisterFormProps) {
     const form = useForm<RegisterFormValues>({
         resolver: zodResolver(registerSchema),
         defaultValues: {
@@ -46,11 +56,10 @@ export function RegisterForm() {
             email: '',
             password: '',
             password_confirmation: '',
-            // Most owners of a small practice see patients themselves (#278).
-            attends_patients: true,
+            plan,
         },
     });
-    const { mutateAsync } = useRegister();
+    const { mutateAsync, isRedirectingToCheckout } = useRegister();
 
     async function onSubmit(values: RegisterFormValues) {
         try {
@@ -83,14 +92,20 @@ export function RegisterForm() {
 
                 <RegisterFormFields control={form.control} />
 
+                <RegisterPlanField control={form.control} />
+
                 <Button
                     type="submit"
                     className="w-full"
-                    disabled={form.formState.isSubmitting}
+                    // The account exists once the checkout starts: a second submit would only fail.
+                    disabled={
+                        form.formState.isSubmitting || isRedirectingToCheckout
+                    }
                 >
-                    {form.formState.isSubmitting
-                        ? 'Creando cuenta…'
-                        : 'Crear cuenta'}
+                    {submitLabel(
+                        form.formState.isSubmitting,
+                        isRedirectingToCheckout,
+                    )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
@@ -106,4 +121,12 @@ export function RegisterForm() {
             </form>
         </Form>
     );
+}
+
+function submitLabel(isSubmitting: boolean, isRedirecting: boolean): string {
+    if (isRedirecting) {
+        return 'Yendo a Mercado Pago…';
+    }
+
+    return isSubmitting ? 'Creando cuenta…' : 'Crear cuenta';
 }

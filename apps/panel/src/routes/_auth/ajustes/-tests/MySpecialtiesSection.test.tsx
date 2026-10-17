@@ -92,14 +92,20 @@ describe('MySpecialtiesSection', () => {
         await waitFor(() => expect(invalidate).toHaveBeenCalled());
     });
 
-    it('says that specialties alone do not make a non-professional bookable, and offers to join', async () => {
+    it('says that specialties alone do not make a non-professional bookable, and points to the attend-patients switch', async () => {
         renderSection({
             roles: ['owner'],
             permissions: ['memberships.manage'],
         });
 
         await screen.findByText(/Marcar especialidades no te suma a la agenda/);
-        screen.getByRole('button', { name: 'Sumarme como profesional' });
+        screen.getByText(
+            /Activá «Atiendo pacientes en este consultorio» más arriba/,
+        );
+        // The switch above is the one control for it on this page (#286).
+        expect(
+            screen.queryByRole('button', { name: 'Sumarme como profesional' }),
+        ).toBeNull();
     });
 
     it('points a non-professional without memberships.manage to an administrator', async () => {

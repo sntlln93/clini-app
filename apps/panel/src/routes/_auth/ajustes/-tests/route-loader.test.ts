@@ -34,6 +34,7 @@ const loader = Route.options.loader as (opts: {
     canManageProfessionals: boolean;
     professionals: Membership[];
     ownProfessionalMembership: Membership | null;
+    managedOwnMembership: Membership | null;
     organizationSlug: string | null;
     hasOrganization: boolean;
     subscription: Subscription | null;
@@ -347,5 +348,46 @@ describe('/ajustes loader booking links (#283)', () => {
             ownProfessionalMembership: null,
             organizationSlug: null,
         });
+    });
+});
+
+describe('/ajustes loader attend-patients switch (#286)', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    it('hands the caller their own membership when they manage the team, professional or not', async () => {
+        const ownerOnly = { ...OWN_MEMBERSHIP, roles: ['owner' as const] };
+        mockApiGet({
+            id: 10,
+            name: 'Ana Dueña',
+            email: 'ana.duena@test.com',
+            permissions: ['memberships.manage'],
+            roles: ['owner'],
+            membership: ownerOnly,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result.managedOwnMembership).toEqual(ownerOnly);
+    });
+
+    it('leaves it out for anyone who cannot edit memberships', async () => {
+        mockApiGet({
+            id: 10,
+            name: 'Ana Ejemplo',
+            email: 'ana@clini.app',
+            permissions: [],
+            roles: ['professional'],
+            membership: OWN_MEMBERSHIP,
+        });
+
+        const result = await loader({
+            context: { queryClient: new QueryClient() },
+        });
+
+        expect(result.managedOwnMembership).toBeNull();
     });
 });

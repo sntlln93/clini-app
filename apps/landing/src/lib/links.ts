@@ -4,6 +4,9 @@ const PANEL_URL = (import.meta.env.VITE_PANEL_URL ?? '').replace(/\/+$/, '');
 
 export const loginUrl = `${PANEL_URL}/login`;
 export const registerUrl = `${PANEL_URL}/registro`;
+// Preselects Consultorio on the panel's registration, which then sends the
+// new account to the Mercado Pago checkout (#286).
+export const consultorioRegisterUrl = `${registerUrl}?plan=consultorio`;
 
 // Optional: where a prospective "Centro" customer gets in touch (a mailto:,
 // a WhatsApp link, a scheduling page). Until there is one, the page offers
