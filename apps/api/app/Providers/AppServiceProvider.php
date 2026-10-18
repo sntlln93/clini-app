@@ -54,5 +54,13 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by($request->ip()),
             Limit::perHour(20)->by($request->ip()),
         ]);
+
+        // Account sign-up (`throttle:register`, #299): anonymous, and each
+        // request creates an organization and mails an address the caller
+        // picks. Same limits and proxy caveat as `contact`.
+        RateLimiter::for('register', fn (Request $request): array => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(20)->by($request->ip()),
+        ]);
     }
 }
