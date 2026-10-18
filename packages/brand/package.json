@@ -1,0 +1,11 @@
+{
+  "name": "@clini/brand",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Clini brand files and their manifest, shared by every frontend app.",
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./vite": "./vite.ts"
+  }
+}
