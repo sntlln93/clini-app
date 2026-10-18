@@ -9,6 +9,7 @@ import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 import { AttendPatientsSection } from './-components/AttendPatientsSection';
+import { ClinicalRecordExportSection } from './-components/ClinicalRecordExportSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { OrganizationBookingLinkSection } from './-components/OrganizationBookingLinkSection';
@@ -217,6 +218,8 @@ function AjustesPage() {
                     <MyPublicLinkSection
                         membership={ownProfessionalMembership}
                     />
+                    <Separator />
+                    <ClinicalRecordExportSection />
                 </>
             )}
 
