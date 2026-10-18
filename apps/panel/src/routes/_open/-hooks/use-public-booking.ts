@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import type {
+    AppointmentDetailsResponse,
     AvailableSlot,
     BookingOrganizationResponse,
 } from '@/types/booking';
@@ -49,5 +50,18 @@ export function bookingSlotsQueryOptions(params: SlotsParams) {
                     },
                 )
                 .then((response) => response.data.data),
+    });
+}
+
+/** The token is the link's only credential: no session involved. */
+export function appointmentDetailsQueryOptions(token: string) {
+    return queryOptions({
+        queryKey: ['booking', 'appointment', token],
+        queryFn: () =>
+            api
+                .get<AppointmentDetailsResponse>(
+                    `/booking/appointments/${token}`,
+                )
+                .then((response) => response.data),
     });
 }

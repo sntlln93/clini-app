@@ -72,3 +72,9 @@ export type BookingConfirmation = {
     /** Opaque, and the same the reminder's `.ics` carries, so importing both keeps one event. */
     calendar_uid: string;
 };
+
+/** The page the reminder links to (#320): the details the mail no longer carries, never the patient. */
+export type AppointmentDetailsResponse = {
+    organization: BookingOrganization;
+    appointment: BookingConfirmation;
+};
