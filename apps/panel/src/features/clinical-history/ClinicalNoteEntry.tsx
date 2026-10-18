@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { StatusPill } from '@/components/StatusPill';
+import { formatShortDateTime } from '@/lib/datetime';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { VersionHistory } from './VersionHistory';
 
@@ -23,7 +24,12 @@ export function ClinicalNoteEntry({
         <div className="rounded-lg border p-3 text-sm">
             {note.annulment ? (
                 <div className="space-y-2">
-                    <StatusPill tone="neutral">Anulada</StatusPill>
+                    <div className="flex flex-wrap items-center gap-2">
+                        <StatusPill tone="neutral">Anulada</StatusPill>
+                        <span className="text-xs text-muted-foreground tabular-nums">
+                            el {formatShortDateTime(note.annulment.created_at)}
+                        </span>
+                    </div>
                     <p className="wrap-break-word text-muted-foreground">
                         Motivo: {note.annulment.reason}
                     </p>

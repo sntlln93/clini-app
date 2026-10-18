@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useEffect, type ReactElement } from 'react';
+import { useEffect, type ReactElement, type RefObject } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -38,7 +38,11 @@ type ReasonFormValues = z.infer<typeof reasonSchema>;
 const EMPTY_VALUES: ReasonFormValues = { reason: '' };
 
 type ReasonDialogProps = {
-    trigger: ReactElement;
+    // Omitted when the dialog is opened by state, e.g. when the trigger may
+    // unmount once the action succeeds.
+    trigger?: ReactElement;
+    // Where focus goes on close, when the trigger may be gone by then.
+    finalFocus?: RefObject<HTMLElement | null>;
     open: boolean;
     onOpenChange: (open: boolean) => void;
     title: string;
@@ -53,6 +57,7 @@ type ReasonDialogProps = {
 /** An action that requires a written "Motivo" (3..500 chars), kept with the record it changes (e.g. annulling a clinical note, #323). */
 export function ReasonDialog({
     trigger,
+    finalFocus,
     open,
     onOpenChange,
     title,
@@ -88,8 +93,8 @@ export function ReasonDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTrigger render={trigger} />
-            <DialogContent>
+            {trigger && <DialogTrigger render={trigger} />}
+            <DialogContent finalFocus={finalFocus}>
                 <Form {...form}>
                     <form
                         onSubmit={form.handleSubmit(submit)}

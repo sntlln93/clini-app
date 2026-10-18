@@ -13,6 +13,13 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
 }));
 
+// No router is mounted: the refresh after a write only needs `invalidate`.
+vi.mock('@tanstack/react-router', async (importOriginal) => {
+    const actual =
+        await importOriginal<typeof import('@tanstack/react-router')>();
+    return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
+});
+
 function unexpectedError() {
     return {
         isAxiosError: true,
@@ -239,6 +246,47 @@ describe('ClinicalNotesDialog', () => {
             ),
         );
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    });
+
+    it('annulling the note being amended leaves amend mode', async () => {
+        const note = buildNote({ id: 9, body: 'Nota a anular.' });
+        vi.mocked(api.get)
+            .mockResolvedValueOnce({ data: { data: [note] } })
+            .mockResolvedValue({
+                data: {
+                    data: [
+                        {
+                            ...note,
+                            annulment: {
+                                reason: 'Paciente equivocado.',
+                                created_at: '2026-08-03T11:00:00Z',
+                            },
+                        },
+                    ],
+                },
+            });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderDialog();
+
+        await screen.findByText('Nota a anular.');
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
+        await screen.findByRole('button', { name: 'Guardar enmienda' });
+        fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
+        fireEvent.change(await screen.findByLabelText('Motivo'), {
+            target: { value: 'Paciente equivocado.' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Anular nota' }));
+
+        await screen.findByText('Anulada');
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('button', { name: 'Guardar enmienda' }),
+            ).toBeNull(),
+        );
+        // Once the annul dialog has closed, the note form is reachable again.
+        expect(
+            await screen.findByRole('button', { name: 'Agregar nota' }),
+        ).toBeTruthy();
     });
 
     it('an annulled note shows the reason, keeps its text and offers no actions', async () => {

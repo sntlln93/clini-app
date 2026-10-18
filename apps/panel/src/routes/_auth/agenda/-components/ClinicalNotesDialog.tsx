@@ -1,5 +1,5 @@
 import { formatShortDateTime } from '@/lib/datetime';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import {
     Dialog,
@@ -14,6 +14,7 @@ import { useWritesRestricted } from '@/lib/plan';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import { useClinicalNotes } from '../-hooks/use-clinical-notes';
+import { AnnulClinicalNoteDialog } from './AnnulClinicalNoteDialog';
 import { ClinicalNoteActions } from './ClinicalNoteActions';
 import { ClinicalNoteForm } from './ClinicalNoteForm';
 
@@ -40,6 +41,10 @@ export function ClinicalNotesDialog({
         : null;
 
     const [amendingNote, setAmendingNote] = useState<ClinicalNote | null>(null);
+    const [annullingNote, setAnnullingNote] = useState<ClinicalNote | null>(
+        null,
+    );
+    const listRef = useRef<HTMLDivElement>(null);
 
     // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending amendment as soon as the dialog re-opens.
     const [wasOpen, setWasOpen] = useState(open);
@@ -47,6 +52,7 @@ export function ClinicalNotesDialog({
         setWasOpen(open);
         if (open) {
             setAmendingNote(null);
+            setAnnullingNote(null);
         }
     }
 
@@ -68,7 +74,11 @@ export function ClinicalNotesDialog({
                     </p>
                 )}
 
-                <div className="max-h-64 space-y-3 overflow-auto">
+                <div
+                    ref={listRef}
+                    tabIndex={-1}
+                    className="max-h-64 space-y-3 overflow-auto"
+                >
                     {isLoading && (
                         <p className="text-sm text-muted-foreground">
                             Cargando notas…
@@ -92,9 +102,8 @@ export function ClinicalNotesDialog({
                                 !restricted &&
                                 note.annulment === null && (
                                     <ClinicalNoteActions
-                                        appointment={appointment}
-                                        note={note}
                                         onAmend={() => setAmendingNote(note)}
+                                        onAnnul={() => setAnnullingNote(note)}
                                     />
                                 )
                             }
@@ -111,6 +120,18 @@ export function ClinicalNotesDialog({
                         onSaved={() => setAmendingNote(null)}
                     />
                 )}
+                <AnnulClinicalNoteDialog
+                    appointment={appointment}
+                    note={annullingNote}
+                    onClose={() => setAnnullingNote(null)}
+                    // An annulled note can't be amended: leave amend mode.
+                    onAnnulled={(annulled) =>
+                        setAmendingNote((current) =>
+                            current?.id === annulled.id ? null : current,
+                        )
+                    }
+                    finalFocus={listRef}
+                />
             </DialogContent>
         </Dialog>
     );

@@ -61,6 +61,7 @@ describe('ClinicalNoteEntry (#323)', () => {
         );
 
         expect(screen.getByText('Anulada')).toBeTruthy();
+        expect(screen.getByText(/^el \d/)).toBeTruthy();
         expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
         const disclosure = screen
             .getByText('Ver el texto anulado')
