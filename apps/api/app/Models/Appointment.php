@@ -137,6 +137,14 @@ class Appointment extends Model
     }
 
     /**
+     * @return HasMany<Prescription, $this>
+     */
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
+    /**
      * Narrows to the acting membership's own appointments when it lacks org-wide view permission; a no-op otherwise.
      *
      * @param  Builder<Appointment>  $query

@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\HolidayProvider;
+use App\Contracts\PdfRenderer;
 use App\Contracts\SubscriptionGateway;
+use App\Models\User;
 use App\Services\Holidays\CalendariosNacionalesService;
 use App\Services\Payments\MercadoPagoService;
+use App\Services\Pdf\DompdfService;
 use App\Support\CurrentOrganization;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -25,6 +28,7 @@ class AppServiceProvider extends ServiceProvider
     public array $bindings = [
         HolidayProvider::class => CalendariosNacionalesService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
+        PdfRenderer::class => DompdfService::class,
     ];
 
     public function register(): void
@@ -65,6 +69,15 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by($request->ip()),
             Limit::perHour(20)->by($request->ip()),
         ]);
+
+        // Exporting the clinical history (#326): each export reads a patient's
+        // whole history, or every attended patient's, so a script can't loop
+        // it. Keyed by user, since it is authenticated.
+        RateLimiter::for('clinical-record-export', function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinute(10)->by($user instanceof User ? "user:{$user->id}" : (string) $request->ip());
+        });
 
         // The public booking page (#299), values in config/booking.php.
         // `public-organization` runs before the throttle (bootstrap/app.php),
