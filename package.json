@@ -5,10 +5,10 @@
   "workspaces": ["apps/panel", "apps/dashboard", "apps/landing", "packages/*"],
   "scripts": {
     "test:e2e": "playwright test",
-    "lint": "eslint e2e playwright.config.ts --fix",
-    "lint:check": "eslint e2e playwright.config.ts --max-warnings=0",
-    "format": "prettier --write \"e2e/**/*.ts\" playwright.config.ts \"packages/**/*.css\"",
-    "format:check": "prettier --check \"e2e/**/*.ts\" playwright.config.ts \"packages/**/*.css\""
+    "lint": "eslint e2e playwright.config.ts packages --fix",
+    "lint:check": "eslint e2e playwright.config.ts packages --max-warnings=0",
+    "format": "prettier --write \"e2e/**/*.ts\" playwright.config.ts \"packages/**/*.{css,ts}\"",
+    "format:check": "prettier --check \"e2e/**/*.ts\" playwright.config.ts \"packages/**/*.{css,ts}\""
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",

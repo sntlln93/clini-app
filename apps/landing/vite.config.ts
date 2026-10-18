@@ -1,3 +1,4 @@
+import { cliniBrand } from '@clini/brand/vite';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import react from '@vitejs/plugin-react';
@@ -9,7 +10,13 @@ import { defineConfig } from 'vite';
 // the landing has to ship its content in the initial HTML for search engines
 // and link previews. Nitro builds the Node server (.output/server/index.mjs).
 export default defineConfig({
-    plugins: [tanstackStart(), nitro(), react(), tailwindcss()],
+    plugins: [
+        tanstackStart(),
+        nitro(),
+        react(),
+        tailwindcss(),
+        cliniBrand({ appName: 'Clini' }),
+    ],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),

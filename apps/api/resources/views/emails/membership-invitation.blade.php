@@ -5,6 +5,8 @@
     <title>Invitación a Clini</title>
 </head>
 <body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
+    @include('emails.partials.brand-header')
+
     <p>Hola,</p>
 
     <p>

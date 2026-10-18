@@ -1,5 +1,6 @@
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { loginUrl, registerUrl } from '@/lib/links';
+import { brand } from '@clini/brand';
 import { BrandMark } from './BrandMark';
 import { CtaLink } from './CtaLink';
 
@@ -21,7 +22,7 @@ export function SiteHeader() {
                 className="flex items-center gap-2 text-2xl font-medium tracking-tight text-primary"
             >
                 <BrandMark />
-                clini
+                {brand.wordmark}
             </a>
             <nav
                 aria-label="Principal"

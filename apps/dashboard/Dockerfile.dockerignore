@@ -17,5 +17,5 @@ apps/panel
 !apps/panel/package.json
 apps/landing
 !apps/landing/package.json
-# packages/* (the shared workspace packages, e.g. @clini/theme) must stay
+# packages/* (the shared workspace packages, @clini/theme and @clini/brand) must stay
 # in the context: the build imports them.

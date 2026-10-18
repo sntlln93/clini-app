@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/BrandMark';
 import {
     Sidebar,
     SidebarContent,
@@ -10,8 +11,8 @@ import {
     SidebarRail,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { brand } from '@clini/brand';
 import { Link, useLocation } from '@tanstack/react-router';
-import { ShieldCheck } from 'lucide-react';
 import { isNavItemActive, navItems } from './nav-items';
 
 export function DashboardSidebar() {
@@ -33,12 +34,10 @@ export function DashboardSidebar() {
         >
             <SidebarHeader>
                 <div className="flex items-center gap-2 px-2 py-1.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <ShieldCheck className="size-4" />
-                    </span>
+                    <BrandMark />
                     <span className="grid min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
                         <span className="truncate text-base font-semibold">
-                            Clini
+                            {brand.name}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
                             Plataforma

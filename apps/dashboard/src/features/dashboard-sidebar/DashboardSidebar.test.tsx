@@ -1,6 +1,7 @@
 import { SidebarProvider } from '@/components/ui/sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { renderRoute } from '@/tests/render-route';
+import { brand, brandAssetUrl } from '@clini/brand';
 import { screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { DashboardSidebar } from './DashboardSidebar';
@@ -18,6 +19,24 @@ function renderSidebar(path: string) {
 }
 
 describe('DashboardSidebar', () => {
+    it("shows the manifest's isotype for each theme next to the brand name", async () => {
+        await renderSidebar('/');
+
+        const sidebar = screen.getByRole('navigation', {
+            name: 'Barra lateral',
+        });
+        expect(within(sidebar).getByText(brand.name)).toBeTruthy();
+        expect(
+            [...sidebar.querySelectorAll('img')].map((img) => ({
+                src: img.getAttribute('src'),
+                alt: img.getAttribute('alt'),
+            })),
+        ).toEqual([
+            { src: brandAssetUrl(brand.assets.isotype.light), alt: '' },
+            { src: brandAssetUrl(brand.assets.isotype.dark), alt: '' },
+        ]);
+    });
+
     it('lists the seven sections in order', async () => {
         await renderSidebar('/');
 

@@ -1,4 +1,6 @@
 import { THEME_STORAGE_KEY } from '@/hooks/use-theme';
+import { brandMeta } from '@/lib/brand-head';
+import { brandHeadLinks } from '@clini/brand';
 import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import appCss from '../index.css?url';
@@ -22,16 +24,13 @@ export const Route = createRootRoute({
             },
             { title: TITLE },
             { name: 'description', content: DESCRIPTION },
-            { name: 'theme-color', content: '#0d7179' },
             { property: 'og:type', content: 'website' },
             { property: 'og:locale', content: 'es_AR' },
             { property: 'og:title', content: TITLE },
             { property: 'og:description', content: DESCRIPTION },
+            ...brandMeta(),
         ],
-        links: [
-            { rel: 'stylesheet', href: appCss },
-            { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        ],
+        links: [{ rel: 'stylesheet', href: appCss }, ...brandHeadLinks()],
         scripts: [{ children: THEME_SCRIPT }],
     }),
     shellComponent: RootDocument,

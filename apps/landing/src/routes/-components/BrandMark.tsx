@@ -1,11 +1,21 @@
-/** Provisional mark until the brand identity lands (#236). */
+import { brand, brandAssetUrl } from '@clini/brand';
+
+const { isotype } = brand.assets;
+
+/** The brand isotype from the manifest (#236), in the variant of the current theme. Decorative: the wordmark next to it names the brand. */
 export function BrandMark() {
     return (
-        <span
-            aria-hidden="true"
-            className="grid size-8 place-items-center rounded-lg bg-primary"
-        >
-            <span className="size-3 rounded-[3px] border-[2.5px] border-primary-foreground" />
-        </span>
+        <>
+            <img
+                src={brandAssetUrl(isotype.light)}
+                alt=""
+                className="size-8 dark:hidden"
+            />
+            <img
+                src={brandAssetUrl(isotype.dark)}
+                alt=""
+                className="hidden size-8 dark:block"
+            />
+        </>
     );
 }

@@ -1,3 +1,4 @@
+import { BrandMark } from '@/components/BrandMark';
 import {
     Sidebar,
     SidebarContent,
@@ -14,8 +15,8 @@ import {
 import { ProfileMenu } from '@/features/profile-menu/ProfileMenu';
 import { planIncludes, usePlan } from '@/lib/plan';
 import { useSession } from '@/lib/session';
+import { brand } from '@clini/brand';
 import { Link, useLocation } from '@tanstack/react-router';
-import { Stethoscope } from 'lucide-react';
 import { isNavItemActive, navItems } from './nav-items';
 
 export function PanelSidebar() {
@@ -50,11 +51,9 @@ export function PanelSidebar() {
         >
             <SidebarHeader>
                 <div className="flex items-center gap-2 px-2 py-1.5">
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-                        <Stethoscope className="size-4" />
-                    </span>
+                    <BrandMark />
                     <span className="truncate text-base font-semibold group-data-[collapsible=icon]:hidden">
-                        Clini
+                        {brand.name}
                     </span>
                 </div>
             </SidebarHeader>

@@ -12,14 +12,17 @@ clini-app/
 │   ├── dashboard/  # React + TS — SPA del dashboard de operación de la plataforma
 │   └── landing/    # React + TS — sitio público con SSR (TanStack Start)
 ├── packages/
-│   └── theme/      # @clini/theme — tokens de diseño (solo CSS) compartidos por los frontends
+│   ├── theme/      # @clini/theme — tokens de diseño (solo CSS) compartidos por los frontends
+│   └── brand/      # @clini/brand — archivos de marca, su manifiesto y el plugin de Vite que los publica
 ├── e2e/            # Playwright (proyectos chromium = panel, dashboard = dashboard, landing = landing)
 └── docs/
 ```
 
 La raíz es un workspace de npm con los tres frontends (`apps/panel`, `apps/dashboard` y `apps/landing`) más los paquetes compartidos de `packages/*`, y un único `package-lock.json` (que además cubre las dependencias de Playwright de `e2e/`). No hay herramientas de monorepo JS adicionales; cada frontend se instala filtrado (`npm install|ci --workspace=apps/<app> --include-workspace-root=false`) en su contenedor de dev, en su Dockerfile y en CI, y esa instalación trae los paquetes de `packages/*` de los que la app depende.
 
-Hoy hay un solo paquete, `packages/theme` (`@clini/theme`): los tokens de diseño en CSS (paleta de claro y oscuro, `@theme inline`, colores de estado del turno, sidebar, escala de gráficos, Outfit, estilos base, `focus-ring`, `prefers-reduced-motion`, mínimo táctil). Cada app lo importa desde su `src/index.css` con `@import '@clini/theme/theme.css'`. Los componentes de shadcn no se comparten: siguen copiados en cada app. Lo usan las tres apps (panel y dashboard desde #234); ninguna redefine tokens en su `index.css`. Ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md).
+Hay dos paquetes. `packages/theme` (`@clini/theme`): los tokens de diseño en CSS (paleta de claro y oscuro, `@theme inline`, colores de estado del turno, sidebar, escala de gráficos, Outfit, estilos base, `focus-ring`, `prefers-reduced-motion`, mínimo táctil). Cada app lo importa desde su `src/index.css` con `@import '@clini/theme/theme.css'`. Los componentes de shadcn no se comparten: siguen copiados en cada app. Lo usan las tres apps (panel y dashboard desde #234); ninguna redefine tokens en su `index.css`. Ver [ADR 0012](../adr/0012-tokens-de-diseno-en-un-paquete-del-workspace.md).
+
+`packages/brand` (`@clini/brand`): los archivos de marca (hoy placeholders), un manifiesto con el archivo de cada elemento (`brand.config.ts`) y un plugin de Vite que los publica en `/brand/` e inyecta favicon, íconos y web manifest en el `<head>`. Ningún componente escribe una ruta de marca: todo sale del manifiesto. Los mails de la API leen el nombre y el logo de `config/brand.php`. Ver [ADR 0017](../adr/0017-marca-en-un-paquete-del-workspace-con-manifiesto.md) y [Marca](brand.md).
 
 ## Backend
 
