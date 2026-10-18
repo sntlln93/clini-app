@@ -16,7 +16,7 @@ Decisiones y motivación en [ADR 0009](../adr/0009-contrato-de-errores-de-domini
 }
 ```
 
-- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 41 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
+- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 48 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
 - `message`: el mensaje de la excepción, en inglés, para desarrolladores (va al log y al stack trace). **Nunca se muestra en la UI** — cada frontend resuelve la copy en español por `code` desde su propio catálogo (`ERROR_CODE_MESSAGES` en `error-codes.ts`). El dashboard reusa la copy del panel salvo en los códigos de moderación, donde la redacta para el operador.
 - `context`: lo que `publicContext()` de la excepción concreta decidió exponer. `{}` por defecto; las excepciones que exponen algo están marcadas en la tabla.
 
@@ -37,7 +37,7 @@ Backend: un único `render` callback en `apps/api/bootstrap/app.php`, registrado
 
 Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios (`axios.isAxiosError`, `error.response`). Su `mapToAppError(error: unknown): AppError` clasifica cualquier error en una de siete clases que extienden `Error` (`BusinessError`, `ValidationError`, `UnauthorizedError`, `SessionExpiredError`, `RateLimitedError`, `NetworkError`, `UnexpectedError`), discriminadas por `kind`. Todo lo demás — `extractFormErrors`, `notifyError`, `QueryErrorState`, el `retry` de `query-client.ts` — trabaja sobre `AppError`, nunca sobre axios directamente; una regla de ESLint (`no-restricted-imports`) lo enforcea, exceptuando `src/lib/api.ts` (crea el cliente axios, no lee `error.response`).
 
-## Los 41 códigos
+## Los 48 códigos
 
 | código | HTTP | sitio de origen | `context` |
 |---|---|---|---|
@@ -56,10 +56,12 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `organizations.already_suspended` | 409 | `SuspendOrganizationAction` (dashboard) | |
 | `organizations.not_suspended` | 409 | `ReactivateOrganizationAction` (dashboard) | |
 | `patients.not_found` | 404 | `PatientController::lookup` | |
+| `patients.insurance_member_number_taken` | 409 | `RegisterPatientAction` (otro paciente de la misma obra social ya tiene ese número de afiliado) | |
 | `auth.email_verification_invalid_or_expired` | 404 | `FindValidEmailVerificationUserAction`, `VerifyEmailAction` | |
 | `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta) y middleware `EnsureUserNotBlocked` | |
 | `booking.slot_not_available` | 409 | `AssertSlotWithinPublishedScheduleAction` | |
 | `booking.organization_unavailable` | 403 | middleware `ResolvePublicOrganization` (organización suspendida) | |
+| `booking.appointment_unavailable` | 404 | `AppointmentDetailsLink` (el link `/turno/<token>` no se descifra o el turno ya no se muestra, ADR 0018) | |
 | `booking.link_not_found` | 404 | middleware `ResolvePublicOrganization` (el slug no es de ninguna organización ni del link de un profesional activo) | |
 | `availability.slot_merge_required` | 409 | `SaveAvailabilitySlotAction` | `merged` |
 | `availability.slot_already_covered` | 409 | `SaveAvailabilitySlotAction` | `covering` |
@@ -84,6 +86,9 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `users.not_blocked` | 409 | `UnblockUserAction` (dashboard) | |
 | `users.email_already_verified` | 409 | `VerifyUserEmailManuallyAction` (dashboard) | |
 | `contact_requests.status_unchanged` | 409 | `ChangeContactRequestStatusAction` (dashboard) | |
+| `clinical_notes.annulled` | 409 | `AmendClinicalNoteAction`, `AnnulClinicalNoteAction` (la nota ya está anulada, ADR 0019) | |
+| `clinical_notes.amendment_unchanged` | 409 | `AmendClinicalNoteAction` (la enmienda repite el texto vigente) | |
+| `prescriptions.amendment_unchanged` | 409 | `AmendPrescriptionAction` (la enmienda repite la medicación vigente) | |
 
 Las rutas `/api/v1/admin/*` suman un rechazo que **no** es un código de dominio: `EnsureDashboardOrigin` responde un `403 {"message":"Forbidden."}` plano (sin sobre `error`) cuando el `Origin`/`Referer` del pedido no está en `ADMIN_ALLOWED_ORIGINS`. Es una aserción de seguridad, no un flujo de negocio — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
 

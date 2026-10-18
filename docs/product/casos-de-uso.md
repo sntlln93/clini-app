@@ -525,15 +525,19 @@ Convenciones:
     en este último caso, el flujo de reserva se abre con la organización y el profesional
     ya preseleccionados.
 
-### CU-45 · Historia clínica por notas *(Futuro, pero visible en el mock)*
+### CU-45 · Historia clínica por notas *(issues #30, #217, #323)*
 
 - **Actor**: profesional que agrega una nota clínica a una visita del paciente.
 - **Invariantes**:
   - Una nota clínica está asociada a una **visita/turno**, a un **profesional autor** y a
     una **organización**; no es un dato global del paciente (coherente con CU-07).
   - El schema del MVP no debe imposibilitar esta relación nota↔turno↔profesional↔organización.
+  - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
+    el autor la **enmienda** (queda una versión nueva con fecha, autor y motivo opcional, y
+    las anteriores siguen en el historial) o la **anula** con un motivo obligatorio (sigue en
+    la historia, marcada como anulada). Una nota anulada no se enmienda.
 
-### CU-53 · Medicación indicada por visita *(issues #31, #319)*
+### CU-53 · Medicación indicada por visita *(issues #31, #319, #323)*
 
 - **Actor**: profesional que registra la medicación que indicó durante un turno propio.
 - **Decisión**: registro **interno de la historia clínica**, sin vademécum ni catálogo de
@@ -545,9 +549,11 @@ Convenciones:
 - **Invariantes**:
   - Igual que la nota clínica (CU-45), el registro cuelga de un **turno**, un **profesional
     autor** y una **organización**, y además guarda el paciente del turno.
-  - Solo el **profesional autor** lo crea, ve y edita — nunca dueño/admin/staff ni otro
+  - Solo el **profesional autor** lo crea, ve y enmienda — nunca dueño/admin/staff ni otro
     profesional de la misma organización, ni siquiera desde la ficha del paciente.
-  - Editarlo reemplaza los ítems y conserva la fecha de registro; no se borra.
+  - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
+    una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
+    conserva las anteriores y la fecha de registro.
 
 ### CU-46 · Métricas por paciente (alcance)
 
