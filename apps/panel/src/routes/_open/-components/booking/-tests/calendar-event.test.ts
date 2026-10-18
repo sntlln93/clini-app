@@ -23,30 +23,20 @@ const CONFIRMATION: BookingConfirmation = {
 const STAMPED_AT = DateTime.fromISO('2026-07-20T12:00:00Z');
 
 describe('bookingCalendarEvent', () => {
-    it('titles the event by the practice and describes professional and service', () => {
+    // #320: they can reveal the specialty, and the event ends up with a calendar provider.
+    it('titles the event by the practice and names neither the professional nor the service', () => {
         const event = bookingCalendarEvent(CONFIRMATION);
 
         expect(event).toEqual({
             uid: '0123456789abcdef0123456789abcdef@clini.test',
             title: 'Turno en Consultorio Salud',
             description:
-                'Profesional: Ana Gómez\nPrestación: Consulta\nSi necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
+                'Si necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
             location: 'Av. Pellegrini 1500, Rosario, Santa Fe, Argentina',
             startAt: CONFIRMATION.start_at,
             endAt: CONFIRMATION.end_at,
         });
-    });
-
-    it('leaves out the lines whose name the API no longer resolves', () => {
-        const event = bookingCalendarEvent({
-            ...CONFIRMATION,
-            professional_name: null,
-            service_name: null,
-        });
-
-        expect(event.description).toBe(
-            'Si necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
-        );
+        expect(JSON.stringify(event)).not.toMatch(/Ana Gómez|Consulta\b/);
     });
 });
 
@@ -64,7 +54,7 @@ describe('googleCalendarUrl', () => {
             text: 'Turno en Consultorio Salud',
             dates: '20260803T130000Z/20260803T134500Z',
             details:
-                'Profesional: Ana Gómez\nPrestación: Consulta\nSi necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
+                'Si necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.',
             location: 'Av. Pellegrini 1500, Rosario, Santa Fe, Argentina',
         });
     });
@@ -85,10 +75,7 @@ describe('googleCalendarUrl', () => {
 
 describe('icsFile', () => {
     it('is a published VEVENT in UTC, CRLF-terminated, with escaped text', () => {
-        const ics = icsFile(
-            bookingCalendarEvent({ ...CONFIRMATION, professional_name: null }),
-            STAMPED_AT,
-        );
+        const ics = icsFile(bookingCalendarEvent(CONFIRMATION), STAMPED_AT);
 
         expect(ics).toBe(
             [
@@ -103,8 +90,8 @@ describe('icsFile', () => {
                 'DTSTART:20260803T130000Z',
                 'DTEND:20260803T134500Z',
                 'SUMMARY:Turno en Consultorio Salud',
-                'DESCRIPTION:Prestación: Consulta\\nSi necesitás cancelar o reprogramar el ',
-                ' turno\\, comunicate con Consultorio Salud.',
+                'DESCRIPTION:Si necesitás cancelar o reprogramar el turno\\, comunicate con ',
+                ' Consultorio Salud.',
                 'LOCATION:Av. Pellegrini 1500\\, Rosario\\, Santa Fe\\, Argentina',
                 'END:VEVENT',
                 'END:VCALENDAR',
@@ -153,14 +140,15 @@ describe('icsFile control characters', () => {
         const ics = icsFile(
             bookingCalendarEvent({
                 ...CONFIRMATION,
-                organization_name: 'Ana\rLOCATION:otra\u0007 Gómez',
-                professional_name: 'uno\r\ndos\ttres',
+                organization_name:
+                    'Ana\rLOCATION:otra\u0007 Gómez\r\ndos\ttres',
             }),
             STAMPED_AT,
         );
 
-        expect(ics).toContain('SUMMARY:Turno en Ana\\nLOCATION:otra Gómez\r\n');
-        expect(ics).toContain('DESCRIPTION:Profesional: uno\\ndos\ttres\\n');
+        expect(ics).toContain(
+            'SUMMARY:Turno en Ana\\nLOCATION:otra Gómez\\ndos\ttres\r\n',
+        );
         expect(ics.split('\r\nLOCATION:')).toHaveLength(2);
     });
 });

@@ -73,12 +73,12 @@ export const DAY_SLOTS: DaySlot[] = [
         time: '22:30',
         moment: '12 horas antes',
         title: 'Sale el recordatorio del turno de mañana',
-        body: 'Clini le escribe por mail a cada paciente 12 horas antes de su turno, con el día, la hora y el profesional. Cada recordatorio sale una sola vez y queda registrado.',
+        body: 'Clini le escribe por mail a cada paciente 12 horas antes de su turno, con el consultorio, el día y la hora, y un link a los detalles. El mail no nombra al profesional ni la prestación. Cada recordatorio sale una sola vez y queda registrado.',
         detail: {
             rows: [
                 ['Para', 'Lucía Gómez'],
                 ['Turno', 'Mié 15/10 · 10:30'],
-                ['Con', 'Dr. Martín Sosa'],
+                ['Detalles', 'Link al turno'],
                 ['Canal', 'Correo electrónico'],
             ],
         },

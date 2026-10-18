@@ -5,7 +5,9 @@ import type { BookingConfirmation } from '@/types/booking';
  * The booked appointment as a calendar event (#295), built in the browser
  * from the confirmation alone: no endpoint, no patient data. Mirrors the
  * API's `AppointmentCalendarEvent` and `CalendarLink` (the reminder mail's
- * copy of the same event) — keep the two in sync.
+ * copy of the same event) — keep the two in sync. Never the professional
+ * nor the service: they can reveal the specialty, and the event ends up
+ * with a calendar provider (#320, ADR 0018).
  */
 export type CalendarEvent = {
     uid: string;
@@ -22,19 +24,11 @@ export function bookingCalendarEvent(
     confirmation: BookingConfirmation,
 ): CalendarEvent {
     const organization = confirmation.organization_name;
-    const description = [
-        confirmation.professional_name &&
-            `Profesional: ${confirmation.professional_name}`,
-        confirmation.service_name && `Prestación: ${confirmation.service_name}`,
-        `Si necesitás cancelar o reprogramar el turno, comunicate con ${organization}.`,
-    ]
-        .filter(Boolean)
-        .join('\n');
 
     return {
         uid: confirmation.calendar_uid,
         title: `Turno en ${organization}`,
-        description,
+        description: `Si necesitás cancelar o reprogramar el turno, comunicate con ${organization}.`,
         location: confirmation.organization_address,
         startAt: confirmation.start_at,
         endAt: confirmation.end_at,

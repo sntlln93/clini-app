@@ -37,6 +37,22 @@ describe('BookingCalendarLinks', () => {
         );
     });
 
+    // #320: the professional and the service can reveal the specialty; neither goes to a calendar provider.
+    it('carries neither the professional nor the service in either link', () => {
+        render(<BookingCalendarLinks confirmation={CONFIRMATION} />);
+
+        for (const link of screen.getAllByRole('link')) {
+            // Google's query takes `+` for a space.
+            const href = decodeURIComponent(
+                (link.getAttribute('href') ?? '').replace(/\+/g, ' '),
+            );
+            expect(href).toContain('Consultorio Salud');
+            expect(href).not.toContain('Ana Gómez');
+            expect(href).not.toContain('Consulta\n');
+            expect(href).not.toMatch(/Profesional|Prestación/);
+        }
+    });
+
     // Unmerged, the base's `border-transparent` is emitted after `border-border` and wins.
     it('keeps the outline border on both links', () => {
         render(<BookingCalendarLinks confirmation={CONFIRMATION} />);

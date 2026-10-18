@@ -40,3 +40,13 @@ export function formatSlotDateTime(
         timeZoneName: 'short',
     });
 }
+
+/** e.g. "lunes, 3 de agosto de 2026, 10:00": a booked appointment, in the practice's zone. */
+export function formatAppointmentDateTime(
+    isoInstant: string,
+    timeZone: string,
+): string {
+    return fromInstant(isoInstant)
+        .setZone(timeZone)
+        .toLocaleString({ dateStyle: 'full', timeStyle: 'short' });
+}

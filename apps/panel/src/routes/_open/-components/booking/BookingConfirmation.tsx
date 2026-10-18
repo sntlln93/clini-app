@@ -1,7 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { fromInstant } from '@/lib/datetime';
 import { formatPriceCents } from '@/lib/price';
 import type {
     BookingConfirmation as BookingConfirmationData,
@@ -9,6 +8,8 @@ import type {
 } from '@/types/booking';
 
 import { BookingCalendarLinks } from './BookingCalendarLinks';
+import { BookingDetailRow } from './BookingDetailRow';
+import { formatAppointmentDateTime } from './booking-format';
 
 type BookingConfirmationProps = {
     confirmation: BookingConfirmationData;
@@ -17,23 +18,6 @@ type BookingConfirmationProps = {
     service?: BookingService;
     onBookAnother: () => void;
 };
-
-function formatDateTime(isoInstant: string, timeZone: string): string {
-    return fromInstant(isoInstant)
-        .setZone(timeZone)
-        .toLocaleString({ dateStyle: 'full', timeStyle: 'short' });
-}
-
-function DetailRow({ term, value }: { term: string; value: string }) {
-    return (
-        <div className="flex flex-wrap justify-between gap-x-4 gap-y-1">
-            <dt className="text-muted-foreground">{term}</dt>
-            <dd className="min-w-0 text-right font-medium wrap-break-word tabular-nums">
-                {value}
-            </dd>
-        </div>
-    );
-}
 
 /**
  * There is no path back to the submitted form, so the booking can't be
@@ -60,25 +44,28 @@ export function BookingConfirmation({
             <Separator />
 
             <dl className="space-y-2 text-sm">
-                <DetailRow
+                <BookingDetailRow
                     term="Profesional"
                     value={confirmation.professional_name ?? '—'}
                 />
-                <DetailRow
+                <BookingDetailRow
                     term="Prestación"
                     value={confirmation.service_name ?? '—'}
                 />
-                <DetailRow
+                <BookingDetailRow
                     term="Fecha y hora"
-                    value={formatDateTime(confirmation.start_at, timezone)}
+                    value={formatAppointmentDateTime(
+                        confirmation.start_at,
+                        timezone,
+                    )}
                 />
                 {service && (
-                    <DetailRow
+                    <BookingDetailRow
                         term="Duración"
                         value={`${service.duration_minutes} min`}
                     />
                 )}
-                {price && <DetailRow term="Precio" value={price} />}
+                {price && <BookingDetailRow term="Precio" value={price} />}
             </dl>
 
             <BookingCalendarLinks confirmation={confirmation} />

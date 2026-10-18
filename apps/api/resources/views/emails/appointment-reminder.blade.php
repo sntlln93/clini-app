@@ -13,20 +13,18 @@
         </p>
     @endif
 
-    <p>Hola {{ $patientName }},</p>
+    <p>Hola,</p>
 
     <p>
-        Te recordamos tu turno en <strong>{{ $organizationName }}</strong>:
+        Tu turno en <strong>{{ $organizationName }}</strong> es el <strong>{{ $startAt }}</strong>.
     </p>
 
     <p>
-        <strong>Profesional:</strong> {{ $professionalName }}<br>
-        <strong>Servicio:</strong> {{ $serviceName }}<br>
-        <strong>Fecha y hora:</strong> {{ $startAt }}
+        <a href="{{ $detailsUrl }}" style="display: inline-block; padding: 10px 20px; background-color: #111827; color: #ffffff; text-decoration: none; border-radius: 6px;">Ver los detalles del turno</a>
     </p>
 
     <p>
-        <a href="{{ $googleCalendarUrl }}" style="display: inline-block; padding: 10px 20px; background-color: #111827; color: #ffffff; text-decoration: none; border-radius: 6px;">Agregar a Google Calendar</a>
+        <a href="{{ $googleCalendarUrl }}" style="display: inline-block; padding: 10px 20px; border: 1px solid #111827; color: #111827; text-decoration: none; border-radius: 6px;">Agregar a Google Calendar</a>
     </p>
 
     <p style="font-size: 14px; color: #4b5563;">
@@ -34,7 +32,7 @@
     </p>
 
     <p>
-        Si no podés asistir, contactate con la organización para reprogramar o cancelar tu turno.
+        Si no podés asistir, contactate con {{ $organizationName ?? 'el consultorio' }} para reprogramar o cancelar tu turno.
     </p>
 </body>
 </html>

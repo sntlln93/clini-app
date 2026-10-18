@@ -52,5 +52,6 @@ enum ErrorCode: string
     case PlansSubscriptionLive = 'plans.subscription_live';
     case PlansAppointmentLimitReached = 'plans.appointment_limit_reached';
     case BookingLinkNotFound = 'booking.link_not_found';
+    case BookingAppointmentUnavailable = 'booking.appointment_unavailable';
     case ContactRequestsStatusUnchanged = 'contact_requests.status_unchanged';
 }
