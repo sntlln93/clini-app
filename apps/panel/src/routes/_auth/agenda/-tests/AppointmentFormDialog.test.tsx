@@ -569,15 +569,6 @@ describe('AppointmentFormDialog patient registration', () => {
         vi.mocked(api.post).mockReset();
         vi.mocked(api.get).mockImplementation(
             (url: string, config?: { params?: { q?: string } }) => {
-                if (url === '/patients/lookup') {
-                    return Promise.reject({
-                        isAxiosError: true,
-                        response: {
-                            status: 404,
-                            data: { error: { code: 'patients.not_found' } },
-                        },
-                    });
-                }
                 if (url === '/patients') {
                     // The search never catches up with the new patient here: the dialog must still list it.
                     const data = config?.params?.q ? [] : [PATIENT];
@@ -606,6 +597,24 @@ describe('AppointmentFormDialog patient registration', () => {
             },
         );
     });
+
+    // The document lookup is a POST (#322): an unregistered document answers 404.
+    function postWithLookupMiss(url: string) {
+        if (url === '/patients/lookup') {
+            return Promise.reject({
+                isAxiosError: true,
+                response: {
+                    status: 404,
+                    data: { error: { code: 'patients.not_found' } },
+                },
+            });
+        }
+        return Promise.resolve(
+            url === '/patients'
+                ? { data: { data: NEW_PATIENT } }
+                : { data: {} },
+        );
+    }
 
     async function registerFromEmptySearch(search: string, name: string) {
         fireEvent.change(
@@ -636,24 +645,12 @@ describe('AppointmentFormDialog patient registration', () => {
     }
 
     function mockPatientCreate() {
-        vi.mocked(api.post).mockImplementation((url: string) =>
-            Promise.resolve(
-                url === '/patients'
-                    ? { data: { data: NEW_PATIENT } }
-                    : { data: {} },
-            ),
-        );
+        vi.mocked(api.post).mockImplementation(postWithLookupMiss);
     }
 
     // #266: registering the patient used to leave for /pacientes/nuevo, losing the appointment.
     it('registers the patient in a nested dialog and comes back with it selected, keeping what was typed', async () => {
-        vi.mocked(api.post).mockImplementation((url: string) =>
-            Promise.resolve(
-                url === '/patients'
-                    ? { data: { data: NEW_PATIENT } }
-                    : { data: {} },
-            ),
-        );
+        vi.mocked(api.post).mockImplementation(postWithLookupMiss);
         renderDialog(
             { membershipId: 1, date: '2026-08-03', time: '10:00' },
             () => {},
