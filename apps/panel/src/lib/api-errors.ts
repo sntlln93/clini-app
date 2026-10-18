@@ -68,7 +68,7 @@ export class ForbiddenError extends Error {
     }
 }
 
-/** 429: login throttling. */
+/** 429: throttling (the logins, sign-up and the public booking page). */
 export class RateLimitedError extends Error {
     readonly kind = 'rate_limited' as const;
 

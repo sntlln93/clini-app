@@ -46,6 +46,18 @@ export function isMonthFullError(error: unknown): boolean {
     );
 }
 
+/**
+ * The API throttles the public booking page per visitor (#299): a 429 on
+ * booking or on loading the slots. Nothing was created; the patient only has
+ * to wait.
+ */
+export function isRateLimitedError(error: unknown): boolean {
+    return mapToAppError(error).kind === 'rate_limited';
+}
+
+export const RATE_LIMITED_MESSAGE =
+    'Hiciste demasiados intentos. Probá de nuevo en unos minutos.';
+
 export const MONTH_FULL_MESSAGE =
     'No quedan turnos online para ese mes. Elegí una fecha de otro mes o comunicate directamente con el consultorio para pedir un turno.';
 

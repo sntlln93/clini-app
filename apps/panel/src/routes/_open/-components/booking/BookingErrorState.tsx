@@ -6,6 +6,10 @@ import { messageForAppError } from '@/lib/error-codes';
 import type { ErrorComponentProps } from '@tanstack/react-router';
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import {
+    isRateLimitedError,
+    RATE_LIMITED_MESSAGE,
+} from '../../-hooks/use-confirm-booking';
 
 /**
  * The patient-facing pages' `errorComponent`: their visitor is a patient, not a member, so it never offers the panel's
@@ -34,7 +38,9 @@ function PatientErrorState({
             <CardContent className="flex flex-col items-center gap-4">
                 <h1 className="text-xl tracking-tight">{title}</h1>
                 <p className="text-muted-foreground">
-                    {messageForAppError(appError)}
+                    {isRateLimitedError(error)
+                        ? RATE_LIMITED_MESSAGE
+                        : messageForAppError(appError)}
                 </p>
                 {appError.kind !== 'business' && (
                     <Button variant="outline" size="sm" onClick={retry}>
