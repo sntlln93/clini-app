@@ -35,8 +35,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         // Platform-operator login (`throttle:admin-login`): 5 attempts per
-        // minute per email + IP. Behind a proxy without trusted-proxy config
-        // the IP is the proxy's, so it degrades to per-email.
+        // minute per email + IP. Behind a proxy not in TRUSTED_PROXIES
+        // (config/trustedproxy.php) the IP is the proxy's, so it degrades to
+        // per-email.
         // The key is normalized like Admin\LoginRequest's input (trim +
         // lowercase), so padding the email can't open a fresh bucket for the
         // same account; a non-string email keys as empty and is left for the
@@ -49,8 +50,8 @@ class AppServiceProvider extends ServiceProvider
         });
 
         // The landing's contact form (`throttle:contact`, #248): 5 per minute
-        // and 20 per hour per IP. Behind a proxy without trusted-proxy config
-        // every visitor shares the proxy's IP, so the limits become global
+        // and 20 per hour per IP. Behind a proxy not in TRUSTED_PROXIES every
+        // visitor shares the proxy's IP, so the limits become global
         // (docs/architecture/infrastructure.md).
         RateLimiter::for('contact', fn (Request $request): array => [
             Limit::perMinute(5)->by($request->ip()),

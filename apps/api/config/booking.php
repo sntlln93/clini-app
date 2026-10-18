@@ -25,9 +25,10 @@ return [
     | the booking was created), so a burst of parallel requests can get past
     | them; attempts_per_minute, hit before, bounds that.
     |
-    | 0 turns a limit off. Behind a proxy without trusted-proxy config every
-    | visitor shares the proxy's IP, so these become per-organization and
-    | global limits (docs/architecture/infrastructure.md).
+    | 0 turns a limit off. Behind a proxy not in TRUSTED_PROXIES
+    | (config/trustedproxy.php) every visitor shares the proxy's IP, so these
+    | become per-organization and global limits
+    | (docs/architecture/infrastructure.md).
     |
     */
 

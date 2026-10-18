@@ -35,6 +35,13 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        // Which proxies to trust comes from config/trustedproxy.php, read per
+        // request (an env() here would read null once the config is cached).
+        // Only the headers Dokploy's proxy sets: no X-Forwarded-Prefix.
+        $middleware->trustProxies(headers: Request::HEADER_X_FORWARDED_FOR
+            | Request::HEADER_X_FORWARDED_HOST
+            | Request::HEADER_X_FORWARDED_PORT
+            | Request::HEADER_X_FORWARDED_PROTO);
         $middleware->alias([
             'organization' => ResolveCurrentOrganization::class,
             'public-organization' => ResolvePublicOrganization::class,
