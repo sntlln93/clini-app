@@ -22,7 +22,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
 
 | Plan | Cuándo | Qué incluye |
 |---|---|---|
-| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo y, si se configura, un tope de turnos por mes (sin tope por defecto); sin equipo, sala de espera, recetas ni link por profesional |
+| Gratis (`free`) | sin suscripción, checkout pendiente, o cancelada sin período pago por delante | 1 profesional activo y, si se configura, un tope de turnos por mes (sin tope por defecto); sin equipo, sala de espera, medicación indicada ni link por profesional |
 | Consultorio (`practice`) | suscripción `active`, `grace`, `expired` o `cancelled` con `access_ends_at` futuro | todo, sin tope de profesionales |
 | Centro (`center`) | `organizations.assigned_plan = center`, lo asigna un operador | todo; se cobra por fuera de la plataforma |
 
@@ -32,7 +32,7 @@ La suscripción define el plan de la organización, que se calcula y no se guard
   - El job es idempotente y reintenta (5 intentos, de 1 minuto a 1 hora). No toca una suscripción cancelada, una sin preapproval ni una organización en Centro.
   - El overview del dashboard suma esos montos para el MRR; el de una anual cuenta dividido por 12.
 - **Controles en la API** (409 `plans.feature_unavailable` con `context.plan` y `context.feature`):
-  - el middleware `plan.feature:<feature>` en las escrituras de recetas y en `GET /waiting-room`;
+  - el middleware `plan.feature:<feature>` en las escrituras de la medicación indicada y en `GET /waiting-room`;
   - `OrganizationPlan::ensureAllowsMember()` al invitar, al aceptar (con lock de la organización) y al editar miembros: solo se validan los roles que la membresía **gana**;
   - `ensureIncludes()` al definir un link por profesional. Borrar el link siempre se permite, y uno creado antes de bajar de plan sigue resolviendo.
 - **Límite de profesionales:** Gratis con más profesionales activos que el límite responde 409 `plans.professional_limit_exceeded` en el mismo grupo `subscription.active` que la suscripción vencida. Nadie se desactiva solo.
@@ -103,7 +103,7 @@ Consultorio se puede pagar por año con un descuento sobre el precio mensual.
 
 ## Restricción (solo lectura)
 
-Con estado `expired`, todas las escrituras de turnos (alta, estado, cancelación, reprogramación), notas clínicas, recetas, disponibilidad semanal, excepciones y la reserva online pública responden 409 `subscriptions.inactive` (con `context.subscription_status`). Las lecturas siguen permitidas.
+Con estado `expired`, todas las escrituras de turnos (alta, estado, cancelación, reprogramación), notas clínicas, medicación indicada, disponibilidad semanal, excepciones y la reserva online pública responden 409 `subscriptions.inactive` (con `context.subscription_status`). Las lecturas siguen permitidas.
 
 Una suscripción `cancelled` ya no restringe nada (#237): mientras dure su período pago la organización sigue en Consultorio, y después pasa a Gratis, con las restricciones de ese plan (ver Planes). Una organización sin suscripción está en Gratis.
 
@@ -113,8 +113,8 @@ El panel lee la suscripción y el plan una vez en el loader de `_auth` y los obs
 - **Banner:** gracia, vencida, el período pago de una cancelación, Gratis por encima del límite de profesionales, o Gratis con un límite de turnos y el mes actual en el umbral de aviso o lleno. Muestra «Ver plan», que lleva a `/ajustes#suscripcion`. Crear, reprogramar o cancelar un turno en Gratis refresca el plan, así que el contador del banner se actualiza.
 - **Ajustes:** la sección «Plan y suscripción».
 - **Registro (#286, #240):** en Consultorio pregunta la forma de pago (Mensual / Anual), preseleccionada por `?pago=mensual|anual`, que agrega el link de la landing cuando el visitante eligió «Anual».
-- **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda, notas clínicas, recetas y disponibilidad.
-- **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; las recetas se pueden ver e imprimir pero no emitir; invitar y el link por profesional muestran el límite.
+- **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda, notas clínicas, medicación indicada y disponibilidad.
+- **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; la medicación indicada se puede ver pero no registrar; invitar y el link por profesional muestran el límite.
 - **Reserva online:** ante una suscripción vencida o el límite de profesionales excedido, el paciente ve un mensaje genérico que le pide contactar al consultorio, nunca el motivo. Si el mes del turno está lleno, el mensaje le propone elegir otro mes o contactar al consultorio, sin nombrar el plan.
 
 El backend sigue siendo la fuente de verdad.

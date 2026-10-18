@@ -22,19 +22,19 @@ El issue dejó varias decisiones para el triage:
 - **Consultorio** sale de una suscripción que da acceso: activa, en gracia, vencida (que todavía debe su período) o cancelada con período pago por delante (`access_ends_at`).
 - **Gratis** es todo lo demás: sin suscripción, con un checkout pendiente, o cancelada sin período pago por delante. Las organizaciones nuevas nacen en Gratis sin hacer nada.
 
-**Gratis** deja afuera cuatro funciones (`PlanFeature`): equipo (invitar dueños, administración o recepción, o un segundo profesional), sala de espera, recetas y link de reservas por profesional. Además tiene un límite de 1 profesional activo.
+**Gratis** deja afuera cuatro funciones (`PlanFeature`): equipo (invitar dueños, administración o recepción, o un segundo profesional), sala de espera, registro de la medicación indicada (`prescriptions`, #319) y link de reservas por profesional. Además tiene un límite de 1 profesional activo.
 
 La API controla el plan en el servidor:
-- el middleware `plan.feature:<feature>` en las escrituras de recetas y en `GET /waiting-room`;
+- el middleware `plan.feature:<feature>` en las escrituras de la medicación indicada y en `GET /waiting-room`;
 - `OrganizationPlan::ensureAllowsMember()` en invitar, aceptar una invitación (con lock de la organización) y cambiar roles o estado;
 - `OrganizationPlan::ensureIncludes()` al definir un link por profesional.
 
 Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 
 **Bajar de plan no borra ni desactiva nada:**
-- Lo que el plan nuevo no incluye queda en solo lectura: las recetas se ven y se imprimen, y el link por profesional ya creado sigue resolviendo, pero no se puede cambiar.
+- Lo que el plan nuevo no incluye queda en solo lectura: la medicación indicada se sigue viendo, y el link por profesional ya creado sigue resolviendo, pero no se puede cambiar.
 - Solo se validan los roles que una membresía **gana**, así que una organización que bajó de plan puede degradar, suspender o desactivar.
-- Si una organización en Gratis tiene más profesionales activos que el límite, `EnsureSubscriptionActive` responde 409 `plans.professional_limit_exceeded` a las escrituras de agenda, disponibilidad, notas, recetas y reserva online, hasta que pase a Consultorio o desactive profesionales.
+- Si una organización en Gratis tiene más profesionales activos que el límite, `EnsureSubscriptionActive` responde 409 `plans.professional_limit_exceeded` a las escrituras de agenda, disponibilidad, notas, medicación indicada y reserva online, hasta que pase a Consultorio o desactive profesionales.
 
 **Vencida no es lo mismo que cancelada.** Un pago fallido que agota la gracia sigue dejando la agenda en solo lectura, que es lo que promete la landing. Una cancelación, desde el panel o desde Mercado Pago, pasa a Gratis al terminar el período pago, como dejó anotado #261. Cancelar una suscripción vencida es entonces la forma de seguir en Gratis.
 
@@ -77,7 +77,7 @@ Una función que el plan no incluye responde 409 `plans.feature_unavailable`.
 
 - **Una función paga nueva** se agrega como caso de `PlanFeature`. Se controla en la API con `plan.feature` o con `OrganizationPlan`, y el panel la oculta o la explica con `usePlanIncludes` y `PlanFeatureNote`.
 - **Una función exclusiva de Centro** se agrega además al `match` de `Plan::includes()`, que por defecto da toda función paga a Consultorio y a Centro. La primera fue `PlanFeature::Reports` (#242).
-- **Una ruta de escritura nueva** de agenda, notas, recetas o disponibilidad tiene que entrar en el grupo `subscription.active`, que ahora también aplica el límite de profesionales.
+- **Una ruta de escritura nueva** de agenda, notas, medicación indicada o disponibilidad tiene que entrar en el grupo `subscription.active`, que ahora también aplica el límite de profesionales.
 - **`OrganizationFactory` crea organizaciones sin plan asignado**, es decir en Gratis, igual que en producción. Los tests de funciones pagas que no tratan sobre planes usan `Organization::factory()->center()` o `Membership::factory()->onPaidPlan()`.
 - **Fuera de este ADR**, cada uno en su issue:
   - la marca Clini en la reserva (#239, resuelta en ADR 0015);
