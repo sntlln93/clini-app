@@ -31,7 +31,7 @@ Un archivo en el disco del contenedor se pierde en cada redeploy. Guardar la ima
 **Orden de escritura:** el objeto se sube antes de guardar la fila, y el reemplazado se borra después del commit. Si falla la base, se borra el objeto recién subido. Si falla un borrado, queda a lo sumo un objeto huérfano, nunca una fila que apunte a un objeto que no existe. Quitar el logo borra primero la fila y después el objeto.
 
 **El bucket es privado; la API sirve el logo.** `GET /booking/{slug}/logo`, público y bajo `public-organization`, lee el objeto y lo responde con su tipo, `X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'` y un día de caché.
-- La URL sale de `APP_URL` y no del request, porque detrás del proxy que termina TLS el request llega por http.
+- La URL sale de `APP_URL` y no del request: el mail de recordatorio se arma en un job de la cola, donde no hay request, y así la URL no depende de que el proxy que termina TLS esté en `TRUSTED_PROXIES` (sin él, el request llega por http).
 - La URL no cambia aunque cambie el proveedor del bucket, y no vence, así que los mails ya enviados siguen mostrando la imagen.
 
 **Formatos y tamaño:** PNG, JPG o WebP, hasta 512 KB y 2000 px por lado (`StoreOrganizationLogoRequest`).

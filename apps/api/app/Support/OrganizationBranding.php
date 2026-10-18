@@ -44,8 +44,10 @@ final class OrganizationBranding
 
     /**
      * Absolute, so a mail client can load it, and built from APP_URL rather
-     * than the request: behind the TLS-terminating proxy the request is plain
-     * http. The checksum busts caches when the logo is replaced.
+     * than the request: the reminder mail renders in a queued job, with no
+     * request, and the URL stays https even when the TLS-terminating proxy
+     * isn't in TRUSTED_PROXIES. The checksum busts caches when the logo is
+     * replaced.
      */
     public function logoUrl(Organization $organization, OrganizationLogo $logo): string
     {
