@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('appointments/{appointment}/prescriptions', [PrescriptionController::class, 'index']);
 Route::get('patients/{patient}/prescriptions', [PrescriptionController::class, 'indexForPatient']);
-Route::get('prescriptions/{prescription}', [PrescriptionController::class, 'show']);
 
 // Writes are read-only while the subscription is expired (#28) or the
 // organization exceeds its plan's professional limit (#237).

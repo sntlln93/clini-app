@@ -22,7 +22,6 @@ class StorePrescriptionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'diagnosis' => ['nullable', 'string', 'max:2000'],
             'items' => ['required', 'array', 'min:1', 'max:'.self::MAX_ITEMS],
             'items.*' => ['required', 'array'],
             'items.*.medication' => ['required', 'string', 'max:255'],
@@ -30,13 +29,6 @@ class StorePrescriptionRequest extends FormRequest
             'items.*.dosage' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
         ];
-    }
-
-    public function diagnosis(): ?string
-    {
-        $diagnosis = $this->string('diagnosis')->trim()->toString();
-
-        return $diagnosis === '' ? null : $diagnosis;
     }
 
     /**

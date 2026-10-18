@@ -35,8 +35,6 @@ test('a membership that is not the booked professional gets 403 on every endpoin
         ->assertStatus(403);
     $this->actingAs($intruder->user)->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", validPrescriptionPayload())
         ->assertStatus(403);
-    $this->actingAs($intruder->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
-        ->assertStatus(403);
     $this->actingAs($intruder->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", validPrescriptionPayload())
         ->assertStatus(403);
 
@@ -60,14 +58,6 @@ test('another professional of the same organization does not see the author\'s p
 
 // One HTTP call per test: see ClinicalNoteAuthorizationTest for why
 // CurrentOrganization surviving across simulated requests matters here.
-test('a prescription belonging to another organization returns 403 on show', function () {
-    $membership = Membership::factory()->onPaidPlan()->create();
-    $prescription = Prescription::factory()->create();
-
-    $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
-        ->assertStatus(403);
-});
-
 test('a prescription belonging to another organization returns 403 on update', function () {
     $membership = Membership::factory()->onPaidPlan()->create();
     $prescription = Prescription::factory()->create();
@@ -91,6 +81,5 @@ test('a guest gets 401 on every endpoint', function () {
     $this->getJson("/api/v1/appointments/{$prescription->appointment_id}/prescriptions")->assertStatus(401);
     $this->postJson("/api/v1/appointments/{$prescription->appointment_id}/prescriptions", validPrescriptionPayload())->assertStatus(401);
     $this->getJson("/api/v1/patients/{$prescription->patient_id}/prescriptions")->assertStatus(401);
-    $this->getJson("/api/v1/prescriptions/{$prescription->id}")->assertStatus(401);
     $this->patchJson("/api/v1/prescriptions/{$prescription->id}", validPrescriptionPayload())->assertStatus(401);
 });

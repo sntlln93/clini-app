@@ -16,7 +16,6 @@ final readonly class PrescriptionDraftData implements Data
         public int $appointmentId,
         public int $patientId,
         public int $membershipId,
-        public ?string $diagnosis,
         public array $items,
     ) {}
 
@@ -30,7 +29,6 @@ final readonly class PrescriptionDraftData implements Data
             'appointmentId' => $this->appointmentId,
             'patientId' => $this->patientId,
             'membershipId' => $this->membershipId,
-            'diagnosis' => $this->diagnosis,
             'items' => array_map(fn (PrescriptionItemData $item) => $item->toArray(), $this->items),
         ];
     }

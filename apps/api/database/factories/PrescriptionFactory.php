@@ -25,7 +25,6 @@ class PrescriptionFactory extends Factory
             'organization_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->organization_id,
             'membership_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->membership_id,
             'patient_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->patient_id,
-            'diagnosis' => fake()->sentence(),
             'issued_at' => now(),
         ];
     }
