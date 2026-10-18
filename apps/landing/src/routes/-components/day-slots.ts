@@ -8,7 +8,6 @@ export type SlotDetail = {
     field?: { label: string; value: string };
     steps?: { label: string; tone?: AppointmentTone; current?: boolean }[];
     rows?: [string, string][];
-    legal?: string;
 };
 
 export type DaySlot = {
@@ -61,14 +60,13 @@ export const DAY_SLOTS: DaySlot[] = [
     {
         time: '18:40',
         moment: 'Última consulta',
-        title: 'Notas de la visita y receta, en el mismo turno',
-        body: 'Cada nota clínica queda unida a la visita y a quien la escribió. La receta se arma con diagnóstico, medicamento, posología y cantidad, lista para imprimir. Solo la ve el profesional que la emitió.',
+        title: 'Notas de la visita y medicación indicada, en el mismo turno',
+        body: 'Cada nota clínica queda unida a la visita y a quien la escribió. La medicación indicada se registra con medicamento, presentación, posología y cantidad, y queda en la ficha del paciente. Solo la ve el profesional que la indicó.',
         detail: {
             rows: [
-                ['Diagnóstico', 'Faringitis aguda'],
                 ['Amoxicilina 500 mg', '1 c/8 h · x 21'],
+                ['Ibuprofeno 400 mg', 'si hay dolor · x 10'],
             ],
-            legal: 'Documento sin validez como receta electrónica.',
         },
     },
     {

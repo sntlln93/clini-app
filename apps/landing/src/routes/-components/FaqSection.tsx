@@ -8,15 +8,11 @@ const QUESTIONS = [
     },
     {
         q: 'Si un paciente se atiende en otro consultorio con Clini, ¿ven mis notas?',
-        a: 'No. Los datos básicos del paciente se comparten para no cargarlos dos veces, pero las notas clínicas, las recetas y los turnos pertenecen a cada consultorio.',
-    },
-    {
-        q: '¿Las recetas sirven como receta electrónica?',
-        a: 'No. Son recetas estructuradas para imprimir y llevan la leyenda «Documento sin validez como receta electrónica». No reemplazan a la receta electrónica con firma digital de la Ley 27.553.',
+        a: 'No. Los datos básicos del paciente se comparten para no cargarlos dos veces, pero las notas clínicas, la medicación indicada y los turnos pertenecen a cada consultorio.',
     },
     {
         q: '¿Qué pasa si un mes no se puede cobrar la suscripción?',
-        a: 'Te avisamos por mail y tenés 7 días para regularizar. Si vence ese plazo, la agenda queda en solo lectura: podés ver todo, pero no cargar turnos, notas ni recetas hasta que se acredite el pago.',
+        a: 'Te avisamos por mail y tenés 7 días para regularizar. Si vence ese plazo, la agenda queda en solo lectura: podés ver todo, pero no cargar turnos, notas ni medicación indicada hasta que se acredite el pago.',
     },
     {
         q: '¿Cómo cancela un paciente su turno?',
