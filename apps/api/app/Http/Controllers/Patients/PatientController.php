@@ -81,8 +81,15 @@ class PatientController extends Controller
         // Appointment's own BelongsToOrganization global scope already
         // restricts this to the active organization (set by the
         // `organization` route middleware before this controller runs).
+        // A past appointment keeps its professional and service after a
+        // deactivation or removal soft-deletes them.
         $appointments = $patient->appointments()
-            ->with(['membership.user', 'service', 'organization'])
+            ->with([
+                'membership' => fn ($query) => $query->withTrashed(),
+                'membership.user',
+                'service' => fn ($query) => $query->withTrashed(),
+                'organization',
+            ])
             ->orderBy('start_at', 'desc')
             ->get();
 
