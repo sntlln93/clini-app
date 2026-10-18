@@ -14,7 +14,6 @@ final class MembershipSlugNotAllowedForRoleException extends DomainException
 {
     public function __construct(
         private readonly int $membershipId,
-        private readonly ?string $slug,
     ) {
         parent::__construct('Only professional memberships may have a public slug.');
     }
@@ -36,7 +35,6 @@ final class MembershipSlugNotAllowedForRoleException extends DomainException
     {
         return [
             'membership_id' => $this->membershipId,
-            'slug' => $this->slug,
         ];
     }
 }

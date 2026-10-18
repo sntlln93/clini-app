@@ -14,7 +14,6 @@ final class MembershipSlugInvalidFormatException extends DomainException
 {
     public function __construct(
         private readonly int $membershipId,
-        private readonly string $slug,
     ) {
         parent::__construct('The slug does not match the required format.');
     }
@@ -36,7 +35,6 @@ final class MembershipSlugInvalidFormatException extends DomainException
     {
         return [
             'membership_id' => $this->membershipId,
-            'slug' => $this->slug,
         ];
     }
 }

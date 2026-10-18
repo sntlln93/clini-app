@@ -21,7 +21,7 @@ test('lookup resolves a patient that exists globally but is not linked to the ac
     ]);
 
     $response = $this->actingAs($membership->user)
-        ->getJson('/api/v1/patients/lookup?document_type=dni&document_number=50505050');
+        ->postJson('/api/v1/patients/lookup', ['document_type' => 'dni', 'document_number' => '50505050']);
 
     $response->assertOk();
     expect($response->json('data.id'))->toBe($patient->id);
@@ -35,7 +35,7 @@ test('lookup does not link the resolved patient to the active organization', fun
     ]);
 
     $this->actingAs($membership->user)
-        ->getJson('/api/v1/patients/lookup?document_type=dni&document_number=60606060')
+        ->postJson('/api/v1/patients/lookup', ['document_type' => 'dni', 'document_number' => '60606060'])
         ->assertOk();
 
     expect(DB::table('organization_patient')->where('patient_id', $patient->id)->count())->toBe(0);
@@ -45,7 +45,7 @@ test('lookup returns 404 with the patients-not-found domain error for an unknown
     $membership = Membership::factory()->create();
 
     $response = $this->actingAs($membership->user)
-        ->getJson('/api/v1/patients/lookup?document_type=dni&document_number=00000001');
+        ->postJson('/api/v1/patients/lookup', ['document_type' => 'dni', 'document_number' => '00000001']);
 
     $response->assertStatus(404);
     $response->assertJsonPath('error.code', ErrorCode::PatientsNotFound->value);
@@ -55,10 +55,10 @@ test('lookup returns 422 when document_type or document_number is missing', func
     $membership = Membership::factory()->create();
 
     $this->actingAs($membership->user)
-        ->getJson('/api/v1/patients/lookup?document_number=12345678')
+        ->postJson('/api/v1/patients/lookup', ['document_number' => '12345678'])
         ->assertStatus(422);
 
     $this->actingAs($membership->user)
-        ->getJson('/api/v1/patients/lookup?document_type=dni')
+        ->postJson('/api/v1/patients/lookup', ['document_type' => 'dni'])
         ->assertStatus(422);
 });

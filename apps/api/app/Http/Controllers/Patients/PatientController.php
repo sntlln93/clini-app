@@ -112,7 +112,7 @@ class PatientController extends Controller
             ->first();
 
         if ($patient === null) {
-            throw new PatientNotFoundException($documentType, $documentNumber);
+            throw new PatientNotFoundException;
         }
 
         return new PatientResource($patient);

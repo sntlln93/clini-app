@@ -8,14 +8,12 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * Patients are global entities, not per-organization, so no patient identifier exists to leak here.
+ * A miss has no patient id to log, and the searched document is personal data — of someone who may not even be a patient — so the log carries nothing.
  */
 final class PatientNotFoundException extends DomainException
 {
-    public function __construct(
-        private readonly string $documentType,
-        private readonly string $documentNumber,
-    ) {
+    public function __construct()
+    {
         parent::__construct('No patient matches the given document.');
     }
 
@@ -34,9 +32,6 @@ final class PatientNotFoundException extends DomainException
      */
     public function logContext(): array
     {
-        return [
-            'document_type' => $this->documentType,
-            'document_number' => $this->documentNumber,
-        ];
+        return [];
     }
 }

@@ -12,9 +12,8 @@ use App\Exceptions\DomainException;
  */
 final class BookingLinkNotFoundException extends DomainException
 {
-    public function __construct(
-        private readonly string $slug,
-    ) {
+    public function __construct()
+    {
         parent::__construct('No booking link matches this slug.');
     }
 
@@ -33,8 +32,7 @@ final class BookingLinkNotFoundException extends DomainException
      */
     public function logContext(): array
     {
-        return [
-            'slug' => $this->slug,
-        ];
+        // A professional's public slug is usually their name, and a mistyped one may name anyone.
+        return [];
     }
 }

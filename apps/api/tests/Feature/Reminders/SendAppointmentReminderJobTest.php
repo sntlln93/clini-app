@@ -9,6 +9,7 @@ use App\Mail\Appointments\AppointmentReminderMail;
 use App\Models\Appointment;
 use App\Models\Patient;
 use App\Models\Reminder;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 test('a queued reminder for an active appointment is sent and marked sent', function () {
@@ -120,4 +121,24 @@ test('failed() marks the reminder failed', function () {
     $reminder->refresh();
     expect($reminder->status)->toBe(ReminderStatus::Failed);
     expect($reminder->sent_at)->toBeNull();
+});
+
+test('failed() logs the exception class, never its message', function () {
+    Log::spy();
+    $appointment = Appointment::factory()->create(['status' => AppointmentStatus::Scheduled]);
+    $reminder = Reminder::factory()->create([
+        'organization_id' => $appointment->organization_id,
+        'appointment_id' => $appointment->id,
+        'status' => ReminderStatus::Queued,
+    ]);
+
+    (new SendAppointmentReminderJob($reminder))->failed(new RuntimeException('550 <patient@example.com>: Recipient address rejected'));
+
+    Log::shouldHaveReceived('error')->once()->withArgs(
+        fn (string $message, array $context) => $context === [
+            'reminder_id' => $reminder->id,
+            'appointment_id' => $appointment->id,
+            'exception' => RuntimeException::class,
+        ],
+    );
 });

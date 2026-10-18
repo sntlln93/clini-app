@@ -50,7 +50,7 @@ class SetMembershipSlugAction implements Action
             $roles = $membership->roles;
 
             if (! in_array(MembershipRole::Professional, $roles, true)) {
-                throw new MembershipSlugNotAllowedForRoleException($membership->id, $dto->slug);
+                throw new MembershipSlugNotAllowedForRoleException($membership->id);
             }
 
             $slug = $dto->slug !== null && $dto->slug !== '' ? $dto->slug : null;
@@ -64,14 +64,14 @@ class SetMembershipSlugAction implements Action
             $this->plans->ensureIncludes($membership->organization_id, PlanFeature::ProfessionalBookingLinks);
 
             if (! $this->hasValidFormat($slug)) {
-                throw new MembershipSlugInvalidFormatException($membership->id, $slug);
+                throw new MembershipSlugInvalidFormatException($membership->id);
             }
 
             // Serialises concurrent requests for this slug (ADR 0004); must run before isTaken(), whose unlocked lookups would otherwise race under READ COMMITTED.
             DB::statement('select pg_advisory_xact_lock(hashtext(?))', [$slug]);
 
             if ($this->isTaken($membership, $slug)) {
-                throw new MembershipSlugTakenException($membership->id, $slug);
+                throw new MembershipSlugTakenException($membership->id);
             }
 
             $membership->update(['slug' => $slug]);
