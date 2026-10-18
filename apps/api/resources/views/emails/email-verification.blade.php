@@ -5,6 +5,8 @@
     <title>Confirmá tu correo en Clini</title>
 </head>
 <body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
+    @include('emails.partials.brand-header')
+
     <p>Hola {{ $name }},</p>
 
     <p>

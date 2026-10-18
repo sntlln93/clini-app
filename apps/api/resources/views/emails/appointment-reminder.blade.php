@@ -5,6 +5,8 @@
     <title>Recordatorio de turno</title>
 </head>
 <body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
+    @include('emails.partials.brand-header')
+
     @if ($logoUrl)
         <p>
             <img src="{{ $logoUrl }}" alt="{{ $organizationName }}" style="max-height: 64px; max-width: 240px;">

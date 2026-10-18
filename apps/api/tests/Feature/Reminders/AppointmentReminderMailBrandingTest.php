@@ -37,7 +37,7 @@ test('the reminder shows the organization logo, by absolute URL, on a paid plan'
 test('the reminder has no logo on a paid plan without one', function () {
     $mail = reminderFor(Organization::factory()->center()->create());
 
-    $mail->assertDontSeeInHtml('<img', false);
+    $mail->assertDontSeeInHtml('/logo?v=', false);
 });
 
 test('the reminder of a suspended organization has no logo, whose route answers 403', function () {
@@ -46,7 +46,7 @@ test('the reminder of a suspended organization has no logo, whose route answers 
 
     $mail = reminderFor($organization);
 
-    $mail->assertDontSeeInHtml('<img', false);
+    $mail->assertDontSeeInHtml('/logo?v=', false);
 });
 
 test('the reminder has no logo on Free, even with one kept from a paid plan', function () {
@@ -55,5 +55,5 @@ test('the reminder has no logo on Free, even with one kept from a paid plan', fu
 
     $mail = reminderFor($organization);
 
-    $mail->assertDontSeeInHtml('<img', false);
+    $mail->assertDontSeeInHtml('/logo?v=', false);
 });

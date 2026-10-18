@@ -5,6 +5,8 @@
     <title>Nueva consulta comercial</title>
 </head>
 <body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
+    @include('emails.partials.brand-header')
+
     <p>Entró una consulta desde el formulario de contacto de la landing.</p>
 
     <p>
