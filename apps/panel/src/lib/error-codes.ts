@@ -49,6 +49,7 @@ export type ErrorCode =
     | 'contact_requests.status_unchanged'
     | 'clinical_notes.annulled'
     | 'clinical_notes.amendment_unchanged'
+    | 'clinical_notes.diagnosis_retired'
     | 'prescriptions.amendment_unchanged';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
@@ -140,7 +141,9 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'clinical_notes.annulled':
         'La nota está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'clinical_notes.amendment_unchanged':
-        'La enmienda no cambia el texto actual de la nota. Corregí el texto o cancelá la enmienda.',
+        'La enmienda no cambia el texto ni los diagnósticos actuales de la nota. Corregí alguno o cancelá la enmienda.',
+    'clinical_notes.diagnosis_retired':
+        'Uno de los diagnósticos que agregaste fue dado de baja en el catálogo CIE-10. Quitalo y elegí otro.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación registrada. Corregí algún medicamento o cancelá la enmienda.',
 };

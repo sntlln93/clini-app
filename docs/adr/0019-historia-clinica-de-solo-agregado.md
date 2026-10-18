@@ -39,5 +39,5 @@ Hasta ahora el autor podía editar una nota (`PATCH`, que pisaba el texto) y bor
 - El autor ya no puede editar ni borrar. El panel ofrece «Enmendar» y «Anular», y cada diálogo lo explica.
 - Una anulación no se deshace. Si se anula por error, la nota se vuelve a escribir.
 - El trigger también bloquea a cualquier proceso futuro que necesite borrar historia clínica: la exportación por baja (#329) o el vencimiento a los 10 años (Ley 26.529, art. 18). Un proceso así tiene que ser explícito y pasar por su propio ADR.
-- El diagnóstico estructurado (#324) entra como dato de una versión de la nota: cambiarlo es una enmienda.
+- El diagnóstico estructurado (#324) entra como dato de una versión de la nota: cambiarlo es una enmienda (ADR 0020).
 - Relajar cómo se muestra lo anulado o el historial es un cambio de interfaz, sin migrar datos.

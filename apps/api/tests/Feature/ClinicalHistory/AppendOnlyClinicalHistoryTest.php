@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
+use App\Models\Icd10Code;
 use App\Models\Membership;
 use App\Models\Prescription;
+use App\Support\ClinicalNoteDiagnoses;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
 use Illuminate\Routing\Route as RoutingRoute;
@@ -17,6 +19,9 @@ afterEach(function () {
 });
 
 const APPEND_ONLY_MIGRATION = 'migrations/2026_10_18_000001_make_clinical_records_append_only.php';
+
+// Its triggers use the append-only migration's function, so it rolls back first.
+const DIAGNOSES_MIGRATION = 'migrations/2026_10_18_000003_create_clinical_note_diagnoses_table.php';
 
 /**
  * Runs one statement in its own savepoint, so the error it raises doesn't
@@ -52,7 +57,7 @@ test('the old edit and delete endpoints are gone', function () {
 test('the database rejects updating or deleting any row of the clinical history', function (string $table, Closure $rowId) {
     $id = $rowId();
 
-    expect(inSavepoint(fn () => DB::table($table)->where('id', $id)->update(['created_at' => now()])))
+    expect(inSavepoint(fn () => DB::table($table)->where('id', $id)->update(['id' => $id])))
         ->toThrow(QueryException::class, 'append-only');
     expect(inSavepoint(fn () => DB::table($table)->where('id', $id)->delete()))
         ->toThrow(QueryException::class, 'append-only');
@@ -68,6 +73,12 @@ test('the database rejects updating or deleting any row of the clinical history'
 
         return $note->annulment()->create(['membership_id' => $note->membership_id, 'reason' => 'Anulada.'])->id;
     }],
+    'clinical_note_diagnoses' => ['clinical_note_diagnoses', function () {
+        $version = ClinicalNote::factory()->create()->versions()->sole();
+        ClinicalNoteDiagnoses::record($version, [Icd10Code::factory()->create()->id]);
+
+        return $version->diagnoses()->sole()->id;
+    }],
     'prescriptions' => ['prescriptions', fn () => Prescription::factory()->create()->id],
     'prescription_versions' => ['prescription_versions', fn () => Prescription::factory()->create()->versions()->sole()->id],
     'prescription_items' => ['prescription_items', fn () => Prescription::factory()->create()->versions()->sole()->items()->sole()->id],
@@ -76,7 +87,9 @@ test('the database rejects updating or deleting any row of the clinical history'
 test('the migration turns existing rows into version 1 and restores soft-deleted notes as annulled', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create(['organization_id' => $membership->organization_id, 'membership_id' => $membership->id]);
+    $diagnosesMigration = require database_path(DIAGNOSES_MIGRATION);
     $migration = require database_path(APPEND_ONLY_MIGRATION);
+    $diagnosesMigration->down();
     $migration->down();
 
     $legacy = [
@@ -92,6 +105,7 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     }
 
     $migration->up();
+    $diagnosesMigration->up();
 
     $edited = ClinicalNote::with('versions', 'annulment')->findOrFail($editedNoteId);
     expect($edited->versions)->toHaveCount(1)
@@ -127,6 +141,7 @@ test('rolling the migration back keeps the latest version and brings annulled no
     $prescription->versions()->create(['version' => 2, 'membership_id' => $prescription->membership_id])
         ->items()->create(['position' => 0, 'medication' => 'Paracetamol', 'dosage' => '1 cada 6 h', 'quantity' => 2]);
 
+    (require database_path(DIAGNOSES_MIGRATION))->down();
     (require database_path(APPEND_ONLY_MIGRATION))->down();
 
     $legacyNote = DB::table('clinical_notes')->where('id', $note->id)->sole();

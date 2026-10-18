@@ -16,6 +16,7 @@ use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -93,10 +94,12 @@ class SchedulingSeeder extends Seeder
             DB::statement("SELECT set_config('clini.clinical_records_purge', 'on', true)");
 
             $notes = ClinicalNote::where('organization_id', $organization->id)->select('id');
+            $noteVersions = ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->select('id');
             $prescriptions = Prescription::where('organization_id', $organization->id)->select('id');
             $prescriptionVersions = PrescriptionVersion::whereIn('prescription_id', $prescriptions)->select('id');
 
             ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();
+            ClinicalNoteDiagnosis::whereIn('clinical_note_version_id', $noteVersions)->delete();
             ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->delete();
             ClinicalNote::where('organization_id', $organization->id)->delete();
             PrescriptionItem::whereIn('prescription_version_id', $prescriptionVersions)->delete();

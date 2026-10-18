@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
 import { AmendmentReasonField } from '@/features/clinical-history/AmendmentReasonField';
+import { DiagnosesField } from '@/features/clinical-history/DiagnosesField';
 import {
     noteAmendmentSchema,
     type NoteAmendmentFormValues,
@@ -34,10 +35,15 @@ type ClinicalNoteFormProps = {
     onSaved: () => void;
 };
 
-const EMPTY_VALUES: NoteAmendmentFormValues = { body: '', reason: '' };
+const EMPTY_VALUES: NoteAmendmentFormValues = {
+    body: '',
+    diagnoses: [],
+    reason: '',
+};
 
 // Form for a single note: adds one when `amendingNote` is null, amends it
-// otherwise (#323) — the reason only goes out with an amendment.
+// otherwise (#323) — the reason only goes out with an amendment. An amendment
+// starts from the current text and diagnoses (#324).
 export function ClinicalNoteForm({
     appointment,
     open,
@@ -61,21 +67,30 @@ export function ClinicalNoteForm({
 
         form.reset(
             amendingNote
-                ? { body: amendingNote.body, reason: '' }
+                ? {
+                      body: amendingNote.body,
+                      diagnoses: amendingNote.diagnoses,
+                      reason: '',
+                  }
                 : EMPTY_VALUES,
         );
     }, [open, amendingNote, form]);
 
     async function onSubmit(values: NoteAmendmentFormValues) {
+        const icd10CodeIds = values.diagnoses.map(
+            (diagnosis) => diagnosis.icd10_code_id,
+        );
+
         try {
             if (amendingNote) {
                 await amend.mutateAsync({
                     id: amendingNote.id,
                     body: values.body,
+                    icd10CodeIds,
                     reason: values.reason || null,
                 });
             } else {
-                await create.mutateAsync(values.body);
+                await create.mutateAsync({ body: values.body, icd10CodeIds });
             }
             form.reset(EMPTY_VALUES);
             onSaved();
@@ -120,6 +135,7 @@ export function ClinicalNoteForm({
                         </FormItem>
                     )}
                 />
+                <DiagnosesField control={form.control} name="diagnoses" />
                 {amendingNote && (
                     <AmendmentReasonField
                         control={form.control}

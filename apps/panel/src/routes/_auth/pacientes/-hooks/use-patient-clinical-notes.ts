@@ -7,7 +7,7 @@ import { api } from '@/lib/api';
 import { mapToAppError } from '@/lib/api-errors';
 import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
-import type { ClinicalNote } from '@/types/clinical-note';
+import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
@@ -45,9 +45,10 @@ export function useCreatePatientClinicalNote(
     const refreshPageData = useRefreshPageData();
 
     const mutation = useMutation({
-        mutationFn: (body: string) =>
+        mutationFn: ({ body, icd10CodeIds }: NoteDraft) =>
             api.post(`/appointments/${appointmentId}/clinical-notes`, {
                 body,
+                icd10_code_ids: icd10CodeIds,
             }),
         onSuccess: () =>
             refreshPageData(

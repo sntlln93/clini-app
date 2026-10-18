@@ -87,7 +87,8 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `users.email_already_verified` | 409 | `VerifyUserEmailManuallyAction` (dashboard) | |
 | `contact_requests.status_unchanged` | 409 | `ChangeContactRequestStatusAction` (dashboard) | |
 | `clinical_notes.annulled` | 409 | `AmendClinicalNoteAction`, `AnnulClinicalNoteAction` (la nota ya está anulada, ADR 0019) | |
-| `clinical_notes.amendment_unchanged` | 409 | `AmendClinicalNoteAction` (la enmienda repite el texto vigente) | |
+| `clinical_notes.amendment_unchanged` | 409 | `AmendClinicalNoteAction` (la enmienda repite el texto y los diagnósticos vigentes) | |
+| `clinical_notes.diagnosis_retired` | 409 | `WriteClinicalNoteAction`, `AmendClinicalNoteAction` (se agrega un código CIE-10 dado de baja en el catálogo, ADR 0020) | |
 | `prescriptions.amendment_unchanged` | 409 | `AmendPrescriptionAction` (la enmienda repite la medicación vigente) | |
 
 Las rutas `/api/v1/admin/*` suman un rechazo que **no** es un código de dominio: `EnsureDashboardOrigin` responde un `403 {"message":"Forbidden."}` plano (sin sobre `error`) cuando el `Origin`/`Referer` del pedido no está en `ADMIN_ALLOWED_ORIGINS`. Es una aserción de seguridad, no un flujo de negocio — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).

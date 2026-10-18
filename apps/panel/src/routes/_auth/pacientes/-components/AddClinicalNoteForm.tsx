@@ -11,6 +11,7 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
+import { DiagnosesField } from '@/features/clinical-history/DiagnosesField';
 import { noteSchema, type NoteFormValues } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { useCreatePatientClinicalNote } from '../-hooks/use-patient-clinical-notes';
@@ -21,7 +22,7 @@ type AddClinicalNoteFormProps = {
     onSaved: () => void;
 };
 
-const EMPTY_VALUES: NoteFormValues = { body: '' };
+const EMPTY_VALUES: NoteFormValues = { body: '', diagnoses: [] };
 
 // Reuses the shared `noteSchema` validation (issue #217, whose body rule
 // `agenda/-components/ClinicalNoteForm.tsx` shares): this is a create-only
@@ -41,7 +42,12 @@ export function AddClinicalNoteForm({
 
     async function onSubmit(values: NoteFormValues) {
         try {
-            await create.mutateAsync(values.body);
+            await create.mutateAsync({
+                body: values.body,
+                icd10CodeIds: values.diagnoses.map(
+                    (diagnosis) => diagnosis.icd10_code_id,
+                ),
+            });
             form.reset(EMPTY_VALUES);
             onSaved();
         } catch (error) {
@@ -82,6 +88,7 @@ export function AddClinicalNoteForm({
                         </FormItem>
                     )}
                 />
+                <DiagnosesField control={form.control} name="diagnoses" />
                 <Button
                     type="submit"
                     size="sm"

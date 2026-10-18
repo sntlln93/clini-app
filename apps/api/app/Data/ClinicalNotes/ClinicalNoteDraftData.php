@@ -8,11 +8,15 @@ use App\Contracts\Data;
 
 final readonly class ClinicalNoteDraftData implements Data
 {
+    /**
+     * @param  list<int>  $icd10CodeIds  the note's diagnoses, in order (#324)
+     */
     public function __construct(
         public int $organizationId,
         public int $appointmentId,
         public int $membershipId,
         public string $body,
+        public array $icd10CodeIds,
     ) {}
 
     /**
@@ -25,6 +29,7 @@ final readonly class ClinicalNoteDraftData implements Data
             'appointmentId' => $this->appointmentId,
             'membershipId' => $this->membershipId,
             'body' => $this->body,
+            'icd10CodeIds' => $this->icd10CodeIds,
         ];
     }
 }

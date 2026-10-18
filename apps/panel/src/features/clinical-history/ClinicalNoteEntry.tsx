@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { StatusPill } from '@/components/StatusPill';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { ClinicalNote } from '@/types/clinical-note';
+import { DiagnosisList } from './DiagnosisList';
 import { VersionHistory } from './VersionHistory';
 
 type ClinicalNoteEntryProps = {
@@ -12,9 +13,9 @@ type ClinicalNoteEntryProps = {
     actions?: ReactNode;
 };
 
-// One note as the clinical history keeps it (#323): the current text, every
-// earlier version, and an annulled note's text behind a disclosure, since it
-// no longer counts but is never erased.
+// One note as the clinical history keeps it (#323): the current text and
+// diagnoses (#324), every earlier version, and an annulled note's content
+// behind a disclosure, since it no longer counts but is never erased.
 export function ClinicalNoteEntry({
     note,
     meta,
@@ -40,15 +41,24 @@ export function ClinicalNoteEntry({
                         <p className="mt-2 text-sm whitespace-pre-wrap">
                             {note.body}
                         </p>
+                        <div className="text-sm">
+                            <DiagnosisList diagnoses={note.diagnoses} />
+                        </div>
                     </details>
                 </div>
             ) : (
-                <p className="whitespace-pre-wrap">{note.body}</p>
+                <>
+                    <p className="whitespace-pre-wrap">{note.body}</p>
+                    <DiagnosisList diagnoses={note.diagnoses} />
+                </>
             )}
             <VersionHistory
                 versions={note.versions}
                 renderContent={(version) => (
-                    <p className="whitespace-pre-wrap">{version.body}</p>
+                    <>
+                        <p className="whitespace-pre-wrap">{version.body}</p>
+                        <DiagnosisList diagnoses={version.diagnoses} />
+                    </>
                 )}
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">

@@ -242,8 +242,9 @@
  * Native `<button>`/`<a>`/`<input>` are scoped to `#root`, the SPAs' mount
  * node, so nothing injected outside the app is resized. The landing is
  * server-rendered and has no `#root`, so only the `data-slot` selectors can
- * reach it. Select and dropdown-menu items are `<div>`s, so they need their
- * own selectors.
+ * reach it. Select, combobox and dropdown-menu items are `<div>`s, so they
+ * need their own selectors, and so does an input group: its input grows to
+ * 44px, and the group's own `h-8` box has to grow with it.
  *
  * Checkbox, radio and switch (base-ui `<span>`s) are the exception: their
  * box *is* the drawing, so a 44px floor turns a 16px checkbox into a 44px
@@ -269,6 +270,8 @@
     #root input:not(.touch-target-exempt),
     [data-slot='select-trigger']:not(.touch-target-exempt),
     [data-slot='select-item']:not(.touch-target-exempt),
+    [data-slot='combobox-item']:not(.touch-target-exempt),
+    [data-slot='input-group']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-item']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-checkbox-item']:not(.touch-target-exempt),
     [data-slot='dropdown-menu-radio-item']:not(.touch-target-exempt),

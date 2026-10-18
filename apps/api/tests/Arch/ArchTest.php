@@ -9,6 +9,7 @@ use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
@@ -333,6 +334,7 @@ arch('clinical history models are never soft-deleted')
         ClinicalNote::class,
         ClinicalNoteVersion::class,
         ClinicalNoteAnnulment::class,
+        ClinicalNoteDiagnosis::class,
         Prescription::class,
         PrescriptionVersion::class,
         PrescriptionItem::class,

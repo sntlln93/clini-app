@@ -112,7 +112,7 @@ describe('ClinicalNotesDialog', () => {
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(
                 '/appointments/42/clinical-notes',
-                { body: 'Paciente refiere mejoría.' },
+                { body: 'Paciente refiere mejoría.', icd10_code_ids: [] },
             ),
         );
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
@@ -188,8 +188,43 @@ describe('ClinicalNotesDialog', () => {
                 '/clinical-notes/7/amendments',
                 {
                     body: 'Nota corregida tras la consulta.',
+                    icd10_code_ids: [],
                     reason: 'Dosis mal escrita.',
                 },
+            ),
+        );
+    });
+
+    it('an amendment starts from the current diagnoses and sends what is left of them (#324)', async () => {
+        const note = buildNote({
+            id: 7,
+            body: 'Nota original.',
+            diagnoses: [
+                { icd10_code_id: 3, code: 'R51', description: 'Cefalea' },
+                {
+                    icd10_code_id: 4,
+                    code: 'G43.9',
+                    description: 'Migraña, no especificada',
+                },
+            ],
+        });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderDialog();
+
+        await screen.findByText('Nota original.');
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Quitar R51' }),
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/7/amendments',
+                { body: 'Nota original.', icd10_code_ids: [4], reason: null },
             ),
         );
     });
@@ -216,7 +251,7 @@ describe('ClinicalNotesDialog', () => {
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(
                 '/clinical-notes/7/amendments',
-                { body: 'Nota corregida.', reason: null },
+                { body: 'Nota corregida.', icd10_code_ids: [], reason: null },
             ),
         );
     });

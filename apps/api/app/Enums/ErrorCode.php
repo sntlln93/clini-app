@@ -56,5 +56,6 @@ enum ErrorCode: string
     case ContactRequestsStatusUnchanged = 'contact_requests.status_unchanged';
     case ClinicalNotesAnnulled = 'clinical_notes.annulled';
     case ClinicalNotesAmendmentUnchanged = 'clinical_notes.amendment_unchanged';
+    case ClinicalNotesDiagnosisRetired = 'clinical_notes.diagnosis_retired';
     case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
 }

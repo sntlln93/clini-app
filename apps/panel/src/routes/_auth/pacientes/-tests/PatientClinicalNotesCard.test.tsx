@@ -99,6 +99,29 @@ describe('PatientClinicalNotesCard', () => {
         expect(screen.getByText('Dr. Luis Perez')).toBeTruthy();
     });
 
+    it("shows each note's ICD-10 diagnoses in the patient's record (#324)", async () => {
+        renderCard({
+            notes: [
+                buildNote({
+                    body: 'Dolor de garganta.',
+                    diagnoses: [
+                        {
+                            icd10_code_id: 7,
+                            code: 'J02.9',
+                            description: 'Faringitis aguda, no especificada',
+                        },
+                    ],
+                }),
+            ],
+        });
+
+        await screen.findByText('Dolor de garganta.');
+        expect(screen.getByText('J02.9')).toBeTruthy();
+        expect(
+            screen.getByText('Faringitis aguda, no especificada'),
+        ).toBeTruthy();
+    });
+
     it('shows the "Agregar nota" control when there is an own appointment today', async () => {
         renderCard({ todaysAppointmentId: 77 });
 
@@ -203,7 +226,7 @@ describe('PatientClinicalNotesCard', () => {
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(
                 '/appointments/77/clinical-notes',
-                { body: 'Paciente refiere mejoría.' },
+                { body: 'Paciente refiere mejoría.', icd10_code_ids: [] },
             ),
         );
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));

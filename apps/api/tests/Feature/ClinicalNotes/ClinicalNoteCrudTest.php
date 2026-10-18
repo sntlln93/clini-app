@@ -149,7 +149,7 @@ test('the resource payload exposes exactly the fields ClinicalNoteResource decla
 
     $response->assertCreated();
     expect(array_keys($response->json('data')))->toEqualCanonicalizing([
-        'id', 'appointment_id', 'membership_id', 'body', 'version', 'created_at', 'amended_at', 'annulment', 'versions',
+        'id', 'appointment_id', 'membership_id', 'body', 'diagnoses', 'version', 'created_at', 'amended_at', 'annulment', 'versions',
     ]);
     $response->assertJsonPath('data.version', 1)
         ->assertJsonPath('data.amended_at', null)
@@ -157,7 +157,7 @@ test('the resource payload exposes exactly the fields ClinicalNoteResource decla
         ->assertJsonCount(1, 'data.versions')
         ->assertJsonPath('data.versions.0.body', 'Nota de control.')
         ->assertJsonPath('data.versions.0.reason', null);
-    expect(array_keys($response->json('data.versions.0')))->toEqualCanonicalizing(['version', 'body', 'reason', 'created_at']);
+    expect(array_keys($response->json('data.versions.0')))->toEqualCanonicalizing(['version', 'body', 'diagnoses', 'reason', 'created_at']);
 });
 
 test('store keeps the text as version 1, written by the author', function () {

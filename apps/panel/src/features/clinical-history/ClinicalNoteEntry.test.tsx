@@ -11,12 +11,14 @@ const AMENDED = buildClinicalNote({
         {
             version: 1,
             body: 'Texto original.',
+            diagnoses: [],
             reason: null,
             created_at: '2026-08-03T09:00:00Z',
         },
         {
             version: 2,
             body: 'Texto corregido.',
+            diagnoses: [],
             reason: 'Dosis mal escrita.',
             created_at: '2026-08-04T10:00:00Z',
         },
@@ -68,5 +70,88 @@ describe('ClinicalNoteEntry (#323)', () => {
             .closest('details');
         expect(disclosure?.open).toBe(false);
         expect(disclosure?.textContent).toContain('Nota anulada.');
+    });
+
+    it('lists the current diagnoses under the text, and each version keeps its own (#324)', () => {
+        const headache = {
+            icd10_code_id: 3,
+            code: 'R51',
+            description: 'Cefalea',
+        };
+        const migraine = {
+            icd10_code_id: 4,
+            code: 'G43.9',
+            description: 'Migraña, no especificada',
+        };
+        render(
+            <ClinicalNoteEntry
+                note={buildClinicalNote({
+                    body: 'Texto.',
+                    diagnoses: [migraine],
+                    version: 2,
+                    versions: [
+                        {
+                            version: 1,
+                            body: 'Texto.',
+                            diagnoses: [headache],
+                            reason: null,
+                            created_at: '2026-08-03T09:00:00Z',
+                        },
+                        {
+                            version: 2,
+                            body: 'Texto.',
+                            diagnoses: [migraine],
+                            reason: 'Era una migraña.',
+                            created_at: '2026-08-04T10:00:00Z',
+                        },
+                    ],
+                })}
+                meta="Ana"
+            />,
+        );
+
+        const [current, ...history] = screen.getAllByRole('list', {
+            name: 'Diagnósticos CIE-10',
+        });
+        expect(current?.textContent).toBe('G43.9Migraña, no especificada');
+        expect(history.map((list) => list.textContent)).toEqual([
+            'G43.9Migraña, no especificada',
+            'R51Cefalea',
+        ]);
+    });
+
+    it('shows no diagnosis list for a note without diagnoses', () => {
+        render(<ClinicalNoteEntry note={buildClinicalNote()} meta="Ana" />);
+
+        expect(
+            screen.queryByRole('list', { name: 'Diagnósticos CIE-10' }),
+        ).toBeNull();
+    });
+
+    it('keeps an annulled note diagnoses behind the disclosure with its text', () => {
+        render(
+            <ClinicalNoteEntry
+                note={buildClinicalNote({
+                    body: 'Nota anulada.',
+                    diagnoses: [
+                        {
+                            icd10_code_id: 3,
+                            code: 'R51',
+                            description: 'Cefalea',
+                        },
+                    ],
+                    annulment: {
+                        reason: 'Paciente equivocado.',
+                        created_at: '2026-08-03T11:00:00Z',
+                    },
+                })}
+                meta="Ana"
+            />,
+        );
+
+        const disclosure = screen
+            .getByText('Ver el texto anulado')
+            .closest('details');
+        expect(disclosure?.textContent).toContain('R51Cefalea');
     });
 });
