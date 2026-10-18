@@ -101,7 +101,7 @@ Convenciones:
   documento) y cuáles podrían variar por relación con la organización?
 - **Invariantes**:
   - La identidad del paciente (documento/identificador) es global y única.
-  - La **historia clínica** se modela por organización (aún no en el MVP), por lo que el
+  - La **historia clínica** se modela por organización (CU-45, CU-53), por lo que el
     schema no debe atar clínica global al paciente global.
   - Debe poder representarse la relación "este paciente es paciente de esta organización"
     de forma explícita, sin depender solo de la existencia de turnos.
@@ -558,6 +558,21 @@ Convenciones:
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
+
+### CU-54 · Exportación de la historia clínica *(issue #326)*
+
+- **Actor**: profesional que atendió al paciente y necesita entregarle su copia (Ley 26.529,
+  art. 14) o llevarse la historia del consultorio.
+- **Decisión** ([ADR 0021](../adr/0021-exportacion-de-la-historia-clinica.md)): desde la
+  ficha, la historia de un paciente en PDF o JSON; desde Ajustes, la de todos los pacientes
+  que atendió, en JSON. Se genera en el momento y no se guarda.
+- **Invariantes**:
+  - Solo exporta quien atendió al paciente en esa organización (turno o nota propia), nunca
+    por rol. La exportación del consultorio entero por el dueño espera #315.
+  - Contiene lo que quien exporta ya puede leer: los turnos y las notas de todos los
+    profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
+    solo su propia medicación indicada (CU-53). Nada de otras organizaciones.
+  - Cada exportación queda registrada, de solo agregado, antes de generarse.
 
 ### CU-46 · Métricas por paciente (alcance)
 
