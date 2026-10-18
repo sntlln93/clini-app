@@ -11,6 +11,8 @@ use App\Models\Prescription;
 use Illuminate\Support\Facades\DB;
 
 /**
+ * The items are the record's version 1 (ADR 0019).
+ *
  * @implements Action<PrescriptionDraftData>
  */
 class IssuePrescriptionAction implements Action
@@ -29,8 +31,13 @@ class IssuePrescriptionAction implements Action
                 'issued_at' => now(),
             ]);
 
+            $version = $prescription->versions()->create([
+                'version' => 1,
+                'membership_id' => $dto->membershipId,
+            ]);
+
             foreach ($dto->items as $position => $item) {
-                $prescription->items()->create(['position' => $position, ...$item->toArray()]);
+                $version->items()->create(['position' => $position, ...$item->toArray()]);
             }
 
             return $prescription;

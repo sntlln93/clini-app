@@ -18,6 +18,7 @@ use App\Support\CurrentOrganization;
  * Unlike clinical notes, the patient-scoped listing is NOT widened to other
  * professionals: it only ever returns the acting membership's own
  * prescriptions, so `viewAnyForPatient` just requires an active membership.
+ * A record is never edited (#323, ADR 0019): its author amends it instead.
  */
 class PrescriptionPolicy
 {
@@ -37,7 +38,7 @@ class PrescriptionPolicy
         return $this->isAppointmentOwner($user, $appointment);
     }
 
-    public function update(User $user, Prescription $prescription): bool
+    public function amend(User $user, Prescription $prescription): bool
     {
         return $this->isPrescriptionOwner($user, $prescription);
     }

@@ -30,12 +30,18 @@ class PrescriptionFactory extends Factory
     }
 
     /**
-     * Attach one item, so a factory-built prescription is never empty.
+     * Give the record its version 1 with one item, so a factory-built
+     * prescription is never empty.
      */
     public function configure(): static
     {
         return $this->afterCreating(function (Prescription $prescription): void {
-            $prescription->items()->create([
+            $version = $prescription->versions()->create([
+                'version' => 1,
+                'membership_id' => $prescription->membership_id,
+            ]);
+
+            $version->items()->create([
                 'position' => 0,
                 'medication' => 'Amoxicilina',
                 'presentation' => 'Comprimidos 500 mg',

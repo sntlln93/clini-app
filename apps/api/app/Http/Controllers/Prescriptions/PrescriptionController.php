@@ -4,13 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Prescriptions;
 
-use App\Actions\Prescriptions\EditPrescriptionAction;
 use App\Actions\Prescriptions\IssuePrescriptionAction;
 use App\Data\Prescriptions\PrescriptionDraftData;
-use App\Data\Prescriptions\PrescriptionEditionData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Prescriptions\StorePrescriptionRequest;
-use App\Http\Requests\Prescriptions\UpdatePrescriptionRequest;
 use App\Http\Resources\Prescriptions\PrescriptionResource;
 use App\Models\Appointment;
 use App\Models\Membership;
@@ -27,7 +24,7 @@ class PrescriptionController extends Controller
     /**
      * Everything PrescriptionResource renders, so it never lazy-loads.
      */
-    private const array RELATIONS = ['items'];
+    public const array RELATIONS = ['versions.items'];
 
     public function index(Request $request, Appointment $appointment): AnonymousResourceCollection
     {
@@ -95,20 +92,5 @@ class PrescriptionController extends Controller
         return (new PrescriptionResource($prescription->load(self::RELATIONS)))
             ->response()
             ->setStatusCode(201);
-    }
-
-    public function update(
-        UpdatePrescriptionRequest $request,
-        Prescription $prescription,
-        EditPrescriptionAction $action
-    ): PrescriptionResource {
-        Gate::authorize('update', $prescription);
-
-        $updated = $action->handle(new PrescriptionEditionData(
-            prescriptionId: $prescription->id,
-            items: $request->prescriptionItems(),
-        ));
-
-        return new PrescriptionResource($updated->load(self::RELATIONS));
     }
 }

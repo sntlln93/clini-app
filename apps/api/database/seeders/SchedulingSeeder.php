@@ -15,13 +15,18 @@ use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\ClinicalNote;
+use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteVersion;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Models\PrescriptionItem;
+use App\Models\PrescriptionVersion;
 use App\Models\Reminder;
 use App\Models\Service;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Availability, exceptions, appointments and reminders for a fixture
@@ -30,7 +35,7 @@ use Illuminate\Database\Seeder;
  *
  * None of these tables has a natural key, so this seeder is idempotent by
  * deleting the organization's own rows first, in FK-safe order (reminders
- * -> clinical notes -> prescriptions -> appointments -> availability_exceptions -> availabilities), and
+ * -> clinical history -> appointments -> availability_exceptions -> availabilities), and
  * re-inserting — always scoped to $organization->id, never a global
  * truncate or an unfiltered delete. Appointment is soft-deletable, so its
  * cleanup uses forceDelete(): a plain delete() would only set deleted_at,
@@ -70,11 +75,36 @@ class SchedulingSeeder extends Seeder
         Reminder::where('organization_id', $organization->id)->delete();
         // Notes and prescriptions restrict deleting their appointment, so any
         // written since the last seed (by hand or by an e2e run) go first.
-        ClinicalNote::withTrashed()->where('organization_id', $organization->id)->forceDelete();
-        Prescription::where('organization_id', $organization->id)->delete();
+        $this->purgeClinicalHistory($organization);
         Appointment::where('organization_id', $organization->id)->forceDelete();
         AvailabilityException::where('organization_id', $organization->id)->delete();
         Availability::where('organization_id', $organization->id)->delete();
+    }
+
+    /**
+     * The clinical history is append-only and a trigger rejects deleting it
+     * (ADR 0019). Clearing a fixture organization is the one exception: the
+     * transaction-local setting below lets these deletes, and only these,
+     * through. Nothing under app/ ever sets it.
+     */
+    private function purgeClinicalHistory(Organization $organization): void
+    {
+        DB::transaction(function () use ($organization): void {
+            DB::statement("SELECT set_config('clini.clinical_records_purge', 'on', true)");
+
+            $notes = ClinicalNote::where('organization_id', $organization->id)->select('id');
+            $prescriptions = Prescription::where('organization_id', $organization->id)->select('id');
+            $prescriptionVersions = PrescriptionVersion::whereIn('prescription_id', $prescriptions)->select('id');
+
+            ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();
+            ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->delete();
+            ClinicalNote::where('organization_id', $organization->id)->delete();
+            PrescriptionItem::whereIn('prescription_version_id', $prescriptionVersions)->delete();
+            PrescriptionVersion::whereIn('prescription_id', $prescriptions)->delete();
+            Prescription::where('organization_id', $organization->id)->delete();
+
+            DB::statement("SELECT set_config('clini.clinical_records_purge', 'off', true)");
+        });
     }
 
     private function seedAvailability(Organization $organization, Membership $membership): void

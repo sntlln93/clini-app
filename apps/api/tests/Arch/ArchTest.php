@@ -7,7 +7,14 @@ use App\Contracts\Data;
 use App\Contracts\DomainError;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Models\ClinicalNote;
+use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteVersion;
+use App\Models\Prescription;
+use App\Models\PrescriptionItem;
+use App\Models\PrescriptionVersion;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Resources\Json\JsonResource;
 use Illuminate\Validation\ValidationException;
@@ -318,4 +325,39 @@ test('seeders are literal, deterministic and factory-free', function () {
 
     sort($offenders);
     expect($offenders)->toBe([], 'These seeder files use a non-deterministic or factory-based primitive: '.implode(', ', $offenders));
+});
+
+// Issue #323, ADR 0019: the clinical history is append-only, so none of its models can be soft-deleted.
+arch('clinical history models are never soft-deleted')
+    ->expect([
+        ClinicalNote::class,
+        ClinicalNoteVersion::class,
+        ClinicalNoteAnnulment::class,
+        Prescription::class,
+        PrescriptionVersion::class,
+        PrescriptionItem::class,
+    ])
+    ->not->toUseTrait(SoftDeletes::class);
+
+// Issue #323, ADR 0019: no clinical history controller may edit or delete.
+arch('clinical history controllers only read and add')
+    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions'])
+    ->not->toHaveMethods(['update', 'destroy']);
+
+// Issue #323, ADR 0019: the trigger's purge setting is the fixture seeder's alone; application code never sets it.
+test('only the seeder and the migration name the clinical history purge setting', function () {
+    $root = dirname(__DIR__, 2);
+    $offenders = [];
+
+    foreach (['app', 'routes', 'config', 'database/factories'] as $dir) {
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$root}/{$dir}", FilesystemIterator::SKIP_DOTS));
+
+        foreach ($iterator as $file) {
+            if ($file->getExtension() === 'php' && str_contains((string) file_get_contents($file->getPathname()), 'clinical_records_purge')) {
+                $offenders[] = substr($file->getPathname(), strlen($root) + 1);
+            }
+        }
+    }
+
+    expect($offenders)->toBe([], 'These files name the purge setting: '.implode(', ', $offenders));
 });

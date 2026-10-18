@@ -6,7 +6,11 @@ namespace App\Http\Requests\ClinicalNotes;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateClinicalNoteRequest extends FormRequest
+/**
+ * Annulling takes a reason, unlike an amendment: the note stays, so the
+ * history has to say why it no longer counts.
+ */
+class AnnulClinicalNoteRequest extends FormRequest
 {
     public function authorize(): bool
     {
@@ -19,7 +23,7 @@ class UpdateClinicalNoteRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'body' => ['required', 'string', 'max:5000'],
+            'reason' => ['required', 'string', 'min:3', 'max:500'],
         ];
     }
 }

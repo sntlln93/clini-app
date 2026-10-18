@@ -16,12 +16,16 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * The medication a professional indicated during one appointment, kept as an
  * internal record of the clinical history (issue #319). Clini never issues a
  * prescription: valid ones are electronic, through a ReNaPDiS platform.
+ * Append-only like clinical notes (#323, ADR 0019): the items live in its
+ * versions, and a correction adds one.
  */
 #[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'issued_at'])]
 class Prescription extends Model
 {
     /** @use HasFactory<PrescriptionFactory> */
     use BelongsToOrganization, HasFactory;
+
+    public const null UPDATED_AT = null;
 
     /**
      * @return array<string, string>
@@ -58,10 +62,12 @@ class Prescription extends Model
     }
 
     /**
-     * @return HasMany<PrescriptionItem, $this>
+     * Oldest first, so the last one holds the current items.
+     *
+     * @return HasMany<PrescriptionVersion, $this>
      */
-    public function items(): HasMany
+    public function versions(): HasMany
     {
-        return $this->hasMany(PrescriptionItem::class)->orderBy('position');
+        return $this->hasMany(PrescriptionVersion::class)->orderBy('version');
     }
 }

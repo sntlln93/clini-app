@@ -92,7 +92,9 @@ test('no domain error logs a personal data key', function () {
     expect(count($classes))->toBeGreaterThan(40);
 
     foreach ($classes as $class) {
-        $keys = array_keys(makeDomainError($class)->logContext());
+        // An internal id is what logContext() is for, even when its name
+        // carries a word below (`clinical_note_id`).
+        $keys = array_filter(array_keys(makeDomainError($class)->logContext()), fn (string $key): bool => ! str_ends_with($key, '_id'));
 
         expect(preg_grep('/name|email|phone|document|dni|address|birth|member_number|slug|note|diagnos|medication/i', $keys))
             ->toBe([], "{$class}::logContext() carries personal data");

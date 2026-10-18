@@ -8,8 +8,11 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\ClinicalNotes\ClinicalNoteDraftData;
 use App\Models\ClinicalNote;
+use Illuminate\Support\Facades\DB;
 
 /**
+ * The text is the note's version 1 (ADR 0019).
+ *
  * @implements Action<ClinicalNoteDraftData>
  */
 class WriteClinicalNoteAction implements Action
@@ -19,11 +22,20 @@ class WriteClinicalNoteAction implements Action
      */
     public function handle(Data $dto): ClinicalNote
     {
-        return ClinicalNote::create([
-            'organization_id' => $dto->organizationId,
-            'appointment_id' => $dto->appointmentId,
-            'membership_id' => $dto->membershipId,
-            'body' => $dto->body,
-        ]);
+        return DB::transaction(function () use ($dto): ClinicalNote {
+            $clinicalNote = ClinicalNote::create([
+                'organization_id' => $dto->organizationId,
+                'appointment_id' => $dto->appointmentId,
+                'membership_id' => $dto->membershipId,
+            ]);
+
+            $clinicalNote->versions()->create([
+                'version' => 1,
+                'membership_id' => $dto->membershipId,
+                'body' => $dto->body,
+            ]);
+
+            return $clinicalNote;
+        });
     }
 }

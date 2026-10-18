@@ -46,7 +46,10 @@ export type ErrorCode =
     | 'plans.appointment_limit_reached'
     | 'booking.link_not_found'
     | 'booking.appointment_unavailable'
-    | 'contact_requests.status_unchanged';
+    | 'contact_requests.status_unchanged'
+    | 'clinical_notes.annulled'
+    | 'clinical_notes.amendment_unchanged'
+    | 'prescriptions.amendment_unchanged';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -140,6 +143,12 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La organización llegó al límite de turnos del mes que incluye su plan.',
     'contact_requests.status_unchanged':
         'La consulta ya tiene ese estado. Actualizá la página para ver su estado actual.',
+    'clinical_notes.annulled':
+        'La nota clínica está anulada y ya no se puede enmendar ni anular.',
+    'clinical_notes.amendment_unchanged':
+        'La enmienda no cambia el texto actual de la nota clínica.',
+    'prescriptions.amendment_unchanged':
+        'La enmienda no cambia la medicación indicada.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */
