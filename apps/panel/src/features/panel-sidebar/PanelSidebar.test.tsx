@@ -5,6 +5,7 @@ import { planQueryOptions } from '@/lib/plan';
 import { sessionQueryOptions } from '@/lib/session';
 import { buildPlan } from '@/tests/fixtures/plan';
 import type { Plan } from '@/types/plan';
+import { brand, brandAssetUrl } from '@clini/brand';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -99,6 +100,24 @@ describe('isNavItemActive', () => {
 });
 
 describe('PanelSidebar', () => {
+    it("shows the manifest's isotype for each theme next to the brand name", async () => {
+        renderSidebarAt('/agenda');
+
+        const sidebar = await screen.findByRole('navigation', {
+            name: 'Barra lateral',
+        });
+        expect(within(sidebar).getByText(brand.name)).toBeTruthy();
+        expect(
+            [...sidebar.querySelectorAll('img')].map((img) => ({
+                src: img.getAttribute('src'),
+                alt: img.getAttribute('alt'),
+            })),
+        ).toEqual([
+            { src: brandAssetUrl(brand.assets.isotype.light), alt: '' },
+            { src: brandAssetUrl(brand.assets.isotype.dark), alt: '' },
+        ]);
+    });
+
     it('marks the active route item with aria-current="page"', async () => {
         renderSidebarAt('/pacientes');
         const active = await screen.findByRole('link', { name: /Pacientes/ });

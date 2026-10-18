@@ -1,5 +1,6 @@
 import { LANDING_URL } from '@/lib/landing';
 import type { BookingOrganization } from '@/types/booking';
+import { brand } from '@clini/brand';
 
 type BookingBrandingProps = {
     organization: Pick<BookingOrganization, 'name' | 'logo_url'>;
@@ -34,10 +35,10 @@ export function MadeWithClini() {
                     rel="noreferrer"
                     className="font-medium underline-offset-4 hover:underline"
                 >
-                    Clini
+                    {brand.name}
                 </a>
             ) : (
-                <span className="font-medium">Clini</span>
+                <span className="font-medium">{brand.name}</span>
             )}
         </p>
     );
