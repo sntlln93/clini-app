@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Adds the next version, with the whole new text and diagnoses, and keeps
  * every previous one (ADR 0019, #324). The note row is locked so two
- * amendments can't both claim the same version.
+ * amendments can't both claim the same version, and so the diagnoses it
+ * keeps are read from the version it really amends.
  *
  * @implements Action<ClinicalNoteAmendmentData>
  */
@@ -55,7 +56,7 @@ class AmendClinicalNoteAction implements Action
                 'reason' => $dto->reason,
             ]);
 
-            ClinicalNoteDiagnoses::record($version, $newCodeIds);
+            ClinicalNoteDiagnoses::record($version, $newCodeIds, $current->diagnoses);
 
             return $clinicalNote;
         });

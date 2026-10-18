@@ -80,6 +80,20 @@ test('re-seeding clears the clinical notes and prescriptions written on fixture 
         ->and(PrescriptionItem::count())->toBe(0);
 });
 
+// The catalog app owns the ICD-10 codes (ADR 0020): a re-seed neither
+// fails on, resurrects nor rewrites a code it has retired or renamed.
+test('re-seeding leaves the ICD-10 catalog as the catalog app left it', function () {
+    $this->seed(DatabaseSeeder::class);
+    Icd10Code::query()->where('code', 'R51')->firstOrFail()->delete();
+    Icd10Code::query()->where('code', 'I10')->firstOrFail()->update(['description' => 'Renombrada por la app de catálogos']);
+
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Icd10Code::onlyTrashed()->where('code', 'R51')->exists())->toBeTrue()
+        ->and(Icd10Code::withTrashed()->where('code', 'R51')->count())->toBe(1)
+        ->and(Icd10Code::query()->where('code', 'I10')->value('description'))->toBe('Renombrada por la app de catálogos');
+});
+
 // The purge setting is transaction-local (ADR 0019): once the seeder is
 // done, the clinical history is append-only again.
 test('re-seeding leaves the clinical history guarded', function () {

@@ -10,7 +10,8 @@ use Illuminate\Database\Seeder;
 /**
  * A handful of common ICD-10 codes, dev/test only. In production the
  * catalog is owned and loaded by the external catalog app (ADR 0020), like
- * specialties. Idempotent via updateOrCreate on the code.
+ * specialties. Idempotent via firstOrCreate on the code, retired codes
+ * included, so a re-seed never resurrects, duplicates or rewrites a row.
  */
 class Icd10CodeSeeder extends Seeder
 {
@@ -36,7 +37,7 @@ class Icd10CodeSeeder extends Seeder
         ];
 
         foreach ($codes as $code => $description) {
-            Icd10Code::updateOrCreate(['code' => $code], ['description' => $description]);
+            Icd10Code::withTrashed()->firstOrCreate(['code' => $code], ['description' => $description]);
         }
     }
 }

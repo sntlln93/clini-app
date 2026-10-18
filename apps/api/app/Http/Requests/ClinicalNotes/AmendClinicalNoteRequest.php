@@ -4,9 +4,6 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\ClinicalNotes;
 
-use App\Models\ClinicalNote;
-use App\Models\ClinicalNoteDiagnosis;
-use App\Models\ClinicalNoteVersion;
 use Illuminate\Database\Query\Builder;
 
 /**
@@ -16,13 +13,6 @@ use Illuminate\Database\Query\Builder;
  */
 class AmendClinicalNoteRequest extends StoreClinicalNoteRequest
 {
-    /**
-     * The current version's codes, looked up once for every item's rule.
-     *
-     * @var list<int>|null
-     */
-    private ?array $currentCodeIds = null;
-
     /**
      * @return array<string, mixed>
      */
@@ -50,29 +40,10 @@ class AmendClinicalNoteRequest extends StoreClinicalNoteRequest
     }
 
     /**
-     * A code retired since the current version was written can stay on the
-     * note, but can't be added to it.
+     * Any catalog code, retired ones included: a retired code may stay on
+     * the note, and only AmendClinicalNoteAction, once the author is
+     * authorized and the note locked, knows whether it is being kept or
+     * added. Reading the note here would answer before authorization.
      */
-    protected function allowedCodes(Builder $query): void
-    {
-        $currentCodeIds = $this->currentCodeIds ??= $this->currentVersionCodeIds();
-
-        $query->where(fn (Builder $query) => $query->whereNull('deleted_at')->orWhereIn('id', $currentCodeIds));
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function currentVersionCodeIds(): array
-    {
-        /** @var ClinicalNote $clinicalNote */
-        $clinicalNote = $this->route('clinicalNote');
-
-        /** @var ClinicalNoteVersion|null $current */
-        $current = $clinicalNote->versions()->reorder('version', 'desc')->first();
-
-        return $current === null ? [] : array_values($current->diagnoses
-            ->map(fn (ClinicalNoteDiagnosis $diagnosis): int => $diagnosis->icd10_code_id)
-            ->all());
-    }
+    protected function allowedCodes(Builder $query): void {}
 }

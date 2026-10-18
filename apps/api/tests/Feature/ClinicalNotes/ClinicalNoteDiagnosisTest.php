@@ -172,18 +172,32 @@ test('an amendment that repeats the text and the diagnoses returns 409 and adds 
     'codes left out' => [fn (Icd10Code $code) => ['body' => 'Nota original.']],
 ]);
 
-test('a code retired since the note was written can stay, with its original text', function () {
+test('a kept diagnosis keeps the code and description it was written with, even if the catalog renamed or retired it', function (bool $sendCodes) {
     $code = Icd10Code::factory()->create(['code' => 'R51', 'description' => 'Cefalea']);
     $note = diagnosedNote([$code]);
-    $code->update(['description' => 'Cefalea (renombrada)']);
+    $code->update(['code' => 'R51.9', 'description' => 'Cefalea (renombrada)']);
     $code->delete();
 
     $this->actingAs($note->author->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", [
         'body' => 'Nota corregida.',
-        'icd10_code_ids' => [$code->id],
+        ...($sendCodes ? ['icd10_code_ids' => [$code->id]] : []),
     ])->assertCreated()
-        ->assertJsonPath('data.diagnoses.0.code', 'R51')
-        ->assertJsonPath('data.diagnoses.0.description', 'Cefalea (renombrada)');
+        ->assertJsonPath('data.diagnoses', [['icd10_code_id' => $code->id, 'code' => 'R51', 'description' => 'Cefalea']]);
+})->with([
+    'codes sent again' => [true],
+    'codes left out' => [false],
+]);
+
+test('an added diagnosis is copied from the catalog as it is now', function () {
+    $kept = Icd10Code::factory()->create(['code' => 'R51', 'description' => 'Cefalea']);
+    $note = diagnosedNote([$kept]);
+    $added = Icd10Code::factory()->create(['code' => 'J02.9', 'description' => 'Faringitis aguda, no especificada']);
+
+    $this->actingAs($note->author->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", [
+        'body' => 'Nota original.',
+        'icd10_code_ids' => [$added->id, $kept->id],
+    ])->assertCreated()
+        ->assertJsonPath('data.diagnoses.*.code', ['J02.9', 'R51']);
 });
 
 test('an amendment cannot add a retired code the note did not have', function () {
@@ -194,9 +208,38 @@ test('an amendment cannot add a retired code the note did not have', function ()
     $this->actingAs($note->author->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", [
         'body' => 'Nota corregida.',
         'icd10_code_ids' => [$retired->id],
-    ])->assertStatus(422)->assertJsonValidationErrors('icd10_code_ids.0');
+    ])->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::ClinicalNotesDiagnosisRetired->value);
 
     expect($note->versions()->count())->toBe(1);
+});
+
+// The retired-code rule is decided after authorization, so a member who
+// can't amend the note gets the same 403 whatever codes it carries.
+test('someone who cannot amend the note gets 403 whether or not it has the retired code they send', function () {
+    $retired = Icd10Code::factory()->create();
+    $note = diagnosedNote([$retired]);
+    $retired->delete();
+    $other = Membership::factory()->create(['organization_id' => $note->organization_id]);
+    $absent = Icd10Code::factory()->create();
+    $absent->delete();
+
+    foreach ([$retired, $absent] as $code) {
+        app(CurrentOrganization::class)->set(null);
+        $this->actingAs($other->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", [
+            'body' => 'Otra cosa.',
+            'icd10_code_ids' => [$code->id],
+        ])->assertStatus(403);
+    }
+});
+
+test('an amendment still rejects an id that is not in the catalog with 422', function () {
+    $note = diagnosedNote([]);
+
+    $this->actingAs($note->author->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", [
+        'body' => 'Nota corregida.',
+        'icd10_code_ids' => [999_999],
+    ])->assertStatus(422)->assertJsonValidationErrors('icd10_code_ids.0');
 });
 
 test('the patient page lists every note with its diagnoses', function () {
