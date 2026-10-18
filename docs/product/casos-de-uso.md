@@ -525,7 +525,7 @@ Convenciones:
     en este último caso, el flujo de reserva se abre con la organización y el profesional
     ya preseleccionados.
 
-### CU-45 · Historia clínica por notas *(issues #30, #217, #323)*
+### CU-45 · Historia clínica por notas *(issues #30, #217, #323, #324)*
 
 - **Actor**: profesional que agrega una nota clínica a una visita del paciente.
 - **Invariantes**:
@@ -536,6 +536,10 @@ Convenciones:
     el autor la **enmienda** (queda una versión nueva con fecha, autor y motivo opcional, y
     las anteriores siguen en el historial) o la **anula** con un motivo obligatorio (sigue en
     la historia, marcada como anulada). Una nota anulada no se enmienda.
+  - Además del texto libre, la nota admite de 0 a 10 **diagnósticos CIE-10** del catálogo global
+    ([ADR 0020](../adr/0020-diagnostico-cie-10-copiado-en-cada-version.md)), elegidos con una
+    búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
+    que cambiarlos es una enmienda y un cambio del catálogo no reescribe la historia.
 
 ### CU-53 · Medicación indicada por visita *(issues #31, #319, #323)*
 
