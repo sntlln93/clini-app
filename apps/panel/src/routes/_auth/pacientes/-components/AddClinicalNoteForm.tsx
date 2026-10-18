@@ -23,9 +23,9 @@ type AddClinicalNoteFormProps = {
 
 const EMPTY_VALUES: NoteFormValues = { body: '' };
 
-// Reuses the shared `noteSchema` validation (issue #217, also used by
-// `agenda/-components/ClinicalNoteForm.tsx`): this is a create-only entry
-// point (the patient page never edits/deletes notes), submitted against the
+// Reuses the shared `noteSchema` validation (issue #217, whose body rule
+// `agenda/-components/ClinicalNoteForm.tsx` shares): this is a create-only
+// entry point (the patient page never amends or annuls notes), submitted against the
 // acting membership's own appointment for today.
 export function AddClinicalNoteForm({
     patientId,

@@ -1,8 +1,6 @@
 import { formatShortDateTime } from '@/lib/datetime';
 import { useState } from 'react';
 
-import { ConfirmDialog } from '@/components/ConfirmDialog';
-import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -10,14 +8,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { ClinicalNoteEntry } from '@/features/clinical-history/ClinicalNoteEntry';
 import { extractFormErrors } from '@/lib/form-errors';
 import { useWritesRestricted } from '@/lib/plan';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
-import {
-    useClinicalNotes,
-    useDeleteClinicalNote,
-} from '../-hooks/use-clinical-notes';
+import { useClinicalNotes } from '../-hooks/use-clinical-notes';
+import { ClinicalNoteActions } from './ClinicalNoteActions';
 import { ClinicalNoteForm } from './ClinicalNoteForm';
 
 type ClinicalNotesDialogProps = {
@@ -27,7 +24,7 @@ type ClinicalNotesDialogProps = {
 };
 
 // Contextual dialog (ADR 0006): lists the acting membership's own notes for
-// this appointment and resolves add/edit/delete inline, no dedicated page.
+// this appointment and resolves add/amend/annul inline, no dedicated page.
 export function ClinicalNotesDialog({
     open,
     onOpenChange,
@@ -36,22 +33,20 @@ export function ClinicalNotesDialog({
     const appointmentId = appointment?.id ?? null;
     const notesQuery = useClinicalNotes(appointmentId, open);
     const { data: notes, isLoading } = notesQuery;
-    const remove = useDeleteClinicalNote(appointment);
     // Read-only while writes are restricted (#28, #237).
     const restricted = useWritesRestricted();
     const fetchErrorMessage = notesQuery.isError
         ? extractFormErrors(notesQuery.error).message
         : null;
 
-    const [editingNote, setEditingNote] = useState<ClinicalNote | null>(null);
-    const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+    const [amendingNote, setAmendingNote] = useState<ClinicalNote | null>(null);
 
-    // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending edit as soon as the dialog re-opens.
+    // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending amendment as soon as the dialog re-opens.
     const [wasOpen, setWasOpen] = useState(open);
     if (open !== wasOpen) {
         setWasOpen(open);
         if (open) {
-            setEditingNote(null);
+            setAmendingNote(null);
         }
     }
 
@@ -61,7 +56,9 @@ export function ClinicalNotesDialog({
                 <DialogHeader>
                     <DialogTitle>Notas clínicas</DialogTitle>
                     <DialogDescription>
-                        Solo vos podés ver y editar tus notas de este turno.
+                        Solo vos podés ver tus notas de este turno. Una nota no
+                        se edita ni se borra: si la corregís, la versión
+                        anterior queda en el historial.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -69,9 +66,6 @@ export function ClinicalNotesDialog({
                     <p className="text-sm text-destructive">
                         {fetchErrorMessage}
                     </p>
-                )}
-                {remove.message && (
-                    <p className="text-sm text-destructive">{remove.message}</p>
                 )}
 
                 <div className="max-h-64 space-y-3 overflow-auto">
@@ -86,39 +80,25 @@ export function ClinicalNotesDialog({
                         </p>
                     )}
                     {notes?.map((note) => (
-                        <div
+                        <ClinicalNoteEntry
                             key={note.id}
-                            className="rounded-lg border p-3 text-sm"
-                        >
-                            <p className="whitespace-pre-wrap">{note.body}</p>
-                            <div className="mt-2 flex items-center justify-between gap-2">
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                    {formatShortDateTime(note.updated_at)}
+                            note={note}
+                            meta={
+                                <span className="tabular-nums">
+                                    {formatShortDateTime(note.created_at)}
                                 </span>
-                                {!restricted && (
-                                    <div className="flex gap-2">
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() => setEditingNote(note)}
-                                        >
-                                            Editar
-                                        </Button>
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                setPendingDeleteId(note.id)
-                                            }
-                                        >
-                                            Borrar
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                            }
+                            actions={
+                                !restricted &&
+                                note.annulment === null && (
+                                    <ClinicalNoteActions
+                                        appointment={appointment}
+                                        note={note}
+                                        onAmend={() => setAmendingNote(note)}
+                                    />
+                                )
+                            }
+                        />
                     ))}
                 </div>
 
@@ -126,26 +106,12 @@ export function ClinicalNotesDialog({
                     <ClinicalNoteForm
                         appointment={appointment}
                         open={open}
-                        editingNote={editingNote}
-                        onCancelEdit={() => setEditingNote(null)}
-                        onSaved={() => setEditingNote(null)}
+                        amendingNote={amendingNote}
+                        onCancelAmendment={() => setAmendingNote(null)}
+                        onSaved={() => setAmendingNote(null)}
                     />
                 )}
             </DialogContent>
-
-            <ConfirmDialog
-                open={pendingDeleteId !== null}
-                onOpenChange={(next) => !next && setPendingDeleteId(null)}
-                title="Borrar nota"
-                description="Esta acción no se puede deshacer."
-                onConfirm={() => {
-                    if (pendingDeleteId !== null) {
-                        remove.mutate(pendingDeleteId);
-                        setPendingDeleteId(null);
-                    }
-                }}
-                isPending={remove.isPending}
-            />
         </Dialog>
     );
 }

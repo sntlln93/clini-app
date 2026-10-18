@@ -1,5 +1,8 @@
 import { api } from '@/lib/api';
-import type { Prescription, PrescriptionPayload } from '@/types/prescription';
+import type {
+    Prescription,
+    PrescriptionAmendmentPayload,
+} from '@/types/prescription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
@@ -11,11 +14,22 @@ import {
 import { patientPrescriptionsQueryOptions } from '../../pacientes/-hooks/use-patient-prescriptions';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+    api: { get: vi.fn(), post: vi.fn() },
 }));
 
 const PRESCRIPTION = { id: 9 } as Prescription;
-const SAVE = { prescriptionId: null, payload: {} as PrescriptionPayload };
+const PAYLOAD: PrescriptionAmendmentPayload = {
+    items: [
+        {
+            medication: 'Paracetamol',
+            presentation: null,
+            dosage: '1 cada 6 h',
+            quantity: 1,
+        },
+    ],
+    reason: 'Alergia.',
+};
+const SAVE = { prescriptionId: null, payload: PAYLOAD };
 
 function deferredGets() {
     const gets: Array<(value: unknown) => void> = [];
@@ -85,5 +99,36 @@ describe('useSavePrescription (#273)', () => {
         await waitFor(() =>
             expect(result.current.prescriptions.data).toEqual([PRESCRIPTION]),
         );
+    });
+
+    it('recording one posts only the items, to the appointment', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        const { result } = renderWithClient(new QueryClient(), () =>
+            useSavePrescription(42),
+        );
+
+        await result.current.mutateAsync(SAVE);
+
+        expect(api.post).toHaveBeenCalledWith(
+            '/appointments/42/prescriptions',
+            { items: PAYLOAD.items },
+        );
+    });
+
+    it('amending one posts the items and the reason as an amendment (#323)', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        const { result } = renderWithClient(new QueryClient(), () =>
+            useSavePrescription(42),
+        );
+
+        await result.current.mutateAsync({
+            prescriptionId: 9,
+            payload: PAYLOAD,
+        });
+
+        expect(api.post).toHaveBeenCalledWith('/prescriptions/9/amendments', {
+            items: PAYLOAD.items,
+            reason: 'Alergia.',
+        });
     });
 });

@@ -1,7 +1,5 @@
-import { formatShortDateTime } from '@/lib/datetime';
 import { useState } from 'react';
 
-import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -16,6 +14,7 @@ import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
 import { usePrescriptions } from '../-hooks/use-prescriptions';
 import { PrescriptionForm } from './PrescriptionForm';
+import { PrescriptionList } from './PrescriptionList';
 
 type PrescriptionsDialogProps = {
     open: boolean;
@@ -24,7 +23,7 @@ type PrescriptionsDialogProps = {
 };
 
 // Contextual dialog (ADR 0006): lists the medication the acting membership
-// indicated in this appointment and resolves create/edit inline (#319).
+// indicated in this appointment and resolves record/amend inline (#319, #323).
 export function PrescriptionsDialog({
     open,
     onOpenChange,
@@ -41,14 +40,14 @@ export function PrescriptionsDialog({
         ? extractFormErrors(query.error).message
         : null;
 
-    const [editing, setEditing] = useState<Prescription | null>(null);
+    const [amending, setAmending] = useState<Prescription | null>(null);
 
-    // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending edit as soon as the dialog re-opens.
+    // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending amendment as soon as the dialog re-opens.
     const [wasOpen, setWasOpen] = useState(open);
     if (open !== wasOpen) {
         setWasOpen(open);
         if (open) {
-            setEditing(null);
+            setAmending(null);
         }
     }
 
@@ -59,7 +58,9 @@ export function PrescriptionsDialog({
                     <DialogTitle>Medicación indicada</DialogTitle>
                     <DialogDescription>
                         Solo vos ves la medicación que indicaste en este turno.
-                        Queda registrada en la ficha del paciente.
+                        Queda registrada en la ficha del paciente y no se borra:
+                        si la corregís, la versión anterior queda en el
+                        historial.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -69,52 +70,12 @@ export function PrescriptionsDialog({
                     </p>
                 )}
 
-                <div className="space-y-3">
-                    {isLoading && (
-                        <p className="text-sm text-muted-foreground">
-                            Cargando medicación…
-                        </p>
-                    )}
-                    {!isLoading && prescriptions?.length === 0 && (
-                        <p className="text-sm text-muted-foreground">
-                            Todavía no registraste medicación en este turno.
-                        </p>
-                    )}
-                    {prescriptions?.map((prescription) => (
-                        <div
-                            key={prescription.id}
-                            className="rounded-lg border p-3 text-sm"
-                        >
-                            <ul className="list-inside list-disc">
-                                {prescription.items.map((item) => (
-                                    <li
-                                        key={item.id}
-                                        className="wrap-break-word"
-                                    >
-                                        {item.medication} × {item.quantity}
-                                    </li>
-                                ))}
-                            </ul>
-                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-xs text-muted-foreground tabular-nums">
-                                    {formatShortDateTime(
-                                        prescription.issued_at,
-                                    )}
-                                </span>
-                                {!restricted && (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() => setEditing(prescription)}
-                                    >
-                                        Editar
-                                    </Button>
-                                )}
-                            </div>
-                        </div>
-                    ))}
-                </div>
+                <PrescriptionList
+                    prescriptions={prescriptions}
+                    isLoading={isLoading}
+                    restricted={restricted}
+                    onAmend={setAmending}
+                />
 
                 {!includedInPlan && (
                     <PlanFeatureNote>
@@ -128,9 +89,9 @@ export function PrescriptionsDialog({
                     <PrescriptionForm
                         appointmentId={appointmentId}
                         open={open}
-                        editing={editing}
-                        onCancelEdit={() => setEditing(null)}
-                        onSaved={() => setEditing(null)}
+                        amending={amending}
+                        onCancelAmendment={() => setAmending(null)}
+                        onSaved={() => setAmending(null)}
                     />
                 )}
             </DialogContent>

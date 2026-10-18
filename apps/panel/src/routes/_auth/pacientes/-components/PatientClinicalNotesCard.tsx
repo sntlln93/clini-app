@@ -7,6 +7,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { ClinicalNoteEntry } from '@/features/clinical-history/ClinicalNoteEntry';
 import { formatShortDateTime } from '@/lib/datetime';
 import { useWritesRestriction, type WritesRestriction } from '@/lib/plan';
 import type { ClinicalNote } from '@/types/clinical-note';
@@ -87,20 +88,20 @@ export function PatientClinicalNotesCard({
                         </p>
                     ) : (
                         notes.map((note) => (
-                            <div
+                            <ClinicalNoteEntry
                                 key={note.id}
-                                className="rounded-lg border p-3 text-sm"
-                            >
-                                <p className="whitespace-pre-wrap">
-                                    {note.body}
-                                </p>
-                                <div className="mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                                    <span>{note.author_name ?? '—'}</span>
-                                    <span className="tabular-nums">
-                                        {formatShortDateTime(note.created_at)}
-                                    </span>
-                                </div>
-                            </div>
+                                note={note}
+                                meta={
+                                    <>
+                                        <span>{note.author_name ?? '—'}</span>
+                                        <span className="tabular-nums">
+                                            {formatShortDateTime(
+                                                note.created_at,
+                                            )}
+                                        </span>
+                                    </>
+                                }
+                            />
                         ))
                     )}
                 </CardContent>

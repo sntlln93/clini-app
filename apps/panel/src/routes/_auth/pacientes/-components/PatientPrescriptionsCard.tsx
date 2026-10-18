@@ -5,6 +5,8 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { PrescriptionEntry } from '@/features/clinical-history/PrescriptionEntry';
+import { PrescriptionItemList } from '@/features/clinical-history/PrescriptionItemList';
 import { fromInstant } from '@/lib/datetime';
 import type { Prescription } from '@/types/prescription';
 
@@ -13,8 +15,8 @@ function formatDate(iso: string): string {
 }
 
 // Read-only list of the medication the acting membership indicated to this
-// patient (#319), in full since nothing else shows it; it's recorded and
-// edited from the appointment in the agenda.
+// patient (#319), in full since nothing else shows it, with every earlier
+// version (#323); it's recorded and amended from the appointment in the agenda.
 export function PatientPrescriptionsCard({
     prescriptions,
 }: {
@@ -35,32 +37,17 @@ export function PatientPrescriptionsCard({
                     </p>
                 ) : (
                     prescriptions.map((prescription) => (
-                        <div
+                        <PrescriptionEntry
                             key={prescription.id}
-                            className="space-y-2 rounded-lg border p-3 text-sm"
+                            prescription={prescription}
+                            meta={
+                                <span className="tabular-nums">
+                                    {formatDate(prescription.issued_at)}
+                                </span>
+                            }
                         >
-                            <ul className="space-y-2">
-                                {prescription.items.map((item) => (
-                                    <li
-                                        key={item.id}
-                                        className="wrap-break-word"
-                                    >
-                                        <p className="font-medium">
-                                            {item.medication}
-                                            {item.presentation &&
-                                                ` — ${item.presentation}`}
-                                        </p>
-                                        <p className="text-muted-foreground">
-                                            {item.dosage} · Cantidad:{' '}
-                                            {item.quantity}
-                                        </p>
-                                    </li>
-                                ))}
-                            </ul>
-                            <p className="text-xs text-muted-foreground tabular-nums">
-                                {formatDate(prescription.issued_at)}
-                            </p>
-                        </div>
+                            <PrescriptionItemList items={prescription.items} />
+                        </PrescriptionEntry>
                     ))
                 )}
             </CardContent>

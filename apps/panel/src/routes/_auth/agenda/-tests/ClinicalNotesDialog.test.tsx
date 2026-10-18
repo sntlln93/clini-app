@@ -1,8 +1,8 @@
 import { api } from '@/lib/api';
 import { subscriptionQueryOptions } from '@/lib/subscription';
+import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
-import type { ClinicalNote } from '@/types/clinical-note';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClinicalNotesDialog } from '../-components/ClinicalNotesDialog';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+    api: { get: vi.fn(), post: vi.fn() },
 }));
 
 function unexpectedError() {
@@ -39,17 +39,7 @@ const APPOINTMENT: Appointment = {
     arrived_at: null,
 };
 
-function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {
-    return {
-        id: 1,
-        appointment_id: 42,
-        membership_id: 1,
-        body: 'Nota original.',
-        created_at: '2026-08-03T09:00:00',
-        updated_at: '2026-08-03T09:00:00',
-        ...overrides,
-    };
-}
+const buildNote = buildClinicalNote;
 
 function renderDialog(
     open: boolean = true,
@@ -78,8 +68,6 @@ describe('ClinicalNotesDialog', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset();
-        vi.mocked(api.patch).mockReset();
-        vi.mocked(api.delete).mockReset();
     });
 
     it('opening the dialog fetches the appointment notes and renders them', async () => {
@@ -150,53 +138,131 @@ describe('ClinicalNotesDialog', () => {
         expect(api.post).not.toHaveBeenCalled();
     });
 
-    it('editing an existing note sends a PATCH with the edited body', async () => {
-        const note = buildNote({ id: 7, body: 'Nota original.' });
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
-        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+    it('offers to amend or annul a note, never to edit or delete it', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [buildNote({ body: 'Nota original.' })] },
+        });
         renderDialog();
 
         await screen.findByText('Nota original.');
+        expect(screen.getByRole('button', { name: 'Enmendar' })).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Anular' })).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull();
+    });
 
-        fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+    it('amending a note posts the corrected text and the reason as an amendment', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderDialog();
 
-        const textarea = (await screen.findByRole(
-            'textbox',
+        await screen.findByText('Nota original.');
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
+
+        const textarea = (await screen.findByLabelText(
+            'Texto corregido',
         )) as HTMLTextAreaElement;
         await waitFor(() => expect(textarea.value).toBe('Nota original.'));
 
         fireEvent.change(textarea, {
-            target: { value: 'Nota editada tras la consulta.' },
+            target: { value: 'Nota corregida tras la consulta.' },
         });
+        fireEvent.change(
+            screen.getByLabelText('Motivo de la enmienda (opcional)'),
+            { target: { value: 'Dosis mal escrita.' } },
+        );
         fireEvent.click(
-            screen.getByRole('button', { name: 'Guardar cambios' }),
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
         );
 
         await waitFor(() =>
-            expect(api.patch).toHaveBeenCalledWith('/clinical-notes/7', {
-                body: 'Nota editada tras la consulta.',
-            }),
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/7/amendments',
+                {
+                    body: 'Nota corregida tras la consulta.',
+                    reason: 'Dosis mal escrita.',
+                },
+            ),
         );
     });
 
-    it('deleting a note calls DELETE and refreshes the list', async () => {
-        const note = buildNote({ id: 9, body: 'Nota a borrar.' });
+    it('an amendment without a reason sends it as null', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
         vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
-        vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         renderDialog();
 
-        await screen.findByText('Nota a borrar.');
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
-
-        fireEvent.click(screen.getByRole('button', { name: 'Borrar' }));
+        await screen.findByText('Nota original.');
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
+        const textarea = await screen.findByLabelText('Texto corregido');
+        await waitFor(() =>
+            expect((textarea as HTMLTextAreaElement).value).toBe(
+                'Nota original.',
+            ),
+        );
+        fireEvent.change(textarea, { target: { value: 'Nota corregida.' } });
         fireEvent.click(
-            await screen.findByRole('button', { name: 'Confirmar' }),
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
         );
 
         await waitFor(() =>
-            expect(api.delete).toHaveBeenCalledWith('/clinical-notes/9'),
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/7/amendments',
+                { body: 'Nota corregida.', reason: null },
+            ),
+        );
+    });
+
+    it('annulling a note asks for a reason, posts it and refreshes the list', async () => {
+        const note = buildNote({
+            id: 9,
+            body: 'Nota del paciente equivocado.',
+        });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderDialog();
+
+        await screen.findByText('Nota del paciente equivocado.');
+        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
+        fireEvent.change(await screen.findByLabelText('Motivo'), {
+            target: { value: 'Cargada en el turno de otro paciente.' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Anular nota' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/9/annulment',
+                { reason: 'Cargada en el turno de otro paciente.' },
+            ),
         );
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+    });
+
+    it('an annulled note shows the reason, keeps its text and offers no actions', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: {
+                data: [
+                    buildNote({
+                        body: 'Nota anulada.',
+                        annulment: {
+                            reason: 'Paciente equivocado.',
+                            created_at: '2026-08-03T11:00:00Z',
+                        },
+                    }),
+                ],
+            },
+        });
+        renderDialog();
+
+        await screen.findByText('Anulada');
+        expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
+        expect(screen.getByText('Ver el texto anulado')).toBeTruthy();
+        expect(screen.getByText('Nota anulada.')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
     });
 
     it('shows a server error inline and keeps the dialog open', async () => {
@@ -219,7 +285,7 @@ describe('ClinicalNotesDialog', () => {
     });
 
     it.each(['expired'] as const)(
-        'while the subscription is %s it lists the notes but hides the form and the edit/delete actions',
+        'while the subscription is %s it lists the notes but hides the form and the amend/annul actions',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({
                 data: { data: [buildNote({ body: 'Nota previa.' })] },
@@ -231,8 +297,10 @@ describe('ClinicalNotesDialog', () => {
             expect(
                 screen.queryByRole('button', { name: 'Agregar nota' }),
             ).toBeNull();
-            expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
-            expect(screen.queryByRole('button', { name: 'Borrar' })).toBeNull();
+            expect(
+                screen.queryByRole('button', { name: 'Enmendar' }),
+            ).toBeNull();
+            expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
         },
     );
 });
