@@ -146,7 +146,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'clinical_notes.annulled':
         'La nota clínica está anulada y ya no se puede enmendar ni anular.',
     'clinical_notes.amendment_unchanged':
-        'La enmienda no cambia el texto actual de la nota clínica.',
+        'La enmienda no cambia el texto ni los diagnósticos actuales de la nota clínica.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación indicada.',
 };
