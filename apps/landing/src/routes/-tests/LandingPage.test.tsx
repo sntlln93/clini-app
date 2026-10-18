@@ -2,6 +2,7 @@ import { expectNoA11yViolations } from '@/tests/a11y';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LandingPage } from '../-components/LandingPage';
+import { DAY_SLOTS } from '../-components/day-slots';
 import { COMPARE, PLANS } from '../-components/plans';
 
 describe('LandingPage', () => {
@@ -17,6 +18,23 @@ describe('LandingPage', () => {
         ];
         expect(labels.filter((label) => /receta/i.test(label))).toEqual([]);
         expect(labels).toContain('Medicación indicada');
+    });
+
+    // The reminder carries only the practice, the day and the time: the
+    // professional and the service are behind its link (#320).
+    it('never claims the reminder names the professional', () => {
+        const reminder = DAY_SLOTS.find((slot) =>
+            /recordatorio/i.test(slot.title),
+        );
+
+        expect(reminder?.body).toMatch(/no nombra al profesional/);
+        expect(reminder?.body).not.toMatch(/la hora y el profesional/);
+        expect(reminder?.detail.rows?.map(([label]) => label)).toEqual([
+            'Para',
+            'Turno',
+            'Detalles',
+            'Canal',
+        ]);
     });
 
     it('links the calls to action to the panel', () => {
