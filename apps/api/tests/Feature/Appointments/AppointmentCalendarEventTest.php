@@ -12,7 +12,7 @@ use App\Models\Service;
 use App\Models\User;
 use App\Support\AppointmentCalendarEvent;
 
-test('the event is titled by the practice, describes professional and service, and spans the appointment in UTC', function () {
+test('the event is titled by the practice, names neither the professional nor the service, and spans the appointment in UTC', function () {
     $organization = Organization::factory()->create(['name' => 'Consultorio Salud', 'timezone' => 'America/Argentina/Buenos_Aires']);
     $membership = Membership::factory()->create([
         'organization_id' => $organization->id,
@@ -29,7 +29,7 @@ test('the event is titled by the practice, describes professional and service, a
     $event = app(AppointmentCalendarEvent::class)->of($appointment);
 
     expect($event->title)->toBe('Turno en Consultorio Salud')
-        ->and($event->description)->toBe("Profesional: Ana Gómez\nPrestación: Consulta\nSi necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.")
+        ->and($event->description)->toBe('Si necesitás cancelar o reprogramar el turno, comunicate con Consultorio Salud.')
         ->and($event->startAt->toIso8601ZuluString())->toBe('2026-08-03T13:00:00Z')
         ->and($event->endAt->toIso8601ZuluString())->toBe('2026-08-03T13:45:00Z')
         ->and($event->uid)->toBe(app(AppointmentCalendarEvent::class)->uidOf($appointment))

@@ -11,7 +11,7 @@ function calendarEvent(array $overrides = []): CalendarEventData
     return new CalendarEventData(...array_merge([
         'uid' => 'appointment-7@clini.test',
         'title' => 'Turno en Consultorio Salud',
-        'description' => "Profesional: Ana Gómez\nPrestación: Consulta",
+        'description' => "Comunicate con el consultorio\npara cancelar o reprogramar",
         'location' => 'Av. Corrientes 1234, Rosario, Santa Fe, Argentina',
         // -03:00 on purpose: both formats go out in UTC whatever the instant's zone.
         'startAt' => CarbonImmutable::parse('2026-08-03T10:00:00-03:00'),
@@ -28,7 +28,7 @@ test('the Google Calendar link prefills title, UTC dates, details and location',
         'action' => 'TEMPLATE',
         'text' => 'Turno en Consultorio Salud',
         'dates' => '20260803T130000Z/20260803T134500Z',
-        'details' => "Profesional: Ana Gómez\nPrestación: Consulta",
+        'details' => "Comunicate con el consultorio\npara cancelar o reprogramar",
         'location' => 'Av. Corrientes 1234, Rosario, Santa Fe, Argentina',
     ]);
 });
@@ -54,7 +54,7 @@ test('the .ics is a published VEVENT in UTC, CRLF-terminated', function () {
         'DTSTART:20260803T130000Z',
         'DTEND:20260803T134500Z',
         'SUMMARY:Turno en Consultorio Salud',
-        'DESCRIPTION:Profesional: Ana Gómez\nPrestación: Consulta',
+        'DESCRIPTION:Comunicate con el consultorio\npara cancelar o reprogramar',
         'LOCATION:Av. Corrientes 1234\, Rosario\, Santa Fe\, Argentina',
         'END:VEVENT',
         'END:VCALENDAR',

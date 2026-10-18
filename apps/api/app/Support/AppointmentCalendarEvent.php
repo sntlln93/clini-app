@@ -12,8 +12,9 @@ use Illuminate\Support\Carbon;
 
 /**
  * The patient's view of an appointment as a calendar event (#295): titled by
- * the practice, with the professional and service in the description and
- * the practice's primary address as the location, when it has one.
+ * the practice, with the practice's primary address as the location, when it
+ * has one. Never the professional nor the service: they can reveal the
+ * specialty, and the event ends up with a calendar provider (#320, ADR 0018).
  */
 final class AppointmentCalendarEvent
 {
@@ -28,11 +29,7 @@ final class AppointmentCalendarEvent
         return new CalendarEventData(
             uid: $this->uidOf($appointment),
             title: $this->title($organization?->name),
-            description: $this->description(
-                $appointment->membership?->user?->name,
-                $appointment->service?->name,
-                $organization?->name,
-            ),
+            description: $this->description($organization?->name),
             location: $organization === null ? null : $this->locationOf($organization),
             startAt: CarbonImmutable::instance($startAt)->utc(),
             endAt: CarbonImmutable::instance($endAt)->utc(),
@@ -75,15 +72,9 @@ final class AppointmentCalendarEvent
         return $organizationName === null ? 'Turno' : "Turno en {$organizationName}";
     }
 
-    private function description(?string $professionalName, ?string $serviceName, ?string $organizationName): string
+    private function description(?string $organizationName): string
     {
-        $lines = array_filter([
-            $professionalName === null ? null : "Profesional: {$professionalName}",
-            $serviceName === null ? null : "Prestación: {$serviceName}",
-            'Si necesitás cancelar o reprogramar el turno, comunicate con '.($organizationName ?? 'el consultorio').'.',
-        ]);
-
-        return implode("\n", $lines);
+        return 'Si necesitás cancelar o reprogramar el turno, comunicate con '.($organizationName ?? 'el consultorio').'.';
     }
 
     private function host(): string

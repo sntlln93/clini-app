@@ -2,9 +2,15 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Booking\PublicAppointmentController;
 use App\Http\Controllers\Booking\PublicBookingController;
 use App\Http\Controllers\Booking\PublicBookingLogoController;
 use Illuminate\Support\Facades\Route;
+
+// Public: the details page the reminder links to (#320). Registered first and
+// constrained to the token's shape, so it never shadows an organization slug.
+Route::get('booking/appointments/{token}', [PublicAppointmentController::class, 'show'])
+    ->where('token', '[A-Za-z0-9_-]{40,}');
 
 // Public: consumed by an anonymous patient booking an appointment online,
 // before any organization or session context exists. `public-organization`
