@@ -106,5 +106,7 @@ test('a note and a medication record are amended and annulled, never edited or d
     await expect(
         page.getByText('Motivo: Cargada en el turno equivocado.'),
     ).toBeVisible();
-    await expect(page.getByText('Paracetamol', { exact: true }).first()).toBeVisible();
+    await expect(
+        page.getByText('Paracetamol', { exact: true }).first(),
+    ).toBeVisible();
 });
