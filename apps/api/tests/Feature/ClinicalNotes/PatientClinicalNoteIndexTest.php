@@ -147,3 +147,33 @@ test('a guest gets 401', function () {
 
     $this->getJson("/api/v1/patients/{$patient->id}/clinical-notes")->assertStatus(401);
 });
+
+test('a note keeps its author name after the author membership is deactivated', function () {
+    $organization = Organization::factory()->create();
+    $patient = Patient::factory()->create();
+    $viewer = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    Appointment::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $viewer->id,
+        'patient_id' => $patient->id,
+    ]);
+
+    $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $author->user->update(['name' => 'Dra. Dada de Baja']);
+    $authorAppointment = Appointment::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $author->id,
+        'patient_id' => $patient->id,
+    ]);
+    ClinicalNote::factory()->create([
+        'appointment_id' => $authorAppointment->id,
+        'organization_id' => $organization->id,
+        'membership_id' => $author->id,
+    ]);
+    $author->delete();
+
+    $response = $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
+
+    $response->assertOk();
+    expect($response->json('data.0.author_name'))->toBe('Dra. Dada de Baja');
+});
