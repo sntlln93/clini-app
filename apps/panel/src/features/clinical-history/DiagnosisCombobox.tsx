@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 
 import {
     Combobox,
@@ -43,16 +43,29 @@ export function DiagnosisCombobox({
     disabled,
 }: DiagnosisComboboxProps) {
     const [query, setQuery] = useState('');
-    const { codes, isSearching, isEmpty } = useIcd10CodeSearch(query);
+    const { codes, isSearching, isEmpty, isError } = useIcd10CodeSearch(query);
 
     const emptyMessage =
         query.trim() === ''
             ? 'Escribí un código, como J02, o parte del diagnóstico.'
             : isSearching
               ? 'Buscando…'
-              : isEmpty
-                ? 'No hay diagnósticos que coincidan.'
-                : null;
+              : isError
+                ? 'No se pudo buscar en el catálogo. Probá de nuevo.'
+                : isEmpty
+                  ? 'No hay diagnósticos que coincidan.'
+                  : null;
+
+    // Enter only picks the code highlighted with the arrows. With none, it
+    // must not submit the note around the field, which would save it without
+    // the diagnosis being searched. Nothing is highlighted on its own: the
+    // results arrive after the typing, and the previous search's list stays
+    // up meanwhile, so a guess could pick a stale code.
+    function keepEnterInSearch(event: KeyboardEvent<HTMLInputElement>) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+        }
+    }
 
     return (
         <Combobox<Icd10Code, true>
@@ -73,6 +86,7 @@ export function DiagnosisCombobox({
                         placeholder="Buscar por código o nombre…"
                         showTrigger={false}
                         disabled={disabled}
+                        onKeyDown={keepEnterInSearch}
                     />
                 }
             />

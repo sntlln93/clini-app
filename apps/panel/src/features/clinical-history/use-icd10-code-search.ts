@@ -16,7 +16,7 @@ export function useIcd10CodeSearch(query: string) {
         ICD10_SEARCH_DEBOUNCE_MS,
     );
 
-    const { data, isFetching, isPlaceholderData } = useQuery({
+    const { data, isFetching, isPlaceholderData, isError } = useQuery({
         queryKey: ['icd10-codes', debouncedQuery],
         queryFn: () =>
             api
@@ -33,6 +33,7 @@ export function useIcd10CodeSearch(query: string) {
     return {
         codes: debouncedQuery === '' ? [] : (data ?? []),
         isSearching: query.trim() !== debouncedQuery || isFetching,
+        isError: debouncedQuery !== '' && isError,
         isEmpty:
             debouncedQuery !== '' &&
             data !== undefined &&

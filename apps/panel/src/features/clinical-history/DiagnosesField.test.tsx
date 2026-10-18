@@ -29,7 +29,7 @@ const HEADACHE: ClinicalNoteDiagnosis = {
     description: 'Cefalea',
 };
 
-let submitted: NoteFormValues | null = null;
+const onSubmit = vi.fn<(values: NoteFormValues) => void>();
 
 function NoteForm({ diagnoses }: { diagnoses: ClinicalNoteDiagnosis[] }) {
     const form = useForm<NoteFormValues>({
@@ -39,11 +39,7 @@ function NoteForm({ diagnoses }: { diagnoses: ClinicalNoteDiagnosis[] }) {
 
     return (
         <Form {...form}>
-            <form
-                onSubmit={form.handleSubmit((values) => {
-                    submitted = values;
-                })}
-            >
+            <form onSubmit={form.handleSubmit((values) => onSubmit(values))}>
                 <DiagnosesField control={form.control} name="diagnoses" />
                 <button type="submit">Guardar</button>
             </form>
@@ -53,7 +49,13 @@ function NoteForm({ diagnoses }: { diagnoses: ClinicalNoteDiagnosis[] }) {
 
 function renderField(diagnoses: ClinicalNoteDiagnosis[] = []) {
     render(
-        <QueryClientProvider client={new QueryClient()}>
+        <QueryClientProvider
+            client={
+                new QueryClient({
+                    defaultOptions: { queries: { retry: false } },
+                })
+            }
+        >
             <NoteForm diagnoses={diagnoses} />
         </QueryClientProvider>,
     );
@@ -61,14 +63,14 @@ function renderField(diagnoses: ClinicalNoteDiagnosis[] = []) {
 
 async function submit() {
     fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-    await waitFor(() => expect(submitted).not.toBeNull());
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
 
-    return submitted?.diagnoses;
+    return onSubmit.mock.calls[0]?.[0].diagnoses;
 }
 
 describe('DiagnosesField (#324)', () => {
     beforeEach(() => {
-        submitted = null;
+        onSubmit.mockReset();
         vi.mocked(api.get).mockReset();
         vi.mocked(api.get).mockResolvedValue({ data: { data: [PHARYNGITIS] } });
     });
@@ -106,6 +108,78 @@ describe('DiagnosesField (#324)', () => {
                 description: 'Faringitis aguda, no especificada',
             },
         ]);
+    });
+
+    it('Enter adds the result highlighted with the arrows without submitting the note', async () => {
+        renderField();
+
+        const input = screen.getByRole('combobox', {
+            name: 'Diagnósticos CIE-10 (opcional)',
+        });
+        fireEvent.input(input, {
+            target: { value: 'J02' },
+            inputType: 'insertText',
+        });
+        await screen.findByRole('option', { name: /J02\.9/ });
+        fireEvent.keyDown(input, { key: 'ArrowDown' });
+        fireEvent.keyDown(input, { key: 'Enter' });
+
+        expect(
+            await screen.findByText('Faringitis aguda, no especificada'),
+        ).toBeTruthy();
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('Enter with no highlighted result neither picks one nor submits the note', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        renderField();
+
+        const input = screen.getByRole('combobox', {
+            name: 'Diagnósticos CIE-10 (opcional)',
+        });
+        fireEvent.input(input, {
+            target: { value: 'zzz' },
+            inputType: 'insertText',
+        });
+        await screen.findByText('No hay diagnósticos que coincidan.');
+        const notSubmitted = fireEvent.keyDown(input, { key: 'Enter' });
+
+        expect(notSubmitted).toBe(false);
+        expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('Enter right after the results show up picks nothing on its own', async () => {
+        renderField();
+
+        const input = screen.getByRole('combobox', {
+            name: 'Diagnósticos CIE-10 (opcional)',
+        });
+        fireEvent.input(input, {
+            target: { value: 'J02' },
+            inputType: 'insertText',
+        });
+        await screen.findByRole('option', { name: /J02\.9/ });
+
+        expect(fireEvent.keyDown(input, { key: 'Enter' })).toBe(false);
+        expect(await submit()).toEqual([]);
+    });
+
+    it('says so when the search fails instead of showing an empty list', async () => {
+        vi.mocked(api.get).mockRejectedValue(new Error('network'));
+        renderField();
+
+        fireEvent.input(
+            screen.getByRole('combobox', {
+                name: 'Diagnósticos CIE-10 (opcional)',
+            }),
+            { target: { value: 'farin' }, inputType: 'insertText' },
+        );
+
+        expect(
+            await screen.findByText(
+                'No se pudo buscar en el catálogo. Probá de nuevo.',
+            ),
+        ).toBeTruthy();
     });
 
     it('does not search before anything is typed', () => {
