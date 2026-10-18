@@ -297,6 +297,27 @@ describe('RegisterForm', () => {
         ).toBe('ana@clini.app');
     });
 
+    it('asks the visitor to wait on a 429, keeping the typed values (#299)', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: { status: 429, data: { message: 'Too Many Attempts.' } },
+        });
+        renderRegisterForm();
+
+        await fillForm();
+        fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
+
+        expect(
+            await screen.findByText(
+                'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
+            ),
+        ).not.toBeNull();
+        expect(
+            (screen.getByLabelText('Correo electrónico') as HTMLInputElement)
+                .value,
+        ).toBe('ana@clini.app');
+    });
+
     it('navigates to /agenda on successful registration', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },

@@ -31,7 +31,20 @@ Operadores: en producción y en el server de demo no se siembran (`PlatformAdmin
 
 Después de desplegar el cambio que introdujo el dashboard sobre una base ya existente de testing/demo hace falta, una sola vez, `php artisan migrate:fresh --seed --force` (agregó columnas editando migraciones en el lugar) — ver [Development Guide](development.md#una-sola-vez-tras-desplegar-el-dashboard-de-operación-migratefresh---seed).
 
-**Limitación conocida (proxy)**: `bootstrap/app.php` no configura `trustProxies`, así que detrás del proxy de Dokploy `$request->ip()` es la dirección del proxy. Consecuencias: el throttle del login del dashboard (`admin-login`, 5 por minuto por `email|ip`) degrada a un límite por email, el del formulario de contacto (`contact`, 5 por minuto y 20 por hora por IP) pasa a ser un límite global para todos los visitantes, y la columna `ip` de `admin_audit_logs` registra el proxy. No se agregó un límite solo por IP justamente por eso (sería un bloqueo global del login). Se resuelve configurando `trustProxies` con la red del proxy.
+**Limitación conocida (proxy)**: `bootstrap/app.php` no configura `trustProxies`, así que detrás del proxy de Dokploy `$request->ip()` es la dirección del proxy. Consecuencias: el throttle del login del dashboard (`admin-login`, 5 por minuto por `email|ip`) degrada a un límite por email, el del formulario de contacto (`contact`, 5 por minuto y 20 por hora por IP) y el del registro de cuentas (`register`, los mismos valores) pasan a ser límites globales para todos los visitantes, los de la reserva online (`public-booking` y `public-booking-slots`, abajo) quedan por consultorio y globales, y la columna `ip` de `admin_audit_logs` registra el proxy. No se agregó un límite solo por IP justamente por eso (sería un bloqueo global del login). Se resuelve configurando `trustProxies` con la red del proxy.
+
+**Límites de la reserva online** (#299, `config/booking.php`): la página pública de reserva es anónima, así que la API la limita por IP del visitante y por consultorio. Solo cuenta para los límites por hora una reserva creada (un 201); un pedido rechazado (un dato mal cargado, un horario recién tomado) no los gasta, pero sí cuenta para el límite por minuto. Las dos URLs de un consultorio (la suya y la de cada profesional) comparten el mismo cupo, y una URL que no existe no gasta ninguno. Al pasarse, la API responde 429 con `Retry-After` y la página le pide al paciente que pruebe en unos minutos. Cada valor se cambia por variable de entorno sin deploy de código, y `0` apaga ese límite:
+
+| Variable | Default | Qué limita |
+|---|---|---|
+| `BOOKING_LIMIT_PER_ORGANIZATION` | 5 | reservas por hora de una IP en un consultorio |
+| `BOOKING_LIMIT_PER_IP` | 20 | reservas por hora de una IP en todos los consultorios |
+| `BOOKING_ATTEMPTS_PER_MINUTE` | 10 | pedidos de reserva por minuto de una IP, con cualquier resultado |
+| `BOOKING_SLOT_SEARCHES_PER_MINUTE` | 60 | búsquedas de horarios por minuto de una IP en un consultorio |
+
+Los límites por hora se cuentan después de la respuesta (solo así puede saberse que se creó la reserva), así que una ráfaga de pedidos simultáneos puede pasarlos: la frena el límite por minuto, que se cuenta antes.
+
+Mientras `trustProxies` no esté configurado (#312, limitación de arriba), todos los pacientes comparten la IP del proxy: los límites por consultorio pasan a valer para todos sus pacientes juntos (5 reservas por hora, 60 búsquedas de horarios por minuto) y los de solo IP para toda la plataforma (20 reservas por hora, 10 pedidos por minuto). Como un pedido rechazado también cuenta para los límites por minuto y para los de `register` y `contact`, cualquiera podría llenarlos a propósito y dejar sin reserva online o sin registro a todos. **Antes de abrir la plataforma a tráfico real hay que configurar `trustProxies`** (o, mientras tanto, poner en `0` los límites de la reserva).
 
 ## Colas
 

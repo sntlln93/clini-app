@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Route;
 // point, the session-creating public ones included (ADR 0010).
 Route::middleware('clinic.origin')->group(function (): void {
     Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
 
     Route::get('/email-verification/{token}', [EmailVerificationController::class, 'show']);
     Route::post('/email-verification/{token}', [EmailVerificationController::class, 'store']);

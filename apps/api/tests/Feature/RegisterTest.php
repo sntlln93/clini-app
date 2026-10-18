@@ -210,3 +210,27 @@ test('the registering owner fills the Free plan professional slot', function () 
     ])->assertStatus(409)
         ->assertJsonPath('error.code', 'plans.feature_unavailable');
 });
+
+test('the sixth registration within a minute from one ip is a 429 that creates no account (#299)', function () {
+    Mail::fake();
+    $register = fn (int $n) => registerFromSpa()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => "ana{$n}@example.com",
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => "Clínica {$n}",
+        'timezone' => 'America/Argentina/Buenos_Aires',
+    ]);
+
+    foreach (range(1, 5) as $n) {
+        $register($n)->assertCreated();
+    }
+
+    $register(6)
+        ->assertStatus(429)
+        ->assertHeader('Retry-After');
+    expect(User::query()->count())->toBe(5);
+
+    $this->travel(61)->seconds();
+    $register(7)->assertCreated();
+});

@@ -10,8 +10,10 @@ import {
     BOOKING_CLOSED_MESSAGE,
     isBookingClosedError,
     isMonthFullError,
+    isRateLimitedError,
     isSlotUnavailableError,
     MONTH_FULL_MESSAGE,
+    RATE_LIMITED_MESSAGE,
     useConfirmBooking,
 } from '../../-hooks/use-confirm-booking';
 import { BookingInsuranceFields } from './BookingInsuranceFields';
@@ -79,6 +81,11 @@ export function BookingPatientForm({
 
             if (isMonthFullError(error)) {
                 form.setError('root', { message: MONTH_FULL_MESSAGE });
+                return;
+            }
+
+            if (isRateLimitedError(error)) {
+                form.setError('root', { message: RATE_LIMITED_MESSAGE });
                 return;
             }
 

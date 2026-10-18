@@ -428,6 +428,39 @@ describe('BookingPatientForm validation and submission', () => {
         ).toBeNull();
     });
 
+    it('asks the patient to wait on a 429, keeping the form and the typed data (#299)', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: { status: 429, data: { message: 'Too Many Attempts.' } },
+        });
+        await goToPatientForm();
+
+        fillValidPatientData();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        expect(
+            await screen.findByText(
+                'Hiciste demasiados intentos. Probá de nuevo en unos minutos.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.getByRole('heading', { name: 'Tus datos' }),
+        ).not.toBeNull();
+        expect(
+            (screen.getByLabelText('Nombre y apellido') as HTMLInputElement)
+                .value,
+        ).toBe('Juan Pérez');
+        expect(
+            (
+                screen.getByRole('button', {
+                    name: 'Confirmar turno',
+                }) as HTMLButtonElement
+            ).disabled,
+        ).toBe(false);
+    });
+
     it('keeps the typed data when the patient goes back to the grid by hand', async () => {
         await goToPatientForm();
         fillValidPatientData();

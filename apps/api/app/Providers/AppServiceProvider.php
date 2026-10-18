@@ -11,9 +11,11 @@ use App\Services\Payments\MercadoPagoService;
 use App\Support\CurrentOrganization;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\Response;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -54,5 +56,52 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(5)->by($request->ip()),
             Limit::perHour(20)->by($request->ip()),
         ]);
+
+        // Account sign-up (`throttle:register`, #299): anonymous, and each
+        // request creates an organization and mails an address the caller
+        // picks. Same limits and proxy caveat as `contact`.
+        RateLimiter::for('register', fn (Request $request): array => [
+            Limit::perMinute(5)->by($request->ip()),
+            Limit::perHour(20)->by($request->ip()),
+        ]);
+
+        // The public booking page (#299), values in config/booking.php.
+        // `public-organization` runs before the throttle (bootstrap/app.php),
+        // so the organization is resolved: its two slugs (the practice's and
+        // a professional's) share one bucket, and an unknown slug never opens
+        // one. Only a created booking counts against the hourly limits, so a
+        // rejected attempt (a typo, a slot just taken) doesn't use them up.
+        RateLimiter::for('public-booking', function (Request $request): array {
+            $organization = app(CurrentOrganization::class)->get();
+            $created = fn (Response $response): bool => $response->getStatusCode() === 201;
+
+            return array_values(array_filter([
+                self::limit(Limit::perHour(...), 'booking.rate_limits.bookings_per_organization')
+                    ?->by("organization:{$organization}|{$request->ip()}")->after($created),
+                self::limit(Limit::perHour(...), 'booking.rate_limits.bookings_per_ip')
+                    ?->by("ip:{$request->ip()}")->after($created),
+                self::limit(Limit::perMinute(...), 'booking.rate_limits.attempts_per_minute')
+                    ?->by("attempts:{$request->ip()}"),
+            ]));
+        });
+
+        RateLimiter::for('public-booking-slots', function (Request $request): Limit {
+            $organization = app(CurrentOrganization::class)->get();
+
+            return self::limit(Limit::perMinute(...), 'booking.rate_limits.slot_searches_per_minute')
+                ?->by("organization:{$organization}|{$request->ip()}") ?? Limit::none();
+        });
+    }
+
+    /**
+     * The limit configured under `$key`, or null when it is 0 (off).
+     *
+     * @param  callable(int): Limit  $period
+     */
+    private static function limit(callable $period, string $key): ?Limit
+    {
+        $maxAttempts = Config::integer($key);
+
+        return $maxAttempts > 0 ? $period($maxAttempts) : null;
     }
 }

@@ -19,8 +19,10 @@ Route::get('booking/appointments/{token}', [PublicAppointmentController::class, 
 // used by the authenticated modules.
 Route::prefix('booking/{slug}')->middleware('public-organization')->group(function (): void {
     Route::get('/', [PublicBookingController::class, 'show']);
-    Route::get('/slots', [PublicBookingController::class, 'slots']);
+    Route::get('/slots', [PublicBookingController::class, 'slots'])->middleware('throttle:public-booking-slots');
     Route::get('/logo', [PublicBookingLogoController::class, 'show']);
-    // Blocked like the panel's own writes (#28, #237).
-    Route::post('/appointments', [PublicBookingController::class, 'store'])->middleware('subscription.active');
+    // Blocked like the panel's own writes (#28, #237), and throttled per
+    // visitor IP and organization (#299).
+    Route::post('/appointments', [PublicBookingController::class, 'store'])
+        ->middleware(['throttle:public-booking', 'subscription.active']);
 });

@@ -82,6 +82,22 @@ describe('the public booking page when its read fails', () => {
         expect(screen.queryByRole('button')).toBeNull();
     });
 
+    it('asks the patient to wait when the page is throttled (#299)', async () => {
+        vi.mocked(api.get).mockRejectedValue(
+            apiError(429, { message: 'Too Many Attempts.' }),
+        );
+        renderBooking('/reservar/consultorio-salud');
+
+        expect(
+            await screen.findByText(
+                'Hiciste demasiados intentos. Probá de nuevo en unos minutos.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.getByRole('button', { name: 'Reintentar' }),
+        ).not.toBeNull();
+    });
+
     it('offers only a retry for a failure retrying can fix', async () => {
         vi.mocked(api.get).mockRejectedValue(apiError(500, {}));
         renderBooking('/reservar/consultorio-salud');

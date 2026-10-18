@@ -20,6 +20,7 @@ use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
@@ -49,6 +50,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // consumes the admin login throttle.
         $middleware->prependToPriorityList(AuthenticatesRequests::class, EnsureDashboardOrigin::class);
         $middleware->prependToPriorityList(AuthenticatesRequests::class, EnsureNotDashboardOrigin::class);
+        // The public booking throttle keys by organization, so the slug must
+        // be resolved first (#299). It reads the raw route parameter, so it
+        // needs no bindings either.
+        $middleware->prependToPriorityList(ThrottleRequests::class, ResolvePublicOrganization::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
