@@ -33,7 +33,7 @@ function renderUnknownUrl(initialEntries: string[]) {
 
 describe('NotFoundState', () => {
     it('renders the Spanish not-found copy', async () => {
-        renderUnknownUrl(['/recetas']);
+        renderUnknownUrl(['/inexistente']);
 
         expect(
             await screen.findByText('No encontramos esta página'),
@@ -46,7 +46,7 @@ describe('NotFoundState', () => {
     });
 
     it('links to the overview', async () => {
-        renderUnknownUrl(['/recetas']);
+        renderUnknownUrl(['/inexistente']);
 
         // Base UI's Button keeps role="button" on the composed <a>.
         const link = (await screen.findByText('Ir al resumen')).closest('a');
