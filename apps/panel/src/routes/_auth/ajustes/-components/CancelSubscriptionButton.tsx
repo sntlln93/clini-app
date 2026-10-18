@@ -10,7 +10,7 @@ type CancelSubscriptionButtonProps = {
 };
 
 const FREE_PLAN_DETAIL =
-    'no vas a poder invitar miembros, usar la sala de espera, emitir recetas ni definir links de reserva por profesional, y si hay más de un profesional activo la agenda queda en modo solo lectura. No se borra ningún dato.';
+    'no vas a poder invitar miembros, usar la sala de espera, registrar la medicación indicada ni definir links de reserva por profesional, y si hay más de un profesional activo la agenda queda en modo solo lectura. No se borra ningún dato.';
 
 function confirmationCopy(subscription: Subscription): string {
     const paidUntil = paidPeriodEnd(subscription);

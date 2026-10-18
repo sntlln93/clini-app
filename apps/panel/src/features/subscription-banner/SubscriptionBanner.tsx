@@ -40,7 +40,7 @@ function subscriptionCopy(
             return {
                 title: 'Suscripción vencida: la agenda está en modo solo lectura.',
                 description:
-                    'Podés consultar los turnos existentes, pero no crear ni modificar turnos, notas clínicas, recetas ni disponibilidad, ni recibir reservas online, hasta regularizar el pago.',
+                    'Podés consultar los turnos existentes, pero no crear ni modificar turnos, notas clínicas, medicación indicada ni disponibilidad, ni recibir reservas online, hasta regularizar el pago.',
                 restricted: true,
             };
         case 'cancelled':

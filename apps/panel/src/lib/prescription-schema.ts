@@ -31,16 +31,12 @@ const itemSchema = z.object({
 });
 
 export const prescriptionSchema = z.object({
-    diagnosis: z
-        .string()
-        .trim()
-        .max(2000, 'El diagnóstico no puede superar los 2000 caracteres.'),
     items: z
         .array(itemSchema)
-        .min(1, 'La receta debe tener al menos un medicamento.')
+        .min(1, 'Indicá al menos un medicamento.')
         .max(
             PRESCRIPTION_MAX_ITEMS,
-            `La receta no puede tener más de ${PRESCRIPTION_MAX_ITEMS} medicamentos.`,
+            `No podés indicar más de ${PRESCRIPTION_MAX_ITEMS} medicamentos.`,
         ),
 });
 
@@ -56,7 +52,6 @@ export const EMPTY_ITEM: PrescriptionItemFormValues = {
 };
 
 export const EMPTY_PRESCRIPTION: PrescriptionFormValues = {
-    diagnosis: '',
     items: [EMPTY_ITEM],
 };
 
@@ -64,7 +59,6 @@ export function toFormValues(
     prescription: Prescription,
 ): PrescriptionFormValues {
     return {
-        diagnosis: prescription.diagnosis ?? '',
         items: prescription.items.map((item) => ({
             medication: item.medication,
             presentation: item.presentation ?? '',
@@ -75,10 +69,7 @@ export function toFormValues(
 }
 
 export function toPayload(values: PrescriptionFormValues): PrescriptionPayload {
-    const diagnosis = values.diagnosis.trim();
-
     return {
-        diagnosis: diagnosis === '' ? null : diagnosis,
         items: values.items.map((item) => ({
             medication: item.medication.trim(),
             presentation: item.presentation.trim() || null,
@@ -88,14 +79,9 @@ export function toPayload(values: PrescriptionFormValues): PrescriptionPayload {
     };
 }
 
-// Server validation keys this form can show inline (`diagnosis`, `items.N.field`).
+// Server validation keys this form can show inline (`items.N.field`).
 export function isPrescriptionFieldKey(
     key: string,
-): key is
-    | 'diagnosis'
-    | `items.${number}.${'medication' | 'presentation' | 'dosage' | 'quantity'}` {
-    return (
-        key === 'diagnosis' ||
-        /^items\.\d+\.(medication|presentation|dosage|quantity)$/.test(key)
-    );
+): key is `items.${number}.${'medication' | 'presentation' | 'dosage' | 'quantity'}` {
+    return /^items\.\d+\.(medication|presentation|dosage|quantity)$/.test(key);
 }

@@ -27,7 +27,7 @@ export function PanelLayout({ children }: { children: ReactNode }) {
                 >
                     Saltar al contenido principal
                 </a>
-                {/* Panel chrome stays off paper (printable views, e.g. `recetas/$id`). */}
+                {/* Panel chrome stays off paper when a page is printed. */}
                 <div className="contents print:hidden">
                     <PanelSidebar />
                 </div>

@@ -33,7 +33,7 @@ export function planDetail(
 ): string {
     switch (plan.plan) {
         case 'free':
-            return `Incluye 1 profesional, ${appointmentsLabel(plan.appointment_limit)}, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, recetas, un link de reservas para cada profesional y tu logo en la página de reservas, sin «Hecho con Clini»: ${practicePriceDetail(plan.practice_pricing)}.`;
+            return `Incluye 1 profesional, ${appointmentsLabel(plan.appointment_limit)}, reserva online, recordatorios por mail y notas clínicas. Consultorio suma equipo con roles, sala de espera, registro de la medicación indicada, un link de reservas para cada profesional y tu logo en la página de reservas, sin «Hecho con Clini»: ${practicePriceDetail(plan.practice_pricing)}.`;
         case 'practice': {
             const billing = chargingBilling(subscription);
             // An unpaid checkout's stored amount isn't what is being charged.

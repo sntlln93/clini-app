@@ -57,7 +57,7 @@ export function AppointmentCard({
     const nextStatuses = ALLOWED_TRANSITIONS[appointment.status];
     const canCancel = CANCELLABLE_STATUSES.includes(appointment.status);
     const canReschedule = RESCHEDULABLE_STATUSES.includes(appointment.status);
-    // Clinical notes and prescriptions are authored-only (issues #30, #31): visible only to the professional booked on this appointment, independent of `canUpdate`.
+    // Clinical notes and indicated medication are authored-only (issues #30, #31): visible only to the professional booked on this appointment, independent of `canUpdate`.
     const isOwnAppointment =
         session?.membership?.id === appointment.membership_id;
     const canViewPatient = sessionHasPermission(session, 'patients.view');
@@ -155,7 +155,7 @@ export function AppointmentCard({
                         <DropdownMenuItem
                             onClick={() => setOpenDialog('prescriptions')}
                         >
-                            Recetas
+                            Medicación
                         </DropdownMenuItem>
                     )}
                 </DropdownMenuContent>

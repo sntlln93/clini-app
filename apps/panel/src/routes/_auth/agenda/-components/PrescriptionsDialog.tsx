@@ -1,7 +1,7 @@
 import { formatShortDateTime } from '@/lib/datetime';
 import { useState } from 'react';
 
-import { Button, buttonVariants } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -12,10 +12,8 @@ import {
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { extractFormErrors } from '@/lib/form-errors';
 import { usePlanIncludes, useWritesRestricted } from '@/lib/plan';
-import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
-import { Link } from '@tanstack/react-router';
 import { usePrescriptions } from '../-hooks/use-prescriptions';
 import { PrescriptionForm } from './PrescriptionForm';
 
@@ -25,9 +23,8 @@ type PrescriptionsDialogProps = {
     appointment: Appointment | null;
 };
 
-// Contextual dialog (ADR 0006): lists the acting membership's own
-// prescriptions for this appointment and resolves issue/edit inline; printing
-// opens the dedicated `/recetas/$id` view in a new tab.
+// Contextual dialog (ADR 0006): lists the medication the acting membership
+// indicated in this appointment and resolves create/edit inline (#319).
 export function PrescriptionsDialog({
     open,
     onOpenChange,
@@ -37,7 +34,7 @@ export function PrescriptionsDialog({
     const query = usePrescriptions(appointmentId, open);
     const { data: prescriptions, isLoading } = query;
     // Read-only while writes are restricted (#28) or the plan leaves
-    // prescriptions out (#237); listing and printing stay available.
+    // prescriptions out (#237); the listing stays available.
     const includedInPlan = usePlanIncludes('prescriptions');
     const restricted = useWritesRestricted() || !includedInPlan;
     const fetchErrorMessage = query.isError
@@ -59,10 +56,10 @@ export function PrescriptionsDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[90svh] overflow-auto sm:max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Recetas</DialogTitle>
+                    <DialogTitle>Medicación indicada</DialogTitle>
                     <DialogDescription>
-                        Solo vos podés ver y editar las recetas que emitiste en
-                        este turno. No tienen validez como receta electrónica.
+                        Solo vos ves la medicación que indicaste en este turno.
+                        Queda registrada en la ficha del paciente.
                     </DialogDescription>
                 </DialogHeader>
 
@@ -75,12 +72,12 @@ export function PrescriptionsDialog({
                 <div className="space-y-3">
                     {isLoading && (
                         <p className="text-sm text-muted-foreground">
-                            Cargando recetas…
+                            Cargando medicación…
                         </p>
                     )}
                     {!isLoading && prescriptions?.length === 0 && (
                         <p className="text-sm text-muted-foreground">
-                            Todavía no emitiste recetas para este turno.
+                            Todavía no registraste medicación en este turno.
                         </p>
                     )}
                     {prescriptions?.map((prescription) => (
@@ -104,33 +101,16 @@ export function PrescriptionsDialog({
                                         prescription.issued_at,
                                     )}
                                 </span>
-                                <div className="flex gap-2">
-                                    {!restricted && (
-                                        <Button
-                                            type="button"
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                                setEditing(prescription)
-                                            }
-                                        >
-                                            Editar
-                                        </Button>
-                                    )}
-                                    <Link
-                                        to="/recetas/$id"
-                                        params={{ id: prescription.id }}
-                                        target="_blank"
-                                        className={cn(
-                                            buttonVariants({
-                                                size: 'sm',
-                                                variant: 'ghost',
-                                            }),
-                                        )}
+                                {!restricted && (
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => setEditing(prescription)}
                                     >
-                                        Imprimir
-                                    </Link>
-                                </div>
+                                        Editar
+                                    </Button>
+                                )}
                             </div>
                         </div>
                     ))}
@@ -138,8 +118,9 @@ export function PrescriptionsDialog({
 
                 {!includedInPlan && (
                     <PlanFeatureNote>
-                        Emitir recetas es parte del plan Consultorio. Las que ya
-                        emitiste siguen disponibles para imprimir.
+                        Registrar la medicación indicada es parte del plan
+                        Consultorio. La que ya registraste sigue disponible para
+                        consultar.
                     </PlanFeatureNote>
                 )}
 

@@ -1,10 +1,4 @@
 import type { Prescription } from '@/types/prescription';
-import {
-    createMemoryHistory,
-    createRootRoute,
-    createRouter,
-    RouterProvider,
-} from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PatientPrescriptionsCard } from '../-components/PatientPrescriptionsCard';
@@ -17,7 +11,6 @@ function buildPrescription(
         appointment_id: 42,
         patient_id: 50,
         membership_id: 1,
-        diagnosis: 'Faringitis',
         issued_at: '2026-08-03T10:15:00',
         created_at: '2026-08-03T10:15:00',
         updated_at: '2026-08-03T10:15:00',
@@ -31,56 +24,52 @@ function buildPrescription(
                 quantity: 2,
             },
         ],
-        patient_name: 'Juan Pérez',
-        patient_document_type: 'dni',
-        patient_document_number: '30111222',
-        patient_insurance_provider_name: null,
-        patient_insurance_member_number: null,
-        author_name: 'Dra. Ana Gomez',
-        author_specialties: [],
         ...overrides,
     };
 }
 
 function renderCard(prescriptions: Prescription[]) {
-    const rootRoute = createRootRoute({
-        component: () => (
-            <PatientPrescriptionsCard prescriptions={prescriptions} />
-        ),
-    });
-    const router = createRouter({
-        routeTree: rootRoute,
-        history: createMemoryHistory({ initialEntries: ['/'] }),
-    });
-    render(<RouterProvider router={router} />);
+    render(<PatientPrescriptionsCard prescriptions={prescriptions} />);
 }
 
 describe('PatientPrescriptionsCard', () => {
-    it('shows an empty state when the professional has issued none', async () => {
+    it('shows an empty state when the professional has recorded none', async () => {
         renderCard([]);
 
         expect(
             await screen.findByText(
-                'Todavía no emitiste recetas para este paciente.',
+                'Todavía no registraste medicación para este paciente.',
             ),
         ).toBeTruthy();
     });
 
-    it('lists each prescription with its items and a print link', async () => {
+    // Nothing prints the record anymore (#319), so the card shows it in full.
+    it('lists each record with every item in full and no print link', async () => {
         renderCard([
             buildPrescription({ id: 7 }),
-            buildPrescription({ id: 8, diagnosis: null }),
+            buildPrescription({
+                id: 8,
+                items: [
+                    {
+                        id: 2,
+                        position: 0,
+                        medication: 'Ibuprofeno',
+                        presentation: 'Comprimidos 400 mg',
+                        dosage: 'Si hay dolor',
+                        quantity: 1,
+                    },
+                ],
+            }),
         ]);
 
-        expect(await screen.findByText('Faringitis')).toBeTruthy();
-        expect(screen.getAllByText('Amoxicilina × 2')).toHaveLength(2);
-        const links = screen.getAllByRole('link', {
-            name: 'Ver / imprimir (se abre en una pestaña nueva)',
-        });
-        expect(links.map((link) => link.getAttribute('href'))).toEqual([
-            '/recetas/7',
-            '/recetas/8',
-        ]);
-        expect(links[0].getAttribute('target')).toBe('_blank');
+        expect(await screen.findByText('Medicación indicada')).toBeTruthy();
+        expect(screen.getByText('Amoxicilina')).toBeTruthy();
+        expect(screen.getByText('1 cada 8 h · Cantidad: 2')).toBeTruthy();
+        expect(
+            screen.getByText('Ibuprofeno — Comprimidos 400 mg'),
+        ).toBeTruthy();
+        expect(screen.getByText('Si hay dolor · Cantidad: 1')).toBeTruthy();
+        expect(screen.queryByRole('link')).toBeNull();
+        expect(screen.queryByText(/receta/i)).toBeNull();
     });
 });

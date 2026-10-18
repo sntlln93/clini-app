@@ -7,14 +7,14 @@ describe('pageTitle', () => {
     });
 
     it('joins every part from most to least specific', () => {
-        expect(pageTitle('Receta', 'Juan Pérez')).toBe(
-            'Receta · Juan Pérez · Clini',
+        expect(pageTitle('Ficha', 'Juan Pérez')).toBe(
+            'Ficha · Juan Pérez · Clini',
         );
     });
 
     it('drops parts not loaded yet', () => {
         expect(pageTitle(undefined, 'Pacientes')).toBe('Pacientes · Clini');
-        expect(pageTitle('Receta', null)).toBe('Receta · Clini');
+        expect(pageTitle('Ficha', null)).toBe('Ficha · Clini');
     });
 });
 

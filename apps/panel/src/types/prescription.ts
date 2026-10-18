@@ -1,5 +1,3 @@
-import type { DocumentType } from './patient';
-
 export type PrescriptionItem = {
     id: number;
     position: number;
@@ -9,25 +7,17 @@ export type PrescriptionItem = {
     quantity: number;
 };
 
-// A structured prescription issued during one appointment (issue #31).
-// Carries everything the printable view needs, so no extra read is required.
+// The medication a professional indicated during one appointment (issue #319):
+// an internal record of the clinical history, never a prescription.
 export type Prescription = {
     id: number;
     appointment_id: number;
     patient_id: number;
     membership_id: number;
-    diagnosis: string | null;
     issued_at: string;
     created_at: string;
     updated_at: string;
     items: PrescriptionItem[];
-    patient_name: string | null;
-    patient_document_type: DocumentType | null;
-    patient_document_number: string | null;
-    patient_insurance_provider_name: string | null;
-    patient_insurance_member_number: string | null;
-    author_name: string | null;
-    author_specialties: string[];
 };
 
 export type PrescriptionItemPayload = {
@@ -38,6 +28,5 @@ export type PrescriptionItemPayload = {
 };
 
 export type PrescriptionPayload = {
-    diagnosis: string | null;
     items: PrescriptionItemPayload[];
 };
