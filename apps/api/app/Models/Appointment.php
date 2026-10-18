@@ -129,6 +129,14 @@ class Appointment extends Model
     }
 
     /**
+     * @return HasMany<ClinicalNote, $this>
+     */
+    public function clinicalNotes(): HasMany
+    {
+        return $this->hasMany(ClinicalNote::class);
+    }
+
+    /**
      * Narrows to the acting membership's own appointments when it lacks org-wide view permission; a no-op otherwise.
      *
      * @param  Builder<Appointment>  $query

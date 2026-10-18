@@ -93,6 +93,26 @@ class Patient extends Model
     }
 
     /**
+     * Patients the membership attended in the organization: it has or had an appointment with them, or wrote a note on one
+     * of theirs (#217). This relationship, never a role, is what opens a patient's clinical history.
+     *
+     * @param  Builder<Patient>  $query
+     * @return Builder<Patient>
+     */
+    public function scopeAttendedBy(Builder $query, int $organizationId, int $membershipId): Builder
+    {
+        return $query->whereHas('appointments', function (Builder $query) use ($organizationId, $membershipId): void {
+            $query->where('organization_id', $organizationId)
+                ->where(function (Builder $query) use ($organizationId, $membershipId): void {
+                    $query->where('membership_id', $membershipId)
+                        ->orWhereHas('clinicalNotes', fn (Builder $query) => $query
+                            ->where('organization_id', $organizationId)
+                            ->where('membership_id', $membershipId));
+                });
+        });
+    }
+
+    /**
      * @param  Builder<Patient>  $query
      * @return Builder<Patient>
      */
