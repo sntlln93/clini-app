@@ -19,3 +19,6 @@ Schedule::command('subscriptions:expire-grace')->daily()->withoutOverlapping();
 
 // Closed contact requests past their retention window (config/contact.php).
 Schedule::command('model:prune', ['--model' => [ContactRequest::class]])->daily()->withoutOverlapping();
+
+// Failed jobs past their retention window (config/queue.php).
+Schedule::command('queue:prune-failed', ['--hours' => config('queue.failed.retention_hours')])->daily()->withoutOverlapping();

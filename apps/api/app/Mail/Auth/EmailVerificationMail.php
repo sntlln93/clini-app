@@ -6,6 +6,7 @@ namespace App\Mail\Auth;
 
 use App\Models\User;
 use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldBeEncrypted;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -14,10 +15,10 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * Dispatched via the `database` queue by IssueEmailVerificationAction.
- * Accepted tradeoff: the plaintext token sits in the `jobs.payload` row
- * until the worker runs — the user only ever persists the token's hash.
+ * Encrypted on the queue: the payload holds the plaintext token and the
+ * recipient's address, in `jobs` and, if it fails, in `failed_jobs` (#322).
  */
-class EmailVerificationMail extends Mailable implements ShouldQueue
+class EmailVerificationMail extends Mailable implements ShouldBeEncrypted, ShouldQueue
 {
     use Queueable, SerializesModels;
 
