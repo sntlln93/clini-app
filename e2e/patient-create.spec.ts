@@ -12,7 +12,7 @@ test.describe('creating a patient lands on its page', () => {
     test.use({
         expectedIssues: {
             responses: [
-                { url: /\/api\/v1\/patients\/lookup\?/, status: 404 },
+                { url: /\/api\/v1\/patients\/lookup$/, status: 404 },
                 {
                     url: /\/api\/v1\/patients\/\d+\/clinical-notes$/,
                     status: 403,
