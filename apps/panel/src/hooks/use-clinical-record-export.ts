@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { readBlobErrorBody } from '@/lib/api-errors';
 import { saveFile } from '@/lib/download';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import { useMutation } from '@tanstack/react-query';
@@ -40,10 +41,11 @@ export function useClinicalRecordExport() {
     return useMutation({
         mutationFn: async (request: ClinicalRecordExport) => {
             const { url, params, filename } = exportRequest(request);
-            const response = await api.get<Blob>(url, {
-                params,
-                responseType: 'blob',
-            });
+            const response = await api
+                .get<Blob>(url, { params, responseType: 'blob' })
+                .catch(async (error: unknown) => {
+                    throw await readBlobErrorBody(error);
+                });
 
             saveFile(response.data, filename);
         },

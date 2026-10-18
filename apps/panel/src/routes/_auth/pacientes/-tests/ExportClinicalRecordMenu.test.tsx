@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { ERROR_CODE_MESSAGES } from '@/lib/error-codes';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
@@ -99,5 +100,35 @@ describe('ExportClinicalRecordMenu', () => {
             ),
         );
         expect(click).not.toHaveBeenCalled();
+    });
+
+    it('shows the catalog message of a coded error, though its body comes as a Blob', async () => {
+        vi.mocked(api.get).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 403,
+                data: new Blob(
+                    [
+                        JSON.stringify({
+                            error: {
+                                code: 'organizations.suspended',
+                                message: 'Suspended',
+                                context: {},
+                            },
+                        }),
+                    ],
+                    { type: 'application/json' },
+                ),
+            },
+        });
+        renderMenu();
+
+        await choose('JSON, con los datos estructurados');
+
+        await waitFor(() =>
+            expect(toast.error).toHaveBeenCalledWith(
+                ERROR_CODE_MESSAGES['organizations.suspended'],
+            ),
+        );
     });
 });

@@ -121,7 +121,32 @@ type ValidationErrorBody = {
     errors?: Record<string, string[]>;
 };
 
-/** The only function allowed to touch `axios.isAxiosError`/`error.response` — enforced by an ESLint rule. */
+/**
+ * A request made with `responseType: 'blob'` (a file download) gets its error
+ * body as a Blob too, so `mapToAppError` would miss the domain envelope and
+ * fall back to the status alone. Reading a JSON body back into `data` first
+ * keeps the catalog copy (e.g. a suspended organization's 403).
+ */
+export async function readBlobErrorBody(error: unknown): Promise<unknown> {
+    const data = axios.isAxiosError(error) ? error.response?.data : undefined;
+
+    if (
+        axios.isAxiosError(error) &&
+        error.response &&
+        data instanceof Blob &&
+        data.type.includes('json')
+    ) {
+        try {
+            error.response.data = JSON.parse(await data.text());
+        } catch {
+            // Not JSON after all: mapToAppError falls back to the status.
+        }
+    }
+
+    return error;
+}
+
+/** With `readBlobErrorBody`, the only code allowed to touch `axios.isAxiosError`/`error.response` — enforced by an ESLint rule. */
 export function mapToAppError(error: unknown): AppError {
     if (!axios.isAxiosError(error)) {
         return new UnexpectedError();
