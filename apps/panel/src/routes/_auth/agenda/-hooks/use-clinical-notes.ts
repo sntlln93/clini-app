@@ -4,7 +4,7 @@ import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
 import { discardPageData } from '@/lib/page-data';
 import type { Appointment } from '@/types/appointment';
-import type { ClinicalNote } from '@/types/clinical-note';
+import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 function queryKey(appointmentId: number | null) {
@@ -54,9 +54,10 @@ export function useCreateClinicalNote(appointment: Appointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
     const mutation = useMutation({
-        mutationFn: (body: string) =>
+        mutationFn: ({ body, icd10CodeIds }: NoteDraft) =>
             api.post(`/appointments/${appointment?.id}/clinical-notes`, {
                 body,
+                icd10_code_ids: icd10CodeIds,
             }),
         onSuccess: refreshNotes,
     });
@@ -77,12 +78,17 @@ export function useAmendClinicalNote(appointment: Appointment | null) {
         mutationFn: ({
             id,
             body,
+            icd10CodeIds,
             reason,
-        }: {
+        }: NoteDraft & {
             id: number;
-            body: string;
             reason: string | null;
-        }) => api.post(`/clinical-notes/${id}/amendments`, { body, reason }),
+        }) =>
+            api.post(`/clinical-notes/${id}/amendments`, {
+                body,
+                icd10_code_ids: icd10CodeIds,
+                reason,
+            }),
         onSuccess: refreshNotes,
     });
 

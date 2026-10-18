@@ -66,7 +66,10 @@ describe('clinical note mutations from the agenda (#273)', () => {
                 vi.mocked(api.get).mockResolvedValueOnce({
                     data: { data: [NOTE] },
                 });
-                await rendered.result.current.mutateAsync('Nota.');
+                await rendered.result.current.mutateAsync({
+                    body: 'Nota.',
+                    icd10CodeIds: [],
+                });
                 return rendered.queryClient;
             },
         },
@@ -82,6 +85,7 @@ describe('clinical note mutations from the agenda (#273)', () => {
                 await rendered.result.current.mutateAsync({
                     id: 1,
                     body: 'Nota.',
+                    icd10CodeIds: [],
                     reason: null,
                 });
                 return rendered.queryClient;
@@ -129,7 +133,10 @@ describe('clinical note mutations from the agenda (#273)', () => {
             () => new Promise((resolve) => pending.push(resolve)),
         );
 
-        const saving = result.current.mutateAsync('Nota.');
+        const saving = result.current.mutateAsync({
+            body: 'Nota.',
+            icd10CodeIds: [],
+        });
         // The note is saved and its success handler is running.
         await vi.waitFor(() => expect(api.post).toHaveBeenCalled());
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -157,7 +164,7 @@ describe('clinical note mutations from the agenda (#273)', () => {
             );
         });
 
-        await result.current.mutateAsync('Nota.');
+        await result.current.mutateAsync({ body: 'Nota.', icd10CodeIds: [] });
 
         expect(cachedWhenLoadersRerun).toBeUndefined();
     });
@@ -185,7 +192,10 @@ describe('clinical note mutations from the agenda (#273)', () => {
         );
         await waitFor(() => expect(gets).toHaveLength(1));
 
-        const saving = result.current.create.mutateAsync('Nota.');
+        const saving = result.current.create.mutateAsync({
+            body: 'Nota.',
+            icd10CodeIds: [],
+        });
         // Asked again after the save instead of keeping the first answer.
         await waitFor(() => expect(gets).toHaveLength(2));
         gets[1]({ data: { data: [NOTE] } });

@@ -140,7 +140,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'clinical_notes.annulled':
         'La nota está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'clinical_notes.amendment_unchanged':
-        'La enmienda no cambia el texto actual de la nota. Corregí el texto o cancelá la enmienda.',
+        'La enmienda no cambia el texto ni los diagnósticos actuales de la nota. Corregí alguno o cancelá la enmienda.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación registrada. Corregí algún medicamento o cancelá la enmienda.',
 };
