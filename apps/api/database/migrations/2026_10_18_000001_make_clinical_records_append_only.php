@@ -59,10 +59,13 @@ return new class extends Migration
         });
 
         // The current body was last written at updated_at, so that is when
-        // version 1 says it was written; the note keeps its created_at.
+        // version 1 says it was written; the note keeps its created_at. A
+        // soft delete overwrote updated_at with the deletion time, so a
+        // deleted note's version 1 falls back to its created_at.
         DB::statement(<<<'SQL'
             INSERT INTO clinical_note_versions (clinical_note_id, version, membership_id, body, reason, created_at)
-            SELECT id, 1, membership_id, body, NULL, COALESCE(updated_at, created_at)
+            SELECT id, 1, membership_id, body, NULL,
+                CASE WHEN deleted_at IS NOT NULL THEN created_at ELSE COALESCE(updated_at, created_at) END
             FROM clinical_notes
             SQL);
 

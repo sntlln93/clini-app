@@ -85,7 +85,7 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
         'membership_id' => $membership->id,
     ];
     $editedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota editada.', 'created_at' => '2026-09-01 10:00:00+00', 'updated_at' => '2026-09-02 10:00:00+00']);
-    $deletedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota borrada.', 'created_at' => '2026-09-03 10:00:00+00', 'updated_at' => '2026-09-03 10:00:00+00', 'deleted_at' => '2026-09-04 10:00:00+00']);
+    $deletedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota borrada.', 'created_at' => '2026-09-03 10:00:00+00', 'updated_at' => '2026-09-04 10:00:00+00', 'deleted_at' => '2026-09-04 10:00:00+00']);
     $prescriptionId = DB::table('prescriptions')->insertGetId([...$legacy, 'patient_id' => $appointment->patient_id, 'issued_at' => '2026-09-05 10:00:00+00', 'created_at' => '2026-09-05 10:00:00+00', 'updated_at' => '2026-09-06 10:00:00+00']);
     foreach (['Amoxicilina', 'Ibuprofeno'] as $position => $medication) {
         DB::table('prescription_items')->insert(['prescription_id' => $prescriptionId, 'position' => $position, 'medication' => $medication, 'dosage' => '1 por día', 'quantity' => 1, 'created_at' => now(), 'updated_at' => now()]);
@@ -103,7 +103,9 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
         ->and($edited->annulment)->toBeNull();
 
     $deleted = ClinicalNote::with('versions', 'annulment')->findOrFail($deletedNoteId);
+    // A soft delete wrote updated_at with deleted_at, so version 1 keeps the note's created_at.
     expect($deleted->versions->sole()->body)->toBe('Nota borrada.')
+        ->and($deleted->versions->sole()->created_at->toIso8601ZuluString())->toBe('2026-09-03T10:00:00Z')
         ->and($deleted->annulment?->reason)->toBe($migration::LEGACY_DELETION_REASON)
         ->and($deleted->annulment?->membership_id)->toBe($membership->id)
         ->and($deleted->annulment?->created_at?->toIso8601ZuluString())->toBe('2026-09-04T10:00:00Z');

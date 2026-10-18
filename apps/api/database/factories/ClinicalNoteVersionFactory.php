@@ -22,7 +22,8 @@ class ClinicalNoteVersionFactory extends Factory
     {
         return [
             'clinical_note_id' => ClinicalNote::factory(),
-            'version' => 1,
+            // The note factory already gave the note its version 1.
+            'version' => fn (array $attributes) => ((int) ClinicalNoteVersion::where('clinical_note_id', $attributes['clinical_note_id'])->max('version')) + 1,
             'membership_id' => fn (array $attributes) => ClinicalNote::findOrFail($attributes['clinical_note_id'])->membership_id,
             'body' => fake()->paragraph(),
         ];
