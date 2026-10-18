@@ -17,7 +17,7 @@ const ROLES = [
             'Arma su horario semanal y sus excepciones',
             'Elige sus prestaciones, con duración y precio',
             'Comparte su propio link de reservas',
-            'Escribe notas y recetas de sus visitas',
+            'Escribe notas y registra la medicación que indica',
         ],
     },
     {

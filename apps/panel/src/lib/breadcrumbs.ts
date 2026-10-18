@@ -7,7 +7,6 @@ const ROOT_CRUMB: Breadcrumb = { label: 'Agenda', href: '/agenda' };
 const SEGMENT_LABELS: Record<string, string> = {
     agenda: 'Agenda',
     'sala-de-espera': 'Sala de espera',
-    recetas: 'Recetas',
     pacientes: 'Pacientes',
     profesionales: 'Profesionales',
     disponibilidad: 'Disponibilidad',
@@ -29,7 +28,7 @@ const SECTION_SEGMENT_LABELS: Record<string, Record<string, string>> = {
 };
 
 // Sections whose numeric id segment has a detail route of its own; elsewhere
-// (e.g. `recetas`, or `profesionales/$id/editar`) the id is skipped, since
+// (e.g. `profesionales/$id/editar`) the id is skipped, since
 // linking it would point at a route that doesn't exist.
 const SECTIONS_WITH_DETAIL = new Set(['pacientes']);
 

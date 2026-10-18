@@ -37,11 +37,6 @@ class PrescriptionPolicy
         return $this->isAppointmentOwner($user, $appointment);
     }
 
-    public function view(User $user, Prescription $prescription): bool
-    {
-        return $this->isPrescriptionOwner($user, $prescription);
-    }
-
     public function update(User $user, Prescription $prescription): bool
     {
         return $this->isPrescriptionOwner($user, $prescription);

@@ -7,8 +7,8 @@ use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Models\Prescription;
-use App\Models\Specialty;
 use App\Support\CurrentOrganization;
+use Illuminate\Support\Facades\Schema;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
@@ -26,7 +26,6 @@ function prescriptionOwnAppointment(Membership $membership, array $attributes = 
 function prescriptionPayload(array $overrides = []): array
 {
     return [
-        'diagnosis' => 'Faringitis aguda',
         'items' => [
             [
                 'medication' => 'Amoxicilina',
@@ -53,7 +52,6 @@ test('store on one\'s own appointment returns 201 and persists the prescription 
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", prescriptionPayload());
 
     $response->assertCreated()
-        ->assertJsonPath('data.diagnosis', 'Faringitis aguda')
         ->assertJsonPath('data.items.0.medication', 'Amoxicilina')
         ->assertJsonPath('data.items.0.quantity', 2)
         ->assertJsonPath('data.items.1.medication', 'Ibuprofeno')
@@ -90,14 +88,18 @@ test('store ignores ownership fields sent in the payload', function () {
         ->and($prescription->patient_id)->toBe($appointment->patient_id);
 });
 
-test('store accepts a prescription without diagnosis', function () {
+// The diagnosis lives in the clinical note, not next to the indicated
+// medication (#319): one sent anyway is dropped, and there is no column for it.
+test('store ignores a diagnosis sent in the payload', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
 
     $this->actingAs($membership->user)
-        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", prescriptionPayload(['diagnosis' => null]))
+        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", prescriptionPayload(['diagnosis' => 'Faringitis aguda']))
         ->assertCreated()
-        ->assertJsonPath('data.diagnosis', null);
+        ->assertJsonMissingPath('data.diagnosis');
+
+    expect(Schema::hasColumn('prescriptions', 'diagnosis'))->toBeFalse();
 });
 
 test('store returns 422 when items are missing or empty', function (mixed $items) {
@@ -105,7 +107,7 @@ test('store returns 422 when items are missing or empty', function (mixed $items
     $appointment = prescriptionOwnAppointment($membership);
 
     $this->actingAs($membership->user)
-        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", ['diagnosis' => 'x', 'items' => $items])
+        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", ['items' => $items])
         ->assertStatus(422)
         ->assertJsonValidationErrors('items');
 
@@ -154,45 +156,35 @@ test('index returns only the acting membership\'s prescriptions for that appoint
     $response->assertJsonPath('data.0.id', $prescription->id);
 });
 
-test('show returns the printable fields: patient identity and author name/specialties', function () {
+// Nothing prints the record anymore (#319), so it carries no patient
+// identity, insurance or author details, and there is no single-record read.
+test('the listings carry only the medication, without patient or author details', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $patient = Patient::factory()->create(['name' => 'Juana Pérez', 'document_number' => '30111222']);
-    $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
-    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
-    $specialty = Specialty::query()->first() ?? Specialty::create(['name' => 'Clínica médica']);
-    $membership->user->specialties()->syncWithoutDetaching([$specialty->id]);
-    $membership->specialties()->attach($specialty->id, [
-        'organization_id' => $membership->organization_id,
-        'user_id' => $membership->user_id,
-    ]);
-
-    $response = $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}");
-
-    $response->assertOk()
-        ->assertJsonPath('data.patient_name', 'Juana Pérez')
-        ->assertJsonPath('data.patient_document_number', '30111222')
-        ->assertJsonPath('data.author_name', $membership->user->name)
-        ->assertJsonPath('data.author_specialties', [$specialty->name])
-        ->assertJsonPath('data.items.0.medication', 'Amoxicilina');
-});
-
-test('show returns the patient\'s insurance provider and member number for the printed prescription', function () {
-    $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $provider = InsuranceProvider::factory()->create(['name' => 'OSDE']);
+    $provider = InsuranceProvider::factory()->create();
     $patient = Patient::factory()->create([
         'insurance_provider_id' => $provider->id,
         'insurance_member_number' => '37415820',
     ]);
     $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
-    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    Prescription::factory()->create(['appointment_id' => $appointment->id]);
 
-    $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
-        ->assertOk()
-        ->assertJsonPath('data.patient_insurance_provider_name', 'OSDE')
-        ->assertJsonPath('data.patient_insurance_member_number', '37415820');
+    $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
+
+    $response->assertOk()->assertJsonPath('data.0.items.0.medication', 'Amoxicilina');
+    foreach (['patient_name', 'patient_document_type', 'patient_document_number', 'patient_insurance_provider_name', 'patient_insurance_member_number', 'author_name', 'author_specialties'] as $field) {
+        $response->assertJsonMissingPath("data.0.{$field}");
+    }
 });
 
-test('update replaces diagnosis and items, keeping issued_at', function () {
+test('a single record has no read endpoint', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $prescription = Prescription::factory()->create(['appointment_id' => prescriptionOwnAppointment($membership)->id]);
+
+    $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
+        ->assertStatus(405);
+});
+
+test('update replaces the items, keeping issued_at', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = prescriptionOwnAppointment($membership);
     $prescription = Prescription::factory()->create([
@@ -202,14 +194,12 @@ test('update replaces diagnosis and items, keeping issued_at', function () {
     $issuedAt = $prescription->issued_at;
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", [
-        'diagnosis' => 'Diagnóstico corregido',
         'items' => [
             ['medication' => 'Paracetamol', 'presentation' => '500 mg', 'dosage' => '1 cada 6 h', 'quantity' => 3],
         ],
     ]);
 
     $response->assertOk()
-        ->assertJsonPath('data.diagnosis', 'Diagnóstico corregido')
         ->assertJsonPath('data.items.0.medication', 'Paracetamol');
     expect($response->json('data.items'))->toHaveCount(1);
 

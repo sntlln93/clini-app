@@ -27,7 +27,7 @@ class PrescriptionController extends Controller
     /**
      * Everything PrescriptionResource renders, so it never lazy-loads.
      */
-    private const array RELATIONS = ['items', 'patient.insuranceProvider', 'author.user', 'author.specialties'];
+    private const array RELATIONS = ['items'];
 
     public function index(Request $request, Appointment $appointment): AnonymousResourceCollection
     {
@@ -71,13 +71,6 @@ class PrescriptionController extends Controller
         return PrescriptionResource::collection($prescriptions);
     }
 
-    public function show(Prescription $prescription): PrescriptionResource
-    {
-        Gate::authorize('view', $prescription);
-
-        return new PrescriptionResource($prescription->load(self::RELATIONS));
-    }
-
     public function store(
         StorePrescriptionRequest $request,
         Appointment $appointment,
@@ -96,7 +89,6 @@ class PrescriptionController extends Controller
             appointmentId: $appointment->id,
             patientId: $appointment->patient_id,
             membershipId: $membership->id,
-            diagnosis: $request->diagnosis(),
             items: $request->prescriptionItems(),
         ));
 
@@ -114,7 +106,6 @@ class PrescriptionController extends Controller
 
         $updated = $action->handle(new PrescriptionEditionData(
             prescriptionId: $prescription->id,
-            diagnosis: $request->diagnosis(),
             items: $request->prescriptionItems(),
         ));
 

@@ -68,11 +68,6 @@ export function DaySlotDetail({ detail }: { detail: SlotDetail }) {
                     <span className="tabular-nums">{value}</span>
                 </div>
             ))}
-            {detail.legal && (
-                <p className="rounded-lg bg-destructive-wash px-3 py-2 text-xs text-destructive">
-                    {detail.legal}
-                </p>
-            )}
         </div>
     );
 }

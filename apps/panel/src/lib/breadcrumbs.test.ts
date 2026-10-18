@@ -58,13 +58,6 @@ describe('buildBreadcrumbs', () => {
         ]);
     });
 
-    it('never links Recetas, which has no list route', () => {
-        expect(buildBreadcrumbs('/recetas/3')).toEqual([
-            { label: 'Agenda', href: '/agenda' },
-            { label: 'Recetas' },
-        ]);
-    });
-
     it('treats a trailing slash the same as no trailing slash', () => {
         const crumbs = buildBreadcrumbs('/ajustes/');
 

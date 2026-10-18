@@ -456,7 +456,7 @@ Table subscriptions {
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
-  Note: 'SaaS subscription of an organization (CU-30, #28). It grants the Practice plan while active, in grace, expired or cancelled with paid time left; no row = Free (ADR 0014). expired makes appointment, clinical note, prescription, availability and public booking writes read-only (409 subscriptions.inactive).'
+  Note: 'SaaS subscription of an organization (CU-30, #28). It grants the Practice plan while active, in grace, expired or cancelled with paid time left; no row = Free (ADR 0014). expired makes appointment, clinical note, indicated medication (prescriptions), availability and public booking writes read-only (409 subscriptions.inactive).'
 }
 
 Table subscription_events {

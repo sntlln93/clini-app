@@ -18,7 +18,7 @@ type PrescriptionItemFieldsProps = {
     onRemove: () => void;
 };
 
-// One medication row of the prescription form (`useFieldArray` item).
+// One medication row of the indicated-medication form (`useFieldArray` item).
 export function PrescriptionItemFields({
     control,
     index,

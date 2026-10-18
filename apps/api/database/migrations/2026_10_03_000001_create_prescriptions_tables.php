@@ -19,7 +19,6 @@ return new class extends Migration
             $table->foreignId('appointment_id');
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
-            $table->text('diagnosis')->nullable();
             $table->dateTimeTz('issued_at');
             $table->timestampsTz();
 

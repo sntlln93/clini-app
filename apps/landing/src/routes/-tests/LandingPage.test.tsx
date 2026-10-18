@@ -2,8 +2,23 @@ import { expectNoA11yViolations } from '@/tests/a11y';
 import { render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LandingPage } from '../-components/LandingPage';
+import { COMPARE, PLANS } from '../-components/plans';
 
 describe('LandingPage', () => {
+    // A printed prescription has no validity (Res. MS 2214/2025): Clini only
+    // records the indicated medication, so nothing may offer a prescription (#319).
+    it('never mentions prescriptions, the compare table included', () => {
+        render(<LandingPage />);
+
+        expect(document.body.textContent).not.toMatch(/receta|imprimir/i);
+        const labels = [
+            ...PLANS.flatMap((plan) => plan.features.map((f) => f.label)),
+            ...COMPARE.flatMap((group) => group.rows.map((row) => row.label)),
+        ];
+        expect(labels.filter((label) => /receta/i.test(label))).toEqual([]);
+        expect(labels).toContain('Medicación indicada');
+    });
+
     it('links the calls to action to the panel', () => {
         render(<LandingPage />);
 

@@ -11,7 +11,7 @@ use App\Models\Prescription;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Replaces the diagnosis and the whole item list; `issued_at` is kept, since
+ * Replaces the whole item list; `issued_at` is kept, since
  * an edit corrects the prescription rather than issuing a new one.
  *
  * @implements Action<PrescriptionEditionData>
@@ -26,15 +26,13 @@ class EditPrescriptionAction implements Action
         return DB::transaction(function () use ($dto): Prescription {
             $prescription = Prescription::query()->lockForUpdate()->findOrFail($dto->prescriptionId);
 
-            $prescription->update(['diagnosis' => $dto->diagnosis]);
-
             $prescription->items()->delete();
 
             foreach ($dto->items as $position => $item) {
                 $prescription->items()->create(['position' => $position, ...$item->toArray()]);
             }
 
-            // Bump updated_at even when only the items changed.
+            // The items are the whole payload, so bump updated_at by hand.
             $prescription->touch();
 
             return $prescription;

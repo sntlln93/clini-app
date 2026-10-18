@@ -13,7 +13,6 @@ final readonly class PrescriptionEditionData implements Data
      */
     public function __construct(
         public int $prescriptionId,
-        public ?string $diagnosis,
         public array $items,
     ) {}
 
@@ -24,7 +23,6 @@ final readonly class PrescriptionEditionData implements Data
     {
         return [
             'prescriptionId' => $this->prescriptionId,
-            'diagnosis' => $this->diagnosis,
             'items' => array_map(fn (PrescriptionItemData $item) => $item->toArray(), $this->items),
         ];
     }

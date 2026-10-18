@@ -49,7 +49,6 @@ function buildPrescription(
         appointment_id: 42,
         patient_id: 50,
         membership_id: 1,
-        diagnosis: 'Faringitis',
         issued_at: '2026-08-03T10:15:00',
         created_at: '2026-08-03T10:15:00',
         updated_at: '2026-08-03T10:15:00',
@@ -63,13 +62,6 @@ function buildPrescription(
                 quantity: 2,
             },
         ],
-        patient_name: 'Juan Pérez',
-        patient_document_type: 'dni',
-        patient_document_number: '30111222',
-        patient_insurance_provider_name: null,
-        patient_insurance_member_number: null,
-        author_name: 'Dra. Ana Gomez',
-        author_specialties: ['Clínica médica'],
         ...overrides,
     };
 }
@@ -123,7 +115,8 @@ describe('PrescriptionsDialog', () => {
         vi.mocked(api.patch).mockReset();
     });
 
-    it("lists the appointment's prescriptions with a print link to the printable view", async () => {
+    // Nothing prints the record anymore (#319).
+    it("lists the appointment's indicated medication, with no print link", async () => {
         vi.mocked(api.get).mockResolvedValue({
             data: { data: [buildPrescription()] },
         });
@@ -131,9 +124,8 @@ describe('PrescriptionsDialog', () => {
 
         await screen.findByText('Amoxicilina × 2');
         expect(api.get).toHaveBeenCalledWith('/appointments/42/prescriptions');
-        const printLink = screen.getByRole('link', { name: 'Imprimir' });
-        expect(printLink.getAttribute('href')).toBe('/recetas/7');
-        expect(printLink.getAttribute('target')).toBe('_blank');
+        expect(screen.queryByRole('link')).toBeNull();
+        expect(screen.queryByText(/receta/i)).toBeNull();
     });
 
     it('makes no request while the dialog is closed', () => {
@@ -146,7 +138,9 @@ describe('PrescriptionsDialog', () => {
         vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
         renderDialog();
 
-        await screen.findByText('Todavía no emitiste recetas para este turno.');
+        await screen.findByText(
+            'Todavía no registraste medicación en este turno.',
+        );
         expect(screen.getAllByLabelText('Medicamento')).toHaveLength(1);
         expect(screen.queryByRole('button', { name: /Quitar/ })).toBeNull();
 
@@ -166,16 +160,14 @@ describe('PrescriptionsDialog', () => {
         expect(screen.queryByRole('button', { name: /Quitar/ })).toBeNull();
     });
 
-    it('issuing posts the diagnosis and every item, then refetches the list', async () => {
+    it('recording posts every item, with no diagnosis, then refetches the list', async () => {
         vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         renderDialog();
 
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
 
-        fireEvent.change(screen.getByLabelText('Diagnóstico (opcional)'), {
-            target: { value: 'Faringitis' },
-        });
+        expect(screen.queryByLabelText(/Diagnóstico/)).toBeNull();
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
         fireEvent.change(screen.getByLabelText('Presentación'), {
             target: { value: 'Comprimidos 500 mg' },
@@ -187,13 +179,14 @@ describe('PrescriptionsDialog', () => {
             screen.getByRole('button', { name: 'Agregar medicamento' }),
         );
         fillItem(1, 'Ibuprofeno', 'Si hay dolor');
-        fireEvent.click(screen.getByRole('button', { name: 'Emitir receta' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
 
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(
                 '/appointments/42/prescriptions',
                 {
-                    diagnosis: 'Faringitis',
                     items: [
                         {
                             medication: 'Amoxicilina',
@@ -220,7 +213,9 @@ describe('PrescriptionsDialog', () => {
 
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
 
-        fireEvent.click(screen.getByRole('button', { name: 'Emitir receta' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
 
         await screen.findByText('Indicá el medicamento.');
         expect(screen.getByText('Indicá la posología.')).toBeTruthy();
@@ -237,7 +232,9 @@ describe('PrescriptionsDialog', () => {
         fireEvent.change(screen.getByLabelText('Cantidad'), {
             target: { value: '0' },
         });
-        fireEvent.click(screen.getByRole('button', { name: 'Emitir receta' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
 
         await screen.findByText('La cantidad debe estar entre 1 y 999.');
         expect(api.post).not.toHaveBeenCalled();
@@ -262,7 +259,9 @@ describe('PrescriptionsDialog', () => {
         await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
 
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
-        fireEvent.click(screen.getByRole('button', { name: 'Emitir receta' }));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
 
         await screen.findByText('Medicamento rechazado.');
     });
@@ -289,7 +288,6 @@ describe('PrescriptionsDialog', () => {
 
         await waitFor(() =>
             expect(api.patch).toHaveBeenCalledWith('/prescriptions/7', {
-                diagnosis: 'Faringitis',
                 items: [
                     {
                         medication: 'Cefalexina',
@@ -303,7 +301,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it.each(['expired'] as const)(
-        'while the subscription is %s it keeps the print link but hides the form and the edit action',
+        'while the subscription is %s it keeps the list but hides the form and the edit action',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({
                 data: { data: [buildPrescription()] },
@@ -311,27 +309,27 @@ describe('PrescriptionsDialog', () => {
             renderDialog(true, buildSubscription(status));
 
             await screen.findByText('Amoxicilina × 2');
-            expect(screen.getByRole('link', { name: 'Imprimir' })).toBeTruthy();
             expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
             expect(
-                screen.queryByRole('button', { name: 'Emitir receta' }),
+                screen.queryByRole('button', { name: 'Registrar medicación' }),
             ).toBeNull();
             expect(screen.queryByLabelText('Medicamento')).toBeNull();
         },
     );
 
-    it("on a plan without prescriptions it keeps them printable, explains why it can't issue them and hides the form", async () => {
+    it("on a plan without prescriptions it keeps the list, explains why it can't record them and hides the form", async () => {
         vi.mocked(api.get).mockResolvedValue({
             data: { data: [buildPrescription()] },
         });
         renderDialog(true, undefined, buildPlan('free'));
 
         await screen.findByText('Amoxicilina × 2');
-        expect(screen.getByRole('link', { name: 'Imprimir' })).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
         expect(screen.queryByLabelText('Medicamento')).toBeNull();
         expect(
-            screen.getByText(/Emitir recetas es parte del plan Consultorio/),
+            screen.getByText(
+                /Registrar la medicación indicada es parte del plan\s+Consultorio/,
+            ),
         ).toBeTruthy();
         expect(
             screen

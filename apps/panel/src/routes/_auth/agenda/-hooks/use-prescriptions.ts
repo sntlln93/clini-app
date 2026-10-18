@@ -40,16 +40,12 @@ export function useSavePrescription(appointmentId: number | null) {
                       payload,
                   )
                 : api.patch(`/prescriptions/${prescriptionId}`, payload),
-        // The loader-only patient list and printable view are dropped, not
-        // refetched: `ensureQueryData` would serve them while a refetch is in
-        // flight (#273). The dialog's first load is cancelled before its own
-        // refresh, which would otherwise join it and keep its pre-save answer.
+        // The loader-only patient list is dropped, not refetched:
+        // `ensureQueryData` would serve it while a refetch is in flight (#273).
+        // The dialog's first load is cancelled before its own refresh, which
+        // would otherwise join it and keep its pre-save answer.
         onSuccess: async () => {
-            discardPageData(
-                queryClient,
-                ['prescriptions', 'patient'],
-                ['prescriptions', 'detail'],
-            );
+            discardPageData(queryClient, ['prescriptions', 'patient']);
             await queryClient.cancelQueries({
                 queryKey: queryKey(appointmentId),
             });

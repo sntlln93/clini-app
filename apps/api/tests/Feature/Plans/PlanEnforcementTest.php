@@ -146,8 +146,10 @@ test('Free rejects issuing or editing a prescription, but keeps them readable', 
     $this->actingAs($professional->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", [])
         ->assertStatus(409)->assertJsonPath('error.context.feature', 'prescriptions');
 
-    $this->actingAs($professional->user)->getJson("/api/v1/prescriptions/{$prescription->id}")->assertOk();
-    $this->actingAs($professional->user)->getJson("/api/v1/appointments/{$appointment->id}/prescriptions")->assertOk();
+    $this->actingAs($professional->user)->getJson("/api/v1/patients/{$appointment->patient_id}/prescriptions")
+        ->assertOk()->assertJsonPath('data.0.id', $prescription->id);
+    $this->actingAs($professional->user)->getJson("/api/v1/appointments/{$appointment->id}/prescriptions")
+        ->assertOk()->assertJsonPath('data.0.id', $prescription->id);
 });
 
 test('Free rejects the waiting room', function () {

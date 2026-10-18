@@ -26,7 +26,6 @@ class IssuePrescriptionAction implements Action
                 'appointment_id' => $dto->appointmentId,
                 'patient_id' => $dto->patientId,
                 'membership_id' => $dto->membershipId,
-                'diagnosis' => $dto->diagnosis,
                 'issued_at' => now(),
             ]);
 

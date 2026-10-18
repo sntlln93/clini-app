@@ -6,14 +6,13 @@ namespace App\Http\Resources\Prescriptions;
 
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
-use App\Models\Specialty;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Shapes a prescription together with everything its printable view needs
- * (patient identity, author name and specialties) — the controller always
- * eager-loads those relations, see PrescriptionController::RELATIONS.
+ * Shapes one indicated-medication record with its items only: no patient
+ * identity or author details, since nothing prints it (issue #319). The
+ * controller eager-loads the items, see PrescriptionController::RELATIONS.
  *
  * @mixin Prescription
  */
@@ -31,7 +30,6 @@ class PrescriptionResource extends JsonResource
             'appointment_id' => $prescription->appointment_id,
             'patient_id' => $prescription->patient_id,
             'membership_id' => $prescription->membership_id,
-            'diagnosis' => $prescription->diagnosis,
             'issued_at' => $prescription->issued_at,
             'created_at' => $prescription->created_at,
             'updated_at' => $prescription->updated_at,
@@ -43,15 +41,6 @@ class PrescriptionResource extends JsonResource
                 'dosage' => $item->dosage,
                 'quantity' => $item->quantity,
             ])->values(),
-            'patient_name' => $prescription->patient?->name,
-            'patient_document_type' => $prescription->patient?->document_type,
-            'patient_document_number' => $prescription->patient?->document_number,
-            'patient_insurance_provider_name' => $prescription->patient?->insuranceProvider?->name,
-            'patient_insurance_member_number' => $prescription->patient?->insurance_member_number,
-            'author_name' => $prescription->author?->user?->name,
-            'author_specialties' => $prescription->author?->specialties
-                ->map(fn (Specialty $specialty) => $specialty->name)
-                ->values() ?? [],
         ];
     }
 

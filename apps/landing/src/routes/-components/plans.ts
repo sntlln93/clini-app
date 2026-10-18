@@ -27,7 +27,7 @@ export const PLANS: Plan[] = [
             yes('Recordatorios por mail'),
             yes('Notas clínicas por visita'),
             no('Recepción y equipo'),
-            no('Recetas'),
+            no('Registro de la medicación indicada'),
         ],
     },
     {
@@ -40,7 +40,7 @@ export const PLANS: Plan[] = [
             yes('Turnos sin límite'),
             yes('Equipo con roles: administración, profesionales y recepción'),
             yes('Sala de espera en vivo'),
-            yes('Recetas listas para imprimir'),
+            yes('Registro de la medicación indicada'),
             yes('Un link de reservas para cada profesional'),
             yes('Página de reservas con tu marca, sin «Hecho con Clini»'),
         ],
@@ -106,7 +106,10 @@ export const COMPARE: CompareGroup[] = [
             { label: 'Equipo y roles', values: ['No', 'Sí', 'Sí'] },
             { label: 'Sala de espera', values: ['No', 'Sí', 'Sí'] },
             { label: 'Notas clínicas', values: ['Sí', 'Sí', 'Sí'] },
-            { label: 'Recetas para imprimir', values: ['No', 'Sí', 'Sí'] },
+            {
+                label: 'Medicación indicada',
+                values: ['No', 'Sí', 'Sí'],
+            },
             {
                 label: 'Reportes de ocupación y ausentismo',
                 values: ['No', 'No', 'Sí'],

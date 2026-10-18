@@ -13,10 +13,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * A structured prescription issued during one appointment (issue #31). Not a
- * legally valid electronic prescription (Ley 27.553 is out of scope).
+ * The medication a professional indicated during one appointment, kept as an
+ * internal record of the clinical history (issue #319). Clini never issues a
+ * prescription: valid ones are electronic, through a ReNaPDiS platform.
  */
-#[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'diagnosis', 'issued_at'])]
+#[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'issued_at'])]
 class Prescription extends Model
 {
     /** @use HasFactory<PrescriptionFactory> */

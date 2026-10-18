@@ -4,15 +4,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
-import {
-    Form,
-    FormControl,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
-} from '@/components/ui/form';
-import { Textarea } from '@/components/ui/textarea';
+import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     EMPTY_ITEM,
@@ -36,7 +28,7 @@ type PrescriptionFormProps = {
     onSaved: () => void;
 };
 
-// Issue/edit form for one prescription: issues when `editing` is null, updates otherwise.
+// Form for one indicated-medication record: creates when `editing` is null, updates otherwise.
 export function PrescriptionForm({
     appointmentId,
     open,
@@ -87,25 +79,6 @@ export function PrescriptionForm({
                         {form.formState.errors.root.message}
                     </p>
                 )}
-                <FormField
-                    control={form.control}
-                    name="diagnosis"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel>Diagnóstico (opcional)</FormLabel>
-                            <FormControl
-                                render={
-                                    <Textarea
-                                        rows={2}
-                                        maxLength={2000}
-                                        {...field}
-                                    />
-                                }
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
                 {items.fields.map((item, index) => (
                     <PrescriptionItemFields
                         key={item.id}
@@ -142,7 +115,7 @@ export function PrescriptionForm({
                         type="submit"
                         disabled={save.isPending || form.formState.isSubmitting}
                     >
-                        {editing ? 'Guardar cambios' : 'Emitir receta'}
+                        {editing ? 'Guardar cambios' : 'Registrar medicación'}
                     </Button>
                 </DialogFooter>
             </form>

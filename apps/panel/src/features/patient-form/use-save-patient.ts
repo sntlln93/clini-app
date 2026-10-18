@@ -35,15 +35,10 @@ export function useSavePatient(patientId?: number) {
                 exact: true,
             });
             // Other pages' loader-only reads that show it (#273): appointments
-            // (agenda, waiting room) and prescriptions carry the patient's name
-            // and document; the reports count the patients registered.
+            // (agenda, waiting room) carry the patient's name and document; the
+            // reports count the patients registered.
             if (patientId) {
-                discardPageData(
-                    queryClient,
-                    ['appointments'],
-                    ['prescriptions', 'patient'],
-                    ['prescriptions', 'detail'],
-                );
+                discardPageData(queryClient, ['appointments']);
             } else {
                 discardPageData(queryClient, ['reports']);
             }

@@ -441,7 +441,7 @@ describe('AppointmentCard', () => {
         ).toBeTruthy();
     });
 
-    it('does not offer Recetas to a different membership', async () => {
+    it('does not offer Medicación to a different membership', async () => {
         renderCard(
             buildAppointment({ status: 'scheduled', membership_id: 1 }),
             true,
@@ -455,10 +455,12 @@ describe('AppointmentCard', () => {
         expect(
             await screen.findByRole('menuitem', { name: 'Cancelar' }),
         ).toBeTruthy();
-        expect(screen.queryByRole('menuitem', { name: 'Recetas' })).toBeNull();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Medicación' }),
+        ).toBeNull();
     });
 
-    it('clicking Recetas opens the prescriptions dialog', async () => {
+    it('clicking Medicación opens the indicated-medication dialog', async () => {
         vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
         renderCard(
             buildAppointment({ id: 1, status: 'completed', membership_id: 1 }),
@@ -470,7 +472,7 @@ describe('AppointmentCard', () => {
 
         fireEvent.click(screen.getByRole('button'));
         fireEvent.click(
-            await screen.findByRole('menuitem', { name: 'Recetas' }),
+            await screen.findByRole('menuitem', { name: 'Medicación' }),
         );
 
         await waitFor(() =>
@@ -480,7 +482,7 @@ describe('AppointmentCard', () => {
         );
         expect(
             await screen.findByText(
-                'Todavía no emitiste recetas para este turno.',
+                'Todavía no registraste medicación en este turno.',
             ),
         ).toBeTruthy();
     });
@@ -568,7 +570,9 @@ describe('AppointmentCard', () => {
         expect(
             screen.queryByRole('menuitem', { name: 'Notas clínicas' }),
         ).toBeNull();
-        expect(screen.queryByRole('menuitem', { name: 'Recetas' })).toBeNull();
+        expect(
+            screen.queryByRole('menuitem', { name: 'Medicación' }),
+        ).toBeNull();
     });
 
     it('keeps a completed appointment clickable for staff with patients.view, offering just the patient record', async () => {

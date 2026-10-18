@@ -45,18 +45,14 @@ describe('useSavePatient', () => {
     });
 
     // Other pages read these only in their loaders (#273).
-    it('drops the cached appointments and prescriptions after editing a patient, which show the name', async () => {
+    it('drops the cached appointments after editing a patient, which show the name', async () => {
         vi.mocked(api.put).mockResolvedValueOnce({
             data: { data: { id: 12, name: 'Juan Pérez' } },
         });
         const queryClient = new QueryClient();
         const agendaKey = ['appointments', '2026-08-10', '2026-08-10', null];
-        const prescriptionKey = ['prescriptions', 'detail', 5];
         const reportKey = ['reports', {}];
         queryClient.setQueryData(agendaKey, [{ patient_name: 'Juan Perez' }]);
-        queryClient.setQueryData(prescriptionKey, {
-            patient_name: 'Juan Perez',
-        });
         queryClient.setQueryData(reportKey, { new_patients: 1 });
         const { result } = renderSavePatient(queryClient, 12);
 
@@ -67,7 +63,6 @@ describe('useSavePatient', () => {
         );
 
         expect(queryClient.getQueryData(agendaKey)).toBeUndefined();
-        expect(queryClient.getQueryData(prescriptionKey)).toBeUndefined();
         expect(queryClient.getQueryData(reportKey)).toEqual({
             new_patients: 1,
         });

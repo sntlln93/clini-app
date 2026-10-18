@@ -91,7 +91,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'holidays.provider_unavailable':
         'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
     'subscriptions.inactive':
-        'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, recetas y disponibilidad, y para recibir reservas online.',
+        'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, medicación indicada y disponibilidad, y para recibir reservas online.',
     'subscriptions.already_active':
         'La suscripción del consultorio ya está activa. No hace falta volver a suscribirse.',
     'subscriptions.gateway_unavailable':
