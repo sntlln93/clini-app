@@ -20,6 +20,10 @@ RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.jit=tracing" >> /usr/local/etc/php/conf.d/opcache.ini \
     && echo "opcache.jit_buffer_size=64M" >> /usr/local/etc/php/conf.d/opcache.ini
 
+# Stack traces in logs and failed_jobs would otherwise carry each frame's
+# arguments: a DNI, an email or a name passed to an Action (#322).
+RUN echo "zend.exception_ignore_args=On" > /usr/local/etc/php/conf.d/exceptions.ini
+
 WORKDIR /var/www/html
 
 COPY --from=vendor /app/vendor ./vendor

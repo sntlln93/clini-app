@@ -68,7 +68,7 @@ class ResolvePublicOrganization
             });
 
         if ($membership === null) {
-            throw new BookingLinkNotFoundException($slug);
+            throw new BookingLinkNotFoundException;
         }
 
         $membershipOrganization = Organization::query()->find($membership->organization_id);

@@ -126,6 +126,9 @@ return [
         'driver' => env('QUEUE_FAILED_DRIVER', 'database-uuids'),
         'database' => env('DB_CONNECTION', 'sqlite'),
         'table' => 'failed_jobs',
+        // A failed payload or exception can hold personal data (#322): routes/console.php prunes rows older than this.
+        // Never below an hour: an empty variable would otherwise prune every failed job.
+        'retention_hours' => max(1, (int) (env('QUEUE_FAILED_RETENTION_HOURS') ?: 168)),
     ],
 
 ];

@@ -70,7 +70,8 @@ final class SendAppointmentReminderJob implements ShouldQueue
         Log::error('Failed to send appointment reminder', [
             'reminder_id' => $this->reminder->id,
             'appointment_id' => $this->reminder->appointment_id,
-            'exception' => $exception?->getMessage(),
+            // The class only: a transport's message can echo the patient's address (#322).
+            'exception' => $exception !== null ? $exception::class : null,
         ]);
     }
 }

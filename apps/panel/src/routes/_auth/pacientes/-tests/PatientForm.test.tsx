@@ -37,12 +37,13 @@ function notFoundError() {
     return { isAxiosError: true, response: { status: 404, data: {} } };
 }
 
+// The lookup is a POST too, so its answer is queued ahead of the form's own.
 function mockLookupMiss() {
-    vi.mocked(api.get).mockRejectedValueOnce(notFoundError());
+    vi.mocked(api.post).mockRejectedValueOnce(notFoundError());
 }
 
 function mockLookupHit(patient: Record<string, unknown>) {
-    vi.mocked(api.get).mockResolvedValueOnce({ data: { data: patient } });
+    vi.mocked(api.post).mockResolvedValueOnce({ data: { data: patient } });
 }
 
 const EXISTING_PATIENT: Patient = {
@@ -173,7 +174,10 @@ describe('PatientForm', () => {
         const memberNumber = await screen.findByLabelText('N° de afiliado');
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
         await screen.findByText('Ingresá el número de afiliado.');
-        expect(api.post).not.toHaveBeenCalled();
+        expect(api.post).not.toHaveBeenCalledWith(
+            '/patients',
+            expect.anything(),
+        );
 
         fireEvent.change(memberNumber, { target: { value: '37415820' } });
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
@@ -328,7 +332,7 @@ describe('PatientForm', () => {
 
         await fillMinimalPatientForm();
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
         expect(
             (
                 screen.getByLabelText(
@@ -453,8 +457,9 @@ describe('PatientForm', () => {
         });
 
         await waitFor(() =>
-            expect(api.get).toHaveBeenCalledWith('/patients/lookup', {
-                params: { document_type: 'dni', document_number: '12345678' },
+            expect(api.post).toHaveBeenCalledWith('/patients/lookup', {
+                document_type: 'dni',
+                document_number: '12345678',
             }),
         );
     });

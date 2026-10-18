@@ -67,5 +67,5 @@ test('a guest gets 401 on index, store, show, update and lookup', function () {
     $this->postJson('/api/v1/patients', [])->assertStatus(401);
     $this->getJson("/api/v1/patients/{$patient->id}")->assertStatus(401);
     $this->putJson("/api/v1/patients/{$patient->id}", [])->assertStatus(401);
-    $this->getJson('/api/v1/patients/lookup?document_type=dni&document_number=1')->assertStatus(401);
+    $this->postJson('/api/v1/patients/lookup', ['document_type' => 'dni', 'document_number' => '1'])->assertStatus(401);
 });

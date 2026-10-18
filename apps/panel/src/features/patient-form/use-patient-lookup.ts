@@ -18,11 +18,10 @@ export function usePatientLookup(
         queryKey: ['patients', 'lookup', documentType, documentNumber],
         queryFn: () =>
             api
-                .get<{ data: Patient }>('/patients/lookup', {
-                    params: {
-                        document_type: documentType,
-                        document_number: documentNumber,
-                    },
+                // POST, though it only reads: the document stays out of the URL and so out of access logs (#322).
+                .post<{ data: Patient }>('/patients/lookup', {
+                    document_type: documentType,
+                    document_number: documentNumber,
                 })
                 .then((response) => response.data.data)
                 .catch((error: unknown) => {

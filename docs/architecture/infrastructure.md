@@ -37,6 +37,8 @@ Después de desplegar el cambio que introdujo el dashboard sobre una base ya exi
 
 `QUEUE_CONNECTION=database` para arrancar. Redis solo si aparece una necesidad real de throughput/latencia que la cola en base de datos no pueda cubrir — no antes.
 
+Un job fallido queda en `failed_jobs` con su payload y la excepción entera, y los dos pueden llevar datos personales (#322). `queue:prune-failed` corre todos los días en el scheduler y borra los que tienen más de `QUEUE_FAILED_RETENTION_HOURS` horas (default 168, una semana; nunca menos de una hora, así que una variable vacía o en `0` no vacía la tabla). Un job cuyo payload lleva un dato que no es un modelo (una dirección, un token) implementa `ShouldBeEncrypted`, como `EmailVerificationMail`, y así va cifrado con `APP_KEY` en `jobs` y en `failed_jobs`. Los modelos viajan solo como id (`SerializesModels`).
+
 ## Caché
 
 Driver por defecto de Laravel. No optimizar prematuramente: sin justificación concreta (medición, no intuición), no vale la pena introducir Redis/Memcached solo para cache.
@@ -60,5 +62,14 @@ Sin ellas, la API arranca igual, pero subir un logo responde 500. Los backups de
 En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3`.
 
 ## Observabilidad
+
+### Datos personales en los logs
+
+Los logs no tienen la protección ni la retención de la base, así que no llevan datos personales (#322; la regla de `logContext()` está en [Contrato de errores](error-contract.md#dónde-se-traduce)). Lo que lo sostiene fuera del código de la aplicación:
+
+- La imagen de la API corre con `zend.exception_ignore_args=On` (`apps/api/Dockerfile`): sin eso, cada frame de una traza en `laravel.log` o en `failed_jobs` lleva sus argumentos, como un DNI, un email o un nombre que se le pasó a una Action.
+- Los nginx de la API, del panel y del dashboard no escriben access log, y el error log de la API va a stderr solo en `crit`. Una URL lleva el estado de búsqueda (`?q=` con un nombre o un DNI) y tokens en el path (`/turno/<token>`), y el `Referer` también. La búsqueda de un paciente por documento (`POST /api/v1/patients/lookup`) es un POST para que el DNI no viaje en la URL.
+- **Dokploy/Traefik**: el monitoreo de **Requests** de Dokploy activa el access log de Traefik, y ese log guarda la URL completa, con el query string. Mantenerlo apagado. Si se activa, las búsquedas `?q=` del panel y del dashboard (nombres, DNI, emails) quedan ahí, con la retención que tenga el host.
+- `MAIL_MAILER` nunca es `log` en producción, porque el mailer `log` escribe cada mail entero (destinatario, paciente, turno) en `laravel.log`. Producción usa `resend`, y el server de demo puede usar `array`.
 
 Herramientas evaluadas (no instaladas todavía): Laravel Pulse, Laravel Nightwatch, Uptime Kuma. El objetivo cuando se necesite: logs, métricas, monitoreo, uptime — con preferencia por soluciones gratuitas o de muy bajo costo dado el estadio del proyecto. Sin decisión tomada sobre cuál(es) usar.

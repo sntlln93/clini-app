@@ -15,7 +15,7 @@ test.use({
     expectedIssues: {
         responses: [
             { url: /\/api\/v1\/me$/, status: 401 },
-            { url: /\/api\/v1\/patients\/lookup\?/, status: 404 },
+            { url: /\/api\/v1\/patients\/lookup$/, status: 404 },
         ],
         console: [
             /Failed to load resource: the server responded with a status of 401 \(Unauthorized\)/,

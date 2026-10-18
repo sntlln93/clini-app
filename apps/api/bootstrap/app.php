@@ -10,8 +10,11 @@ use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserNotBlocked;
 use App\Http\Middleware\ResolveCurrentOrganization;
 use App\Http\Middleware\ResolvePublicOrganization;
+use App\Support\SafeExceptionLog;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
+use Illuminate\Database\DeadlockException;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -20,6 +23,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
+use Symfony\Component\Mime\Exception\RfcComplianceException;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -58,6 +63,31 @@ return Application::configure(basePath: dirname(__DIR__))
         // not unexpected ones.
         $exceptions->reportable(function (DomainError $e): void {
             Log::error($e->getMessage(), $e->logContext());
+        })->stop();
+
+        // These messages carry personal data (bindings, a rejected address),
+        // so they are logged through SafeExceptionLog instead of by the
+        // default reporter (#322).
+        $exceptions->reportable(function (QueryException $e): void {
+            Log::error('Database query failed.', SafeExceptionLog::forQuery($e));
+        })->stop();
+
+        // Thrown for a deadlock inside a nested transaction, with the
+        // QueryException's message copied and the exception itself as previous.
+        $exceptions->reportable(function (DeadlockException $e): void {
+            $previous = $e->getPrevious();
+
+            Log::error('Database query failed.', $previous instanceof QueryException
+                ? SafeExceptionLog::forQuery($previous)
+                : ['exception' => $e::class]);
+        })->stop();
+
+        $exceptions->reportable(function (TransportExceptionInterface $e): void {
+            Log::error('Mail delivery failed.', SafeExceptionLog::forMail($e));
+        })->stop();
+
+        $exceptions->reportable(function (RfcComplianceException $e): void {
+            Log::error('Mail delivery failed.', SafeExceptionLog::forMail($e));
         })->stop();
 
         $exceptions->render(fn (DomainError $e): JsonResponse => response()->json([

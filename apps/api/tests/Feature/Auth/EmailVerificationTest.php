@@ -6,6 +6,7 @@ use App\Enums\ErrorCode;
 use App\Mail\Auth\EmailVerificationMail;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 
@@ -238,4 +239,23 @@ test('unknown, expired, and already-used tokens are indistinguishable in the res
 
     expect($unknownResponse->json())->toEqual($expiredResponse->json());
     expect($expiredResponse->json())->toEqual($alreadyUsedResponse->json());
+});
+
+test('the queued verification mail keeps the address and the token out of the stored payload', function () {
+    config(['queue.default' => 'database']);
+
+    registerFromSpaForVerification()->postJson('/api/v1/register', [
+        'name' => 'Ana Owner',
+        'email' => 'ana@example.com',
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Norte',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+    ])->assertCreated();
+
+    $payload = (string) DB::table('jobs')->value('payload');
+
+    expect($payload)->toContain('EmailVerificationMail')
+        ->not->toContain('ana@example.com')
+        ->not->toContain('verificar-email');
 });
