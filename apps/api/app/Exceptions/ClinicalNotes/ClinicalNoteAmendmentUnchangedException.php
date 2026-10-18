@@ -8,8 +8,8 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * The amendment repeats the current text: it would add a version that
- * corrects nothing.
+ * The amendment repeats the current text and diagnoses: it would add a
+ * version that corrects nothing.
  */
 final class ClinicalNoteAmendmentUnchangedException extends DomainException
 {
@@ -17,7 +17,7 @@ final class ClinicalNoteAmendmentUnchangedException extends DomainException
         private readonly int $clinicalNoteId,
         private readonly int $currentVersion,
     ) {
-        parent::__construct('The amendment repeats the current text of the clinical note.');
+        parent::__construct('The amendment repeats the current text and diagnoses of the clinical note.');
     }
 
     public function errorCode(): ErrorCode

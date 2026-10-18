@@ -34,6 +34,7 @@ class ClinicalNoteAmendmentController extends Controller
             clinicalNoteId: $clinicalNote->id,
             membershipId: $membership->id,
             body: $request->string('body')->toString(),
+            icd10CodeIds: $request->amendedIcd10CodeIds(),
             reason: $request->reason(),
         ));
 

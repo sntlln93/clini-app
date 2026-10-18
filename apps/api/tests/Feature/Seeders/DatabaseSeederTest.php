@@ -12,7 +12,9 @@ use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
+use App\Models\Icd10Code;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
@@ -26,6 +28,7 @@ use App\Models\Reminder;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Models\UserSpecialty;
+use App\Support\ClinicalNoteDiagnoses;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\PlatformAdminSeeder;
 use Illuminate\Database\QueryException;
@@ -47,6 +50,7 @@ test('re-seeding leaves every fixture table with identical row counts', function
         // withTrashed(): an earlier bug in this branch made re-seeding accumulate soft-deleted rows instead of clearing them.
         'appointments' => Appointment::withTrashed()->count(),
         'reminders' => Reminder::count(),
+        'icd10_codes' => Icd10Code::withTrashed()->count(),
     ];
 
     $countsBefore = $countRows();
@@ -61,6 +65,7 @@ test('re-seeding clears the clinical notes and prescriptions written on fixture 
     $appointment = Appointment::query()->orderBy('id')->firstOrFail();
     $note = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
     $note->versions()->create(['version' => 2, 'membership_id' => $note->membership_id, 'body' => 'Enmienda.']);
+    ClinicalNoteDiagnoses::record($note->versions()->firstOrFail(), [Icd10Code::query()->firstOrFail()->id]);
     $note->annulment()->create(['membership_id' => $note->membership_id, 'reason' => 'Anulada.']);
     Prescription::factory()->create(['appointment_id' => $appointment->id]);
 
@@ -69,6 +74,7 @@ test('re-seeding clears the clinical notes and prescriptions written on fixture 
     expect(ClinicalNote::where('organization_id', $appointment->organization_id)->count())->toBe(0)
         ->and(ClinicalNoteVersion::count())->toBe(0)
         ->and(ClinicalNoteAnnulment::count())->toBe(0)
+        ->and(ClinicalNoteDiagnosis::count())->toBe(0)
         ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0)
         ->and(PrescriptionVersion::count())->toBe(0)
         ->and(PrescriptionItem::count())->toBe(0);

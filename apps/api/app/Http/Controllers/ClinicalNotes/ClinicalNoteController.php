@@ -24,7 +24,7 @@ class ClinicalNoteController extends Controller
     /**
      * Everything ClinicalNoteResource renders, so it never lazy-loads.
      */
-    public const array RELATIONS = ['versions', 'annulment'];
+    public const array RELATIONS = ['versions.diagnoses', 'annulment'];
 
     public function index(Request $request, Appointment $appointment): AnonymousResourceCollection
     {
@@ -77,6 +77,7 @@ class ClinicalNoteController extends Controller
             appointmentId: $appointment->id,
             membershipId: $membership->id,
             body: $request->string('body')->toString(),
+            icd10CodeIds: $request->icd10CodeIds(),
         ));
 
         return (new ClinicalNoteResource($note->load(self::RELATIONS)))

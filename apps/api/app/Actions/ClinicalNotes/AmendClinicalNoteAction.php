@@ -10,12 +10,15 @@ use App\Data\ClinicalNotes\ClinicalNoteAmendmentData;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAmendmentUnchangedException;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAnnulledException;
 use App\Models\ClinicalNote;
+use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
+use App\Support\ClinicalNoteDiagnoses;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Adds the next version and keeps every previous one (ADR 0019). The note
- * row is locked so two amendments can't both claim the same version.
+ * Adds the next version, with the whole new text and diagnoses, and keeps
+ * every previous one (ADR 0019, #324). The note row is locked so two
+ * amendments can't both claim the same version.
  *
  * @implements Action<ClinicalNoteAmendmentData>
  */
@@ -34,18 +37,25 @@ class AmendClinicalNoteAction implements Action
             }
 
             /** @var ClinicalNoteVersion $current */
-            $current = $clinicalNote->versions()->reorder('version', 'desc')->firstOrFail();
+            $current = $clinicalNote->versions()->reorder('version', 'desc')->with('diagnoses')->firstOrFail();
 
-            if ($current->body === $dto->body) {
+            $currentCodeIds = array_values($current->diagnoses
+                ->map(fn (ClinicalNoteDiagnosis $diagnosis): int => $diagnosis->icd10_code_id)
+                ->all());
+            $newCodeIds = $dto->icd10CodeIds ?? $currentCodeIds;
+
+            if ($current->body === $dto->body && $currentCodeIds === $newCodeIds) {
                 throw new ClinicalNoteAmendmentUnchangedException($clinicalNote->id, $current->version);
             }
 
-            $clinicalNote->versions()->create([
+            $version = $clinicalNote->versions()->create([
                 'version' => $current->version + 1,
                 'membership_id' => $dto->membershipId,
                 'body' => $dto->body,
                 'reason' => $dto->reason,
             ]);
+
+            ClinicalNoteDiagnoses::record($version, $newCodeIds);
 
             return $clinicalNote;
         });

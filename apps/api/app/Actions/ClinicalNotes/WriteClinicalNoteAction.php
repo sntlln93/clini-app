@@ -8,10 +8,11 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\ClinicalNotes\ClinicalNoteDraftData;
 use App\Models\ClinicalNote;
+use App\Support\ClinicalNoteDiagnoses;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The text is the note's version 1 (ADR 0019).
+ * The text and its diagnoses are the note's version 1 (ADR 0019, #324).
  *
  * @implements Action<ClinicalNoteDraftData>
  */
@@ -29,11 +30,13 @@ class WriteClinicalNoteAction implements Action
                 'membership_id' => $dto->membershipId,
             ]);
 
-            $clinicalNote->versions()->create([
+            $version = $clinicalNote->versions()->create([
                 'version' => 1,
                 'membership_id' => $dto->membershipId,
                 'body' => $dto->body,
             ]);
+
+            ClinicalNoteDiagnoses::record($version, $dto->icd10CodeIds);
 
             return $clinicalNote;
         });

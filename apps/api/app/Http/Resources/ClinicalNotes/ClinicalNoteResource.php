@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace App\Http\Resources\ClinicalNotes;
 
 use App\Models\ClinicalNote;
+use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * The current text plus the whole version history, since a note is
- * append-only (ADR 0019). The controller eager-loads the versions and the
- * annulment, see ClinicalNoteController::RELATIONS.
+ * The current text and diagnoses plus the whole version history, since a
+ * note is append-only (ADR 0019, #324). The controller eager-loads the
+ * versions with their diagnoses and the annulment, see
+ * ClinicalNoteController::RELATIONS.
  *
  * @mixin ClinicalNote
  */
@@ -33,6 +35,7 @@ class ClinicalNoteResource extends JsonResource
             'appointment_id' => $clinicalNote->appointment_id,
             'membership_id' => $clinicalNote->membership_id,
             'body' => $current->body,
+            'diagnoses' => $this->diagnoses($current),
             'version' => $current->version,
             'created_at' => $clinicalNote->created_at,
             'amended_at' => $current->version > 1 ? $current->created_at : null,
@@ -43,6 +46,7 @@ class ClinicalNoteResource extends JsonResource
             'versions' => $clinicalNote->versions->map(fn (ClinicalNoteVersion $version) => [
                 'version' => $version->version,
                 'body' => $version->body,
+                'diagnoses' => $this->diagnoses($version),
                 'reason' => $version->reason,
                 'created_at' => $version->created_at,
             ])->values(),
@@ -52,6 +56,23 @@ class ClinicalNoteResource extends JsonResource
             'author_name' => $this->whenLoaded('author', fn () => $clinicalNote->author?->user?->name),
             'appointment_date' => $this->whenLoaded('appointment', fn () => $clinicalNote->appointment?->start_at),
         ];
+    }
+
+    /**
+     * The code and description the version was written with, not the
+     * catalog's current ones (ADR 0020).
+     *
+     * @return list<array{icd10_code_id: int, code: string, description: string}>
+     */
+    private function diagnoses(ClinicalNoteVersion $version): array
+    {
+        return array_values($version->diagnoses
+            ->map(fn (ClinicalNoteDiagnosis $diagnosis): array => [
+                'icd10_code_id' => $diagnosis->icd10_code_id,
+                'code' => $diagnosis->code,
+                'description' => $diagnosis->description,
+            ])
+            ->all());
     }
 
     private function clinicalNote(): ClinicalNote
