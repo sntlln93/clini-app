@@ -61,7 +61,7 @@ export const DAY_SLOTS: DaySlot[] = [
         time: '18:40',
         moment: 'Última consulta',
         title: 'Notas de la visita y medicación indicada, en el mismo turno',
-        body: 'Cada nota clínica queda unida a la visita y a quien la escribió. La medicación indicada se registra con medicamento, presentación, posología y cantidad, y queda en la ficha del paciente. Solo la ve el profesional que la indicó.',
+        body: 'Cada nota clínica queda unida a la visita y a quien la escribió. La medicación indicada se registra con medicamento, presentación, posología y cantidad, y queda en la ficha del paciente. Solo la ve el profesional que la indicó. Nada se borra ni se edita: una corrección queda como enmienda, junto a la versión anterior.',
         detail: {
             rows: [
                 ['Amoxicilina 500 mg', '1 c/8 h · x 21'],

@@ -37,6 +37,17 @@ describe('LandingPage', () => {
         ]);
     });
 
+    // The clinical history is append-only (#323): a note or a medication
+    // record is amended, never edited or deleted.
+    it('describes clinical records as corrected by amendment, never edited', () => {
+        const notes = DAY_SLOTS.find((slot) =>
+            /notas de la visita/i.test(slot.title),
+        );
+
+        expect(notes?.body).toMatch(/Nada se borra ni se edita/);
+        expect(notes?.body).toMatch(/enmienda/);
+    });
+
     it('links the calls to action to the panel', () => {
         render(<LandingPage />);
 
