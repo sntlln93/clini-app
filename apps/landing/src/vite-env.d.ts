@@ -3,4 +3,5 @@
 interface ImportMetaEnv {
     readonly VITE_PANEL_URL?: string;
     readonly VITE_API_URL?: string;
+    readonly VITE_SITE_URL?: string;
 }
