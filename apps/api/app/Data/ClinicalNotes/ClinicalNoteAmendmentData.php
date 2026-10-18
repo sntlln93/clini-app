@@ -6,11 +6,13 @@ namespace App\Data\ClinicalNotes;
 
 use App\Contracts\Data;
 
-final readonly class ClinicalNoteEditionData implements Data
+final readonly class ClinicalNoteAmendmentData implements Data
 {
     public function __construct(
         public int $clinicalNoteId,
+        public int $membershipId,
         public string $body,
+        public ?string $reason,
     ) {}
 
     /**
@@ -20,7 +22,9 @@ final readonly class ClinicalNoteEditionData implements Data
     {
         return [
             'clinicalNoteId' => $this->clinicalNoteId,
+            'membershipId' => $this->membershipId,
             'body' => $this->body,
+            'reason' => $this->reason,
         ];
     }
 }

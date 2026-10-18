@@ -2,10 +2,10 @@ import { api } from '@/lib/api';
 import { planQueryOptions } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import { buildPlan } from '@/tests/fixtures/plan';
+import { AMOXICILLIN, buildPrescription } from '@/tests/fixtures/prescription';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
 import type { Plan } from '@/types/plan';
-import type { Prescription } from '@/types/prescription';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -19,7 +19,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PrescriptionsDialog } from '../-components/PrescriptionsDialog';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn() },
+    api: { get: vi.fn(), post: vi.fn() },
 }));
 
 const APPOINTMENT: Appointment = {
@@ -40,31 +40,6 @@ const APPOINTMENT: Appointment = {
     reported_insurance_member_number: null,
     arrived_at: null,
 };
-
-function buildPrescription(
-    overrides: Partial<Prescription> = {},
-): Prescription {
-    return {
-        id: 7,
-        appointment_id: 42,
-        patient_id: 50,
-        membership_id: 1,
-        issued_at: '2026-08-03T10:15:00',
-        created_at: '2026-08-03T10:15:00',
-        updated_at: '2026-08-03T10:15:00',
-        items: [
-            {
-                id: 1,
-                position: 0,
-                medication: 'Amoxicilina',
-                presentation: 'Comprimidos 500 mg',
-                dosage: '1 cada 8 h por 7 días',
-                quantity: 2,
-            },
-        ],
-        ...overrides,
-    };
-}
 
 function renderDialog(
     open: boolean = true,
@@ -112,7 +87,6 @@ describe('PrescriptionsDialog', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset();
-        vi.mocked(api.patch).mockReset();
     });
 
     // Nothing prints the record anymore (#319).
@@ -266,15 +240,16 @@ describe('PrescriptionsDialog', () => {
         await screen.findByText('Medicamento rechazado.');
     });
 
-    it('editing prefills the form and sends a PATCH with the edited items', async () => {
+    it('amending prefills the form and posts the corrected items and the reason as an amendment', async () => {
         vi.mocked(api.get).mockResolvedValue({
             data: { data: [buildPrescription({ id: 7 })] },
         });
-        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         renderDialog();
 
         await screen.findByText('Amoxicilina × 2');
-        fireEvent.click(screen.getByRole('button', { name: 'Editar' }));
+        expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
 
         const medication = screen.getByLabelText(
             'Medicamento',
@@ -282,26 +257,71 @@ describe('PrescriptionsDialog', () => {
         await waitFor(() => expect(medication.value).toBe('Amoxicilina'));
 
         fireEvent.change(medication, { target: { value: 'Cefalexina' } });
+        fireEvent.change(
+            screen.getByLabelText('Motivo de la enmienda (opcional)'),
+            { target: { value: 'Alergia a la penicilina.' } },
+        );
         fireEvent.click(
-            screen.getByRole('button', { name: 'Guardar cambios' }),
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
         );
 
         await waitFor(() =>
-            expect(api.patch).toHaveBeenCalledWith('/prescriptions/7', {
-                items: [
-                    {
-                        medication: 'Cefalexina',
-                        presentation: 'Comprimidos 500 mg',
-                        dosage: '1 cada 8 h por 7 días',
-                        quantity: 2,
-                    },
-                ],
-            }),
+            expect(api.post).toHaveBeenCalledWith(
+                '/prescriptions/7/amendments',
+                {
+                    items: [
+                        {
+                            medication: 'Cefalexina',
+                            presentation: 'Comprimidos 500 mg',
+                            dosage: '1 cada 8 h por 7 días',
+                            quantity: 2,
+                        },
+                    ],
+                    reason: 'Alergia a la penicilina.',
+                },
+            ),
         );
     });
 
+    it('an amended record lists every version with its reason', async () => {
+        const cefalexin = { ...AMOXICILLIN, id: 2, medication: 'Cefalexina' };
+        vi.mocked(api.get).mockResolvedValue({
+            data: {
+                data: [
+                    buildPrescription({
+                        version: 2,
+                        amended_at: '2026-08-03T11:00:00Z',
+                        items: [cefalexin],
+                        versions: [
+                            {
+                                version: 1,
+                                reason: null,
+                                created_at: '2026-08-03T10:15:00Z',
+                                items: [AMOXICILLIN],
+                            },
+                            {
+                                version: 2,
+                                reason: 'Alergia a la penicilina.',
+                                created_at: '2026-08-03T11:00:00Z',
+                                items: [cefalexin],
+                            },
+                        ],
+                    }),
+                ],
+            },
+        });
+        renderDialog();
+
+        await screen.findByText('Cefalexina × 2');
+        expect(screen.getByText(/Ver las 2 versiones/)).toBeTruthy();
+        expect(
+            screen.getByText('Motivo: Alergia a la penicilina.'),
+        ).toBeTruthy();
+        expect(screen.getByText(/^Amoxicilina/)).toBeTruthy();
+    });
+
     it.each(['expired'] as const)(
-        'while the subscription is %s it keeps the list but hides the form and the edit action',
+        'while the subscription is %s it keeps the list but hides the form and the amend action',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({
                 data: { data: [buildPrescription()] },
@@ -309,7 +329,9 @@ describe('PrescriptionsDialog', () => {
             renderDialog(true, buildSubscription(status));
 
             await screen.findByText('Amoxicilina × 2');
-            expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+            expect(
+                screen.queryByRole('button', { name: 'Enmendar' }),
+            ).toBeNull();
             expect(
                 screen.queryByRole('button', { name: 'Registrar medicación' }),
             ).toBeNull();
@@ -324,7 +346,7 @@ describe('PrescriptionsDialog', () => {
         renderDialog(true, undefined, buildPlan('free'));
 
         await screen.findByText('Amoxicilina × 2');
-        expect(screen.queryByRole('button', { name: 'Editar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
         expect(screen.queryByLabelText('Medicamento')).toBeNull();
         expect(
             screen.getByText(

@@ -31,11 +31,10 @@ test('a professional who has a past appointment with the patient gets 200 and se
         'membership_id' => $author->id,
         'patient_id' => $patient->id,
     ]);
-    ClinicalNote::factory()->create([
+    ClinicalNote::factory()->withBody('Nota escrita por otro profesional.')->create([
         'appointment_id' => $authorAppointment->id,
         'organization_id' => $organization->id,
         'membership_id' => $author->id,
-        'body' => 'Nota escrita por otro profesional.',
     ]);
 
     $response = $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
@@ -55,11 +54,10 @@ test('the author of a note gets 200 and sees their own note even without any app
     ]);
 
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
-    ClinicalNote::factory()->create([
+    ClinicalNote::factory()->withBody('Nota propia sin turno con el paciente.')->create([
         'appointment_id' => $appointment->id,
         'organization_id' => $organization->id,
         'membership_id' => $author->id,
-        'body' => 'Nota propia sin turno con el paciente.',
     ]);
 
     $response = $this->actingAs($author->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
@@ -88,11 +86,10 @@ test('notes belonging to another organization are never returned', function () {
         'membership_id' => $membershipA->id,
         'patient_id' => $patient->id,
     ]);
-    ClinicalNote::factory()->create([
+    ClinicalNote::factory()->withBody('Nota de la organización A.')->create([
         'appointment_id' => $appointmentA->id,
         'organization_id' => $organizationA->id,
         'membership_id' => $membershipA->id,
-        'body' => 'Nota de la organización A.',
     ]);
 
     $membershipB = Membership::factory()->professional()->create(['organization_id' => $organizationB->id]);
@@ -101,11 +98,10 @@ test('notes belonging to another organization are never returned', function () {
         'membership_id' => $membershipB->id,
         'patient_id' => $patient->id,
     ]);
-    ClinicalNote::factory()->create([
+    ClinicalNote::factory()->withBody('Nota de la organización B.')->create([
         'appointment_id' => $appointmentB->id,
         'organization_id' => $organizationB->id,
         'membership_id' => $membershipB->id,
-        'body' => 'Nota de la organización B.',
     ]);
 
     $response = $this->actingAs($membershipA->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");

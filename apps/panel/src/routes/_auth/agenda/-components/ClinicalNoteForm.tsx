@@ -9,41 +9,47 @@ import {
     FormControl,
     FormField,
     FormItem,
+    FormLabel,
     FormMessage,
 } from '@/components/ui/form';
 import { Textarea } from '@/components/ui/textarea';
-import { noteSchema, type NoteFormValues } from '@/lib/clinical-note-schema';
+import { AmendmentReasonField } from '@/features/clinical-history/AmendmentReasonField';
+import {
+    noteAmendmentSchema,
+    type NoteAmendmentFormValues,
+} from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
+    useAmendClinicalNote,
     useCreateClinicalNote,
-    useUpdateClinicalNote,
 } from '../-hooks/use-clinical-notes';
 
 type ClinicalNoteFormProps = {
     appointment: Appointment | null;
     open: boolean;
-    editingNote: ClinicalNote | null;
-    onCancelEdit: () => void;
+    amendingNote: ClinicalNote | null;
+    onCancelAmendment: () => void;
     onSaved: () => void;
 };
 
-const EMPTY_VALUES: NoteFormValues = { body: '' };
+const EMPTY_VALUES: NoteAmendmentFormValues = { body: '', reason: '' };
 
-// Add/edit form for a single note: create when `editingNote` is null, update otherwise.
+// Form for a single note: adds one when `amendingNote` is null, amends it
+// otherwise (#323) — the reason only goes out with an amendment.
 export function ClinicalNoteForm({
     appointment,
     open,
-    editingNote,
-    onCancelEdit,
+    amendingNote,
+    onCancelAmendment,
     onSaved,
 }: ClinicalNoteFormProps) {
     const create = useCreateClinicalNote(appointment);
-    const update = useUpdateClinicalNote(appointment);
+    const amend = useAmendClinicalNote(appointment);
 
-    const form = useForm<NoteFormValues>({
-        resolver: zodResolver(noteSchema),
+    const form = useForm<NoteAmendmentFormValues>({
+        resolver: zodResolver(noteAmendmentSchema),
         defaultValues: EMPTY_VALUES,
     });
 
@@ -53,15 +59,20 @@ export function ClinicalNoteForm({
             return;
         }
 
-        form.reset(editingNote ? { body: editingNote.body } : EMPTY_VALUES);
-    }, [open, editingNote, form]);
+        form.reset(
+            amendingNote
+                ? { body: amendingNote.body, reason: '' }
+                : EMPTY_VALUES,
+        );
+    }, [open, amendingNote, form]);
 
-    async function onSubmit(values: NoteFormValues) {
+    async function onSubmit(values: NoteAmendmentFormValues) {
         try {
-            if (editingNote) {
-                await update.mutateAsync({
-                    id: editingNote.id,
+            if (amendingNote) {
+                await amend.mutateAsync({
+                    id: amendingNote.id,
                     body: values.body,
+                    reason: values.reason || null,
                 });
             } else {
                 await create.mutateAsync(values.body);
@@ -74,7 +85,7 @@ export function ClinicalNoteForm({
     }
 
     const isSaving =
-        create.isPending || update.isPending || form.formState.isSubmitting;
+        create.isPending || amend.isPending || form.formState.isSubmitting;
 
     return (
         <Form {...form}>
@@ -89,6 +100,13 @@ export function ClinicalNoteForm({
                     name="body"
                     render={({ field }) => (
                         <FormItem>
+                            <FormLabel
+                                className={amendingNote ? '' : 'sr-only'}
+                            >
+                                {amendingNote
+                                    ? 'Texto corregido'
+                                    : 'Nueva nota'}
+                            </FormLabel>
                             <FormControl
                                 render={
                                     <Textarea
@@ -102,21 +120,27 @@ export function ClinicalNoteForm({
                         </FormItem>
                     )}
                 />
+                {amendingNote && (
+                    <AmendmentReasonField
+                        control={form.control}
+                        name="reason"
+                    />
+                )}
                 <DialogFooter>
-                    {editingNote && (
+                    {amendingNote && (
                         <Button
                             type="button"
                             variant="outline"
                             onClick={() => {
                                 form.reset(EMPTY_VALUES);
-                                onCancelEdit();
+                                onCancelAmendment();
                             }}
                         >
-                            Cancelar edición
+                            Cancelar enmienda
                         </Button>
                     )}
                     <Button type="submit" disabled={isSaving}>
-                        {editingNote ? 'Guardar cambios' : 'Agregar nota'}
+                        {amendingNote ? 'Guardar enmienda' : 'Agregar nota'}
                     </Button>
                 </DialogFooter>
             </form>

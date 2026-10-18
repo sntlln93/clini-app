@@ -68,12 +68,21 @@ export function useCreateClinicalNote(appointment: Appointment | null) {
     return { ...mutation, message, errors };
 }
 
-export function useUpdateClinicalNote(appointment: Appointment | null) {
+// A note is never edited or deleted (#323): the author amends it, which
+// keeps every earlier version, or annuls it, which keeps it marked as void.
+export function useAmendClinicalNote(appointment: Appointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
     const mutation = useMutation({
-        mutationFn: ({ id, body }: { id: number; body: string }) =>
-            api.patch(`/clinical-notes/${id}`, { body }),
+        mutationFn: ({
+            id,
+            body,
+            reason,
+        }: {
+            id: number;
+            body: string;
+            reason: string | null;
+        }) => api.post(`/clinical-notes/${id}/amendments`, { body, reason }),
         onSuccess: refreshNotes,
     });
 
@@ -84,17 +93,12 @@ export function useUpdateClinicalNote(appointment: Appointment | null) {
     return { ...mutation, message, errors };
 }
 
-export function useDeleteClinicalNote(appointment: Appointment | null) {
+export function useAnnulClinicalNote(appointment: Appointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
-    const mutation = useMutation({
-        mutationFn: (id: number) => api.delete(`/clinical-notes/${id}`),
+    return useMutation({
+        mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+            api.post(`/clinical-notes/${id}/annulment`, { reason }),
         onSuccess: refreshNotes,
     });
-
-    const { message, errors } = mutation.error
-        ? extractFormErrors(mutation.error)
-        : { message: null, errors: {} };
-
-    return { ...mutation, message, errors };
 }

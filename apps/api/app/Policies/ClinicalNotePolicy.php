@@ -12,11 +12,12 @@ use App\Support\CurrentOrganization;
 
 /**
  * Per-appointment access to clinical notes is authored-only (see handoff
- * #30): `viewAny`/`create`/`view`/`update`/`delete` are decided exclusively
+ * #30): `viewAny`/`create`/`view`/`amend`/`annul` are decided exclusively
  * by membership authorship, never by a role preset. This does NOT extend
  * OrganizationScopedPolicy — that base's layer 2 (org-wide permission)
  * would let Owner/Admin/Staff read notes they didn't author, which is
- * explicitly out of scope for the MVP.
+ * explicitly out of scope for the MVP. A note is never edited or deleted
+ * (#323, ADR 0019): its author amends or annuls it instead.
  *
  * `viewAnyForPatient` (handoff #217) is the one exception: it widens
  * visibility of a patient's full note history to any membership that
@@ -66,12 +67,12 @@ class ClinicalNotePolicy
         return $this->isNoteOwner($user, $clinicalNote);
     }
 
-    public function update(User $user, ClinicalNote $clinicalNote): bool
+    public function amend(User $user, ClinicalNote $clinicalNote): bool
     {
         return $this->isNoteOwner($user, $clinicalNote);
     }
 
-    public function delete(User $user, ClinicalNote $clinicalNote): bool
+    public function annul(User $user, ClinicalNote $clinicalNote): bool
     {
         return $this->isNoteOwner($user, $clinicalNote);
     }

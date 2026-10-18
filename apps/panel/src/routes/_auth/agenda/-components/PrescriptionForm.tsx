@@ -5,6 +5,7 @@ import { useFieldArray, useForm } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
+import { AmendmentReasonField } from '@/features/clinical-history/AmendmentReasonField';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     EMPTY_ITEM,
@@ -23,17 +24,18 @@ import { PrescriptionItemFields } from './PrescriptionItemFields';
 type PrescriptionFormProps = {
     appointmentId: number | null;
     open: boolean;
-    editing: Prescription | null;
-    onCancelEdit: () => void;
+    amending: Prescription | null;
+    onCancelAmendment: () => void;
     onSaved: () => void;
 };
 
-// Form for one indicated-medication record: creates when `editing` is null, updates otherwise.
+// Form for one indicated-medication record: records one when `amending` is
+// null, amends it otherwise (#323) — the reason only goes out with an amendment.
 export function PrescriptionForm({
     appointmentId,
     open,
-    editing,
-    onCancelEdit,
+    amending,
+    onCancelAmendment,
     onSaved,
 }: PrescriptionFormProps) {
     const save = useSavePrescription(appointmentId);
@@ -46,14 +48,14 @@ export function PrescriptionForm({
     // `form.reset()` notifies Controller children synchronously, so this must run in an effect, not during render.
     useEffect(() => {
         if (open) {
-            form.reset(editing ? toFormValues(editing) : EMPTY_PRESCRIPTION);
+            form.reset(amending ? toFormValues(amending) : EMPTY_PRESCRIPTION);
         }
-    }, [open, editing, form]);
+    }, [open, amending, form]);
 
     async function onSubmit(values: PrescriptionFormValues) {
         try {
             await save.mutateAsync({
-                prescriptionId: editing?.id ?? null,
+                prescriptionId: amending?.id ?? null,
                 payload: toPayload(values),
             });
             form.reset(EMPTY_PRESCRIPTION);
@@ -88,6 +90,12 @@ export function PrescriptionForm({
                         onRemove={() => items.remove(index)}
                     />
                 ))}
+                {amending && (
+                    <AmendmentReasonField
+                        control={form.control}
+                        name="reason"
+                    />
+                )}
                 {itemsError && (
                     <p className="text-sm text-destructive">{itemsError}</p>
                 )}
@@ -102,20 +110,20 @@ export function PrescriptionForm({
                     </Button>
                 )}
                 <DialogFooter>
-                    {editing && (
+                    {amending && (
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={onCancelEdit}
+                            onClick={onCancelAmendment}
                         >
-                            Cancelar edición
+                            Cancelar enmienda
                         </Button>
                     )}
                     <Button
                         type="submit"
                         disabled={save.isPending || form.formState.isSubmitting}
                     >
-                        {editing ? 'Guardar cambios' : 'Registrar medicación'}
+                        {amending ? 'Guardar enmienda' : 'Registrar medicación'}
                     </Button>
                 </DialogFooter>
             </form>

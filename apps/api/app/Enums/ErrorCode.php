@@ -54,4 +54,7 @@ enum ErrorCode: string
     case BookingLinkNotFound = 'booking.link_not_found';
     case BookingAppointmentUnavailable = 'booking.appointment_unavailable';
     case ContactRequestsStatusUnchanged = 'contact_requests.status_unchanged';
+    case ClinicalNotesAnnulled = 'clinical_notes.annulled';
+    case ClinicalNotesAmendmentUnchanged = 'clinical_notes.amendment_unchanged';
+    case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
 }

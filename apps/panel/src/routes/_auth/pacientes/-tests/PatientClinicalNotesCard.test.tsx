@@ -2,6 +2,7 @@ import { api } from '@/lib/api';
 import { planQueryOptions } from '@/lib/plan';
 import { subscriptionQueryOptions } from '@/lib/subscription';
 import { notifySuccess } from '@/lib/toast';
+import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { ClinicalNote } from '@/types/clinical-note';
@@ -29,16 +30,7 @@ vi.mock('@/lib/toast', () => ({
 }));
 
 function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {
-    return {
-        id: 1,
-        appointment_id: 42,
-        membership_id: 1,
-        body: 'Nota original.',
-        created_at: '2026-08-03T09:00:00',
-        updated_at: '2026-08-03T09:00:00',
-        author_name: 'Dra. Ana Gomez',
-        ...overrides,
-    };
+    return buildClinicalNote({ author_name: 'Dra. Ana Gomez', ...overrides });
 }
 
 function renderCard({

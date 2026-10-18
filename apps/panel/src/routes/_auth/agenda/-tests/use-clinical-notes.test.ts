@@ -1,20 +1,20 @@
 import { api } from '@/lib/api';
+import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import type { Appointment } from '@/types/appointment';
-import type { ClinicalNote } from '@/types/clinical-note';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+    useAmendClinicalNote,
+    useAnnulClinicalNote,
     useClinicalNotes,
     useCreateClinicalNote,
-    useDeleteClinicalNote,
-    useUpdateClinicalNote,
 } from '../-hooks/use-clinical-notes';
 import { patientClinicalNotesQueryOptions } from '../../pacientes/-hooks/use-patient-clinical-notes';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+    api: { get: vi.fn(), post: vi.fn() },
 }));
 
 const invalidate = vi.fn();
@@ -27,14 +27,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
 
 const APPOINTMENT = { id: 42, patient_id: 50 } as Appointment;
 
-const NOTE: ClinicalNote = {
-    id: 1,
-    appointment_id: 42,
-    membership_id: 1,
-    body: 'Nota desde la agenda.',
-    created_at: '2026-08-03T09:00:00',
-    updated_at: '2026-08-03T09:00:00',
-};
+const NOTE = buildClinicalNote({ body: 'Nota desde la agenda.' });
 
 function forbidden() {
     return { isAxiosError: true, response: { status: 403, data: {} } };
@@ -60,8 +53,6 @@ describe('clinical note mutations from the agenda (#273)', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
-        vi.mocked(api.patch).mockReset().mockResolvedValue({ data: {} });
-        vi.mocked(api.delete).mockReset().mockResolvedValue({ data: {} });
         invalidate.mockReset();
     });
 
@@ -80,10 +71,10 @@ describe('clinical note mutations from the agenda (#273)', () => {
             },
         },
         {
-            name: 'editing',
+            name: 'amending',
             run: async () => {
                 const rendered = await renderWithPatientPageVisited(() =>
-                    useUpdateClinicalNote(APPOINTMENT),
+                    useAmendClinicalNote(APPOINTMENT),
                 );
                 vi.mocked(api.get).mockResolvedValueOnce({
                     data: { data: [NOTE] },
@@ -91,20 +82,24 @@ describe('clinical note mutations from the agenda (#273)', () => {
                 await rendered.result.current.mutateAsync({
                     id: 1,
                     body: 'Nota.',
+                    reason: null,
                 });
                 return rendered.queryClient;
             },
         },
         {
-            name: 'deleting',
+            name: 'annulling',
             run: async () => {
                 const rendered = await renderWithPatientPageVisited(() =>
-                    useDeleteClinicalNote(APPOINTMENT),
+                    useAnnulClinicalNote(APPOINTMENT),
                 );
                 vi.mocked(api.get).mockResolvedValueOnce({
                     data: { data: [NOTE] },
                 });
-                await rendered.result.current.mutateAsync(1);
+                await rendered.result.current.mutateAsync({
+                    id: 1,
+                    reason: 'Paciente equivocado.',
+                });
                 return rendered.queryClient;
             },
         },

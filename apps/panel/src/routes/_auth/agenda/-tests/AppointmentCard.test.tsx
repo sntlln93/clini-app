@@ -436,7 +436,7 @@ describe('AppointmentCard', () => {
         );
         expect(
             await screen.findByText(
-                'Solo vos podés ver y editar tus notas de este turno.',
+                /Solo vos podés ver tus notas de este turno/,
             ),
         ).toBeTruthy();
     });

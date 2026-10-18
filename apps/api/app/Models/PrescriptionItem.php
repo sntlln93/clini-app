@@ -8,9 +8,11 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['prescription_id', 'position', 'medication', 'presentation', 'dosage', 'quantity'])]
+#[Fillable(['prescription_version_id', 'position', 'medication', 'presentation', 'dosage', 'quantity'])]
 class PrescriptionItem extends Model
 {
+    public const null UPDATED_AT = null;
+
     /**
      * @return array<string, string>
      */
@@ -23,10 +25,10 @@ class PrescriptionItem extends Model
     }
 
     /**
-     * @return BelongsTo<Prescription, $this>
+     * @return BelongsTo<PrescriptionVersion, $this>
      */
-    public function prescription(): BelongsTo
+    public function version(): BelongsTo
     {
-        return $this->belongsTo(Prescription::class);
+        return $this->belongsTo(PrescriptionVersion::class, 'prescription_version_id');
     }
 }

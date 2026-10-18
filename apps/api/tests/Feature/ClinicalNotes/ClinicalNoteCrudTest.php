@@ -136,72 +136,6 @@ test('index does not include notes of a different appointment of the same profes
     $response->assertJsonPath('data.0.id', $note->id);
 });
 
-test('update returns 200 with the edited body persisted', function () {
-    $membership = Membership::factory()->create();
-    $appointment = Appointment::factory()->create([
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-    ]);
-    $note = ClinicalNote::factory()->create([
-        'appointment_id' => $appointment->id,
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-        'body' => 'Nota original.',
-    ]);
-
-    $response = $this->actingAs($membership->user)->patchJson("/api/v1/clinical-notes/{$note->id}", [
-        'body' => 'Nota editada.',
-    ]);
-
-    $response->assertOk();
-    $response->assertJsonPath('data.body', 'Nota editada.');
-    expect($note->fresh()->body)->toBe('Nota editada.');
-});
-
-test('update returns 422 when body is missing, and 422 when body exceeds the max length', function () {
-    $membership = Membership::factory()->create();
-    $appointment = Appointment::factory()->create([
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-    ]);
-    $note = ClinicalNote::factory()->create([
-        'appointment_id' => $appointment->id,
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-    ]);
-
-    $this->actingAs($membership->user)->patchJson("/api/v1/clinical-notes/{$note->id}", [])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('body');
-
-    $this->actingAs($membership->user)->patchJson("/api/v1/clinical-notes/{$note->id}", [
-        'body' => str_repeat('a', 5001),
-    ])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('body');
-});
-
-test('destroy returns 204, soft-deletes the note and it stops appearing in index', function () {
-    $membership = Membership::factory()->create();
-    $appointment = Appointment::factory()->create([
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-    ]);
-    $note = ClinicalNote::factory()->create([
-        'appointment_id' => $appointment->id,
-        'organization_id' => $membership->organization_id,
-        'membership_id' => $membership->id,
-    ]);
-
-    $this->actingAs($membership->user)->deleteJson("/api/v1/clinical-notes/{$note->id}")
-        ->assertStatus(204);
-
-    $this->assertSoftDeleted($note);
-
-    $response = $this->actingAs($membership->user)->getJson("/api/v1/appointments/{$appointment->id}/clinical-notes");
-    expect($response->json('data'))->toHaveCount(0);
-});
-
 test('the resource payload exposes exactly the fields ClinicalNoteResource declares', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create([
@@ -214,10 +148,33 @@ test('the resource payload exposes exactly the fields ClinicalNoteResource decla
     ]);
 
     $response->assertCreated();
-    $response->assertJsonStructure([
-        'data' => ['id', 'appointment_id', 'membership_id', 'body', 'created_at', 'updated_at'],
-    ]);
     expect(array_keys($response->json('data')))->toEqualCanonicalizing([
-        'id', 'appointment_id', 'membership_id', 'body', 'created_at', 'updated_at',
+        'id', 'appointment_id', 'membership_id', 'body', 'version', 'created_at', 'amended_at', 'annulment', 'versions',
     ]);
+    $response->assertJsonPath('data.version', 1)
+        ->assertJsonPath('data.amended_at', null)
+        ->assertJsonPath('data.annulment', null)
+        ->assertJsonCount(1, 'data.versions')
+        ->assertJsonPath('data.versions.0.body', 'Nota de control.')
+        ->assertJsonPath('data.versions.0.reason', null);
+    expect(array_keys($response->json('data.versions.0')))->toEqualCanonicalizing(['version', 'body', 'reason', 'created_at']);
+});
+
+test('store keeps the text as version 1, written by the author', function () {
+    $membership = Membership::factory()->create();
+    $appointment = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+    ]);
+
+    $response = $this->actingAs($membership->user)->postJson("/api/v1/appointments/{$appointment->id}/clinical-notes", [
+        'body' => 'Primera versión.',
+    ]);
+
+    $version = ClinicalNote::findOrFail($response->json('data.id'))->versions()->sole();
+
+    expect($version->version)->toBe(1);
+    expect($version->body)->toBe('Primera versión.');
+    expect($version->membership_id)->toBe($membership->id);
+    expect($version->reason)->toBeNull();
 });

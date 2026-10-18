@@ -64,7 +64,7 @@ test('store on one\'s own appointment returns 201 and persists the prescription 
         ->and($prescription->appointment_id)->toBe($appointment->id)
         ->and($prescription->patient_id)->toBe($appointment->patient_id)
         ->and($prescription->issued_at)->not->toBeNull()
-        ->and($prescription->items()->pluck('position')->all())->toBe([0, 1]);
+        ->and($prescription->versions()->sole()->items()->pluck('position')->all())->toBe([0, 1]);
 });
 
 test('store ignores ownership fields sent in the payload', function () {
@@ -181,44 +181,7 @@ test('a single record has no read endpoint', function () {
     $prescription = Prescription::factory()->create(['appointment_id' => prescriptionOwnAppointment($membership)->id]);
 
     $this->actingAs($membership->user)->getJson("/api/v1/prescriptions/{$prescription->id}")
-        ->assertStatus(405);
-});
-
-test('update replaces the items, keeping issued_at', function () {
-    $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $appointment = prescriptionOwnAppointment($membership);
-    $prescription = Prescription::factory()->create([
-        'appointment_id' => $appointment->id,
-        'issued_at' => now()->subDay()->startOfSecond(),
-    ]);
-    $issuedAt = $prescription->issued_at;
-
-    $response = $this->actingAs($membership->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", [
-        'items' => [
-            ['medication' => 'Paracetamol', 'presentation' => '500 mg', 'dosage' => '1 cada 6 h', 'quantity' => 3],
-        ],
-    ]);
-
-    $response->assertOk()
-        ->assertJsonPath('data.items.0.medication', 'Paracetamol');
-    expect($response->json('data.items'))->toHaveCount(1);
-
-    $fresh = $prescription->fresh();
-    expect($fresh->items)->toHaveCount(1)
-        ->and($fresh->items->first()->quantity)->toBe(3)
-        ->and($fresh->issued_at->equalTo($issuedAt))->toBeTrue();
-});
-
-test('update returns 422 when the items list is emptied', function () {
-    $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $appointment = prescriptionOwnAppointment($membership);
-    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
-
-    $this->actingAs($membership->user)->patchJson("/api/v1/prescriptions/{$prescription->id}", ['items' => []])
-        ->assertStatus(422)
-        ->assertJsonValidationErrors('items');
-
-    expect($prescription->items()->count())->toBe(1);
+        ->assertNotFound();
 });
 
 test('the patient listing returns only the acting membership\'s prescriptions for that patient', function () {

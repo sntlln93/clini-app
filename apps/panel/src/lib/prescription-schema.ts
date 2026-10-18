@@ -1,5 +1,9 @@
-import type { Prescription, PrescriptionPayload } from '@/types/prescription';
+import type {
+    Prescription,
+    PrescriptionAmendmentPayload,
+} from '@/types/prescription';
 import { z } from 'zod';
+import { amendmentReason } from './clinical-note-schema';
 
 // Mirrors `StorePrescriptionRequest::rules()` in the API — keep in sync.
 export const PRESCRIPTION_MAX_ITEMS = 20;
@@ -30,7 +34,9 @@ const itemSchema = z.object({
         ),
 });
 
+// `reason` only goes out with an amendment (#323); recording one ignores it.
 export const prescriptionSchema = z.object({
+    reason: amendmentReason,
     items: z
         .array(itemSchema)
         .min(1, 'Indicá al menos un medicamento.')
@@ -52,6 +58,7 @@ export const EMPTY_ITEM: PrescriptionItemFormValues = {
 };
 
 export const EMPTY_PRESCRIPTION: PrescriptionFormValues = {
+    reason: '',
     items: [EMPTY_ITEM],
 };
 
@@ -59,6 +66,7 @@ export function toFormValues(
     prescription: Prescription,
 ): PrescriptionFormValues {
     return {
+        reason: '',
         items: prescription.items.map((item) => ({
             medication: item.medication,
             presentation: item.presentation ?? '',
@@ -68,8 +76,11 @@ export function toFormValues(
     };
 }
 
-export function toPayload(values: PrescriptionFormValues): PrescriptionPayload {
+export function toPayload(
+    values: PrescriptionFormValues,
+): PrescriptionAmendmentPayload {
     return {
+        reason: values.reason.trim() || null,
         items: values.items.map((item) => ({
             medication: item.medication.trim(),
             presentation: item.presentation.trim() || null,
@@ -79,9 +90,14 @@ export function toPayload(values: PrescriptionFormValues): PrescriptionPayload {
     };
 }
 
-// Server validation keys this form can show inline (`items.N.field`).
+// Server validation keys this form can show inline (`reason`, `items.N.field`).
 export function isPrescriptionFieldKey(
     key: string,
-): key is `items.${number}.${'medication' | 'presentation' | 'dosage' | 'quantity'}` {
-    return /^items\.\d+\.(medication|presentation|dosage|quantity)$/.test(key);
+): key is
+    | 'reason'
+    | `items.${number}.${'medication' | 'presentation' | 'dosage' | 'quantity'}` {
+    return (
+        key === 'reason' ||
+        /^items\.\d+\.(medication|presentation|dosage|quantity)$/.test(key)
+    );
 }

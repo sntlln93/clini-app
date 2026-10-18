@@ -11,13 +11,21 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['organization_id', 'appointment_id', 'membership_id', 'body'])]
+/**
+ * Part of the clinical history, so append-only (#323, ADR 0019): the body
+ * lives in its versions, a correction adds one, and an annulment replaces
+ * deletion. A database trigger rejects any UPDATE or DELETE of the row.
+ */
+#[Fillable(['organization_id', 'appointment_id', 'membership_id'])]
 class ClinicalNote extends Model
 {
     /** @use HasFactory<ClinicalNoteFactory> */
-    use BelongsToOrganization, HasFactory, SoftDeletes;
+    use BelongsToOrganization, HasFactory;
+
+    public const null UPDATED_AT = null;
 
     /**
      * @return BelongsTo<Appointment, $this>
@@ -33,6 +41,24 @@ class ClinicalNote extends Model
     public function author(): BelongsTo
     {
         return $this->belongsTo(Membership::class, 'membership_id');
+    }
+
+    /**
+     * Oldest first, so the last one is the current text.
+     *
+     * @return HasMany<ClinicalNoteVersion, $this>
+     */
+    public function versions(): HasMany
+    {
+        return $this->hasMany(ClinicalNoteVersion::class)->orderBy('version');
+    }
+
+    /**
+     * @return HasOne<ClinicalNoteAnnulment, $this>
+     */
+    public function annulment(): HasOne
+    {
+        return $this->hasOne(ClinicalNoteAnnulment::class);
     }
 
     /**

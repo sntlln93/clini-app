@@ -11,11 +11,15 @@ use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
 use App\Models\ClinicalNote;
+use App\Models\ClinicalNoteAnnulment;
+use App\Models\ClinicalNoteVersion;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\PlatformAdmin;
 use App\Models\Prescription;
+use App\Models\PrescriptionItem;
+use App\Models\PrescriptionVersion;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
@@ -24,6 +28,7 @@ use App\Models\User;
 use App\Models\UserSpecialty;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\PlatformAdminSeeder;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -54,13 +59,31 @@ test('re-seeding leaves every fixture table with identical row counts', function
 test('re-seeding clears the clinical notes and prescriptions written on fixture appointments', function () {
     $this->seed(DatabaseSeeder::class);
     $appointment = Appointment::query()->orderBy('id')->firstOrFail();
-    ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
+    $note = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
+    $note->versions()->create(['version' => 2, 'membership_id' => $note->membership_id, 'body' => 'Enmienda.']);
+    $note->annulment()->create(['membership_id' => $note->membership_id, 'reason' => 'Anulada.']);
     Prescription::factory()->create(['appointment_id' => $appointment->id]);
 
     $this->seed(DatabaseSeeder::class);
 
-    expect(ClinicalNote::withTrashed()->where('organization_id', $appointment->organization_id)->count())->toBe(0)
-        ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0);
+    expect(ClinicalNote::where('organization_id', $appointment->organization_id)->count())->toBe(0)
+        ->and(ClinicalNoteVersion::count())->toBe(0)
+        ->and(ClinicalNoteAnnulment::count())->toBe(0)
+        ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0)
+        ->and(PrescriptionVersion::count())->toBe(0)
+        ->and(PrescriptionItem::count())->toBe(0);
+});
+
+// The purge setting is transaction-local (ADR 0019): once the seeder is
+// done, the clinical history is append-only again.
+test('re-seeding leaves the clinical history guarded', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+    $appointment = Appointment::query()->orderBy('id')->firstOrFail();
+    $note = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
+
+    expect(fn () => DB::transaction(fn () => DB::table('clinical_notes')->where('id', $note->id)->delete()))
+        ->toThrow(QueryException::class, 'append-only');
 });
 
 test('the two fixture organizations exist by slug', function () {

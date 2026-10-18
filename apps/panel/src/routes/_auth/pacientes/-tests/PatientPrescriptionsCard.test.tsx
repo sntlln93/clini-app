@@ -1,31 +1,25 @@
+import {
+    AMOXICILLIN,
+    buildPrescription as buildSharedPrescription,
+} from '@/tests/fixtures/prescription';
 import type { Prescription } from '@/types/prescription';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { PatientPrescriptionsCard } from '../-components/PatientPrescriptionsCard';
 
+const AMOXICILLIN_DAILY = {
+    ...AMOXICILLIN,
+    presentation: null,
+    dosage: '1 cada 8 h',
+};
+
 function buildPrescription(
     overrides: Partial<Prescription> = {},
 ): Prescription {
-    return {
-        id: 7,
-        appointment_id: 42,
-        patient_id: 50,
-        membership_id: 1,
-        issued_at: '2026-08-03T10:15:00',
-        created_at: '2026-08-03T10:15:00',
-        updated_at: '2026-08-03T10:15:00',
-        items: [
-            {
-                id: 1,
-                position: 0,
-                medication: 'Amoxicilina',
-                presentation: null,
-                dosage: '1 cada 8 h',
-                quantity: 2,
-            },
-        ],
+    return buildSharedPrescription({
+        items: [AMOXICILLIN_DAILY],
         ...overrides,
-    };
+    });
 }
 
 function renderCard(prescriptions: Prescription[]) {
@@ -71,5 +65,39 @@ describe('PatientPrescriptionsCard', () => {
         expect(screen.getByText('Si hay dolor · Cantidad: 1')).toBeTruthy();
         expect(screen.queryByRole('link')).toBeNull();
         expect(screen.queryByText(/receta/i)).toBeNull();
+    });
+
+    it('an amended record shows its current items and every earlier version (#323)', async () => {
+        const ibuprofen = {
+            ...AMOXICILLIN_DAILY,
+            id: 2,
+            medication: 'Ibuprofeno',
+        };
+        renderCard([
+            buildPrescription({
+                version: 2,
+                amended_at: '2026-08-04T10:00:00Z',
+                items: [ibuprofen],
+                versions: [
+                    {
+                        version: 1,
+                        reason: null,
+                        created_at: '2026-08-03T10:15:00Z',
+                        items: [AMOXICILLIN_DAILY],
+                    },
+                    {
+                        version: 2,
+                        reason: 'Alergia.',
+                        created_at: '2026-08-04T10:00:00Z',
+                        items: [ibuprofen],
+                    },
+                ],
+            }),
+        ]);
+
+        expect(await screen.findByText(/Ver las 2 versiones/)).toBeTruthy();
+        expect(screen.getByText('Motivo: Alergia.')).toBeTruthy();
+        expect(screen.getAllByText('Ibuprofeno')).toHaveLength(2);
+        expect(screen.getByText('Amoxicilina')).toBeTruthy();
     });
 });
