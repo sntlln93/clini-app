@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { ExportClinicalRecordMenu } from './-components/ExportClinicalRecordMenu';
 import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentHistoryCard';
 import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard';
 import { PatientContactCard } from './-components/PatientContactCard';
@@ -58,12 +59,19 @@ function PacienteDetallePage() {
         <div className="space-y-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-2xl tracking-tight">{patient.name}</h1>
-                <Button
-                    render={<Link to="/pacientes/$id/editar" params={{ id }} />}
-                    nativeButton={false}
-                >
-                    Editar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                    {notes !== null && (
+                        <ExportClinicalRecordMenu patientId={id} />
+                    )}
+                    <Button
+                        render={
+                            <Link to="/pacientes/$id/editar" params={{ id }} />
+                        }
+                        nativeButton={false}
+                    >
+                        Editar
+                    </Button>
+                </div>
             </header>
 
             <PatientNextAppointmentCard

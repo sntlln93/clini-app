@@ -26,10 +26,12 @@ class ClinicalNoteAnnulment extends Model
     }
 
     /**
+     * Deactivating a membership soft-deletes it, and the record keeps its author.
+     *
      * @return BelongsTo<Membership, $this>
      */
     public function author(): BelongsTo
     {
-        return $this->belongsTo(Membership::class, 'membership_id');
+        return $this->belongsTo(Membership::class, 'membership_id')->withTrashed();
     }
 }

@@ -40,20 +40,9 @@ class ClinicalNotePolicy
             return false;
         }
 
-        $hasAppointmentWithPatient = Appointment::query()
-            ->where('organization_id', $organizationId)
-            ->where('membership_id', $membership->id)
-            ->where('patient_id', $patient->id)
-            ->exists();
-
-        if ($hasAppointmentWithPatient) {
-            return true;
-        }
-
-        return ClinicalNote::query()
-            ->where('organization_id', $organizationId)
-            ->where('membership_id', $membership->id)
-            ->whereHas('appointment', fn ($query) => $query->where('patient_id', $patient->id))
+        return Patient::query()
+            ->whereKey($patient->id)
+            ->attendedBy($organizationId, $membership->id)
             ->exists();
     }
 

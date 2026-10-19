@@ -119,3 +119,27 @@ test('a guest gets 401', function () {
 
     $this->getJson("/api/v1/patients/{$patient->id}/appointments")->assertStatus(401);
 });
+
+test('a past appointment keeps its professional and service names after the professional is deactivated and the service removed', function () {
+    $organization = Organization::factory()->create();
+    $viewer = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $former = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $former->user->update(['name' => 'Dr. Dado de Baja']);
+    $patient = Patient::factory()->create();
+    $patient->organizations()->attach($organization->id);
+    $service = Service::factory()->create(['name' => 'Servicio Retirado']);
+    Appointment::factory()->create([
+        'organization_id' => $organization->id,
+        'membership_id' => $former->id,
+        'patient_id' => $patient->id,
+        'service_id' => $service->id,
+    ]);
+    $former->delete();
+    $service->delete();
+
+    $response = $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/appointments");
+
+    $response->assertOk()
+        ->assertJsonPath('data.0.professional_name', 'Dr. Dado de Baja')
+        ->assertJsonPath('data.0.service_name', 'Servicio Retirado');
+});
