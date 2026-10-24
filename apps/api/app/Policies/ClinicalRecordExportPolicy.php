@@ -6,6 +6,7 @@ namespace App\Policies;
 
 use App\Models\Patient;
 use App\Models\User;
+use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 
 /**
@@ -18,17 +19,7 @@ class ClinicalRecordExportPolicy
 {
     public function exportForPatient(User $user, Patient $patient): bool
     {
-        $organizationId = app(CurrentOrganization::class)->get();
-        $membership = $user->currentMembership();
-
-        if ($organizationId === null || $membership === null) {
-            return false;
-        }
-
-        return Patient::query()
-            ->whereKey($patient->id)
-            ->attendedBy($organizationId, $membership->id)
-            ->exists();
+        return ClinicalAccess::attends($user, $patient);
     }
 
     /**

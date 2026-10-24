@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Schema;
  * Every export of the clinical history leaves a row here (#326, ADR 0021):
  * who took it out, of which patient (null for every patient the membership
  * attended), in what format and when. It is as append-only as the history
- * it records (ADR 0019), until the access log (#325) absorbs it.
+ * it records (ADR 0019), and stays apart from the access log (#325, ADR 0022).
  */
 return new class extends Migration
 {

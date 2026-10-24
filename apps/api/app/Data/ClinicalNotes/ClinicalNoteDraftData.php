@@ -14,6 +14,7 @@ final readonly class ClinicalNoteDraftData implements Data
     public function __construct(
         public int $organizationId,
         public int $appointmentId,
+        public int $patientId,
         public int $membershipId,
         public string $body,
         public array $icd10CodeIds,
@@ -27,6 +28,7 @@ final readonly class ClinicalNoteDraftData implements Data
         return [
             'organizationId' => $this->organizationId,
             'appointmentId' => $this->appointmentId,
+            'patientId' => $this->patientId,
             'membershipId' => $this->membershipId,
             'body' => $this->body,
             'icd10CodeIds' => $this->icd10CodeIds,

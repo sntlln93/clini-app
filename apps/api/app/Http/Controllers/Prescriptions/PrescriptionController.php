@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Prescriptions;
 
+use App\Actions\ClinicalAccess\ReadPatientHistoryAction;
 use App\Actions\Prescriptions\IssuePrescriptionAction;
+use App\Data\ClinicalAccess\PatientHistoryReadData;
 use App\Data\Prescriptions\PrescriptionDraftData;
+use App\Enums\ClinicalAccessAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Prescriptions\StorePrescriptionRequest;
 use App\Http\Resources\Prescriptions\PrescriptionResource;
@@ -26,7 +29,7 @@ class PrescriptionController extends Controller
      */
     public const array RELATIONS = ['versions.items'];
 
-    public function index(Request $request, Appointment $appointment): AnonymousResourceCollection
+    public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', [Prescription::class, $appointment]);
 
@@ -35,6 +38,14 @@ class PrescriptionController extends Controller
 
         /** @var Membership $membership */
         $membership = $user->currentMembership();
+
+        $read->handle(new PatientHistoryReadData(
+            organizationId: $appointment->organization_id,
+            membershipId: $membership->id,
+            patientId: $appointment->patient_id,
+            action: ClinicalAccessAction::PrescriptionsViewed,
+            appointmentId: $appointment->id,
+        ));
 
         $prescriptions = Prescription::query()
             ->where('appointment_id', $appointment->id)
@@ -47,15 +58,22 @@ class PrescriptionController extends Controller
         return PrescriptionResource::collection($prescriptions);
     }
 
-    public function indexForPatient(Request $request, Patient $patient): AnonymousResourceCollection
+    public function indexForPatient(Request $request, Patient $patient, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
-        Gate::authorize('viewAnyForPatient', Prescription::class);
+        Gate::authorize('viewAnyForPatient', [Prescription::class, $patient]);
 
         /** @var User $user */
         $user = $request->user();
 
         /** @var Membership $membership */
         $membership = $user->currentMembership();
+
+        $read->handle(new PatientHistoryReadData(
+            organizationId: $membership->organization_id,
+            membershipId: $membership->id,
+            patientId: $patient->id,
+            action: ClinicalAccessAction::PrescriptionsViewed,
+        ));
 
         $prescriptions = Prescription::query()
             ->where('patient_id', $patient->id)
