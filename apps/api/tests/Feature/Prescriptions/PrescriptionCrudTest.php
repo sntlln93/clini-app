@@ -167,6 +167,7 @@ test('the listings carry only the medication, without patient or author details'
     ]);
     $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
     Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    openClinicalHistory($membership, $patient->id);
 
     $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
 
@@ -199,6 +200,7 @@ test('the patient listing returns only the acting membership\'s prescriptions fo
     Prescription::factory()->create([
         'appointment_id' => prescriptionOwnAppointment($membership, ['patient_id' => $otherPatient->id])->id,
     ]);
+    openClinicalHistory($membership, $patient->id);
 
     $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
 

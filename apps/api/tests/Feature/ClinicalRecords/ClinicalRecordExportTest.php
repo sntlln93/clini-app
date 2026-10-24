@@ -94,6 +94,10 @@ function sharedPatientHistory(): array
     ClinicalNote::factory()->withBody('Nota de otro consultorio.')->create(['appointment_id' => $outside->id]);
     Prescription::factory()->create(['appointment_id' => $outside->id]);
 
+    // Every appointment is weeks before today, so the history opens as an exceptional access would (#325).
+    openClinicalHistory($exporter, $patient->id);
+    openClinicalHistory($outsider, $patient->id);
+
     return ['exporter' => $exporter, 'colleague' => $colleague, 'patient' => $patient, 'organization' => $organization];
 }
 

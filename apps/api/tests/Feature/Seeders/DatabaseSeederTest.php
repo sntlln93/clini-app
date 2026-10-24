@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
 use App\Enums\AvailabilityExceptionType;
+use App\Enums\ClinicalAccessAction;
 use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
@@ -60,14 +62,25 @@ test('re-seeding leaves every fixture table with identical row counts', function
     expect($countRows())->toBe($countsBefore);
 });
 
-test('re-seeding clears the clinical notes and prescriptions written on fixture appointments', function () {
+test('re-seeding clears the clinical notes, prescriptions and access log written on fixture appointments', function () {
     $this->seed(DatabaseSeeder::class);
     $appointment = Appointment::query()->orderBy('id')->firstOrFail();
     $note = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
     $note->versions()->create(['version' => 2, 'membership_id' => $note->membership_id, 'body' => 'Enmienda.']);
     ClinicalNoteDiagnoses::record($note->versions()->firstOrFail(), [Icd10Code::query()->firstOrFail()->id]);
     $note->annulment()->create(['membership_id' => $note->membership_id, 'reason' => 'Anulada.']);
-    Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    // The access log points at the note, the prescription and the appointment (#325).
+    foreach ([['clinical_note_id' => $note->id], ['prescription_id' => $prescription->id]] as $subject) {
+        ClinicalAccessLog::query()->withoutGlobalScope('organization')->create([
+            'organization_id' => $appointment->organization_id,
+            'membership_id' => $appointment->membership_id,
+            'patient_id' => $appointment->patient_id,
+            'action' => ClinicalAccessAction::NoteWritten,
+            'appointment_id' => $appointment->id,
+            ...$subject,
+        ]);
+    }
 
     $this->seed(DatabaseSeeder::class);
 
@@ -77,7 +90,8 @@ test('re-seeding clears the clinical notes and prescriptions written on fixture 
         ->and(ClinicalNoteDiagnosis::count())->toBe(0)
         ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0)
         ->and(PrescriptionVersion::count())->toBe(0)
-        ->and(PrescriptionItem::count())->toBe(0);
+        ->and(PrescriptionItem::count())->toBe(0)
+        ->and(ClinicalAccessLog::query()->withoutGlobalScope('organization')->count())->toBe(0);
 });
 
 // The catalog app owns the ICD-10 codes (ADR 0020): a re-seed neither

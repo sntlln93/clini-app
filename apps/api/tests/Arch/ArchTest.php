@@ -7,10 +7,12 @@ use App\Contracts\Data;
 use App\Contracts\DomainError;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
+use App\Models\ClinicalRecordExport;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
@@ -338,13 +340,31 @@ arch('clinical history models are never soft-deleted')
         Prescription::class,
         PrescriptionVersion::class,
         PrescriptionItem::class,
+        ClinicalRecordExport::class,
+        ClinicalAccessLog::class,
     ])
     ->not->toUseTrait(SoftDeletes::class);
 
-// Issue #323, ADR 0019: no clinical history controller may edit or delete.
+// Issue #323, ADR 0019: no clinical history controller may edit or delete. Nor may the access log's (#325, ADR 0022).
 arch('clinical history controllers only read and add')
-    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions'])
+    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions', 'App\Http\Controllers\ClinicalAccess'])
     ->not->toHaveMethods(['update', 'destroy']);
+
+// Issue #325, ADR 0022: platform operators never reach the clinical history, nor its access log. Their code touches
+// none of its models, so no dashboard endpoint can ever list or count what a note or a prescription says.
+arch('platform operator code never reaches the clinical history')
+    ->expect(['App\Http\Controllers\Admin', 'App\Actions\Admin', 'App\Http\Resources\Admin', 'App\Http\Requests\Admin', 'App\Data\Admin'])
+    ->not->toUse([
+        ClinicalNote::class,
+        ClinicalNoteVersion::class,
+        ClinicalNoteAnnulment::class,
+        ClinicalNoteDiagnosis::class,
+        Prescription::class,
+        PrescriptionVersion::class,
+        PrescriptionItem::class,
+        ClinicalRecordExport::class,
+        ClinicalAccessLog::class,
+    ]);
 
 // Issue #323, ADR 0019: the trigger's purge setting is the fixture seeder's alone; application code never sets it.
 test('only the seeder and the migration name the clinical history purge setting', function () {

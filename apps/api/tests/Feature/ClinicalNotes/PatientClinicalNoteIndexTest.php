@@ -43,7 +43,7 @@ test('a professional who has a past appointment with the patient gets 200 and se
     expect($response->json('data.0.body'))->toBe('Nota escrita por otro profesional.');
 });
 
-test('the author of a note gets 200 and sees their own note even without any appointment with the patient', function () {
+test('the author of a note sees their own note even without any appointment with the patient, once they give a reason', function () {
     $organization = Organization::factory()->create();
     $patient = Patient::factory()->create();
     $otherProfessional = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
@@ -60,6 +60,15 @@ test('the author of a note gets 200 and sees their own note even without any app
         'membership_id' => $author->id,
     ]);
 
+    $this->actingAs($author->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes")
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', 'clinical_access.reason_required');
+
+    freshRequestState();
+    $this->actingAs($author->user)->postJson("/api/v1/patients/{$patient->id}/exceptional-accesses", ['reason' => 'study_result'])
+        ->assertCreated();
+
+    freshRequestState();
     $response = $this->actingAs($author->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
 
     $response->assertOk();
@@ -85,6 +94,8 @@ test('notes belonging to another organization are never returned', function () {
         'organization_id' => $organizationA->id,
         'membership_id' => $membershipA->id,
         'patient_id' => $patient->id,
+        'start_at' => now()->subDay(),
+        'end_at' => now()->subDay()->addMinutes(30),
     ]);
     ClinicalNote::factory()->withBody('Nota de la organización A.')->create([
         'appointment_id' => $appointmentA->id,
@@ -119,6 +130,8 @@ test('notes come ordered by date descending', function () {
         'organization_id' => $organization->id,
         'membership_id' => $membership->id,
         'patient_id' => $patient->id,
+        'start_at' => now()->addDays(2),
+        'end_at' => now()->addDays(2)->addMinutes(30),
     ]);
 
     $older = ClinicalNote::factory()->create([
@@ -156,6 +169,8 @@ test('a note keeps its author name after the author membership is deactivated', 
         'organization_id' => $organization->id,
         'membership_id' => $viewer->id,
         'patient_id' => $patient->id,
+        'start_at' => now()->addDays(6),
+        'end_at' => now()->addDays(6)->addMinutes(30),
     ]);
 
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
