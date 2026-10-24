@@ -75,6 +75,16 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/pacientes');
             });
 
+            test('/accesos-excepcionales has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/accesos-excepcionales');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Accesos a la historia clínica');
+
+                await runA11yScan(page, '/accesos-excepcionales');
+            });
+
             test('/profesionales has no unexpected accessibility violations', async ({
                 page,
             }) => {

@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import {
     bookAppointmentWithNewPatient,
+    giveClinicalAccessReason,
     NEW_PATIENT_APPOINTMENT_ISSUES,
 } from './agenda';
 import { expect, test } from './fixtures';
@@ -35,6 +36,11 @@ test('the attending professional downloads the patient history as JSON and as PD
     await expect(
         page.getByRole('heading', { name: patientName, level: 1 }),
     ).toBeVisible();
+    // The export holds the whole history, so it opens with it (#325).
+    await expect(
+        page.getByRole('button', { name: 'Exportar historia clínica' }),
+    ).toBeHidden();
+    await giveClinicalAccessReason(page);
 
     const exportButton = page.getByRole('button', {
         name: 'Exportar historia clínica',

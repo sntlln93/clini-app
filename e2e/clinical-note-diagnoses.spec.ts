@@ -1,5 +1,6 @@
 import {
     bookAppointmentWithNewPatient,
+    giveClinicalAccessReason,
     NEW_PATIENT_APPOINTMENT_ISSUES,
 } from './agenda';
 import { expect, test } from './fixtures';
@@ -58,6 +59,7 @@ test('a note gets ICD-10 diagnoses from the catalog, and changing them is an ame
     await expect(
         page.getByRole('heading', { name: patientName, level: 1 }),
     ).toBeVisible();
+    await giveClinicalAccessReason(page);
     await expect(
         page.getByText('Faringitis aguda, no especificada').first(),
     ).toBeVisible();

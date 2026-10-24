@@ -83,3 +83,21 @@ export async function bookAppointmentWithNewPatient(
         card: page.getByRole('button', { name: new RegExp(patientName) }),
     };
 }
+
+/**
+ * Every appointment `bookAppointmentWithNewPatient` books is years ahead, so
+ * the patient's page opens the clinical history only once a reason is given
+ * (#325, ADR 0022). Run it on that page.
+ */
+export async function giveClinicalAccessReason(
+    page: Page,
+    reason = 'Preparar la consulta',
+) {
+    const giveReason = page.getByRole('button', { name: 'Indicar motivo' });
+    await giveReason.click();
+    const dialog = page.getByRole('dialog', { name: 'Motivo del acceso' });
+    await dialog.getByRole('radio', { name: reason }).click();
+    await dialog.getByRole('button', { name: 'Ver historia clínica' }).click();
+    await expect(dialog).toBeHidden();
+    await expect(giveReason).toBeHidden();
+}
