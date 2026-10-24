@@ -1,6 +1,8 @@
 import {
     patientAppointmentsQueryKey,
     patientClinicalNotesQueryKey,
+    patientPrescriptionsQueryKey,
+    patientQueryOptions,
 } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
@@ -53,15 +55,19 @@ const RESCHEDULE_FIELD_MAP: Partial<Record<ErrorCode, string>> = {
 
 // What other pages show of an appointment change: the patient page's history,
 // and its notes because an appointment with the patient grants access to them
-// (#273); and the reports, which count appointments.
+// (#273); the patient itself, which says whether that access takes a reason,
+// and the medication it opens along with the notes (#325); and the reports,
+// which count appointments.
 function useOtherPagesDiscard() {
     const queryClient = useQueryClient();
 
     return (patientId: number) =>
         discardPageData(
             queryClient,
+            patientQueryOptions(patientId).queryKey,
             patientAppointmentsQueryKey(patientId),
             patientClinicalNotesQueryKey(patientId),
+            patientPrescriptionsQueryKey(patientId),
             ['reports'],
         );
 }

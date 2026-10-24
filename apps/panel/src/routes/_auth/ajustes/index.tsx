@@ -10,6 +10,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 import { AttendPatientsSection } from './-components/AttendPatientsSection';
 import { ClinicalRecordExportSection } from './-components/ClinicalRecordExportSection';
+import { ExceptionalAccessesSection } from './-components/ExceptionalAccessesSection';
 import { MyPublicLinkSection } from './-components/MyPublicLinkSection';
 import { MySpecialtiesSection } from './-components/MySpecialtiesSection';
 import { OrganizationBookingLinkSection } from './-components/OrganizationBookingLinkSection';
@@ -196,6 +197,8 @@ function AjustesPage() {
             {organizationSettings && (
                 <OrganizationBookingSettings settings={organizationSettings} />
             )}
+
+            {isOwner && <ExceptionalAccessesSection />}
 
             {managedOwnMembership && (
                 <>

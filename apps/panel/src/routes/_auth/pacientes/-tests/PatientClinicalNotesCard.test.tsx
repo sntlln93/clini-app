@@ -40,7 +40,7 @@ function renderCard({
     queryClient = new QueryClient(),
 }: {
     patientId?: number;
-    notes?: ClinicalNote[] | null;
+    notes?: ClinicalNote[];
     todaysAppointmentId?: number | null;
     queryClient?: QueryClient;
 } = {}) {
@@ -261,23 +261,6 @@ describe('PatientClinicalNotesCard', () => {
         await screen.findByText('La nota no puede estar vacía.');
         expect(api.post).not.toHaveBeenCalled();
     });
-
-    it('explains who can read the notes instead of listing them when the API denied the read', async () => {
-        // Even with an own appointment today, a denied read offers no note form.
-        renderCard({ notes: null, todaysAppointmentId: 77 });
-
-        await screen.findByText(
-            'Solo pueden ver las notas clínicas los profesionales que tienen o tuvieron un turno con este paciente.',
-        );
-        expect(
-            screen.queryByText(
-                'Todavía no hay notas clínicas para este paciente.',
-            ),
-        ).toBeNull();
-        expect(
-            screen.queryByRole('button', { name: 'Agregar nota' }),
-        ).toBeNull();
-    });
 });
 
 describe('patientClinicalNotesQueryOptions', () => {
@@ -285,20 +268,21 @@ describe('patientClinicalNotesQueryOptions', () => {
         vi.mocked(api.get).mockReset();
     });
 
-    // A patient no appointment or note links to the acting membership (e.g. one
-    // just created) answers 403; it must not fail the patient page's loader (#266).
-    it('resolves to null when the API answers 403', async () => {
-        vi.mocked(api.get).mockRejectedValueOnce({
+    // The loader only asks once the patient says the history is open (#325),
+    // so a 403 is a real error again and fails the page like any other.
+    it('fails on a 403 like on any other error', async () => {
+        const error = {
             isAxiosError: true,
             response: {
                 status: 403,
                 data: { message: 'This action is unauthorized.' },
             },
-        });
+        };
+        vi.mocked(api.get).mockRejectedValueOnce(error);
 
         await expect(
             new QueryClient().fetchQuery(patientClinicalNotesQueryOptions(10)),
-        ).resolves.toBeNull();
+        ).rejects.toBe(error);
     });
 
     it('still fails on any other error', async () => {
