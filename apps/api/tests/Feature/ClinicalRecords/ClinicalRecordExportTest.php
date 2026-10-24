@@ -3,10 +3,13 @@
 declare(strict_types=1);
 
 use App\Contracts\PdfRenderer;
+use App\Enums\ClinicalAccessAction;
+use App\Enums\ClinicalAccessReason;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
 use App\Enums\SubscriptionStatus;
 use App\Models\Appointment;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalRecordExport;
 use App\Models\Icd10Code;
@@ -205,6 +208,82 @@ test('each export is recorded with who, which patient and which format', functio
         ->and($export->format)->toBe(ClinicalRecordExportFormat::Json);
 });
 
+test('a patient export leaves its row in the patient trail, pointing at the export', function () {
+    ['exporter' => $exporter, 'patient' => $patient] = sharedPatientHistory();
+
+    $this->actingAs($exporter->user)->get("/api/v1/patients/{$patient->id}/clinical-record?format=pdf")->assertOk();
+
+    $export = ClinicalRecordExport::query()->withoutGlobalScope('organization')->sole();
+    $row = ClinicalAccessLog::query()->withoutGlobalScope('organization')->where('action', ClinicalAccessAction::RecordExported)->sole();
+    expect($row->organization_id)->toBe($exporter->organization_id)
+        ->and($row->membership_id)->toBe($exporter->id)
+        ->and($row->patient_id)->toBe($patient->id)
+        ->and($row->clinical_record_export_id)->toBe($export->id);
+});
+
+test('the export carries the patient trail in the practice, oldest first, as the exporter sees it', function () {
+    ['exporter' => $exporter, 'colleague' => $colleague, 'patient' => $patient] = sharedPatientHistory();
+    $logs = ClinicalAccessLog::query()->withoutGlobalScope('organization');
+    $logs->forceCreate([
+        'organization_id' => $colleague->organization_id,
+        'membership_id' => $colleague->id,
+        'patient_id' => $patient->id,
+        'action' => ClinicalAccessAction::ExceptionalAccess,
+        'reason' => ClinicalAccessReason::Other,
+        'reason_detail' => 'Palabras del colega.',
+        'created_at' => now()->subMinutes(10),
+    ]);
+    $logs->forceCreate([
+        'organization_id' => $colleague->organization_id,
+        'membership_id' => $colleague->id,
+        'patient_id' => $patient->id,
+        'action' => ClinicalAccessAction::PrescriptionIssued,
+        'created_at' => now()->subMinutes(5),
+    ]);
+
+    $response = $this->actingAs($exporter->user)->get("/api/v1/patients/{$patient->id}/clinical-record?format=json");
+
+    $trail = collect($response->assertOk()->json('access_log'));
+    // The exporter's own reason (sharedPatientHistory), the colleague's, and this export; never the colleague's
+    // medication, nor the outsider's access in another practice.
+    expect($trail->map(fn (array $entry) => [$entry['professional']['name'], $entry['action']])->all())->toBe([
+        ['Dr. Colega', 'exceptional_access'],
+        ['Dra. Exportadora', 'exceptional_access'],
+        ['Dra. Exportadora', 'record_exported'],
+    ])
+        ->and($trail[0]['reason'])->toBe('other')
+        ->and($trail[0])->not->toHaveKey('reason_detail')
+        ->and($trail[2]['export'])->toMatchArray(['scope' => 'patient', 'format' => 'json']);
+    expect($response->getContent())->not->toContain('Palabras del colega.')
+        ->not->toContain('Dr. De Afuera');
+});
+
+test('the PDF lists the trail too', function () {
+    fakePdfRenderer();
+    ['exporter' => $exporter, 'patient' => $patient] = sharedPatientHistory();
+
+    $html = (string) $this->actingAs($exporter->user)
+        ->get("/api/v1/patients/{$patient->id}/clinical-record?format=pdf")
+        ->assertOk()
+        ->getContent();
+
+    expect($html)->toContain('Registro de accesos')
+        ->toContain('Acceso excepcional · Motivo: Preparar la consulta')
+        ->toContain('Exportó la historia clínica')
+        ->toContain('· PDF');
+});
+
+test('a rejected export leaves nothing in the trail', function () {
+    ['patient' => $patient, 'organization' => $organization] = sharedPatientHistory();
+    $before = ClinicalAccessLog::query()->withoutGlobalScope('organization')->count();
+
+    $this->actingAs(professionalIn($organization, 'Dr. Ajeno')->user)
+        ->get("/api/v1/patients/{$patient->id}/clinical-record?format=json")
+        ->assertForbidden();
+
+    expect(ClinicalAccessLog::query()->withoutGlobalScope('organization')->count())->toBe($before);
+});
+
 test('only a professional who attended the patient can export, never by role', function (Closure $actor) {
     ['patient' => $patient, 'organization' => $organization] = sharedPatientHistory();
 
@@ -299,6 +378,18 @@ test('the attended-patients export holds every patient the professional attended
         ->and($export->membership_id)->toBe($exporter->id)
         ->and($export->scope)->toBe(ClinicalRecordExportScope::AttendedPatients)
         ->and($export->format)->toBe(ClinicalRecordExportFormat::Json);
+
+    // Each exported patient's trail gets the export, and says so in the document itself.
+    $exported = ClinicalAccessLog::query()->withoutGlobalScope('organization')->where('action', ClinicalAccessAction::RecordExported)->get();
+    expect($exported->pluck('patient_id')->sort()->values()->all())->toBe(collect([$shared->id, $second->id])->sort()->values()->all())
+        ->and($exported->pluck('clinical_record_export_id')->unique()->all())->toBe([$export->id])
+        ->and($exported->pluck('membership_id')->unique()->all())->toBe([$exporter->id]);
+    foreach ($document['patients'] as $record) {
+        expect(collect($record['access_log'])->last())->toMatchArray([
+            'action' => 'record_exported',
+            'export' => ['id' => $export->id, 'scope' => 'attended_patients', 'format' => 'json'],
+        ]);
+    }
 });
 
 test('a membership that attended no one gets an empty attended-patients export', function () {
