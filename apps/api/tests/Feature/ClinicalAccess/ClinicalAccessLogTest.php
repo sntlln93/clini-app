@@ -83,6 +83,47 @@ test('reading a patient\'s indicated medication leaves a row too', function () {
     expect(accessLog()->sole()->action)->toBe(ClinicalAccessAction::PrescriptionsViewed);
 });
 
+test('reading the same records again within fifteen minutes keeps the first row instead of repeating it', function () {
+    ['professional' => $professional, 'patient' => $patient] = clinicalAccessFixture();
+    $appointment = appointmentDaysFromNow($professional, $patient, -2);
+    $read = fn (string $uri) => $this->actingAs($professional->user)->getJson($uri)->assertOk();
+
+    $read("/api/v1/patients/{$patient->id}/clinical-notes");
+    freshRequestState();
+    $this->travel(ClinicalAccess::READ_REPEAT_MINUTES - 1)->minutes();
+    $read("/api/v1/patients/{$patient->id}/clinical-notes");
+    freshRequestState();
+    // Other records, read as many times, are reads of their own.
+    $read("/api/v1/patients/{$patient->id}/prescriptions");
+    freshRequestState();
+    $read("/api/v1/appointments/{$appointment->id}/clinical-notes");
+    freshRequestState();
+    $this->travel(2)->minutes();
+    $read("/api/v1/patients/{$patient->id}/clinical-notes");
+
+    expect(accessLog()->orderBy('id')->get()->map(fn (ClinicalAccessLog $row): array => [$row->action, $row->appointment_id])->all())
+        ->toBe([
+            [ClinicalAccessAction::NotesViewed, null],
+            [ClinicalAccessAction::PrescriptionsViewed, null],
+            [ClinicalAccessAction::NotesViewed, $appointment->id],
+            [ClinicalAccessAction::NotesViewed, null],
+        ]);
+});
+
+test('another professional\'s read is never folded into someone else\'s', function () {
+    ['organization' => $organization, 'professional' => $professional, 'patient' => $patient] = clinicalAccessFixture();
+    $colleague = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    appointmentDaysFromNow($professional, $patient, -2);
+    appointmentDaysFromNow($colleague, $patient, 1);
+
+    $this->actingAs($professional->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes")->assertOk();
+    freshRequestState();
+    $this->actingAs($colleague->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes")->assertOk();
+
+    expect(accessLog()->pluck('membership_id')->sort()->values()->all())
+        ->toBe(collect([$professional->id, $colleague->id])->sort()->values()->all());
+});
+
 test('reading one own appointment\'s notes or medication is logged with the appointment and never takes a reason', function () {
     ['professional' => $professional, 'patient' => $patient] = clinicalAccessFixture();
     $old = appointmentDaysFromNow($professional, $patient, -90);

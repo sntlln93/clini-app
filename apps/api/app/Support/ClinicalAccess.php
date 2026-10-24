@@ -26,6 +26,12 @@ class ClinicalAccess
     public const int EXCEPTIONAL_ACCESS_MINUTES = 60;
 
     /**
+     * A read the same professional already made of the same records this recently adds nothing to the trail: reloading
+     * the patient page, or coming back to it during a consultation, would otherwise repeat the row.
+     */
+    public const int READ_REPEAT_MINUTES = 15;
+
+    /**
      * A cancelled or rescheduled appointment brings no consultation, so it opens nothing.
      */
     private const array CLOSED_STATUSES = [AppointmentStatus::Cancelled, AppointmentStatus::Rescheduled];
@@ -60,6 +66,19 @@ class ClinicalAccess
             ->whereNotIn('status', self::CLOSED_STATUSES)
             ->whereBetween('start_at', [now()->subDays(self::WINDOW_DAYS)->utc(), now()->addDays(self::WINDOW_DAYS)->utc()])
             ->exists();
+    }
+
+    public static function lastSameRead(int $organizationId, int $membershipId, int $patientId, ClinicalAccessAction $action, ?int $appointmentId): ?ClinicalAccessLog
+    {
+        return ClinicalAccessLog::query()
+            ->where('organization_id', $organizationId)
+            ->where('membership_id', $membershipId)
+            ->where('patient_id', $patientId)
+            ->where('action', $action)
+            ->where('appointment_id', $appointmentId)
+            ->where('created_at', '>', now()->subMinutes(self::READ_REPEAT_MINUTES)->utc())
+            ->latest('created_at')
+            ->first();
     }
 
     public static function hasOpenExceptionalAccess(int $organizationId, int $membershipId, int $patientId): bool
