@@ -383,3 +383,38 @@ test('only the seeder and the migration name the clinical history purge setting'
 
     expect($offenders)->toBe([], 'These files name the purge setting: '.implode(', ', $offenders));
 });
+
+// ADR 0023: the API answers data; the panel builds every PDF and downloadable file. A mail's attachment (the
+// reminder's .ics) is the one file the API makes, and it lives under app/Mail, the only folder skipped here.
+// Both call forms of download() are caught: `$response->download(` and the facades' `Storage::download(` /
+// `Response::download(`, whose Content-Disposition is built inside the framework, out of this scan's sight.
+test('the API never answers a downloadable file nor ships a PDF library', function () {
+    $root = dirname(__DIR__, 2);
+    $offenders = [];
+
+    foreach (['app', 'routes'] as $dir) {
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$root}/{$dir}", FilesystemIterator::SKIP_DOTS));
+
+        foreach ($iterator as $file) {
+            $path = substr($file->getPathname(), strlen($root) + 1);
+
+            if ($file->getExtension() !== 'php' || str_starts_with($path, 'app/Mail/')) {
+                continue;
+            }
+
+            if (preg_match('/Content-Disposition|streamDownload\(|(->|::)download\(|attachment;/i', (string) file_get_contents($file->getPathname())) === 1) {
+                $offenders[] = $path;
+            }
+        }
+    }
+
+    /** @var array{require: array<string, string>} $composer */
+    $composer = json_decode((string) file_get_contents("{$root}/composer.json"), true, flags: JSON_THROW_ON_ERROR);
+    $pdfLibraries = array_values(array_filter(
+        array_keys($composer['require']),
+        fn (string $package): bool => preg_match('#dompdf|mpdf|tcpdf|fpdf|snappy|browsershot|wkhtmlto#i', $package) === 1,
+    ));
+
+    expect($offenders)->toBe([], 'These files answer a download: '.implode(', ', $offenders))
+        ->and($pdfLibraries)->toBe([]);
+});
