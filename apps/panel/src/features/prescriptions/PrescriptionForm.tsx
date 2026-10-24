@@ -18,8 +18,8 @@ import {
     type PrescriptionFormValues,
 } from '@/lib/prescription-schema';
 import type { Prescription } from '@/types/prescription';
-import { useSavePrescription } from '../-hooks/use-prescriptions';
 import { PrescriptionItemFields } from './PrescriptionItemFields';
+import { useSavePrescription } from './use-prescriptions';
 
 type PrescriptionFormProps = {
     appointmentId: number | null;

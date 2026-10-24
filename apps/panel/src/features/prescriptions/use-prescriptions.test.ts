@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { patientPrescriptionsQueryOptions } from '@/routes/_auth/pacientes/-hooks/use-patient-prescriptions';
 import type {
     Prescription,
     PrescriptionAmendmentPayload,
@@ -7,11 +8,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    usePrescriptions,
-    useSavePrescription,
-} from '../-hooks/use-prescriptions';
-import { patientPrescriptionsQueryOptions } from '../../pacientes/-hooks/use-patient-prescriptions';
+import { usePrescriptions, useSavePrescription } from './use-prescriptions';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },

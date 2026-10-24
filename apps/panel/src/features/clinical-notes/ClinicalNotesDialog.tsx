@@ -1,5 +1,5 @@
 import { formatShortDateTime } from '@/lib/datetime';
-import { useRef, useState } from 'react';
+import { useRef, useState, type RefObject } from 'react';
 
 import {
     Dialog,
@@ -11,17 +11,24 @@ import {
 import { ClinicalNoteEntry } from '@/features/clinical-history/ClinicalNoteEntry';
 import { extractFormErrors } from '@/lib/form-errors';
 import { useWritesRestricted } from '@/lib/plan';
-import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
-import { useClinicalNotes } from '../-hooks/use-clinical-notes';
 import { AnnulClinicalNoteDialog } from './AnnulClinicalNoteDialog';
 import { ClinicalNoteActions } from './ClinicalNoteActions';
 import { ClinicalNoteForm } from './ClinicalNoteForm';
+import { useClinicalNotes, type NoteAppointment } from './use-clinical-notes';
 
 type ClinicalNotesDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    appointment: Appointment | null;
+    appointment: NoteAppointment | null;
+    // Opens straight on amending this note: the patient page's «Enmendar».
+    amendOnOpen?: ClinicalNote | null;
+    // False keeps it to amending: the patient page writes a new note only on
+    // today's own appointment, which isn't the one an amendment opens on.
+    allowCreate?: boolean;
+    // Where focus goes on close when what opened it may be gone by then (an
+    // annul inside the dialog unmounts the patient page's «Enmendar»).
+    finalFocus?: RefObject<HTMLElement | null>;
 };
 
 // Contextual dialog (ADR 0006): lists the acting membership's own notes for
@@ -30,6 +37,9 @@ export function ClinicalNotesDialog({
     open,
     onOpenChange,
     appointment,
+    amendOnOpen = null,
+    allowCreate = true,
+    finalFocus,
 }: ClinicalNotesDialogProps) {
     const appointmentId = appointment?.id ?? null;
     const notesQuery = useClinicalNotes(appointmentId, open);
@@ -40,7 +50,9 @@ export function ClinicalNotesDialog({
         ? extractFormErrors(notesQuery.error).message
         : null;
 
-    const [amendingNote, setAmendingNote] = useState<ClinicalNote | null>(null);
+    const [amendingNote, setAmendingNote] = useState<ClinicalNote | null>(
+        amendOnOpen,
+    );
     const [annullingNote, setAnnullingNote] = useState<ClinicalNote | null>(
         null,
     );
@@ -51,14 +63,14 @@ export function ClinicalNotesDialog({
     if (open !== wasOpen) {
         setWasOpen(open);
         if (open) {
-            setAmendingNote(null);
+            setAmendingNote(amendOnOpen);
             setAnnullingNote(null);
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="sm:max-w-md" finalFocus={finalFocus}>
                 <DialogHeader>
                     <DialogTitle>Notas clínicas</DialogTitle>
                     <DialogDescription>
@@ -111,7 +123,7 @@ export function ClinicalNotesDialog({
                     ))}
                 </div>
 
-                {!restricted && (
+                {!restricted && (allowCreate || amendingNote !== null) && (
                     <ClinicalNoteForm
                         appointment={appointment}
                         open={open}

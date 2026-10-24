@@ -21,7 +21,7 @@ const diagnoses = z
     )
     .max(MAX_DIAGNOSES, `Una nota admite hasta ${MAX_DIAGNOSES} diagnósticos.`);
 
-// `body` and `diagnoses` are shared by `agenda/-components/ClinicalNoteForm.tsx`
+// `body` and `diagnoses` are shared by `features/clinical-notes/ClinicalNoteForm.tsx`
 // and `pacientes/-components/AddClinicalNoteForm.tsx` (issues #217, #324) so
 // both entry points validate a note identically.
 export const noteSchema = z.object({ body, diagnoses });

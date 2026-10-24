@@ -10,12 +10,16 @@ import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
+// What the notes' writes read of their appointment: the agenda passes its
+// whole `Appointment`, the patient page the id and the patient it has.
+export type NoteAppointment = Pick<Appointment, 'id' | 'patient_id'>;
+
 function queryKey(appointmentId: number | null) {
     return ['clinical-notes', appointmentId];
 }
 
 // Interaction-triggered read (ADR 0007 exception): the dialog opens on demand
-// from `AppointmentCard`, never from a route loader.
+// from `AppointmentCard` or the patient page, never from a route loader.
 export function useClinicalNotes(appointmentId: number | null, open: boolean) {
     return useQuery({
         queryKey: queryKey(appointmentId),
@@ -30,7 +34,7 @@ export function useClinicalNotes(appointmentId: number | null, open: boolean) {
 }
 
 // The dialog's own list, plus the patient page's notes (#273).
-function useRefreshNotes(appointment: Appointment | null) {
+function useRefreshNotes(appointment: NoteAppointment | null) {
     const queryClient = useQueryClient();
     const refreshPageData = useRefreshPageData();
 
@@ -56,7 +60,7 @@ function useRefreshNotes(appointment: Appointment | null) {
     };
 }
 
-export function useCreateClinicalNote(appointment: Appointment | null) {
+export function useCreateClinicalNote(appointment: NoteAppointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
     const mutation = useMutation({
@@ -77,7 +81,7 @@ export function useCreateClinicalNote(appointment: Appointment | null) {
 
 // A note is never edited or deleted (#323): the author amends it, which
 // keeps every earlier version, or annuls it, which keeps it marked as void.
-export function useAmendClinicalNote(appointment: Appointment | null) {
+export function useAmendClinicalNote(appointment: NoteAppointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
     const mutation = useMutation({
@@ -105,7 +109,7 @@ export function useAmendClinicalNote(appointment: Appointment | null) {
     return { ...mutation, message, errors };
 }
 
-export function useAnnulClinicalNote(appointment: Appointment | null) {
+export function useAnnulClinicalNote(appointment: NoteAppointment | null) {
     const refreshNotes = useRefreshNotes(appointment);
 
     return useMutation({

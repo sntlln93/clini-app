@@ -12,22 +12,36 @@ import { extractFormErrors } from '@/lib/form-errors';
 import { usePlanIncludes, useWritesRestricted } from '@/lib/plan';
 import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
-import { usePrescriptions } from '../-hooks/use-prescriptions';
 import { PrescriptionForm } from './PrescriptionForm';
 import { PrescriptionList } from './PrescriptionList';
+import { usePrescriptions } from './use-prescriptions';
 
 type PrescriptionsDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    appointment: Appointment | null;
+    // Only its id is read, so the patient page passes its own appointment of
+    // today without the agenda's whole `Appointment`.
+    appointment: Pick<Appointment, 'id'> | null;
+    // After each record or amendment, for a page that shows the medication
+    // outside the dialog (the patient page, #325).
+    onSaved?: () => void;
+    // Opens straight on amending this record: the patient page's «Enmendar».
+    amendOnOpen?: Prescription | null;
+    // False keeps it to amending: the patient page records new medication
+    // only on today's own appointment, not on the one an amendment opens on.
+    allowCreate?: boolean;
 };
 
 // Contextual dialog (ADR 0006): lists the medication the acting membership
-// indicated in this appointment and resolves record/amend inline (#319, #323).
+// indicated in this appointment and resolves record/amend inline (#319, #323),
+// from the agenda and from the patient page.
 export function PrescriptionsDialog({
     open,
     onOpenChange,
     appointment,
+    onSaved,
+    amendOnOpen = null,
+    allowCreate = true,
 }: PrescriptionsDialogProps) {
     const appointmentId = appointment?.id ?? null;
     const query = usePrescriptions(appointmentId, open);
@@ -40,14 +54,14 @@ export function PrescriptionsDialog({
         ? extractFormErrors(query.error).message
         : null;
 
-    const [amending, setAmending] = useState<Prescription | null>(null);
+    const [amending, setAmending] = useState<Prescription | null>(amendOnOpen);
 
     // Adjust state during render (not a useEffect, per react-hooks/set-state-in-effect): clears the pending amendment as soon as the dialog re-opens.
     const [wasOpen, setWasOpen] = useState(open);
     if (open !== wasOpen) {
         setWasOpen(open);
         if (open) {
-            setAmending(null);
+            setAmending(amendOnOpen);
         }
     }
 
@@ -85,13 +99,16 @@ export function PrescriptionsDialog({
                     </PlanFeatureNote>
                 )}
 
-                {!restricted && (
+                {!restricted && (allowCreate || amending !== null) && (
                     <PrescriptionForm
                         appointmentId={appointmentId}
                         open={open}
                         amending={amending}
                         onCancelAmendment={() => setAmending(null)}
-                        onSaved={() => setAmending(null)}
+                        onSaved={() => {
+                            setAmending(null);
+                            onSaved?.();
+                        }}
                     />
                 )}
             </DialogContent>

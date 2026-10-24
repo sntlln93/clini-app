@@ -8,11 +8,14 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { ClinicalNoteEntry } from '@/features/clinical-history/ClinicalNoteEntry';
+import { ClinicalNoteActions } from '@/features/clinical-notes/ClinicalNoteActions';
 import { formatShortDateTime } from '@/lib/datetime';
 import { useWritesRestriction, type WritesRestriction } from '@/lib/plan';
+import { useSession } from '@/lib/session';
 import type { ClinicalNote } from '@/types/clinical-note';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AddClinicalNoteForm } from './AddClinicalNoteForm';
+import { PatientNoteDialogs } from './PatientNoteDialogs';
 
 type PatientClinicalNotesCardProps = {
     patientId: number;
@@ -36,6 +39,13 @@ export function PatientClinicalNotesCard({
     todaysAppointmentId,
 }: PatientClinicalNotesCardProps) {
     const [showForm, setShowForm] = useState(false);
+    const [amending, setAmending] = useState<ClinicalNote | null>(null);
+    const [amendOpen, setAmendOpen] = useState(false);
+    const [annulling, setAnnulling] = useState<ClinicalNote | null>(null);
+    const listRef = useRef<HTMLDivElement>(null);
+    // Only its author amends or annuls a note (`ClinicalNotePolicy`).
+    const { data: session } = useSession();
+    const ownMembershipId = session?.membership?.id ?? null;
     // Clinical-note writes are read-only while writes are restricted (#28,
     // #237); the backend still enforces it.
     const restriction = useWritesRestriction();
@@ -66,7 +76,7 @@ export function PatientClinicalNotesCard({
                     </CardAction>
                 )}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent ref={listRef} tabIndex={-1} className="space-y-3">
                 {canAddNote && todaysAppointmentId !== null && showForm && (
                     <AddClinicalNoteForm
                         patientId={patientId}
@@ -83,6 +93,19 @@ export function PatientClinicalNotesCard({
                         <ClinicalNoteEntry
                             key={note.id}
                             note={note}
+                            actions={
+                                restriction === null &&
+                                note.membership_id === ownMembershipId &&
+                                note.annulment === null && (
+                                    <ClinicalNoteActions
+                                        onAmend={() => {
+                                            setAmending(note);
+                                            setAmendOpen(true);
+                                        }}
+                                        onAnnul={() => setAnnulling(note)}
+                                    />
+                                )
+                            }
                             meta={
                                 <>
                                     <span>{note.author_name ?? '—'}</span>
@@ -95,6 +118,17 @@ export function PatientClinicalNotesCard({
                     ))
                 )}
             </CardContent>
+            <PatientNoteDialogs
+                patientId={patientId}
+                amending={amending}
+                amendOpen={amendOpen}
+                annulling={annulling}
+                onClose={() => {
+                    setAmendOpen(false);
+                    setAnnulling(null);
+                }}
+                finalFocus={listRef}
+            />
         </Card>
     );
 }

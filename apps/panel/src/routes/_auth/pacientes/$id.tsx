@@ -66,6 +66,8 @@ function PacienteDetallePage() {
     const { patient, appointments, history } = Route.useLoaderData();
     const { id } = Route.useParams();
     const navigate = Route.useNavigate();
+    const todaysAppointmentId =
+        findTodaysOwnAppointment(appointments)?.id ?? null;
 
     // Only rewrites this page's search, so the window doesn't jump to the top
     // (#279); once the new page is on screen, the trail is brought back.
@@ -95,40 +97,48 @@ function PacienteDetallePage() {
                 </div>
             </header>
 
-            <PatientNextAppointmentCard
-                appointment={findNextAppointment(appointments)}
-            />
-
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {/* Two columns on a wide screen, the wide cards across both;
+                one column on a phone, in the same order. */}
+            <div className="grid grid-cols-1 gap-6 *:min-w-0 md:grid-cols-2">
+                <PatientNextAppointmentCard
+                    appointment={findNextAppointment(appointments)}
+                />
                 <PatientPersonalDataCard patient={patient} />
                 <PatientContactCard patient={patient} />
                 <PatientInsuranceCard patient={patient} />
+                <div className="md:col-span-2">
+                    <PatientAppointmentHistoryCard
+                        appointments={appointments}
+                    />
+                </div>
+                {history.access === 'open' ? (
+                    <>
+                        <PatientClinicalNotesCard
+                            patientId={id}
+                            notes={history.notes}
+                            todaysAppointmentId={todaysAppointmentId}
+                        />
+                        <PatientPrescriptionsCard
+                            patientId={id}
+                            prescriptions={history.prescriptions}
+                            todaysAppointmentId={todaysAppointmentId}
+                        />
+                        <div className="md:col-span-2">
+                            <ClinicalAccessTrailCard
+                                trail={history.trail}
+                                onPageChange={handleTrailPageChange}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <div className="md:col-span-2">
+                        <ClinicalHistoryAccessCard
+                            patientId={id}
+                            access={history.access}
+                        />
+                    </div>
+                )}
             </div>
-
-            <PatientAppointmentHistoryCard appointments={appointments} />
-            {history.access === 'open' ? (
-                <>
-                    <PatientClinicalNotesCard
-                        patientId={id}
-                        notes={history.notes}
-                        todaysAppointmentId={
-                            findTodaysOwnAppointment(appointments)?.id ?? null
-                        }
-                    />
-                    <PatientPrescriptionsCard
-                        prescriptions={history.prescriptions}
-                    />
-                    <ClinicalAccessTrailCard
-                        trail={history.trail}
-                        onPageChange={handleTrailPageChange}
-                    />
-                </>
-            ) : (
-                <ClinicalHistoryAccessCard
-                    patientId={id}
-                    access={history.access}
-                />
-            )}
         </div>
     );
 }

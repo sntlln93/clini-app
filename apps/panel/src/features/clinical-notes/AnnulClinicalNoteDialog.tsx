@@ -1,12 +1,14 @@
 import type { RefObject } from 'react';
 
 import { ReasonDialog } from '@/features/reason-dialog/ReasonDialog';
-import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
-import { useAnnulClinicalNote } from '../-hooks/use-clinical-notes';
+import {
+    useAnnulClinicalNote,
+    type NoteAppointment,
+} from './use-clinical-notes';
 
 type AnnulClinicalNoteDialogProps = {
-    appointment: Appointment | null;
+    appointment: NoteAppointment | null;
     note: ClinicalNote | null;
     onClose: () => void;
     onAnnulled: (note: ClinicalNote) => void;

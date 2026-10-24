@@ -1,5 +1,6 @@
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
+import { patientClinicalNotesQueryOptions } from '@/routes/_auth/pacientes/-hooks/use-patient-clinical-notes';
 import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import type { Appointment } from '@/types/appointment';
 import type { PatientDetail } from '@/types/patient';
@@ -12,8 +13,7 @@ import {
     useAnnulClinicalNote,
     useClinicalNotes,
     useCreateClinicalNote,
-} from '../-hooks/use-clinical-notes';
-import { patientClinicalNotesQueryOptions } from '../../pacientes/-hooks/use-patient-clinical-notes';
+} from './use-clinical-notes';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },

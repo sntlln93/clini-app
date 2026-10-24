@@ -3,11 +3,13 @@ import { subscriptionQueryOptions } from '@/lib/subscription';
 import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
+import type { ClinicalNote } from '@/types/clinical-note';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { useRef, type ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClinicalNotesDialog } from '../-components/ClinicalNotesDialog';
+import { ClinicalNotesDialog } from './ClinicalNotesDialog';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
@@ -69,6 +71,29 @@ function renderDialog(
             />
         </QueryClientProvider>,
     );
+}
+
+// The patient page's way in: straight on amending a note, with no new note.
+function renderAmending(
+    note: ClinicalNote,
+    props: Partial<ComponentProps<typeof ClinicalNotesDialog>> = {},
+) {
+    const queryClient = new QueryClient();
+    const view = (open: boolean) => (
+        <QueryClientProvider client={queryClient}>
+            <ClinicalNotesDialog
+                open={open}
+                onOpenChange={() => {}}
+                appointment={APPOINTMENT}
+                amendOnOpen={note}
+                allowCreate={false}
+                {...props}
+            />
+        </QueryClientProvider>
+    );
+    const { rerender } = render(view(true));
+
+    return (open: boolean) => rerender(view(open));
 }
 
 describe('ClinicalNotesDialog', () => {
@@ -386,4 +411,109 @@ describe('ClinicalNotesDialog', () => {
             expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
         },
     );
+
+    it('amendOnOpen opens on amending that note, and again on each open', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        const setOpen = renderAmending(note);
+
+        const textarea = (await screen.findByLabelText(
+            'Texto corregido',
+        )) as HTMLTextAreaElement;
+        await waitFor(() => expect(textarea.value).toBe('Nota original.'));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Cancelar enmienda' }),
+        );
+        expect(screen.queryByLabelText('Texto corregido')).toBeNull();
+
+        setOpen(false);
+        setOpen(true);
+
+        expect(await screen.findByLabelText('Texto corregido')).toBeTruthy();
+    });
+
+    // The patient page writes new notes only on today's own appointment.
+    it('without allowCreate, cancelling the amendment leaves no new-note form', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        renderAmending(note);
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Cancelar enmienda' }),
+        );
+
+        expect(screen.getByText('Nota original.')).toBeTruthy();
+        expect(screen.queryByRole('textbox')).toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Agregar nota' }),
+        ).toBeNull();
+    });
+
+    it('without allowCreate, saving the amendment leaves no new-note form', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderAmending(note);
+
+        const textarea = (await screen.findByLabelText(
+            'Texto corregido',
+        )) as HTMLTextAreaElement;
+        await waitFor(() => expect(textarea.value).toBe('Nota original.'));
+        fireEvent.change(textarea, { target: { value: 'Nota corregida.' } });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/7/amendments',
+                { body: 'Nota corregida.', icd10_code_ids: [], reason: null },
+            ),
+        );
+        await waitFor(() =>
+            expect(screen.queryByLabelText('Texto corregido')).toBeNull(),
+        );
+        expect(
+            screen.queryByRole('button', { name: 'Agregar nota' }),
+        ).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeTruthy();
+    });
+
+    // An annul inside it can unmount what opened it (the page's «Enmendar»).
+    it('returns focus to finalFocus when it closes', async () => {
+        const note = buildNote({ id: 7, body: 'Nota original.' });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [note] } });
+
+        function Host({ open }: { open: boolean }) {
+            const target = useRef<HTMLDivElement>(null);
+            return (
+                <>
+                    <div ref={target} tabIndex={-1} data-testid="target" />
+                    <ClinicalNotesDialog
+                        open={open}
+                        onOpenChange={() => {}}
+                        appointment={APPOINTMENT}
+                        finalFocus={target}
+                    />
+                </>
+            );
+        }
+        const queryClient = new QueryClient();
+        const { rerender } = render(
+            <QueryClientProvider client={queryClient}>
+                <Host open />
+            </QueryClientProvider>,
+        );
+        await screen.findByText('Nota original.');
+
+        rerender(
+            <QueryClientProvider client={queryClient}>
+                <Host open={false} />
+            </QueryClientProvider>,
+        );
+
+        await waitFor(() =>
+            expect(document.activeElement).toBe(screen.getByTestId('target')),
+        );
+    });
 });

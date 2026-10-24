@@ -11,7 +11,7 @@ function queryKey(appointmentId: number | null) {
 }
 
 // Interaction-triggered read (ADR 0007 exception): the dialog opens on demand
-// from `AppointmentCard`, never from a route loader.
+// from `AppointmentCard` or the patient page, never from a route loader.
 export function usePrescriptions(appointmentId: number | null, open: boolean) {
     return useQuery({
         queryKey: queryKey(appointmentId),

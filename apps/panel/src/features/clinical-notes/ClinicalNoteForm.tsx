@@ -20,15 +20,15 @@ import {
     type NoteAmendmentFormValues,
 } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
-import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote } from '@/types/clinical-note';
 import {
     useAmendClinicalNote,
     useCreateClinicalNote,
-} from '../-hooks/use-clinical-notes';
+    type NoteAppointment,
+} from './use-clinical-notes';
 
 type ClinicalNoteFormProps = {
-    appointment: Appointment | null;
+    appointment: NoteAppointment | null;
     open: boolean;
     amendingNote: ClinicalNote | null;
     onCancelAmendment: () => void;

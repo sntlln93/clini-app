@@ -47,9 +47,10 @@ export type ClinicalHistory =
 // access that expired while the patient stayed cached answers 409: the page
 // asks for the reason again instead of failing.
 //
-// Every read the API answers is logged (ADR 0022), so arriving at the page
-// (`fresh`) asks for the notes and the medication again instead of showing a
-// cached copy: each visit leaves its read. Paging the trail or reloading after
+// Every read the API answers is logged (ADR 0022), unless the same membership
+// made the same read within the last 15 minutes (READ_REPEAT_MINUTES). So
+// arriving at the page (`fresh`) asks for the notes and the medication again
+// instead of showing a cached copy: each visit past that span leaves its read. Paging the trail or reloading after
 // a mutation reuses them, so paging doesn't push new reads onto the trail it
 // pages. The trail comes last, so it already holds the reads just logged.
 export async function loadClinicalHistory(

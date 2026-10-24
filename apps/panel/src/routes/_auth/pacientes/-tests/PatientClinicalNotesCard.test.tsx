@@ -29,6 +29,58 @@ vi.mock('@/lib/toast', () => ({
     notifyError: vi.fn(),
 }));
 
+// The acting membership is 1, the fixture notes' author.
+vi.mock('@/lib/session', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/session')>()),
+    useSession: () => ({ data: { membership: { id: 1 } } }),
+}));
+
+// The agenda's dialogs, tested in features/clinical-notes: here only which
+// note and appointment the card hands them matters.
+vi.mock('@/features/clinical-notes/ClinicalNotesDialog', () => ({
+    ClinicalNotesDialog: (props: {
+        open: boolean;
+        appointment: { id: number; patient_id: number } | null;
+        amendOnOpen: ClinicalNote | null;
+        allowCreate?: boolean;
+        finalFocus?: { current: HTMLElement | null };
+        onOpenChange: (open: boolean) => void;
+    }) => (
+        <>
+            {/* Rendered closed too: what it would show while it fades out. */}
+            <span data-testid="notes-dialog-target">
+                {props.appointment?.id ?? 'ninguno'}
+            </span>
+            {props.open && (
+                <div role="dialog" aria-label="Notas clínicas">
+                    Enmendar la nota {props.amendOnOpen?.id} del turno{' '}
+                    {props.appointment?.id} de {props.appointment?.patient_id}
+                    {props.allowCreate === false && ' · solo enmienda'}
+                    {props.finalFocus?.current?.tagName === 'DIV' &&
+                        ' · foco a la lista'}
+                    <button
+                        type="button"
+                        onClick={() => props.onOpenChange(false)}
+                    >
+                        Cerrar
+                    </button>
+                </div>
+            )}
+        </>
+    ),
+}));
+vi.mock('@/features/clinical-notes/AnnulClinicalNoteDialog', () => ({
+    AnnulClinicalNoteDialog: (props: {
+        note: ClinicalNote | null;
+        appointment: { id: number } | null;
+    }) =>
+        props.note ? (
+            <div role="dialog" aria-label="Anular nota">
+                Anular la nota {props.note.id} del turno {props.appointment?.id}
+            </div>
+        ) : null,
+}));
+
 function buildNote(overrides: Partial<ClinicalNote> = {}): ClinicalNote {
     return buildClinicalNote({ author_name: 'Dra. Ana Gomez', ...overrides });
 }
@@ -260,6 +312,71 @@ describe('PatientClinicalNotesCard', () => {
 
         await screen.findByText('La nota no puede estar vacía.');
         expect(api.post).not.toHaveBeenCalled();
+    });
+    // ADR 0019: only its author amends or annuls a note, and never once annulled.
+    it("offers amending and annulling the acting membership's own notes only", async () => {
+        renderCard({
+            notes: [
+                buildNote({ id: 1, body: 'Nota propia.', membership_id: 1 }),
+                buildNote({ id: 2, body: 'Nota ajena.', membership_id: 2 }),
+                buildNote({
+                    id: 3,
+                    body: 'Nota anulada.',
+                    membership_id: 1,
+                    annulment: {
+                        reason: 'Error.',
+                        created_at: '2026-08-04T10:00:00Z',
+                    },
+                }),
+            ],
+        });
+
+        await screen.findByText('Nota propia.');
+        expect(
+            screen.getAllByRole('button', { name: 'Enmendar' }),
+        ).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Anular' })).toHaveLength(
+            1,
+        );
+    });
+
+    it("amends and annuls on the note's own appointment, as the agenda does", async () => {
+        renderCard({
+            notes: [buildNote({ id: 1, appointment_id: 44, membership_id: 1 })],
+        });
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Enmendar' }),
+        );
+        expect(
+            screen.getByRole('dialog', { name: 'Notas clínicas' }).textContent,
+        ).toContain(
+            'Enmendar la nota 1 del turno 44 de 10 · solo enmienda · foco a la lista',
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
+        expect(
+            screen.getByRole('dialog', { name: 'Anular nota' }).textContent,
+        ).toContain('Anular la nota 1 del turno 44');
+    });
+
+    // The list must not empty while the popup fades out.
+    it("keeps the amended note's appointment once the dialog closes", async () => {
+        renderCard({
+            notes: [buildNote({ id: 1, appointment_id: 44, membership_id: 1 })],
+        });
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Enmendar' }),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+
+        expect(
+            screen.queryByRole('dialog', { name: 'Notas clínicas' }),
+        ).toBeNull();
+        expect(screen.getByTestId('notes-dialog-target').textContent).toBe(
+            '44',
+        );
     });
 });
 

@@ -149,7 +149,8 @@ describe('loadClinicalHistory', () => {
         );
     });
 
-    // ADR 0022: the API logs each read it answers, so each visit asks again.
+    // ADR 0022: the API logs each read it answers (a repeat within
+    // READ_REPEAT_MINUTES keeps its first row), so each visit asks again.
     it('asks for the notes and the medication again on arriving at the page', async () => {
         const queryClient = seededHistory();
         answerHistory(buildClinicalNote({ id: 3 }));

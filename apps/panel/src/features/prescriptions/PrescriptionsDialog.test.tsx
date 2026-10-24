@@ -15,8 +15,9 @@ import {
     RouterProvider,
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import type { ComponentProps } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { PrescriptionsDialog } from '../-components/PrescriptionsDialog';
+import { PrescriptionsDialog } from './PrescriptionsDialog';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
@@ -45,6 +46,7 @@ function renderDialog(
     open: boolean = true,
     subscription?: Subscription,
     plan?: Plan,
+    props: Partial<ComponentProps<typeof PrescriptionsDialog>> = {},
 ) {
     const queryClient = new QueryClient();
     if (plan) {
@@ -63,6 +65,7 @@ function renderDialog(
                     open={open}
                     onOpenChange={() => {}}
                     appointment={APPOINTMENT}
+                    {...props}
                 />
             </QueryClientProvider>
         ),
@@ -358,5 +361,76 @@ describe('PrescriptionsDialog', () => {
                 .getByRole('link', { name: 'Ver planes' })
                 .getAttribute('href'),
         ).toBe('/ajustes#suscripcion');
+    });
+
+    // The patient page's «Enmendar»: straight on that record, no new one.
+    it('amendOnOpen opens on amending that record, and saving calls onSaved and leaves no new-record form', async () => {
+        const prescription = buildPrescription({ id: 7 });
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [prescription] },
+        });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        const onSaved = vi.fn();
+        renderDialog(true, undefined, undefined, {
+            amendOnOpen: prescription,
+            allowCreate: false,
+            onSaved,
+        });
+
+        const medication = (await screen.findByLabelText(
+            'Medicamento',
+        )) as HTMLInputElement;
+        await waitFor(() => expect(medication.value).toBe('Amoxicilina'));
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
+        );
+
+        await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+        expect(api.post).toHaveBeenCalledWith(
+            '/prescriptions/7/amendments',
+            expect.objectContaining({ reason: null }),
+        );
+        await waitFor(() =>
+            expect(screen.queryByLabelText('Medicamento')).toBeNull(),
+        );
+        expect(
+            screen.queryByRole('button', { name: 'Registrar medicación' }),
+        ).toBeNull();
+    });
+
+    it('without allowCreate, cancelling the amendment leaves no new-record form', async () => {
+        const prescription = buildPrescription({ id: 7 });
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [prescription] },
+        });
+        renderDialog(true, undefined, undefined, {
+            amendOnOpen: prescription,
+            allowCreate: false,
+        });
+
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Cancelar enmienda' }),
+        );
+
+        expect(screen.getByText('Amoxicilina × 2')).toBeTruthy();
+        expect(screen.queryByLabelText('Medicamento')).toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Registrar medicación' }),
+        ).toBeNull();
+    });
+
+    it('a new record calls onSaved too', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        const onSaved = vi.fn();
+        renderDialog(true, undefined, undefined, { onSaved });
+
+        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        fillItem(0, 'Amoxicilina', '1 cada 8 h');
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
+
+        await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
     });
 });

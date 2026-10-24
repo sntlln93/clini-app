@@ -25,9 +25,10 @@ type AddClinicalNoteFormProps = {
 const EMPTY_VALUES: NoteFormValues = { body: '', diagnoses: [] };
 
 // Reuses the shared `noteSchema` validation (issue #217, whose body rule
-// `agenda/-components/ClinicalNoteForm.tsx` shares): this is a create-only
-// entry point (the patient page never amends or annuls notes), submitted against the
-// acting membership's own appointment for today.
+// `features/clinical-notes/ClinicalNoteForm.tsx` shares): this only writes a
+// new note, against the acting membership's own appointment for today.
+// Amending and annulling go through the agenda's dialogs, on the note's own
+// appointment (`PatientNoteDialogs`).
 export function AddClinicalNoteForm({
     patientId,
     appointmentId,
