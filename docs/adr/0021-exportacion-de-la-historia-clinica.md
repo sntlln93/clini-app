@@ -30,7 +30,7 @@ El autor de un acto se conserva aunque después se dé de baja su membresía, qu
 
 **Se genera en el momento y no se guarda.** El PDF lo arma dompdf en el servidor: es PHP puro, así que la imagen de producción no necesita extensiones nuevas. Corre sin acceso a la red ni al disco, sobre HTML que sale de una vista Blade propia. La exportación de todos los pacientes se transmite como un JSON en streaming, de a 50 pacientes, así que su tamaño nunca está entero en memoria. Ningún archivo queda en el servidor ni en el almacenamiento de objetos. Las respuestas llevan `Cache-Control: no-store`, y el nombre del archivo solo lleva el id del paciente, porque queda en el historial de descargas.
 
-**Cada exportación queda registrada antes de generarse**, en `clinical_record_exports`: organización, membresía, paciente (nulo para todos los atendidos), alcance, formato y fecha. Es de solo agregado, con el mismo trigger que la historia (ADR 0019). El registro de accesos (#325, ADR 0022) no la absorbió: la exportación tiene alcance y formato propios, y el rastro de un paciente es la unión de las dos tablas. La exportación de un paciente sin un turno cercano pide el mismo motivo que leer su historia.
+**Cada exportación queda registrada antes de generarse**, en `clinical_record_exports`: organización, membresía, paciente (nulo para todos los atendidos), alcance, formato y fecha. Es de solo agregado, con el mismo trigger que la historia (ADR 0019). El registro de accesos (#325, ADR 0022) no la absorbió: la exportación tiene alcance y formato propios. Suma una fila por cada paciente incluido, que apunta a esta. La exportación de un paciente sin un turno cercano pide el mismo motivo que leer su historia.
 
 **Exportar es una lectura:** sigue disponible con la suscripción vencida (sin `subscription.active`) y en cualquier plan, para que un consultorio siempre pueda llevarse su historia. Tiene un límite de 10 por minuto por usuario.
 
@@ -48,4 +48,4 @@ El autor de un acto se conserva aunque después se dé de baja su membresía, qu
 - Hasta que exista la exportación del consultorio entero, la historia escrita por un profesional dado de baja solo sale en parte (sus notas, a través de quien atendió al mismo paciente). Antes de una baja, conviene que el profesional exporte la suya.
 - Cuando #315 responda, ampliar quién exporta es cambiar la policy (`ClinicalRecordExportPolicy`) y, si corresponde, el contenido. Los datos no se migran.
 - La baja de un consultorio (#329) puede ofrecer esta exportación a cada profesional, pero no la reemplaza: la devolución o la custodia se definen ahí.
-- Si el registro de accesos (#325) se vuelve visible para el paciente, puede incluirse en la exportación sin cambiar su forma: es una lista más del JSON y una sección más del PDF.
+- La exportación incluye el registro de accesos del paciente (#325, ADR 0022): una lista más del JSON (`access_log`) y una sección más del PDF.

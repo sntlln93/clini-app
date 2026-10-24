@@ -572,13 +572,16 @@ Convenciones:
   - Contiene lo que quien exporta ya puede leer: los turnos y las notas de todos los
     profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
     solo su propia medicación indicada (CU-53). Nada de otras organizaciones.
-  - Cada exportación queda registrada, de solo agregado, antes de generarse.
+  - Incluye el registro de accesos del paciente en el consultorio, con el mismo recorte que
+    la ficha (CU-55).
+  - Cada exportación queda registrada, de solo agregado, antes de generarse, y deja su fila
+    en el registro de accesos de cada paciente que incluye.
   - La de un paciente sin un turno cercano pide el mismo motivo que leer su historia (CU-55).
 
 ### CU-55 · Registro de accesos a la historia clínica *(issue #325)*
 
-- **Actor**: profesional que abre la historia de un paciente; dueño que revisa los accesos
-  excepcionales de su consultorio.
+- **Actor**: profesional que abre la historia de un paciente y ve quién más la abrió; dueño
+  que revisa los accesos excepcionales de su consultorio.
 - **Decisión** ([ADR 0022](../adr/0022-registro-de-accesos-a-la-historia-clinica.md)): cada
   lectura de las notas o de la medicación de un paciente, y cada escritura de la historia,
   queda registrada. Sin un turno propio con el paciente en los 7 días anteriores o
@@ -591,6 +594,9 @@ Convenciones:
     profesional ni el contenido de la historia. Ningún operador de la plataforma lo ve.
   - La ficha del paciente sabe de antemano si la historia se abre, así que nunca la pide
     para recibir un 403.
+  - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
+    o exportó y cuándo, sin el texto de los motivos ni lo que otros profesionales hicieron con
+    la medicación que indicaron. La exportación lleva lo mismo.
 
 ### CU-46 · Métricas por paciente (alcance)
 
