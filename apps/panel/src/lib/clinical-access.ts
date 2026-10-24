@@ -22,6 +22,38 @@ export const CLINICAL_ACCESS_REASON_LABELS: Record<
     other: 'Otro',
 };
 
+// What a row of a patient's access trail records. Mirrors
+// `App\Enums\ClinicalAccessAction`.
+export const CLINICAL_ACCESS_ACTIONS = [
+    'exceptional_access',
+    'notes_viewed',
+    'prescriptions_viewed',
+    'note_written',
+    'note_amended',
+    'note_annulled',
+    'prescription_issued',
+    'prescription_amended',
+    'record_exported',
+] as const;
+
+export type ClinicalAccessAction = (typeof CLINICAL_ACCESS_ACTIONS)[number];
+
+// The same wording as the exported PDF (`clinical-records/patient.blade.php`).
+export const CLINICAL_ACCESS_ACTION_LABELS: Record<
+    ClinicalAccessAction,
+    string
+> = {
+    exceptional_access: 'Acceso excepcional',
+    notes_viewed: 'Leyó las notas clínicas',
+    prescriptions_viewed: 'Leyó la medicación indicada',
+    note_written: 'Escribió una nota',
+    note_amended: 'Enmendó una nota',
+    note_annulled: 'Anuló una nota',
+    prescription_issued: 'Registró medicación indicada',
+    prescription_amended: 'Enmendó medicación indicada',
+    record_exported: 'Exportó la historia clínica',
+};
+
 // `App\Support\ClinicalAccess::WINDOW_DAYS`: an own appointment this close to
 // today opens the history without a reason. Change both together.
 export const CLINICAL_ACCESS_WINDOW_DAYS = 7;

@@ -22,6 +22,11 @@ export function patientClinicalNotesQueryKey(patientId: number) {
     return ['patients', patientId, 'clinical-notes'];
 }
 
+// Under the patient's key, so dropping the patient drops its trail too.
+export function patientClinicalAccessQueryKey(patientId: number) {
+    return ['patients', patientId, 'clinical-access'];
+}
+
 export function patientPrescriptionsQueryKey(patientId: number) {
     return ['prescriptions', 'patient', patientId];
 }

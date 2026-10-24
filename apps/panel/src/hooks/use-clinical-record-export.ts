@@ -1,3 +1,4 @@
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { readBlobErrorBody } from '@/lib/api-errors';
 import { saveFile } from '@/lib/download';
@@ -35,9 +36,13 @@ function exportRequest(request: ClinicalRecordExport) {
  * Downloads the clinical history (#326): one patient's, as PDF or JSON, or
  * every patient the professional attended, as JSON. The API decides who may
  * and records each export, so nothing here gates it; it is a mutation only
- * because the user triggers it, nothing is cached.
+ * because the user triggers it, nothing is cached. A patient's export adds a
+ * row to the access trail on their page, which reloads; the loader always
+ * reads the trail fresh (#325), so there is no key to drop.
  */
 export function useClinicalRecordExport() {
+    const refreshPageData = useRefreshPageData();
+
     return useMutation({
         mutationFn: async (request: ClinicalRecordExport) => {
             const { url, params, filename } = exportRequest(request);
@@ -49,7 +54,13 @@ export function useClinicalRecordExport() {
 
             saveFile(response.data, filename);
         },
-        onSuccess: () => notifySuccess('Historia clínica descargada'),
+        onSuccess: async (_data, request) => {
+            notifySuccess('Historia clínica descargada');
+
+            if (request.scope === 'patient') {
+                await refreshPageData();
+            }
+        },
         onError: (error) =>
             notifyError(error, 'No se pudo exportar la historia clínica.'),
     });

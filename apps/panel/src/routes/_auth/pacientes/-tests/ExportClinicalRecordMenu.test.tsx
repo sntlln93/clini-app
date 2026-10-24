@@ -14,6 +14,11 @@ vi.mock('sonner', () => ({
     toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+const refresh = vi.fn(() => Promise.resolve());
+vi.mock('@/hooks/use-refresh-page-data', () => ({
+    useRefreshPageData: () => refresh,
+}));
+
 function renderMenu() {
     render(
         <QueryClientProvider client={new QueryClient()}>
@@ -37,6 +42,7 @@ describe('ExportClinicalRecordMenu', () => {
         vi.mocked(api.get).mockReset();
         vi.mocked(toast.success).mockReset();
         vi.mocked(toast.error).mockReset();
+        refresh.mockClear();
         downloads = [];
         URL.createObjectURL = vi.fn(() => 'blob:history');
         URL.revokeObjectURL = vi.fn();
@@ -68,6 +74,8 @@ describe('ExportClinicalRecordMenu', () => {
         expect(toast.success).toHaveBeenCalledWith(
             'Historia clínica descargada',
         );
+        // The export is a new row of the trail on this page (#325).
+        await waitFor(() => expect(refresh).toHaveBeenCalledWith());
     });
 
     it('downloads the structured JSON', async () => {
@@ -100,6 +108,7 @@ describe('ExportClinicalRecordMenu', () => {
             ),
         );
         expect(click).not.toHaveBeenCalled();
+        expect(refresh).not.toHaveBeenCalled();
     });
 
     it('shows the catalog message of a coded error, though its body comes as a Blob', async () => {
