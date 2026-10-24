@@ -573,6 +573,24 @@ Convenciones:
     profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
     solo su propia medicación indicada (CU-53). Nada de otras organizaciones.
   - Cada exportación queda registrada, de solo agregado, antes de generarse.
+  - La de un paciente sin un turno cercano pide el mismo motivo que leer su historia (CU-55).
+
+### CU-55 · Registro de accesos a la historia clínica *(issue #325)*
+
+- **Actor**: profesional que abre la historia de un paciente; dueño que revisa los accesos
+  excepcionales de su consultorio.
+- **Decisión** ([ADR 0022](../adr/0022-registro-de-accesos-a-la-historia-clinica.md)): cada
+  lectura de las notas o de la medicación de un paciente, y cada escritura de la historia,
+  queda registrada. Sin un turno propio con el paciente en los 7 días anteriores o
+  siguientes, la historia se abre solo con un motivo, que la abre por una hora.
+- **Invariantes**:
+  - El registro es de solo agregado, como la historia (ADR 0019).
+  - El motivo es uno de la lista («preparar la consulta», «resultado de estudio»,
+    «urgencia», «otro») más un texto opcional, obligatorio para «otro».
+  - El dueño ve quién, a qué paciente, cuándo y por qué motivo, nunca el texto del
+    profesional ni el contenido de la historia. Ningún operador de la plataforma lo ve.
+  - La ficha del paciente sabe de antemano si la historia se abre, así que nunca la pide
+    para recibir un 403.
 
 ### CU-46 · Métricas por paciente (alcance)
 
@@ -709,6 +727,7 @@ cambios a los mocks): la identidad del paciente por **documento con selector de 
 | CU-44 | Slug público único de la organización |
 | CU-45 | Nota clínica ligada a turno↔profesional↔organización |
 | CU-53 | Medicación indicada ligada a turno↔profesional autor↔organización |
+| CU-55 | Registro de accesos de solo agregado, con motivo fuera de turno |
 | CU-47, CU-48 | Demografía y obra social del paciente global |
 | CU-49 | Motivo opcional del turno (≠ nota clínica) |
 | CU-50 | Dirección polimórfica, solo organización por ahora |
