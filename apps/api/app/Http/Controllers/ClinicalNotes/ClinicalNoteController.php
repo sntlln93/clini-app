@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\ClinicalNotes;
 
+use App\Actions\ClinicalAccess\ReadPatientHistoryAction;
 use App\Actions\ClinicalNotes\WriteClinicalNoteAction;
+use App\Data\ClinicalAccess\PatientHistoryReadData;
 use App\Data\ClinicalNotes\ClinicalNoteDraftData;
+use App\Enums\ClinicalAccessAction;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\ClinicalNotes\StoreClinicalNoteRequest;
 use App\Http\Resources\ClinicalNotes\ClinicalNoteResource;
@@ -26,7 +29,7 @@ class ClinicalNoteController extends Controller
      */
     public const array RELATIONS = ['versions.diagnoses', 'annulment'];
 
-    public function index(Request $request, Appointment $appointment): AnonymousResourceCollection
+    public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
         Gate::authorize('viewAny', [ClinicalNote::class, $appointment]);
 
@@ -35,6 +38,14 @@ class ClinicalNoteController extends Controller
 
         /** @var Membership $membership */
         $membership = $user->currentMembership();
+
+        $read->handle(new PatientHistoryReadData(
+            organizationId: $appointment->organization_id,
+            membershipId: $membership->id,
+            patientId: $appointment->patient_id,
+            action: ClinicalAccessAction::NotesViewed,
+            appointmentId: $appointment->id,
+        ));
 
         $notes = ClinicalNote::query()
             ->where('appointment_id', $appointment->id)
@@ -46,9 +57,22 @@ class ClinicalNoteController extends Controller
         return ClinicalNoteResource::collection($notes);
     }
 
-    public function indexForPatient(Patient $patient): AnonymousResourceCollection
+    public function indexForPatient(Request $request, Patient $patient, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
         Gate::authorize('viewAnyForPatient', [ClinicalNote::class, $patient]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $read->handle(new PatientHistoryReadData(
+            organizationId: $membership->organization_id,
+            membershipId: $membership->id,
+            patientId: $patient->id,
+            action: ClinicalAccessAction::NotesViewed,
+        ));
 
         $notes = ClinicalNote::query()
             ->forPatient($patient->id)
@@ -75,6 +99,7 @@ class ClinicalNoteController extends Controller
         $note = $action->handle(new ClinicalNoteDraftData(
             organizationId: $appointment->organization_id,
             appointmentId: $appointment->id,
+            patientId: $appointment->patient_id,
             membershipId: $membership->id,
             body: $request->string('body')->toString(),
             icd10CodeIds: $request->icd10CodeIds(),

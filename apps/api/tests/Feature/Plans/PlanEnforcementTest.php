@@ -146,6 +146,7 @@ test('Free rejects recording or amending a prescription, but keeps them readable
     $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", [])
         ->assertStatus(409)->assertJsonPath('error.context.feature', 'prescriptions');
 
+    openClinicalHistory($professional, $appointment->patient_id);
     $this->actingAs($professional->user)->getJson("/api/v1/patients/{$appointment->patient_id}/prescriptions")
         ->assertOk()->assertJsonPath('data.0.id', $prescription->id);
     $this->actingAs($professional->user)->getJson("/api/v1/appointments/{$appointment->id}/prescriptions")

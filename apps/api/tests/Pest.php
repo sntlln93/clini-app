@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Enums\ClinicalAccessAction;
+use App\Enums\ClinicalAccessReason;
+use App\Models\ClinicalAccessLog;
 use App\Models\ContactRequest;
 use App\Models\Membership;
 use App\Models\Organization;
@@ -168,4 +171,19 @@ function slotStartTimes(array $slots): array
     return collect($slots)
         ->map(fn (array $slot): string => CarbonImmutable::parse($slot['start_at'])->format('H:i'))
         ->all();
+}
+
+/**
+ * Opens a patient's clinical history to a membership the way an exceptional access does (#325, ADR 0022), so a test
+ * about what the history holds doesn't depend on the appointment factory's random date landing near today.
+ */
+function openClinicalHistory(Membership $membership, int $patientId): void
+{
+    ClinicalAccessLog::query()->withoutGlobalScope('organization')->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => $patientId,
+        'action' => ClinicalAccessAction::ExceptionalAccess,
+        'reason' => ClinicalAccessReason::PreparingConsultation,
+    ]);
 }

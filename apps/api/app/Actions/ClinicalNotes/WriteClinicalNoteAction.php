@@ -4,20 +4,28 @@ declare(strict_types=1);
 
 namespace App\Actions\ClinicalNotes;
 
+use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
+use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\ClinicalNotes\ClinicalNoteDraftData;
+use App\Enums\ClinicalAccessAction;
 use App\Models\ClinicalNote;
 use App\Support\ClinicalNoteDiagnoses;
 use Illuminate\Support\Facades\DB;
 
 /**
- * The text and its diagnoses are the note's version 1 (ADR 0019, #324).
+ * The text and its diagnoses are the note's version 1 (ADR 0019, #324), and
+ * the access log records who wrote it (#325).
  *
  * @implements Action<ClinicalNoteDraftData>
  */
 class WriteClinicalNoteAction implements Action
 {
+    public function __construct(
+        private readonly RecordClinicalAccessAction $record,
+    ) {}
+
     /**
      * @param  ClinicalNoteDraftData  $dto
      */
@@ -37,6 +45,15 @@ class WriteClinicalNoteAction implements Action
             ]);
 
             ClinicalNoteDiagnoses::record($version, $dto->icd10CodeIds);
+
+            $this->record->handle(new ClinicalAccessEntryData(
+                organizationId: $dto->organizationId,
+                membershipId: $dto->membershipId,
+                patientId: $dto->patientId,
+                action: ClinicalAccessAction::NoteWritten,
+                appointmentId: $dto->appointmentId,
+                clinicalNoteId: $clinicalNote->id,
+            ));
 
             return $clinicalNote;
         });

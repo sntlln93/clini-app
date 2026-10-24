@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
+import { ClinicalHistoryAccessCard } from './-components/ClinicalHistoryAccessCard';
 import { ExportClinicalRecordMenu } from './-components/ExportClinicalRecordMenu';
 import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentHistoryCard';
 import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard';
@@ -12,37 +13,28 @@ import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
 import { PatientNextAppointmentCard } from './-components/PatientNextAppointmentCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
 import { PatientPrescriptionsCard } from './-components/PatientPrescriptionsCard';
+import { loadClinicalHistory } from './-hooks/use-clinical-history';
 import {
     findNextAppointment,
     findTodaysOwnAppointment,
     patientAppointmentsQueryOptions,
 } from './-hooks/use-patient-appointments';
-import { patientClinicalNotesQueryOptions } from './-hooks/use-patient-clinical-notes';
-import { patientPrescriptionsQueryOptions } from './-hooks/use-patient-prescriptions';
 
 export const Route = createFileRoute('/_auth/pacientes/$id')({
     params: {
         parse: (rawParams) => ({ id: Number(rawParams.id) }),
     },
     loader: async ({ context, params }) => {
-        const [patient, appointments, notes, prescriptions] = await Promise.all(
-            [
-                context.queryClient.ensureQueryData(
-                    patientQueryOptions(params.id),
-                ),
-                context.queryClient.ensureQueryData(
-                    patientAppointmentsQueryOptions(params.id),
-                ),
-                context.queryClient.ensureQueryData(
-                    patientClinicalNotesQueryOptions(params.id),
-                ),
-                context.queryClient.ensureQueryData(
-                    patientPrescriptionsQueryOptions(params.id),
-                ),
-            ],
-        );
+        const [patient, appointments] = await Promise.all([
+            context.queryClient.ensureQueryData(patientQueryOptions(params.id)),
+            context.queryClient.ensureQueryData(
+                patientAppointmentsQueryOptions(params.id),
+            ),
+        ]);
+        // The patient says ahead whether its history will be answered (#325).
+        const history = await loadClinicalHistory(context.queryClient, patient);
 
-        return { patient, appointments, notes, prescriptions };
+        return { patient, appointments, history };
     },
     head: ({ loaderData }) => titleHead(loaderData?.patient.name, 'Pacientes'),
     pendingComponent: () => <ListSkeleton />,
@@ -51,8 +43,7 @@ export const Route = createFileRoute('/_auth/pacientes/$id')({
 });
 
 function PacienteDetallePage() {
-    const { patient, appointments, notes, prescriptions } =
-        Route.useLoaderData();
+    const { patient, appointments, history } = Route.useLoaderData();
     const { id } = Route.useParams();
 
     return (
@@ -60,7 +51,7 @@ function PacienteDetallePage() {
             <header className="flex flex-wrap items-center justify-between gap-4">
                 <h1 className="text-2xl tracking-tight">{patient.name}</h1>
                 <div className="flex flex-wrap gap-2">
-                    {notes !== null && (
+                    {history.access === 'open' && (
                         <ExportClinicalRecordMenu patientId={id} />
                     )}
                     <Button
@@ -85,14 +76,25 @@ function PacienteDetallePage() {
             </div>
 
             <PatientAppointmentHistoryCard appointments={appointments} />
-            <PatientClinicalNotesCard
-                patientId={id}
-                notes={notes}
-                todaysAppointmentId={
-                    findTodaysOwnAppointment(appointments)?.id ?? null
-                }
-            />
-            <PatientPrescriptionsCard prescriptions={prescriptions} />
+            {history.access === 'open' ? (
+                <>
+                    <PatientClinicalNotesCard
+                        patientId={id}
+                        notes={history.notes}
+                        todaysAppointmentId={
+                            findTodaysOwnAppointment(appointments)?.id ?? null
+                        }
+                    />
+                    <PatientPrescriptionsCard
+                        prescriptions={history.prescriptions}
+                    />
+                </>
+            ) : (
+                <ClinicalHistoryAccessCard
+                    patientId={id}
+                    access={history.access}
+                />
+            )}
         </div>
     );
 }

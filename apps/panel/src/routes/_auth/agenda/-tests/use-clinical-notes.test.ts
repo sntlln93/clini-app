@@ -1,6 +1,8 @@
+import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
 import type { Appointment } from '@/types/appointment';
+import type { PatientDetail } from '@/types/patient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
@@ -29,17 +31,13 @@ const APPOINTMENT = { id: 42, patient_id: 50 } as Appointment;
 
 const NOTE = buildClinicalNote({ body: 'Nota desde la agenda.' });
 
-function forbidden() {
-    return { isAxiosError: true, response: { status: 403, data: {} } };
-}
-
 // The patient page reads its notes in its loader (`ensureQueryData`), so the
 // cached entry has no observer: a default invalidation never refetches it.
 async function renderWithPatientPageVisited<T>(hook: () => T) {
     const queryClient = new QueryClient({
         defaultOptions: { mutations: { retry: false } },
     });
-    vi.mocked(api.get).mockRejectedValueOnce(forbidden());
+    vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
     await queryClient.ensureQueryData(patientClinicalNotesQueryOptions(50));
     const wrapper = ({ children }: { children: ReactNode }) =>
         createElement(QueryClientProvider, { client: queryClient }, children);
@@ -167,6 +165,23 @@ describe('clinical note mutations from the agenda (#273)', () => {
         await result.current.mutateAsync({ body: 'Nota.', icd10CodeIds: [] });
 
         expect(cachedWhenLoadersRerun).toBeUndefined();
+    });
+
+    // #325: the patient says whether its history takes a reason, so it is
+    // read again with the notes.
+    it('drops the cached patient along with its notes', async () => {
+        const { result, queryClient } = await renderWithPatientPageVisited(() =>
+            useCreateClinicalNote(APPOINTMENT),
+        );
+        queryClient.setQueryData(patientQueryOptions(50).queryKey, {
+            id: 50,
+        } as PatientDetail);
+
+        await result.current.mutateAsync({ body: 'Nota.', icd10CodeIds: [] });
+
+        expect(
+            queryClient.getQueryData(patientQueryOptions(50).queryKey),
+        ).toBeUndefined();
     });
 
     it("lists a note saved while the dialog's first load was still in flight", async () => {

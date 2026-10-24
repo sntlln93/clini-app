@@ -58,4 +58,6 @@ enum ErrorCode: string
     case ClinicalNotesAmendmentUnchanged = 'clinical_notes.amendment_unchanged';
     case ClinicalNotesDiagnosisRetired = 'clinical_notes.diagnosis_retired';
     case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
+    case ClinicalAccessReasonRequired = 'clinical_access.reason_required';
+    case ClinicalAccessReasonNotRequired = 'clinical_access.reason_not_required';
 }

@@ -1,4 +1,7 @@
-import { patientClinicalNotesQueryKey } from '@/hooks/use-patient';
+import {
+    patientClinicalNotesQueryKey,
+    patientQueryOptions,
+} from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
@@ -34,9 +37,12 @@ function useRefreshNotes(appointment: Appointment | null) {
     return async () => {
         const dialogKey = queryKey(appointment?.id ?? null);
 
+        // The patient goes too: it says whether the notes take a reason
+        // (#325), and a stale one would ask for them after the access ran out.
         if (appointment) {
             discardPageData(
                 queryClient,
+                patientQueryOptions(appointment.patient_id).queryKey,
                 patientClinicalNotesQueryKey(appointment.patient_id),
             );
         }

@@ -1,5 +1,6 @@
 import {
     bookAppointmentWithNewPatient,
+    giveClinicalAccessReason,
     NEW_PATIENT_APPOINTMENT_ISSUES,
 } from './agenda';
 import { expect, test } from './fixtures';
@@ -30,8 +31,10 @@ test('the patient page reflects a note and a cancellation made from the agenda',
         ).toBeVisible();
     };
 
-    // Caches the patient page: one upcoming appointment, no notes yet.
+    // Caches the patient page: one upcoming appointment, no notes yet. The
+    // appointment is years ahead, so the history takes a reason first (#325).
     await openPatientPage();
+    await giveClinicalAccessReason(page);
     await expect(page.getByText('Todavía no hay notas clínicas')).toBeVisible();
     await page.goBack();
 

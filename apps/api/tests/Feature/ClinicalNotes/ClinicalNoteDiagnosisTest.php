@@ -245,6 +245,7 @@ test('an amendment still rejects an id that is not in the catalog with 422', fun
 test('the patient page lists every note with its diagnoses', function () {
     $code = Icd10Code::factory()->create(['code' => 'R51', 'description' => 'Cefalea']);
     $note = diagnosedNote([$code]);
+    openClinicalHistory($note->author, $note->appointment->patient_id);
 
     $this->actingAs($note->author->user)->getJson("/api/v1/patients/{$note->appointment->patient_id}/clinical-notes")
         ->assertOk()

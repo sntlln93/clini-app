@@ -12,6 +12,7 @@ const SEGMENT_LABELS: Record<string, string> = {
     disponibilidad: 'Disponibilidad',
     reportes: 'Reportes',
     ajustes: 'Ajustes',
+    'accesos-excepcionales': 'Accesos a la historia clínica',
     nuevo: 'Nuevo',
     editar: 'Editar',
 };

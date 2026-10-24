@@ -53,6 +53,20 @@ test('/disponibilidad renders for an authenticated user', async ({ page }) => {
     ).toBeVisible();
 });
 
+// The setup session is the owner's (#325): the list of exceptional accesses is hers.
+test('/accesos-excepcionales renders for the owner', async ({ page }) => {
+    await page.goto('/accesos-excepcionales');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).not.toHaveURL(/\/login$/);
+    await expect(
+        page.getByRole('heading', {
+            name: 'Accesos a la historia clínica',
+            level: 1,
+        }),
+    ).toBeVisible();
+});
+
 test('/ajustes renders for an authenticated user', async ({ page }) => {
     await page.goto('/ajustes');
     await page.waitForLoadState('networkidle');

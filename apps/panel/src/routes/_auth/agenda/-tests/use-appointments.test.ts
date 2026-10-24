@@ -1,3 +1,4 @@
+import { patientQueryOptions } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { planQueryOptions } from '@/lib/plan';
 import { notifySuccess } from '@/lib/toast';
@@ -17,6 +18,7 @@ import {
 } from '../-hooks/use-appointments';
 import { patientAppointmentsQueryOptions } from '../../pacientes/-hooks/use-patient-appointments';
 import { patientClinicalNotesQueryOptions } from '../../pacientes/-hooks/use-patient-clinical-notes';
+import { patientPrescriptionsQueryOptions } from '../../pacientes/-hooks/use-patient-prescriptions';
 import { reportQueryOptions } from '../../reportes/-hooks/use-report';
 
 vi.mock('@/lib/api', () => ({
@@ -262,29 +264,36 @@ describe("on Free, which counts the month's appointments (#238)", () => {
 
 describe("refreshes the patient page's loader-only reads (#273)", () => {
     const HISTORY_ITEM = { id: 7 } as PatientAppointmentHistoryItem;
+    const PATIENT_BEFORE = { id: 2, clinical_access_reason_required: true };
+    const PATIENT_AFTER = { id: 2, clinical_access_reason_required: false };
 
-    // Visiting the patient page (id 2) left its history and notes cached by
-    // its loader's `ensureQueryData`: no observer, so nothing refetches them
-    // unless the mutation does.
+    // Visiting the patient page (id 2) left the patient, its history, its notes
+    // and its medication cached by its loader's `ensureQueryData`: no observer,
+    // so nothing refetches them unless the mutation does. The patient says
+    // whether its history takes a reason, which an appointment changes (#325).
     async function renderWithPatientPageVisited<T>(hook: () => T) {
         const queryClient = new QueryClient({
             defaultOptions: { mutations: { retry: false } },
         });
         vi.mocked(api.get).mockImplementation((url: string) =>
-            url === '/patients/2/clinical-notes'
-                ? Promise.reject({
-                      isAxiosError: true,
-                      response: { status: 403, data: {} },
-                  })
-                : Promise.resolve({ data: { data: [] } }),
+            Promise.resolve({
+                data: { data: url === '/patients/2' ? PATIENT_BEFORE : [] },
+            }),
         );
+        await queryClient.ensureQueryData(patientQueryOptions(2));
         await queryClient.ensureQueryData(patientAppointmentsQueryOptions(2));
         await queryClient.ensureQueryData(patientClinicalNotesQueryOptions(2));
+        await queryClient.ensureQueryData(patientPrescriptionsQueryOptions(2));
         // What the API answers once the appointment exists.
         vi.mocked(api.get).mockImplementation((url: string) =>
             Promise.resolve({
                 data: {
-                    data: url.startsWith('/patients/2/') ? [HISTORY_ITEM] : [],
+                    data:
+                        url === '/patients/2'
+                            ? PATIENT_AFTER
+                            : url.startsWith('/patients/2/')
+                              ? [HISTORY_ITEM]
+                              : [],
                 },
             }),
         );
@@ -359,17 +368,25 @@ describe("refreshes the patient page's loader-only reads (#273)", () => {
             },
         },
     ])(
-        '$name an appointment makes the patient page load its history and notes again',
+        '$name an appointment makes the patient page load the patient, its history, notes and medication again',
         async ({ run }) => {
             const queryClient = await run();
 
             // What the patient page's loader does on the way back.
+            await expect(
+                queryClient.ensureQueryData(patientQueryOptions(2)),
+            ).resolves.toEqual(PATIENT_AFTER);
             await expect(
                 queryClient.ensureQueryData(patientAppointmentsQueryOptions(2)),
             ).resolves.toEqual([HISTORY_ITEM]);
             await expect(
                 queryClient.ensureQueryData(
                     patientClinicalNotesQueryOptions(2),
+                ),
+            ).resolves.toEqual([HISTORY_ITEM]);
+            await expect(
+                queryClient.ensureQueryData(
+                    patientPrescriptionsQueryOptions(2),
                 ),
             ).resolves.toEqual([HISTORY_ITEM]);
         },

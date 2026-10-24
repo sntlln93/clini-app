@@ -116,4 +116,23 @@ describe('queryClient error-logging sink', () => {
 
         expect(consoleErrorSpy).toHaveBeenCalledTimes(1);
     });
+
+    // #325: an exceptional access that ran out is handled by the caller.
+    it('does not log a business code listed in expectedBusinessCodes, and logs any other', async () => {
+        const meta = {
+            expectedBusinessCodes: ['clinical_access.reason_required'],
+        };
+        const business = (code: string) =>
+            axiosError(409, { error: { code, message: '', context: {} } });
+
+        await runFailingQuery(
+            business('clinical_access.reason_required'),
+            meta,
+        );
+        expect(consoleErrorSpy).not.toHaveBeenCalled();
+
+        await runFailingQuery(business('clinical_notes.annulled'), meta);
+        await runFailingQuery(axiosError(403), meta);
+        expect(consoleErrorSpy).toHaveBeenCalledTimes(2);
+    });
 });
