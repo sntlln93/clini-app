@@ -8,7 +8,8 @@ import { expect, test } from './fixtures';
 // #325: without an own appointment within seven days of today, a professional
 // opens a patient's clinical history only after giving a reason, and the
 // owner of the practice sees that exceptional access, without anything of the
-// history. The helper's appointment is years ahead, so it is out of the window.
+// history. The page shows the history's access trail next to it. The helper's
+// appointment is years ahead, so it is out of the window.
 test.use({ expectedIssues: NEW_PATIENT_APPOINTMENT_ISSUES });
 
 test('an exceptional access takes a reason and reaches the owner list', async ({
@@ -39,6 +40,16 @@ test('an exceptional access takes a reason and reaches the owner list', async ({
     ).toBeVisible();
     await expect(
         page.getByText('Todavía no registraste medicación para este paciente.'),
+    ).toBeVisible();
+    // The trail already holds the reason and the reads it just opened.
+    const entries = page.getByRole('listitem');
+    await expect(
+        entries.filter({
+            hasText: 'Acceso excepcional · Motivo: Resultado de estudio',
+        }),
+    ).toContainText('Carla Profesional');
+    await expect(
+        entries.filter({ hasText: 'Leyó las notas clínicas' }).first(),
     ).toBeVisible();
 
     // Carla attends at Consultorio Dos, her most recent membership: its owner

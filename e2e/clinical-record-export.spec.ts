@@ -7,7 +7,8 @@ import {
 import { expect, test } from './fixtures';
 
 // #326: the professional who attended a patient downloads their clinical
-// history from the patient page, as PDF or as JSON.
+// history from the patient page, as PDF or as JSON, with its access trail,
+// which the page shows too (#325).
 test.use({ expectedIssues: NEW_PATIENT_APPOINTMENT_ISSUES });
 
 test('the attending professional downloads the patient history as JSON and as PDF', async ({
@@ -59,6 +60,21 @@ test('the attending professional downloads the patient history as JSON and as PD
         'Control anual sin hallazgos.',
     );
     expect(record.export.notice).toContain('no es una receta');
+    const actions = record.access_log.map(
+        (entry: { action: string }) => entry.action,
+    );
+    expect(actions).toEqual(
+        expect.arrayContaining(['note_written', 'exceptional_access']),
+    );
+    expect(record.access_log.at(-1)).toMatchObject({
+        action: 'record_exported',
+        export: { scope: 'patient', format: 'json' },
+    });
+    await expect(
+        page
+            .getByRole('listitem')
+            .filter({ hasText: 'Exportó la historia clínica · JSON' }),
+    ).toBeVisible();
 
     await exportButton.click();
     const pdfDownload = page.waitForEvent('download');
