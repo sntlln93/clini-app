@@ -318,6 +318,25 @@ describe('LoginForm', () => {
         ).toBeNull();
     });
 
+    it('asks the user to wait on a 429, keeping the typed email', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce(
+            unauthorizedError({ message: 'Too Many Attempts.' }, 429),
+        );
+        renderLoginForm();
+
+        await submitValidCredentials();
+
+        expect(
+            await screen.findByText(
+                'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
+            ),
+        ).not.toBeNull();
+        expect(
+            (screen.getByLabelText('Correo electrónico') as HTMLInputElement)
+                .value,
+        ).toBe('ana@clini.app');
+    });
+
     it('goes back to the requested page, search included, after logging in', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { id: 1, name: 'Ana', email: 'ana@clini.app' },

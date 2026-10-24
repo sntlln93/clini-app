@@ -86,3 +86,84 @@ test('an authenticated user can log out', function () {
 
     $response->assertNoContent();
 });
+
+function exhaustLoginLimit(string $email): void
+{
+    foreach (range(1, 5) as $attempt) {
+        fromSpa()->postJson('/api/v1/login', [
+            'email' => $email,
+            'password' => 'wrong-password',
+        ])->assertStatus(422);
+    }
+}
+
+test('the sixth login attempt within a minute is throttled even with the correct password', function () {
+    $user = User::factory()->create(['password' => bcrypt('password')]);
+
+    exhaustLoginLimit($user->email);
+
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertStatus(429)->assertHeader('Retry-After');
+
+    $this->assertGuest();
+});
+
+test('the login throttle ignores the case and padding of the email', function () {
+    $user = User::factory()->create([
+        'email' => 'user@x.com',
+        'password' => bcrypt('password'),
+    ]);
+
+    exhaustLoginLimit('user@x.com');
+
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => '  USER@X.COM  ',
+        'password' => 'password',
+    ])->assertStatus(429);
+});
+
+test('exhausting the login limit for one account does not throttle another', function () {
+    $userA = User::factory()->create(['password' => bcrypt('password')]);
+    $userB = User::factory()->create(['password' => bcrypt('password')]);
+
+    exhaustLoginLimit($userA->email);
+
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => $userB->email,
+        'password' => 'password',
+    ])->assertOk();
+    $this->assertAuthenticatedAs($userB);
+});
+
+test('another ip has its own login limit', function () {
+    $user = User::factory()->create(['password' => bcrypt('password')]);
+
+    exhaustLoginLimit($user->email);
+
+    $this->withServerVariables(['REMOTE_ADDR' => '10.0.0.2']);
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertOk();
+    $this->assertAuthenticatedAs($user);
+});
+
+test('the login limit resets after a minute', function () {
+    $user = User::factory()->create(['password' => bcrypt('password')]);
+
+    exhaustLoginLimit($user->email);
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertStatus(429);
+
+    $this->travel(61)->seconds();
+
+    fromSpa()->postJson('/api/v1/login', [
+        'email' => $user->email,
+        'password' => 'password',
+    ])->assertOk();
+    $this->assertAuthenticatedAs($user);
+});

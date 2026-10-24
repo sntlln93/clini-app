@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Route;
 // `clinic.origin` keeps dashboard-origin scripts off every clinic entry
 // point, the session-creating public ones included (ADR 0010).
 Route::middleware('clinic.origin')->group(function (): void {
-    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
     Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:register');
 
     Route::get('/email-verification/{token}', [EmailVerificationController::class, 'show']);

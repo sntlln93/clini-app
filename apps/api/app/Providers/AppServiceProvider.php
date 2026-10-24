@@ -53,6 +53,15 @@ class AppServiceProvider extends ServiceProvider
                 ->by((is_string($email) ? Str::lower(trim($email)) : '').'|'.$request->ip());
         });
 
+        // Clinic login (`throttle:login`, #336): same key and limit as
+        // `admin-login` above, in its own bucket.
+        RateLimiter::for('login', function (Request $request): Limit {
+            $email = $request->input('email');
+
+            return Limit::perMinute(5)
+                ->by((is_string($email) ? Str::lower(trim($email)) : '').'|'.$request->ip());
+        });
+
         // The landing's contact form (`throttle:contact`, #248): 5 per minute
         // and 20 per hour per IP. Behind a proxy not in TRUSTED_PROXIES every
         // visitor shares the proxy's IP, so the limits become global
