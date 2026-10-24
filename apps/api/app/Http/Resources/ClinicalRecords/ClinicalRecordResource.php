@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\ClinicalRecords;
 
+use App\Http\Resources\ClinicalAccess\ClinicalAccessTrailEntryResource;
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteDiagnosis;
@@ -19,7 +20,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * One patient's clinical history within the organization (#326, ADR 0021), as `ClinicalRecordLoader` loads it: the
  * appointments in order, each with its notes and the exporter's indicated medication, and every version of each with
- * its author, time and reason, so the export shows who did what and when. The patient's identity goes without contact
+ * its author, time and reason, so the export shows who did what and when; then the patient's access trail, oldest
+ * first, which also says who read it and exported it (#325, ADR 0022). The patient's identity goes without contact
  * data, which isn't part of the history. The PDF renders this same shape.
  *
  * @mixin Patient
@@ -57,6 +59,7 @@ class ClinicalRecordResource extends JsonResource
                 'clinical_notes' => $appointment->clinicalNotes->map($this->note(...))->values()->all(),
                 'prescriptions' => $appointment->prescriptions->map($this->prescription(...))->values()->all(),
             ])->values()->all(),
+            'access_log' => ClinicalAccessTrailEntryResource::collection($patient->clinicalAccessLogs)->resolve($request),
         ];
     }
 

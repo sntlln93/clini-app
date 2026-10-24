@@ -23,6 +23,7 @@ final readonly class ClinicalAccessEntryData implements Data
         public ?int $prescriptionId = null,
         public ?ClinicalAccessReason $reason = null,
         public ?string $reasonDetail = null,
+        public ?int $clinicalRecordExportId = null,
     ) {}
 
     /**
@@ -40,6 +41,7 @@ final readonly class ClinicalAccessEntryData implements Data
             'prescriptionId' => $this->prescriptionId,
             'reason' => $this->reason?->value,
             'reasonDetail' => $this->reasonDetail,
+            'clinicalRecordExportId' => $this->clinicalRecordExportId,
         ];
     }
 }

@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The clinical access log (#325, ADR 0022): every read of a patient's notes
- * or indicated medication, every write of them, and every exceptional access
- * with its reason. Who (membership), on which patient, what and when, and
- * what it touched. As append-only as the history it records (ADR 0019).
+ * or indicated medication, every write of them, every export of their history
+ * and every exceptional access with its reason. Who (membership), on which
+ * patient, what and when, and what it touched. As append-only as the history
+ * it records (ADR 0019).
  */
 return new class extends Migration
 {
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->foreignId('appointment_id')->nullable()->constrained()->restrictOnDelete();
             $table->foreignId('clinical_note_id')->nullable()->constrained()->restrictOnDelete();
             $table->foreignId('prescription_id')->nullable()->constrained()->restrictOnDelete();
+            $table->foreignId('clinical_record_export_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('reason')->nullable();
             $table->string('reason_detail', 500)->nullable();
             $table->dateTimeTz('created_at')->useCurrent();
@@ -37,6 +39,8 @@ return new class extends Migration
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
             $table->index(['organization_id', 'action', 'created_at']);
             $table->index(['membership_id', 'patient_id', 'action', 'created_at']);
+            // A patient's trail, on their page and in the export.
+            $table->index(['patient_id', 'organization_id', 'created_at']);
         });
 
         // reject_clinical_record_change() comes from the append-only

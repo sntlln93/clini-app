@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\ClinicalRecords;
 
+use App\Actions\ClinicalAccess\RecordExportedPatientsAction;
 use App\Actions\ClinicalRecords\RecordClinicalRecordExportAction;
 use App\Contracts\PdfRenderer;
+use App\Data\ClinicalAccess\ExportedPatientsData;
 use App\Data\ClinicalRecords\ClinicalRecordExportData;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
@@ -82,7 +84,7 @@ class ClinicalRecordExportController extends Controller
             return response()->json($content, 200, $headers, self::JSON_FLAGS | JSON_PRETTY_PRINT);
         }
 
-        /** @var array{export: array<string, mixed>, patient: array<string, mixed>, appointments: list<array<string, mixed>>} $plain */
+        /** @var array{export: array<string, mixed>, patient: array<string, mixed>, appointments: list<array<string, mixed>>, access_log: list<array<string, mixed>>} $plain */
         $plain = json_decode(json_encode($content, self::JSON_FLAGS), true, flags: JSON_THROW_ON_ERROR);
 
         $organization = $export->organization;
@@ -98,10 +100,14 @@ class ClinicalRecordExportController extends Controller
 
     /**
      * Every patient the membership attended, as one JSON document streamed a chunk of patients at a time, so its size
-     * never sits in memory. What it holds per patient is the same as the patient export.
+     * never sits in memory. What it holds per patient is the same as the patient export, and each patient's trail gets
+     * the export's row as the export reaches them.
      */
-    public function attended(Request $request, RecordClinicalRecordExportAction $record): StreamedResponse
-    {
+    public function attended(
+        Request $request,
+        RecordClinicalRecordExportAction $record,
+        RecordExportedPatientsAction $recordExported,
+    ): StreamedResponse {
         Gate::authorize('exportAttended', ClinicalRecordExport::class);
 
         /** @var User $user */
@@ -121,12 +127,24 @@ class ClinicalRecordExportController extends Controller
         $heading = (new ClinicalRecordExportResource($export->load(['organization', 'exporter.user'])))->resolve($request);
         $organizationId = $membership->organization_id;
         $membershipId = $membership->id;
+        $exportId = $export->id;
 
-        return response()->streamDownload(function () use ($request, $heading, $organizationId, $membershipId): void {
+        return response()->streamDownload(function () use ($request, $heading, $organizationId, $membershipId, $exportId, $recordExported): void {
             echo '{"export":'.json_encode($heading, self::JSON_FLAGS).',"patients":[';
 
             $separator = '';
-            foreach (ClinicalRecordLoader::attendedPatients($organizationId, $membershipId) as $patient) {
+            $patients = ClinicalRecordLoader::attendedPatients(
+                $organizationId,
+                $membershipId,
+                fn (array $patientIds) => $recordExported->handle(new ExportedPatientsData(
+                    organizationId: $organizationId,
+                    membershipId: $membershipId,
+                    clinicalRecordExportId: $exportId,
+                    patientIds: $patientIds,
+                )),
+            );
+
+            foreach ($patients as $patient) {
                 echo $separator.json_encode((new ClinicalRecordResource($patient))->resolve($request), self::JSON_FLAGS);
                 $separator = ',';
             }

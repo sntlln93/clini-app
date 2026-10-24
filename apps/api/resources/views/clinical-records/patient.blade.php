@@ -19,6 +19,23 @@
         'cancelled' => 'Cancelado',
         'rescheduled' => 'Reprogramado',
     ];
+    $actions = [
+        'exceptional_access' => 'Acceso excepcional',
+        'notes_viewed' => 'Leyó las notas clínicas',
+        'prescriptions_viewed' => 'Leyó la medicación indicada',
+        'note_written' => 'Escribió una nota',
+        'note_amended' => 'Enmendó una nota',
+        'note_annulled' => 'Anuló una nota',
+        'prescription_issued' => 'Registró medicación indicada',
+        'prescription_amended' => 'Enmendó medicación indicada',
+        'record_exported' => 'Exportó la historia clínica',
+    ];
+    $reasons = [
+        'preparing_consultation' => 'Preparar la consulta',
+        'study_result' => 'Resultado de estudio',
+        'emergency' => 'Urgencia',
+        'other' => 'Otro',
+    ];
     $documentTypes = ['dni' => 'DNI', 'passport' => 'Pasaporte'];
     $sexes = ['f' => 'Femenino', 'm' => 'Masculino', 'u' => 'Sin especificar'];
     $patient = $record['patient'];
@@ -45,6 +62,10 @@
         .body { white-space: pre-wrap; margin: 1mm 0; }
         .annulled { font-weight: bold; }
         ul { margin: 1mm 0; padding-left: 5mm; }
+        table.trail { border-collapse: collapse; width: 100%; font-size: 9pt; }
+        table.trail th { text-align: left; color: #52606d; font-weight: normal; border-bottom: 1px solid #cbd2d9; padding: 1mm 1.5mm 1mm 0; }
+        table.trail td { vertical-align: top; border-bottom: 1px solid #e4e7eb; padding: 1mm 1.5mm 1mm 0; }
+        table.trail td.when { width: 30mm; white-space: nowrap; }
         footer { position: fixed; bottom: -12mm; left: 0; right: 0; font-size: 8pt; color: #52606d; }
         footer .page:after { content: counter(page) ' de ' counter(pages); }
     </style>
@@ -163,5 +184,30 @@
     @empty
         <p class="muted">No hay turnos con este paciente en el consultorio.</p>
     @endforelse
+
+    <h2>Registro de accesos</h2>
+    @if ($record['access_log'] === [])
+        <p class="muted">No hay accesos registrados.</p>
+    @else
+        <table class="trail">
+            <tr><th>Fecha y hora</th><th>Profesional</th><th>Acción</th></tr>
+            @foreach ($record['access_log'] as $entry)
+                @php
+                    $export = $entry['export'];
+                    $what = array_filter([
+                        $actions[$entry['action']] ?? $entry['action'],
+                        $entry['reason'] ? 'Motivo: '.($reasons[$entry['reason']] ?? $entry['reason']) : null,
+                        $entry['appointment'] ? 'Turno del '.$at($entry['appointment']['start_at']) : null,
+                        $export ? strtoupper($export['format']).($export['scope'] === 'attended_patients' ? ', con todos sus pacientes atendidos' : '') : null,
+                    ]);
+                @endphp
+                <tr>
+                    <td class="when">{{ $at($entry['created_at']) }}</td>
+                    <td>{{ $name($entry['professional']) }}</td>
+                    <td>{{ implode(' · ', $what) }}</td>
+                </tr>
+            @endforeach
+        </table>
+    @endif
 </body>
 </html>

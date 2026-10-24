@@ -32,6 +32,7 @@ class RecordClinicalAccessAction implements Action
             'prescription_id' => $dto->prescriptionId,
             'reason' => $dto->reason,
             'reason_detail' => $dto->reasonDetail,
+            'clinical_record_export_id' => $dto->clinicalRecordExportId,
         ]);
     }
 }

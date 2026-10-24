@@ -10,14 +10,19 @@ use App\Models\User;
 use App\Support\ClinicalAccess;
 
 /**
- * The clinical access log (#325, ADR 0022). An exceptional access is declared by whoever may read the patient's
- * history, the same relationship as the notes (`ClinicalAccess::attends`). The list of exceptional accesses is the
+ * The clinical access log (#325, ADR 0022). An exceptional access is declared, and a patient's trail read, by whoever
+ * may read the patient's history, the same relationship as the notes (`ClinicalAccess::attends`). The list of exceptional accesses is the
  * owner's, who answers for the practice that holds the history: like billing (`SubscriptionPolicy`), it checks the
  * owner role itself, not a permission an admin also holds. It never carries clinical content.
  */
 class ClinicalAccessLogPolicy
 {
     public function declareExceptional(User $user, Patient $patient): bool
+    {
+        return ClinicalAccess::attends($user, $patient);
+    }
+
+    public function viewTrail(User $user, Patient $patient): bool
     {
         return ClinicalAccess::attends($user, $patient);
     }

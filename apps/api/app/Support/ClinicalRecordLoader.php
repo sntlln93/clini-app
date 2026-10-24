@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace App\Support;
 
+use App\Models\ClinicalAccessLog;
 use App\Models\Patient;
 use Closure;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\LazyCollection;
 
 /**
  * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization, every
  * note on them with all its versions, diagnoses and annulment, and only the exporting membership's own indicated
- * medication, the same records each professional can already read (CU-45, CU-53). Authors are loaded even when their
- * membership was deactivated.
+ * medication, the same records each professional can already read (CU-45, CU-53), plus the patient's access trail in
+ * the organization as the exporting membership sees it (#325, ADR 0022). Authors are loaded even when their membership
+ * was deactivated.
  */
 class ClinicalRecordLoader
 {
@@ -24,16 +27,24 @@ class ClinicalRecordLoader
     }
 
     /**
-     * Every patient the membership attended in the organization, loaded a chunk at a time.
+     * Every patient the membership attended in the organization, loaded a chunk at a time. Each chunk's ids go through
+     * `$beforeLoad` before its history loads, so what it records (the export's row in each trail) is in the export.
      *
+     * @param  Closure(list<int>): mixed  $beforeLoad
      * @return LazyCollection<int, Patient>
      */
-    public static function attendedPatients(int $organizationId, int $membershipId): LazyCollection
+    public static function attendedPatients(int $organizationId, int $membershipId, Closure $beforeLoad): LazyCollection
     {
         return Patient::query()
             ->attendedBy($organizationId, $membershipId)
-            ->with(self::relations($organizationId, $membershipId))
-            ->lazyById(self::CHUNK);
+            ->lazyById(self::CHUNK)
+            ->chunk(self::CHUNK)
+            ->flatMap(function (LazyCollection $chunk) use ($organizationId, $membershipId, $beforeLoad): Collection {
+                $patients = new Collection($chunk->values()->all());
+                $beforeLoad(array_values($patients->map(fn (Patient $patient): int => $patient->id)->all()));
+
+                return $patients->load(self::relations($organizationId, $membershipId));
+            });
     }
 
     /**
@@ -64,6 +75,11 @@ class ClinicalRecordLoader
             'appointments.prescriptions.author.user',
             'appointments.prescriptions.versions.author.user',
             'appointments.prescriptions.versions.items',
+            'clinicalAccessLogs' => fn ($query) => $query
+                ->visibleTo($organizationId, $membershipId)
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            ...array_map(fn (string $relation): string => "clinicalAccessLogs.{$relation}", ClinicalAccessLog::TRAIL_RELATIONS),
         ];
     }
 }

@@ -99,7 +99,7 @@ class SchedulingSeeder extends Seeder
             $prescriptions = Prescription::where('organization_id', $organization->id)->select('id');
             $prescriptionVersions = PrescriptionVersion::whereIn('prescription_id', $prescriptions)->select('id');
 
-            // The access log points at notes, prescriptions and appointments.
+            // The access log points at notes, prescriptions, appointments and exports.
             ClinicalAccessLog::where('organization_id', $organization->id)->delete();
             ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();
             ClinicalNoteDiagnosis::whereIn('clinical_note_version_id', $noteVersions)->delete();
