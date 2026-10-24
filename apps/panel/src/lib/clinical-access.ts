@@ -1,3 +1,5 @@
+import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
+import { formatShortDateTime } from './datetime';
 import type { ErrorCode } from './error-codes';
 
 // The clinical access log (#325, ADR 0022): the reasons a professional gives to
@@ -38,7 +40,8 @@ export const CLINICAL_ACCESS_ACTIONS = [
 
 export type ClinicalAccessAction = (typeof CLINICAL_ACCESS_ACTIONS)[number];
 
-// The same wording as the exported PDF (`clinical-records/patient.blade.php`).
+// Shared by the patient page's trail and the access trail of the PDF the
+// panel builds (`lib/clinical-record-pdf/`, ADR 0023).
 export const CLINICAL_ACCESS_ACTION_LABELS: Record<
     ClinicalAccessAction,
     string
@@ -69,3 +72,31 @@ export const CLINICAL_ACCESS_EXPIRED: ErrorCode =
 // The owner's list (`/accesos-excepcionales`), dropped when an exceptional
 // access adds a row to it.
 export const EXCEPTIONAL_ACCESSES_QUERY_KEY = ['exceptional-accesses'];
+
+// What a row of a patient's access trail did, on their page and in the PDF:
+// the action, then the listed reason, the appointment it touched or the
+// export's format.
+export function describeTrailEntry(entry: ClinicalAccessTrailEntry): string {
+    const parts = [CLINICAL_ACCESS_ACTION_LABELS[entry.action]];
+
+    if (entry.reason) {
+        parts.push(`Motivo: ${CLINICAL_ACCESS_REASON_LABELS[entry.reason]}`);
+    }
+
+    if (entry.appointment) {
+        parts.push(
+            `Turno del ${formatShortDateTime(entry.appointment.start_at)}`,
+        );
+    }
+
+    if (entry.export) {
+        parts.push(
+            entry.export.format.toUpperCase() +
+                (entry.export.scope === 'attended_patients'
+                    ? ', con todos sus pacientes atendidos'
+                    : ''),
+        );
+    }
+
+    return parts.join(' · ');
+}

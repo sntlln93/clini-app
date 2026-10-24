@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { ERROR_CODE_MESSAGES } from '@/lib/error-codes';
+import { buildClinicalRecord } from '@/tests/fixtures/clinical-record';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { toast } from 'sonner';
@@ -15,6 +16,10 @@ vi.mock('sonner', () => ({
 }));
 
 const refresh = vi.fn(() => Promise.resolve());
+const renderPdf = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/clinical-record-pdf/render', () => ({
+    renderClinicalRecordPdf: renderPdf,
+}));
 vi.mock('@/hooks/use-refresh-page-data', () => ({
     useRefreshPageData: () => refresh,
 }));
@@ -43,6 +48,7 @@ describe('ExportClinicalRecordMenu', () => {
         vi.mocked(toast.success).mockReset();
         vi.mocked(toast.error).mockReset();
         refresh.mockClear();
+        renderPdf.mockReset();
         downloads = [];
         URL.createObjectURL = vi.fn(() => 'blob:history');
         URL.revokeObjectURL = vi.fn();
@@ -58,8 +64,11 @@ describe('ExportClinicalRecordMenu', () => {
         vi.restoreAllMocks();
     });
 
-    it('downloads the PDF as a blob named only by the patient id', async () => {
-        vi.mocked(api.get).mockResolvedValueOnce({ data: new Blob(['%PDF']) });
+    // ADR 0023: the API answers the data, and the PDF is drawn here.
+    it('draws the PDF from the data and downloads it named only by the patient id', async () => {
+        const record = buildClinicalRecord();
+        vi.mocked(api.get).mockResolvedValueOnce({ data: record });
+        renderPdf.mockResolvedValueOnce(new Blob(['%PDF']));
         renderMenu();
 
         await choose('PDF, para leer o imprimir');
@@ -69,8 +78,8 @@ describe('ExportClinicalRecordMenu', () => {
         );
         expect(api.get).toHaveBeenCalledWith('/patients/42/clinical-record', {
             params: { format: 'pdf' },
-            responseType: 'blob',
         });
+        expect(renderPdf).toHaveBeenCalledWith(record);
         expect(toast.success).toHaveBeenCalledWith(
             'Historia clínica descargada',
         );
@@ -91,6 +100,7 @@ describe('ExportClinicalRecordMenu', () => {
             params: { format: 'json' },
             responseType: 'blob',
         });
+        expect(renderPdf).not.toHaveBeenCalled();
     });
 
     it('says so when the export fails, and downloads nothing', async () => {
@@ -109,6 +119,25 @@ describe('ExportClinicalRecordMenu', () => {
         );
         expect(click).not.toHaveBeenCalled();
         expect(refresh).not.toHaveBeenCalled();
+    });
+
+    // The API recorded the export before the PDF failed to draw (#325).
+    it('reloads the access trail when the PDF fails to draw', async () => {
+        vi.mocked(api.get).mockResolvedValueOnce({
+            data: buildClinicalRecord(),
+        });
+        renderPdf.mockRejectedValueOnce(new Error('Invalid svg document'));
+        renderMenu();
+
+        await choose('PDF, para leer o imprimir');
+
+        await waitFor(() =>
+            expect(toast.error).toHaveBeenCalledWith(
+                'No se pudo exportar la historia clínica.',
+            ),
+        );
+        expect(refresh).toHaveBeenCalledWith();
+        expect(click).not.toHaveBeenCalled();
     });
 
     it('shows the catalog message of a coded error, though its body comes as a Blob', async () => {

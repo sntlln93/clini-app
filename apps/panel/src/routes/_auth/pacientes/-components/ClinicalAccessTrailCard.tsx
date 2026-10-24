@@ -7,13 +7,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { describeTrailEntry } from '@/lib/clinical-access';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
 import type { Paginated } from '@/types/pagination';
-import {
-    CLINICAL_ACCESS_TRAIL_ID,
-    describeTrailEntry,
-} from './clinical-access-trail';
+import { CLINICAL_ACCESS_TRAIL_ID } from './clinical-access-trail';
 
 type ClinicalAccessTrailCardProps = {
     trail: Paginated<ClinicalAccessTrailEntry>;

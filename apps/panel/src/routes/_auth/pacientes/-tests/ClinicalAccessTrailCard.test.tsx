@@ -1,10 +1,10 @@
+import { describeTrailEntry } from '@/lib/clinical-access';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
 import type { Paginated } from '@/types/pagination';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ClinicalAccessTrailCard } from '../-components/ClinicalAccessTrailCard';
-import { describeTrailEntry } from '../-components/clinical-access-trail';
 
 function buildEntry(
     overrides: Partial<ClinicalAccessTrailEntry> = {},
