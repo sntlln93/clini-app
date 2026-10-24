@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Actions\Prescriptions;
 
+use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
+use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\Prescriptions\PrescriptionAmendmentData;
 use App\Data\Prescriptions\PrescriptionItemData;
+use App\Enums\ClinicalAccessAction;
 use App\Exceptions\Prescriptions\PrescriptionAmendmentUnchangedException;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
@@ -23,6 +26,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AmendPrescriptionAction implements Action
 {
+    public function __construct(
+        private readonly RecordClinicalAccessAction $record,
+    ) {}
+
     /**
      * @param  PrescriptionAmendmentData  $dto
      */
@@ -57,6 +64,15 @@ class AmendPrescriptionAction implements Action
             foreach ($dto->items as $position => $item) {
                 $version->items()->create(['position' => $position, ...$item->toArray()]);
             }
+
+            $this->record->handle(new ClinicalAccessEntryData(
+                organizationId: $prescription->organization_id,
+                membershipId: $dto->membershipId,
+                patientId: $prescription->patient_id,
+                action: ClinicalAccessAction::PrescriptionAmended,
+                appointmentId: $prescription->appointment_id,
+                prescriptionId: $prescription->id,
+            ));
 
             return $prescription;
         });

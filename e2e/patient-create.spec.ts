@@ -4,23 +4,18 @@ import { STORAGE_STATE } from './storage-state';
 test.use({ storageState: STORAGE_STATE });
 
 // #266: right after creating a patient nobody has an appointment or a note
-// with them, so the clinical notes read answers 403 by design
-// (ClinicalNotePolicy::viewAnyForPatient). The page must render anyway.
+// with them, so nobody may read their clinical notes
+// (ClinicalNotePolicy::viewAnyForPatient). The page must render anyway, and
+// since the patient says so ahead (#325, which absorbed #272), it never asks
+// for the notes: no failed request, no console error.
 // The document lookup's 404 (`patients.not_found`) is the form's own expected
 // answer for an unregistered document.
 test.describe('creating a patient lands on its page', () => {
     test.use({
         expectedIssues: {
-            responses: [
-                { url: /\/api\/v1\/patients\/lookup$/, status: 404 },
-                {
-                    url: /\/api\/v1\/patients\/\d+\/clinical-notes$/,
-                    status: 403,
-                },
-            ],
+            responses: [{ url: /\/api\/v1\/patients\/lookup$/, status: 404 }],
             console: [
                 /Failed to load resource: the server responded with a status of 404 \(Not Found\)/,
-                /Failed to load resource: the server responded with a status of 403 \(Forbidden\)/,
             ],
         },
     });

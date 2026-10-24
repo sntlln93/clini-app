@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 
-import { StatusPill } from '@/components/StatusPill';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { ClinicalNote } from '@/types/clinical-note';
+import { ClinicalRecordStatusChip } from './ClinicalRecordStatusChip';
 import { DiagnosisList } from './DiagnosisList';
 import { VersionHistory } from './VersionHistory';
 
@@ -26,7 +26,7 @@ export function ClinicalNoteEntry({
             {note.annulment ? (
                 <div className="space-y-2">
                     <div className="flex flex-wrap items-center gap-2">
-                        <StatusPill tone="neutral">Anulada</StatusPill>
+                        <ClinicalRecordStatusChip status="annulled" />
                         <span className="text-xs text-muted-foreground tabular-nums">
                             el {formatShortDateTime(note.annulment.created_at)}
                         </span>

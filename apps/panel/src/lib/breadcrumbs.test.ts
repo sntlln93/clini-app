@@ -17,6 +17,13 @@ describe('buildBreadcrumbs', () => {
         ]);
     });
 
+    it('names the owner list of exceptional accesses (#325)', () => {
+        expect(buildBreadcrumbs('/accesos-excepcionales')).toEqual([
+            { label: 'Agenda', href: '/agenda' },
+            { label: 'Accesos a la historia clínica' },
+        ]);
+    });
+
     it('prefers the pacientes-section copy for the trailing "nuevo" segment', () => {
         expect(buildBreadcrumbs('/pacientes/nuevo')).toEqual([
             { label: 'Agenda', href: '/agenda' },

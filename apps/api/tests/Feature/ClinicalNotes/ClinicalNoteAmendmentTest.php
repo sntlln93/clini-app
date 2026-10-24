@@ -113,6 +113,7 @@ test('the appointment and patient listings show the current text with its histor
     $note = amendableNote();
     $this->actingAs($note->author->user)->postJson("/api/v1/clinical-notes/{$note->id}/amendments", ['body' => 'Nota corregida.'])
         ->assertCreated();
+    openClinicalHistory($note->author, $note->appointment->patient_id);
 
     foreach (["/api/v1/appointments/{$note->appointment_id}/clinical-notes", "/api/v1/patients/{$note->appointment->patient_id}/clinical-notes"] as $uri) {
         freshRequestState();

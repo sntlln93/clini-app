@@ -24,6 +24,14 @@ export type Patient = {
     created_at: string;
 };
 
+// `GET /patients/{id}`, the patient's own page: whether the acting membership
+// may read the clinical history, and whether reading it now takes a reason
+// (#325), so the panel never finds out through a 403 or a 409.
+export type PatientDetail = Patient & {
+    can_view_clinical_notes: boolean;
+    clinical_access_reason_required: boolean;
+};
+
 // One item of a patient's appointment history (`GET /patients/{id}/appointments`).
 export type PatientAppointmentHistoryItem = {
     id: number;

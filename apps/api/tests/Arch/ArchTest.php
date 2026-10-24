@@ -7,10 +7,12 @@ use App\Contracts\Data;
 use App\Contracts\DomainError;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
+use App\Models\ClinicalRecordExport;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
@@ -338,13 +340,31 @@ arch('clinical history models are never soft-deleted')
         Prescription::class,
         PrescriptionVersion::class,
         PrescriptionItem::class,
+        ClinicalRecordExport::class,
+        ClinicalAccessLog::class,
     ])
     ->not->toUseTrait(SoftDeletes::class);
 
-// Issue #323, ADR 0019: no clinical history controller may edit or delete.
+// Issue #323, ADR 0019: no clinical history controller may edit or delete. Nor may the access log's (#325, ADR 0022).
 arch('clinical history controllers only read and add')
-    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions'])
+    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions', 'App\Http\Controllers\ClinicalAccess'])
     ->not->toHaveMethods(['update', 'destroy']);
+
+// Issue #325, ADR 0022: platform operators never reach the clinical history, nor its access log. Their code touches
+// none of its models, so no dashboard endpoint can ever list or count what a note or a prescription says.
+arch('platform operator code never reaches the clinical history')
+    ->expect(['App\Http\Controllers\Admin', 'App\Actions\Admin', 'App\Http\Resources\Admin', 'App\Http\Requests\Admin', 'App\Data\Admin'])
+    ->not->toUse([
+        ClinicalNote::class,
+        ClinicalNoteVersion::class,
+        ClinicalNoteAnnulment::class,
+        ClinicalNoteDiagnosis::class,
+        Prescription::class,
+        PrescriptionVersion::class,
+        PrescriptionItem::class,
+        ClinicalRecordExport::class,
+        ClinicalAccessLog::class,
+    ]);
 
 // Issue #323, ADR 0019: the trigger's purge setting is the fixture seeder's alone; application code never sets it.
 test('only the seeder and the migration name the clinical history purge setting', function () {
@@ -362,4 +382,39 @@ test('only the seeder and the migration name the clinical history purge setting'
     }
 
     expect($offenders)->toBe([], 'These files name the purge setting: '.implode(', ', $offenders));
+});
+
+// ADR 0023: the API answers data; the panel builds every PDF and downloadable file. A mail's attachment (the
+// reminder's .ics) is the one file the API makes, and it lives under app/Mail, the only folder skipped here.
+// Both call forms of download() are caught: `$response->download(` and the facades' `Storage::download(` /
+// `Response::download(`, whose Content-Disposition is built inside the framework, out of this scan's sight.
+test('the API never answers a downloadable file nor ships a PDF library', function () {
+    $root = dirname(__DIR__, 2);
+    $offenders = [];
+
+    foreach (['app', 'routes'] as $dir) {
+        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator("{$root}/{$dir}", FilesystemIterator::SKIP_DOTS));
+
+        foreach ($iterator as $file) {
+            $path = substr($file->getPathname(), strlen($root) + 1);
+
+            if ($file->getExtension() !== 'php' || str_starts_with($path, 'app/Mail/')) {
+                continue;
+            }
+
+            if (preg_match('/Content-Disposition|streamDownload\(|(->|::)download\(|attachment;/i', (string) file_get_contents($file->getPathname())) === 1) {
+                $offenders[] = $path;
+            }
+        }
+    }
+
+    /** @var array{require: array<string, string>} $composer */
+    $composer = json_decode((string) file_get_contents("{$root}/composer.json"), true, flags: JSON_THROW_ON_ERROR);
+    $pdfLibraries = array_values(array_filter(
+        array_keys($composer['require']),
+        fn (string $package): bool => preg_match('#dompdf|mpdf|tcpdf|fpdf|snappy|browsershot|wkhtmlto#i', $package) === 1,
+    ));
+
+    expect($offenders)->toBe([], 'These files answer a download: '.implode(', ', $offenders))
+        ->and($pdfLibraries)->toBe([]);
 });

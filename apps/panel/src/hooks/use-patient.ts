@@ -1,5 +1,5 @@
 import { api } from '@/lib/api';
-import type { Patient } from '@/types/patient';
+import type { PatientDetail } from '@/types/patient';
 import { queryOptions } from '@tanstack/react-query';
 
 export function patientQueryOptions(id: number) {
@@ -7,7 +7,7 @@ export function patientQueryOptions(id: number) {
         queryKey: ['patients', id],
         queryFn: () =>
             api
-                .get<{ data: Patient }>(`/patients/${id}`)
+                .get<{ data: PatientDetail }>(`/patients/${id}`)
                 .then((response) => response.data.data),
     });
 }
@@ -20,4 +20,13 @@ export function patientAppointmentsQueryKey(patientId: number) {
 
 export function patientClinicalNotesQueryKey(patientId: number) {
     return ['patients', patientId, 'clinical-notes'];
+}
+
+// Under the patient's key, so dropping the patient drops its trail too.
+export function patientClinicalAccessQueryKey(patientId: number) {
+    return ['patients', patientId, 'clinical-access'];
+}
+
+export function patientPrescriptionsQueryKey(patientId: number) {
+    return ['prescriptions', 'patient', patientId];
 }

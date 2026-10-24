@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Patients;
 
+use App\Data\ClinicalAccess\ClinicalAccessStateData;
 use App\Models\Patient;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -15,6 +16,19 @@ use Illuminate\Support\Carbon;
 class PatientResource extends JsonResource
 {
     /**
+     * Only a patient's own page asks for it (#325): it lets the panel know ahead whether reading the clinical history
+     * will be answered, or will take a reason, instead of finding out through a 403 or a 409.
+     */
+    private ?ClinicalAccessStateData $clinicalAccess = null;
+
+    public function withClinicalAccess(ClinicalAccessStateData $clinicalAccess): static
+    {
+        $this->clinicalAccess = $clinicalAccess;
+
+        return $this;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(Request $request): array
@@ -25,7 +39,7 @@ class PatientResource extends JsonResource
         /** @var Carbon|null $birthDate */
         $birthDate = $patient->birth_date;
 
-        return [
+        $data = [
             'id' => $patient->id,
             'name' => $patient->name,
             'email' => $patient->email,
@@ -46,6 +60,13 @@ class PatientResource extends JsonResource
             }),
             'created_at' => $patient->created_at,
         ];
+
+        if ($this->clinicalAccess !== null) {
+            $data['can_view_clinical_notes'] = $this->clinicalAccess->canView;
+            $data['clinical_access_reason_required'] = $this->clinicalAccess->reasonRequired;
+        }
+
+        return $data;
     }
 
     private function patient(): Patient

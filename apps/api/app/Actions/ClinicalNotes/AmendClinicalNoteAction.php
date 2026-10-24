@@ -4,11 +4,15 @@ declare(strict_types=1);
 
 namespace App\Actions\ClinicalNotes;
 
+use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
+use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\ClinicalNotes\ClinicalNoteAmendmentData;
+use App\Enums\ClinicalAccessAction;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAmendmentUnchangedException;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAnnulledException;
+use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
@@ -25,6 +29,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AmendClinicalNoteAction implements Action
 {
+    public function __construct(
+        private readonly RecordClinicalAccessAction $record,
+    ) {}
+
     /**
      * @param  ClinicalNoteAmendmentData  $dto
      */
@@ -57,6 +65,18 @@ class AmendClinicalNoteAction implements Action
             ]);
 
             ClinicalNoteDiagnoses::record($version, $newCodeIds, $current->diagnoses);
+
+            /** @var Appointment $appointment */
+            $appointment = $clinicalNote->appointment()->withTrashed()->firstOrFail();
+
+            $this->record->handle(new ClinicalAccessEntryData(
+                organizationId: $clinicalNote->organization_id,
+                membershipId: $dto->membershipId,
+                patientId: $appointment->patient_id,
+                action: ClinicalAccessAction::NoteAmended,
+                appointmentId: $clinicalNote->appointment_id,
+                clinicalNoteId: $clinicalNote->id,
+            ));
 
             return $clinicalNote;
         });

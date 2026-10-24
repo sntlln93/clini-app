@@ -8,6 +8,7 @@ use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Patient;
 use App\Models\User;
+use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 
 /**
@@ -22,7 +23,9 @@ use App\Support\CurrentOrganization;
  * `viewAnyForPatient` (handoff #217) is the one exception: it widens
  * visibility of a patient's full note history to any membership that
  * authored a note for that patient OR has/had an appointment with them,
- * within the active organization — still never by role preset.
+ * within the active organization — still never by role preset. Without an
+ * appointment near today, reading it also takes a reason (#325, ADR 0022),
+ * which `ReadPatientHistoryAction` decides after this policy.
  */
 class ClinicalNotePolicy
 {
@@ -33,17 +36,7 @@ class ClinicalNotePolicy
 
     public function viewAnyForPatient(User $user, Patient $patient): bool
     {
-        $organizationId = app(CurrentOrganization::class)->get();
-        $membership = $user->currentMembership();
-
-        if ($organizationId === null || $membership === null) {
-            return false;
-        }
-
-        return Patient::query()
-            ->whereKey($patient->id)
-            ->attendedBy($organizationId, $membership->id)
-            ->exists();
+        return ClinicalAccess::attends($user, $patient);
     }
 
     public function create(User $user, Appointment $appointment): bool

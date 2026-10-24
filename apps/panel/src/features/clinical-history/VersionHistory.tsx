@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { formatShortDateTime } from '@/lib/datetime';
+import { ClinicalRecordStatusChip } from './ClinicalRecordStatusChip';
 
 type HistoryVersion = {
     version: number;
@@ -28,7 +29,8 @@ export function VersionHistory<T extends HistoryVersion>({
     return (
         <details className="mt-2 text-xs">
             <summary className="cursor-pointer text-muted-foreground select-none">
-                Enmendada el {formatShortDateTime(current.created_at)} · Ver las{' '}
+                <ClinicalRecordStatusChip status="amended" className="mr-1.5" />
+                el {formatShortDateTime(current.created_at)} · Ver las{' '}
                 {versions.length} versiones
             </summary>
             <ol className="mt-2 space-y-2">

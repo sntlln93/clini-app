@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Patients;
 
 use App\Actions\Patients\RegisterPatientAction;
+use App\Data\ClinicalAccess\ClinicalAccessStateData;
 use App\Data\Patients\PatientRegistrationData;
 use App\Enums\DocumentType;
 use App\Enums\Sex;
@@ -16,9 +17,14 @@ use App\Http\Requests\Patients\StorePatientRequest;
 use App\Http\Requests\Patients\UpdatePatientRequest;
 use App\Http\Resources\Patients\PatientAppointmentResource;
 use App\Http\Resources\Patients\PatientResource;
+use App\Models\ClinicalNote;
+use App\Models\Membership;
 use App\Models\Patient;
+use App\Models\User;
+use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
 
@@ -67,11 +73,23 @@ class PatientController extends Controller
         return (new PatientResource($patient))->response()->setStatusCode(201);
     }
 
-    public function show(Patient $patient): PatientResource
+    public function show(Request $request, Patient $patient): PatientResource
     {
         Gate::authorize('view', $patient);
 
-        return new PatientResource($patient->load('insuranceProvider'));
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $canView = Gate::allows('viewAnyForPatient', [ClinicalNote::class, $patient]);
+
+        return (new PatientResource($patient->load('insuranceProvider')))->withClinicalAccess(new ClinicalAccessStateData(
+            canView: $canView,
+            reasonRequired: $canView
+                && ClinicalAccess::requiresReason($membership->organization_id, $membership->id, $patient->id),
+        ));
     }
 
     public function appointmentHistory(Patient $patient): AnonymousResourceCollection

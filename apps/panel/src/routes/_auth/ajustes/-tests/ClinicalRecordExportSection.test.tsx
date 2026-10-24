@@ -12,11 +12,17 @@ vi.mock('sonner', () => ({
     toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+const refresh = vi.fn(() => Promise.resolve());
+vi.mock('@/hooks/use-refresh-page-data', () => ({
+    useRefreshPageData: () => refresh,
+}));
+
 describe('ClinicalRecordExportSection', () => {
     let downloads: string[];
 
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
+        refresh.mockClear();
         downloads = [];
         URL.createObjectURL = vi.fn(() => 'blob:history');
         URL.revokeObjectURL = vi.fn();
@@ -50,5 +56,7 @@ describe('ClinicalRecordExportSection', () => {
             '/clinical-record/attended-patients',
             { params: {}, responseType: 'blob' },
         );
+        // No page here shows a trail; each patient's reads it fresh (#325).
+        expect(refresh).not.toHaveBeenCalled();
     });
 });

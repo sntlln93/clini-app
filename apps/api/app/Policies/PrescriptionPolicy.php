@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Policies;
 
 use App\Models\Appointment;
+use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\User;
+use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 
 /**
@@ -15,10 +17,12 @@ use App\Support\CurrentOrganization;
  * authorship within the active organization, never by a role preset —
  * Owner/Admin/Staff cannot read a prescription they didn't issue.
  *
- * Unlike clinical notes, the patient-scoped listing is NOT widened to other
- * professionals: it only ever returns the acting membership's own
- * prescriptions, so `viewAnyForPatient` just requires an active membership.
- * A record is never edited (#323, ADR 0019): its author amends it instead.
+ * The patient-scoped listing opens to the same professionals as the
+ * patient's notes (`ClinicalAccess::attends`, #325), but it only ever returns
+ * the acting membership's own prescriptions: it is never widened to other
+ * authors (CU-53). Without an appointment near today, reading it also takes a
+ * reason (ADR 0022). A record is never edited (#323, ADR 0019): its author
+ * amends it instead.
  */
 class PrescriptionPolicy
 {
@@ -27,10 +31,9 @@ class PrescriptionPolicy
         return $this->isAppointmentOwner($user, $appointment);
     }
 
-    public function viewAnyForPatient(User $user): bool
+    public function viewAnyForPatient(User $user, Patient $patient): bool
     {
-        return app(CurrentOrganization::class)->get() !== null
-            && $user->currentMembership() !== null;
+        return ClinicalAccess::attends($user, $patient);
     }
 
     public function create(User $user, Appointment $appointment): bool

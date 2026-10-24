@@ -536,6 +536,8 @@ Convenciones:
     el autor la **enmienda** (queda una versión nueva con fecha, autor y motivo opcional, y
     las anteriores siguen en el historial) o la **anula** con un motivo obligatorio (sigue en
     la historia, marcada como anulada). Una nota anulada no se enmienda.
+  - Desde la ficha del paciente se agrega una nota al turno propio de hoy, y el autor enmienda
+    o anula las suyas con los mismos diálogos que en la agenda, sobre el turno de cada nota.
   - Además del texto libre, la nota admite de 0 a 10 **diagnósticos CIE-10** del catálogo global
     ([ADR 0020](../adr/0020-diagnostico-cie-10-copiado-en-cada-version.md)), elegidos con una
     búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
@@ -558,6 +560,9 @@ Convenciones:
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
+  - Se registra y se enmienda desde el turno en la agenda o desde la ficha del paciente, con
+    el mismo diálogo. Desde la ficha, el registro nuevo cuelga del turno propio de hoy, como
+    una nota nueva (CU-45), y una enmienda, del turno del registro.
 
 ### CU-54 · Exportación de la historia clínica *(issue #326)*
 
@@ -565,14 +570,41 @@ Convenciones:
   art. 14) o llevarse la historia del consultorio.
 - **Decisión** ([ADR 0021](../adr/0021-exportacion-de-la-historia-clinica.md)): desde la
   ficha, la historia de un paciente en PDF o JSON; desde Ajustes, la de todos los pacientes
-  que atendió, en JSON. Se genera en el momento y no se guarda.
+  que atendió, en JSON. Se genera en el momento y no se guarda. La API devuelve los datos y el
+  panel arma el archivo ([ADR 0023](../adr/0023-archivos-descargables-en-el-frontend.md)): el
+  PDF lleva el membrete de la marca y las páginas numeradas.
 - **Invariantes**:
   - Solo exporta quien atendió al paciente en esa organización (turno o nota propia), nunca
     por rol. La exportación del consultorio entero por el dueño espera #315.
   - Contiene lo que quien exporta ya puede leer: los turnos y las notas de todos los
     profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
     solo su propia medicación indicada (CU-53). Nada de otras organizaciones.
-  - Cada exportación queda registrada, de solo agregado, antes de generarse.
+  - Incluye el registro de accesos del paciente en el consultorio, con el mismo recorte que
+    la ficha (CU-55).
+  - Cada exportación queda registrada, de solo agregado, antes de generarse, y deja su fila
+    en el registro de accesos de cada paciente que incluye.
+  - La de un paciente sin un turno cercano pide el mismo motivo que leer su historia (CU-55).
+
+### CU-55 · Registro de accesos a la historia clínica *(issue #325)*
+
+- **Actor**: profesional que abre la historia de un paciente y ve quién más la abrió; dueño
+  que revisa los accesos excepcionales de su consultorio.
+- **Decisión** ([ADR 0022](../adr/0022-registro-de-accesos-a-la-historia-clinica.md)): cada
+  lectura de las notas o de la medicación de un paciente, y cada escritura de la historia,
+  queda registrada. Una lectura igual del mismo profesional en los últimos 15 minutos no suma
+  fila. Sin un turno propio con el paciente en los 7 días anteriores o
+  siguientes, la historia se abre solo con un motivo, que la abre por una hora.
+- **Invariantes**:
+  - El registro es de solo agregado, como la historia (ADR 0019).
+  - El motivo es uno de la lista («preparar la consulta», «resultado de estudio»,
+    «urgencia», «otro») más un texto opcional, obligatorio para «otro».
+  - El dueño ve quién, a qué paciente, cuándo y por qué motivo, nunca el texto del
+    profesional ni el contenido de la historia. Ningún operador de la plataforma lo ve.
+  - La ficha del paciente sabe de antemano si la historia se abre, así que nunca la pide
+    para recibir un 403.
+  - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
+    o exportó y cuándo, sin el texto de los motivos ni lo que otros profesionales hicieron con
+    la medicación que indicaron. La exportación lleva lo mismo.
 
 ### CU-46 · Métricas por paciente (alcance)
 
@@ -709,6 +741,7 @@ cambios a los mocks): la identidad del paciente por **documento con selector de 
 | CU-44 | Slug público único de la organización |
 | CU-45 | Nota clínica ligada a turno↔profesional↔organización |
 | CU-53 | Medicación indicada ligada a turno↔profesional autor↔organización |
+| CU-55 | Registro de accesos de solo agregado, con motivo fuera de turno |
 | CU-47, CU-48 | Demografía y obra social del paciente global |
 | CU-49 | Motivo opcional del turno (≠ nota clínica) |
 | CU-50 | Dirección polimórfica, solo organización por ahora |

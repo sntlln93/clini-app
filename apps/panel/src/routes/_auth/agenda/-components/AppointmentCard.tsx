@@ -7,6 +7,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { ClinicalNotesDialog } from '@/features/clinical-notes/ClinicalNotesDialog';
+import { PrescriptionsDialog } from '@/features/prescriptions/PrescriptionsDialog';
 import { sessionHasPermission, useSession } from '@/lib/session';
 import type { Appointment } from '@/types/appointment';
 import { useRouter } from '@tanstack/react-router';
@@ -26,8 +28,6 @@ import {
     NoShowConfirmDialog,
 } from './AppointmentStatusActions';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
-import { ClinicalNotesDialog } from './ClinicalNotesDialog';
-import { PrescriptionsDialog } from './PrescriptionsDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
 
 type AppointmentCardProps = {

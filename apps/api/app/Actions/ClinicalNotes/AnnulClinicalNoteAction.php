@@ -4,10 +4,14 @@ declare(strict_types=1);
 
 namespace App\Actions\ClinicalNotes;
 
+use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
+use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\ClinicalNotes\ClinicalNoteAnnulmentData;
+use App\Enums\ClinicalAccessAction;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAnnulledException;
+use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use Illuminate\Support\Facades\DB;
 
@@ -19,6 +23,10 @@ use Illuminate\Support\Facades\DB;
  */
 class AnnulClinicalNoteAction implements Action
 {
+    public function __construct(
+        private readonly RecordClinicalAccessAction $record,
+    ) {}
+
     /**
      * @param  ClinicalNoteAnnulmentData  $dto
      */
@@ -35,6 +43,18 @@ class AnnulClinicalNoteAction implements Action
                 'membership_id' => $dto->membershipId,
                 'reason' => $dto->reason,
             ]);
+
+            /** @var Appointment $appointment */
+            $appointment = $clinicalNote->appointment()->withTrashed()->firstOrFail();
+
+            $this->record->handle(new ClinicalAccessEntryData(
+                organizationId: $clinicalNote->organization_id,
+                membershipId: $dto->membershipId,
+                patientId: $appointment->patient_id,
+                action: ClinicalAccessAction::NoteAnnulled,
+                appointmentId: $clinicalNote->appointment_id,
+                clinicalNoteId: $clinicalNote->id,
+            ));
 
             return $clinicalNote;
         });

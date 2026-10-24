@@ -4,17 +4,16 @@ import {
 } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
-import { mapToAppError } from '@/lib/api-errors';
+import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
 import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
 import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
-// Access is decided by relationship, not by a session permission (only a
-// membership with an appointment or a note for this patient can read them),
-// so the 403 is an expected answer — e.g. right after creating a patient —
-// and resolves to `null` instead of failing the whole patient page (#266).
+// Access is decided by relationship, not by a session permission, so the
+// loader only asks once the patient says the history is open
+// (`loadClinicalHistory`, #325): a 403 here is a real error again.
 export function patientClinicalNotesQueryOptions(patientId: number) {
     return queryOptions({
         queryKey: patientClinicalNotesQueryKey(patientId),
@@ -23,14 +22,10 @@ export function patientClinicalNotesQueryOptions(patientId: number) {
                 .get<{ data: ClinicalNote[] }>(
                     `/patients/${patientId}/clinical-notes`,
                 )
-                .then((response): ClinicalNote[] | null => response.data.data)
-                .catch((error: unknown) => {
-                    if (mapToAppError(error).kind === 'forbidden') {
-                        return null;
-                    }
-
-                    throw error;
-                }),
+                .then((response) => response.data.data),
+        // An exceptional access that expired while the patient stayed cached:
+        // `loadClinicalHistory` asks for the reason again (#325).
+        meta: { expectedBusinessCodes: [CLINICAL_ACCESS_EXPIRED] },
     });
 }
 

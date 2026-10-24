@@ -1,5 +1,6 @@
 import {
     bookAppointmentWithNewPatient,
+    giveClinicalAccessReason,
     NEW_PATIENT_APPOINTMENT_ISSUES,
 } from './agenda';
 import { expect, test } from './fixtures';
@@ -102,6 +103,7 @@ test('a note and a medication record are amended and annulled, never edited or d
     await expect(
         page.getByRole('heading', { name: patientName, level: 1 }),
     ).toBeVisible();
+    await giveClinicalAccessReason(page);
     await expect(page.getByText('Anulada', { exact: true })).toBeVisible();
     await expect(
         page.getByText('Motivo: Cargada en el turno equivocado.'),

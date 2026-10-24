@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\HolidayProvider;
-use App\Contracts\PdfRenderer;
 use App\Contracts\SubscriptionGateway;
 use App\Models\User;
 use App\Services\Holidays\CalendariosNacionalesService;
 use App\Services\Payments\MercadoPagoService;
-use App\Services\Pdf\DompdfService;
 use App\Support\CurrentOrganization;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -28,7 +26,6 @@ class AppServiceProvider extends ServiceProvider
     public array $bindings = [
         HolidayProvider::class => CalendariosNacionalesService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
-        PdfRenderer::class => DompdfService::class,
     ];
 
     public function register(): void

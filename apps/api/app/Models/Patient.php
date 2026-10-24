@@ -70,6 +70,16 @@ class Patient extends Model
     }
 
     /**
+     * Every practice's rows: whoever reads them narrows them with `ClinicalAccessLog::visibleTo`.
+     *
+     * @return HasMany<ClinicalAccessLog, $this>
+     */
+    public function clinicalAccessLogs(): HasMany
+    {
+        return $this->hasMany(ClinicalAccessLog::class);
+    }
+
+    /**
      * @return BelongsToMany<Organization, $this>
      */
     public function organizations(): BelongsToMany

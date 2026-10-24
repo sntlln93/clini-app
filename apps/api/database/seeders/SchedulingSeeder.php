@@ -14,6 +14,7 @@ use App\Enums\ReminderStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
@@ -98,6 +99,8 @@ class SchedulingSeeder extends Seeder
             $prescriptions = Prescription::where('organization_id', $organization->id)->select('id');
             $prescriptionVersions = PrescriptionVersion::whereIn('prescription_id', $prescriptions)->select('id');
 
+            // The access log points at notes, prescriptions, appointments and exports.
+            ClinicalAccessLog::where('organization_id', $organization->id)->delete();
             ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();
             ClinicalNoteDiagnosis::whereIn('clinical_note_version_id', $noteVersions)->delete();
             ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->delete();

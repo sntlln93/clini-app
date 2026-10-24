@@ -1,8 +1,7 @@
 /**
- * Hands a file the API returned to the browser as a download. The API lives
- * on another origin and needs the session's CSRF pipeline, so the file comes
- * through axios as a Blob rather than from a plain link to the API; the
- * object URL lives only until the click is handled.
+ * Saves a file the panel built (a PDF, or the JSON the API answered) as a
+ * download: the API answers data, never a file (ADR 0023). The object URL
+ * lives only until the click is handled.
  */
 export function saveFile(data: Blob, filename: string): void {
     const url = URL.createObjectURL(data);

@@ -50,7 +50,9 @@ export type ErrorCode =
     | 'clinical_notes.annulled'
     | 'clinical_notes.amendment_unchanged'
     | 'clinical_notes.diagnosis_retired'
-    | 'prescriptions.amendment_unchanged';
+    | 'prescriptions.amendment_unchanged'
+    | 'clinical_access.reason_required'
+    | 'clinical_access.reason_not_required';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -146,6 +148,10 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Uno de los diagnósticos que agregaste fue dado de baja en el catálogo CIE-10. Quitalo y elegí otro.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación registrada. Corregí algún medicamento o cancelá la enmienda.',
+    'clinical_access.reason_required':
+        'No tenés un turno con este paciente cerca de hoy. Para ver su historia clínica, contá el motivo del acceso.',
+    'clinical_access.reason_not_required':
+        'Ya tenés un turno con este paciente cerca de hoy: su historia clínica está abierta sin indicar un motivo.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

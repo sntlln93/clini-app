@@ -13,9 +13,14 @@ export const queryClient = new QueryClient({
             const isExpectedUnauthorized =
                 query.meta?.expectedUnauthorized === true &&
                 appError.kind === 'unauthorized';
+            const expectedCodes = query.meta?.expectedBusinessCodes;
+            const isExpectedBusiness =
+                appError.kind === 'business' &&
+                Array.isArray(expectedCodes) &&
+                expectedCodes.includes(appError.code);
 
-            // A 401 on a query marked `meta.expectedUnauthorized` (the session probe) is skipped as an expected anonymous-visitor answer; anything else still logs.
-            if (isExpectedUnauthorized) {
+            // A 401 on a query marked `meta.expectedUnauthorized` (the session probe) is skipped as an expected anonymous-visitor answer, and so is a business code listed in `meta.expectedBusinessCodes` that the caller handles (e.g. an expired exceptional access, #325); anything else still logs.
+            if (isExpectedUnauthorized || isExpectedBusiness) {
                 return;
             }
 

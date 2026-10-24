@@ -25,8 +25,8 @@ Para reemplazar un placeholder hay que respetar el formato y las proporciones de
 |---|---|---|---|---|
 | `isotype.light` | `isotype.placeholder.svg` | SVG | cuadrado, `viewBox` 32×32; se muestra a 32×32 px | sidebar de panel y dashboard, header de la landing (tema claro) |
 | `isotype.dark` | `isotype-dark.placeholder.svg` | SVG | ídem | lo mismo, en tema oscuro |
-| `logotype.light` | `logotype.placeholder.svg` | SVG | 32 de alto, ancho libre (hoy ≈80×32) | disponible para las apps; hoy ninguna lo muestra (usan isotipo + nombre en texto) |
-| `logotype.dark` | `logotype-dark.placeholder.svg` | SVG | ídem | ídem, tema oscuro |
+| `logotype.light` | `logotype.placeholder.svg` | SVG | 32 de alto, ancho libre (hoy ≈80×32) | el membrete del PDF de la historia clínica, que arma el panel (ADR 0023); las apps usan isotipo + nombre en texto |
+| `logotype.dark` | `logotype-dark.placeholder.svg` | SVG | ídem | disponible para las apps; hoy ninguna lo muestra (el PDF usa siempre el claro) |
 | `favicon.svg` | `favicon.placeholder.svg` | SVG | cuadrado, `viewBox` 32×32 | favicon de las tres apps. Lleva un `@media (prefers-color-scheme: dark)` interno para leerse sobre pestañas claras y oscuras; revisarlo a 16 y 32 px |
 | `favicon.ico` | `favicon.placeholder.ico` | ICO | 16, 32 y 48 px en el mismo archivo | favicon para navegadores sin soporte de SVG |
 | `appleTouchIcon` | `apple-touch-icon.placeholder.png` | PNG opaco | 180×180 px, a sangre (iOS redondea las esquinas) | acceso directo en iOS |
