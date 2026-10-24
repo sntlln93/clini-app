@@ -38,6 +38,9 @@ describe('ClinicalNoteEntry (#323)', () => {
         render(<ClinicalNoteEntry note={AMENDED} meta="Ana" />);
 
         expect(screen.getByText(/Ver las 2 versiones/)).toBeTruthy();
+        const chip = screen.getByText('Enmendada').closest('[data-status]');
+        expect(chip?.getAttribute('data-status')).toBe('amended');
+        expect(chip?.className).toContain('text-status-confirmed');
         const versions = screen.getAllByText(/^Versión \d/);
         expect(versions.map((node) => node.textContent)).toEqual([
             expect.stringMatching(/^Versión 2 \(actual\)/),
@@ -62,7 +65,9 @@ describe('ClinicalNoteEntry (#323)', () => {
             />,
         );
 
-        expect(screen.getByText('Anulada')).toBeTruthy();
+        const chip = screen.getByText('Anulada').closest('[data-status]');
+        expect(chip?.getAttribute('data-status')).toBe('annulled');
+        expect(chip?.className).toContain('text-status-no-show');
         expect(screen.getByText(/^el \d/)).toBeTruthy();
         expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
         const disclosure = screen
