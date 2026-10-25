@@ -50,6 +50,7 @@ export type ErrorCode =
     | 'clinical_notes.annulled'
     | 'clinical_notes.amendment_unchanged'
     | 'clinical_notes.diagnosis_retired'
+    | 'prescriptions.annulled'
     | 'prescriptions.amendment_unchanged'
     | 'clinical_access.reason_required'
     | 'clinical_access.reason_not_required';
@@ -152,6 +153,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La enmienda no cambia el texto ni los diagnósticos actuales de la nota clínica.',
     'clinical_notes.diagnosis_retired':
         'El código CIE-10 que se quiso agregar fue dado de baja en el catálogo.',
+    'prescriptions.annulled':
+        'La medicación está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación indicada.',
     'clinical_access.reason_required':
