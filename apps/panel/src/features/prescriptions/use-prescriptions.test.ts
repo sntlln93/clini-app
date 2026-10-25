@@ -140,7 +140,7 @@ describe('useAnnulPrescription (#344)', () => {
         vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
     });
 
-    it('posts the kind and the reason as the annulment', async () => {
+    it('posts the reason as the annulment', async () => {
         vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
         const { result } = renderWithClient(new QueryClient(), () =>
             useAnnulPrescription(42),
@@ -148,12 +148,10 @@ describe('useAnnulPrescription (#344)', () => {
 
         await result.current.mutateAsync({
             id: 9,
-            kind: 'no_longer_needed',
             reason: 'Terminó el tratamiento.',
         });
 
         expect(api.post).toHaveBeenCalledWith('/prescriptions/9/annulment', {
-            kind: 'no_longer_needed',
             reason: 'Terminó el tratamiento.',
         });
     });
@@ -175,7 +173,6 @@ describe('useAnnulPrescription (#344)', () => {
 
         await result.current.annul.mutateAsync({
             id: 9,
-            kind: 'never_needed',
             reason: 'Paciente equivocado.',
         });
 

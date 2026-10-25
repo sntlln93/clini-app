@@ -16,12 +16,8 @@ export type PrescriptionVersion = {
     items: PrescriptionItem[];
 };
 
-// Why it no longer counts (#344): it ended or was stopped, or it was indicated
-// by mistake. Mirrors `App\Enums\PrescriptionAnnulmentKind`.
-export type PrescriptionAnnulmentKind = 'no_longer_needed' | 'never_needed';
-
+// It no longer counts (#344), and the reason says why.
 export type PrescriptionAnnulment = {
-    kind: PrescriptionAnnulmentKind;
     reason: string;
     created_at: string;
 };

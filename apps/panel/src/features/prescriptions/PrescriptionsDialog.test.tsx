@@ -421,7 +421,7 @@ describe('PrescriptionsDialog', () => {
         ).toBeNull();
     });
 
-    it('annulling asks whether it is no longer needed or never was, and a reason, then posts them and refetches the list (#344)', async () => {
+    it('annulling asks for a reason, then posts it and refetches the list (#344)', async () => {
         vi.mocked(api.get).mockResolvedValue({
             data: { data: [buildPrescription({ id: 7 })] },
         });
@@ -436,17 +436,9 @@ describe('PrescriptionsDialog', () => {
             screen.getByRole('button', { name: 'Anular medicación' }),
         );
 
-        await screen.findByText(
-            'Elegí si ya no es necesaria o si nunca lo fue.',
-        );
-        expect(
-            screen.getByText('Escribí un motivo de al menos 3 caracteres.'),
-        ).toBeTruthy();
+        await screen.findByText('Escribí un motivo de al menos 3 caracteres.');
         expect(api.post).not.toHaveBeenCalled();
 
-        fireEvent.click(
-            screen.getByRole('radio', { name: /Nunca fue necesaria/ }),
-        );
         fireEvent.change(screen.getByLabelText('Motivo'), {
             target: { value: 'Indicada al paciente equivocado.' },
         });
@@ -458,7 +450,6 @@ describe('PrescriptionsDialog', () => {
             expect(api.post).toHaveBeenCalledWith(
                 '/prescriptions/7/annulment',
                 {
-                    kind: 'never_needed',
                     reason: 'Indicada al paciente equivocado.',
                 },
             ),
@@ -490,10 +481,7 @@ describe('PrescriptionsDialog', () => {
 
         await screen.findByText('Amoxicilina × 2');
         fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
-        fireEvent.click(
-            await screen.findByRole('radio', { name: /Ya no es necesaria/ }),
-        );
-        fireEvent.change(screen.getByLabelText('Motivo'), {
+        fireEvent.change(await screen.findByLabelText('Motivo'), {
             target: { value: 'Terminó el tratamiento.' },
         });
         fireEvent.click(
@@ -505,13 +493,12 @@ describe('PrescriptionsDialog', () => {
         );
     });
 
-    it('an annulled record says how, when and why, and offers neither amending nor annulling it', async () => {
+    it('an annulled record says when and why, keeps its items behind a disclosure, and offers neither amending nor annulling it', async () => {
         vi.mocked(api.get).mockResolvedValue({
             data: {
                 data: [
                     buildPrescription({
                         annulment: {
-                            kind: 'never_needed',
                             reason: 'Paciente equivocado.',
                             created_at: '2026-08-04T10:00:00Z',
                         },
@@ -522,7 +509,6 @@ describe('PrescriptionsDialog', () => {
         renderDialog();
 
         await screen.findByText('Anulada');
-        expect(screen.getByText('Nunca fue necesaria')).toBeTruthy();
         expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
         expect(screen.getByText('Ver la medicación anulada')).toBeTruthy();
         expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();

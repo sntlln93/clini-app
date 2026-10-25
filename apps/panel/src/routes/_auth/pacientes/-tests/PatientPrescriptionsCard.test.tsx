@@ -240,47 +240,26 @@ describe('PatientPrescriptionsCard', () => {
         expect(refresh).toHaveBeenCalledWith(['prescriptions', 'patient', 10]);
     });
 
-    it('medication no longer needed stays in view, marked as annulled with its reason, and takes no action', () => {
+    it('annulled medication says when and why, keeps its items behind a disclosure, as an annulled note does, and takes no action', () => {
         renderCard([
             buildPrescription({
                 id: 7,
                 annulment: {
-                    kind: 'no_longer_needed',
-                    reason: 'Terminó el tratamiento.',
-                    created_at: '2026-08-10T10:00:00Z',
-                },
-            }),
-        ]);
-
-        expect(screen.getByText('Anulada')).toBeTruthy();
-        expect(screen.getByText('Ya no es necesaria')).toBeTruthy();
-        expect(
-            screen.getByText('Motivo: Terminó el tratamiento.'),
-        ).toBeTruthy();
-        expect(screen.getByText('Amoxicilina').closest('details')).toBeNull();
-        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
-        expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
-    });
-
-    it('medication that was never needed goes behind a disclosure, as an annulled note does', () => {
-        renderCard([
-            buildPrescription({
-                id: 7,
-                annulment: {
-                    kind: 'never_needed',
                     reason: 'Paciente equivocado.',
                     created_at: '2026-08-10T10:00:00Z',
                 },
             }),
         ]);
 
-        expect(screen.getByText('Nunca fue necesaria')).toBeTruthy();
+        expect(screen.getByText('Anulada')).toBeTruthy();
         expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
         const disclosure = screen
             .getByText('Ver la medicación anulada')
             .closest('details');
         expect(disclosure?.open).toBe(false);
         expect(disclosure?.textContent).toContain('Amoxicilina');
+        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
     });
 
     it.each([

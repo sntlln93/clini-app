@@ -1,5 +1,4 @@
 import { fromInstant } from '@/lib/datetime';
-import { PRESCRIPTION_ANNULMENT_KIND_LABELS } from '@/lib/prescription-annulment';
 import type {
     ClinicalRecordNote,
     ClinicalRecordPerson,
@@ -37,21 +36,15 @@ function versionLine(version: {
 }
 
 // Above the versions, so a void record reads as one from the start: who
-// annulled it, when, how (medication says it, #344) and why.
-function annulmentLine(
-    annulment: Pick<
-        NonNullable<ClinicalRecordNote['annulment']>,
-        'author' | 'reason' | 'created_at'
-    > | null,
-    kind: string | null = null,
-): Content[] {
+// annulled it, when and why.
+function annulmentLine(annulment: ClinicalRecordNote['annulment']): Content[] {
     if (annulment === null) {
         return [];
     }
 
     return [
         {
-            text: `Anulada el ${at(annulment.created_at)} por ${nameOf(annulment.author)}. ${kind ? `${kind}. ` : ''}Motivo: ${annulment.reason}`,
+            text: `Anulada el ${at(annulment.created_at)} por ${nameOf(annulment.author)}. Motivo: ${annulment.reason}`,
             bold: true,
         },
     ];
@@ -111,13 +104,7 @@ export function prescriptionBlock(
                     },
                 ],
             },
-            ...annulmentLine(
-                prescription.annulment,
-                prescription.annulment &&
-                    PRESCRIPTION_ANNULMENT_KIND_LABELS[
-                        prescription.annulment.kind
-                    ],
-            ),
+            ...annulmentLine(prescription.annulment),
             ...prescription.versions.map((version): Content => ({
                 style: 'version',
                 stack: [

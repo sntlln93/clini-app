@@ -3,7 +3,6 @@ import { discardPageData } from '@/lib/page-data';
 import type {
     Prescription,
     PrescriptionAmendmentPayload,
-    PrescriptionAnnulmentKind,
 } from '@/types/prescription';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
@@ -69,21 +68,14 @@ export function useSavePrescription(appointmentId: number | null) {
     });
 }
 
-// Annulling keeps the record with every version, marked as no longer needed
-// or never needed, with its reason (#344).
+// Annulling keeps the record with every version, marked as annulled with its
+// reason (#344).
 export function useAnnulPrescription(appointmentId: number | null) {
     const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
 
     return useMutation({
-        mutationFn: ({
-            id,
-            kind,
-            reason,
-        }: {
-            id: number;
-            kind: PrescriptionAnnulmentKind;
-            reason: string;
-        }) => api.post(`/prescriptions/${id}/annulment`, { kind, reason }),
+        mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+            api.post(`/prescriptions/${id}/annulment`, { reason }),
         onSuccess: refreshPrescriptions,
     });
 }
