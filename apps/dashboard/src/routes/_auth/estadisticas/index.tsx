@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { formatLocalDate } from '@/lib/format';
 import { titleHead } from '@/lib/page-title';

@@ -1,8 +1,8 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { subjectAuditQueryOptions } from '@/features/audit-trail/audit-logs-query';
 import { SubjectAuditCard } from '@/features/audit-trail/SubjectAuditCard';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { subscriptionEventsQueryOptions } from '@/features/subscription-events/subscription-events-query';
 import { SubscriptionEventsTable } from '@/features/subscription-events/SubscriptionEventsTable';
 import { titleHead } from '@/lib/page-title';

@@ -40,6 +40,26 @@ describe('requireSession', () => {
         });
     });
 
+    it.each([
+        [
+            'an API that answers 500',
+            { isAxiosError: true, response: { status: 500 } },
+        ],
+        [
+            'an API that answers 503',
+            { isAxiosError: true, response: { status: 503 } },
+        ],
+        ['an API that never answers', { isAxiosError: true }],
+    ])(
+        'lets the failure through to the error page for %s, instead of passing it off as a logout (#304)',
+        async (_case, failure) => {
+            vi.mocked(api.get).mockRejectedValueOnce(failure);
+            const queryClient = new QueryClient();
+
+            await expect(requireSession({ queryClient })).rejects.toBe(failure);
+        },
+    );
+
     it('keeps the requested page, search included, as the login redirect', async () => {
         vi.mocked(api.get).mockRejectedValueOnce(unauthorized);
         const queryClient = new QueryClient();

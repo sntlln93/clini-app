@@ -1,9 +1,21 @@
 import { QueryCache, QueryClient } from '@tanstack/react-query';
-import { mapToAppError } from './api-errors';
+import { mapToAppError, type AppError } from './api-errors';
 
-/** Only transient kinds retry — everything else (business/validation/auth/rate-limit) is deterministic, so retrying just repeats the same rejection. */
-const RETRYABLE_KINDS = new Set(['network', 'unexpected']);
 const MAX_RETRIES = 2;
+
+/** Only transient failures retry — everything else (business/validation/auth/rate-limit, a 404) is deterministic, so retrying just repeats the same rejection. */
+function isTransient(appError: AppError): boolean {
+    if (appError.kind === 'network') {
+        return true;
+    }
+
+    return (
+        appError.kind === 'unexpected' &&
+        (appError.status === null ||
+            appError.status === 408 ||
+            appError.status >= 500)
+    );
+}
 
 export const queryClient = new QueryClient({
     queryCache: new QueryCache({
@@ -26,9 +38,7 @@ export const queryClient = new QueryClient({
     defaultOptions: {
         queries: {
             retry: (failureCount, error) => {
-                const appError = mapToAppError(error);
-
-                if (!RETRYABLE_KINDS.has(appError.kind)) {
+                if (!isTransient(mapToAppError(error))) {
                     return false;
                 }
 

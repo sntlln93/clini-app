@@ -1,9 +1,9 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { titleHead } from '@/lib/page-title';
 import {
     ORGANIZATION_STATE_FILTERS,

@@ -1,7 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { subjectAuditQueryOptions } from '@/features/audit-trail/audit-logs-query';
 import { SubjectAuditCard } from '@/features/audit-trail/SubjectAuditCard';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { UserHeader } from './-components/UserHeader';

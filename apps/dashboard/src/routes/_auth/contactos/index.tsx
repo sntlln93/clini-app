@@ -1,8 +1,8 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { FilterSelect } from '@/features/filter-select/FilterSelect';
 import { CONTACT_REQUEST_STATUS_LABELS } from '@/lib/labels';
 import { titleHead } from '@/lib/page-title';
