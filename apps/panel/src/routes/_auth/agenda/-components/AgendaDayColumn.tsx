@@ -1,3 +1,4 @@
+import { appointmentAnchorId } from '@/lib/agenda-anchor';
 import { INACTIVE_STATUSES } from '@/lib/appointment-status';
 import { type DateTime, fromInstant } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
@@ -110,9 +111,11 @@ export function AgendaDayColumn({
                 return (
                     <div
                         key={appointment.id}
+                        id={appointmentAnchorId(appointment.id)}
                         // Click-through for inactive appointments: the card re-enables pointer events only when it has a menu, so a static one never hides the free cell underneath.
+                        // `scroll-mt-20` keeps a hash scroll from parking the block under the sticky header (a fresh load aligns it to the top).
                         className={cn(
-                            'absolute inset-x-1 z-1',
+                            'absolute inset-x-1 z-1 scroll-mt-20',
                             isInactive && 'pointer-events-none opacity-60',
                         )}
                         style={{ top: slotTop + BLOCK_INSET_PX, height }}
