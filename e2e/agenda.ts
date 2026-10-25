@@ -22,19 +22,24 @@ export const NEW_PATIENT_APPOINTMENT_ISSUES = {
  *
  * Unique per run, so a retry or a parallel worker against the same database
  * neither reuses the patient nor collides with another run's slot: one day
- * per second (repeats after ~7 hours), one hour per worker. Always before the
- * seeded 09:00 opening, so the outside-hours warning shows on every run and
- * is confirmed, not raced.
+ * per second (repeats after ~7 hours), one hour per worker. Always outside
+ * the seeded opening hours — before 09:00, or from 21:00 with `evening` — so
+ * the outside-hours warning shows on every run and is confirmed, not raced.
  */
 export async function bookAppointmentWithNewPatient(
     page: Page,
-    { parallelIndex, label }: { parallelIndex: number; label: string },
+    {
+        parallelIndex,
+        label,
+        evening = false,
+    }: { parallelIndex: number; label: string; evening?: boolean },
 ) {
     const documentNumber = `${parallelIndex}${String(Date.now()).slice(-7)}`;
     const patientName = `Paciente E2E ${label} ${documentNumber}`;
     const day = new Date(2030, 0, 1 + (Math.floor(Date.now() / 1000) % 25_000));
     const date = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, '0')}-${String(day.getDate()).padStart(2, '0')}`;
-    const time = `0${6 + (parallelIndex % 3)}:00`;
+    const hour = (evening ? 21 : 6) + (parallelIndex % 3);
+    const time = `${String(hour).padStart(2, '0')}:00`;
 
     await page.goto('/login');
     await page
