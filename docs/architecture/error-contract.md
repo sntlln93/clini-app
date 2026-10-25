@@ -89,6 +89,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `clinical_notes.annulled` | 409 | `AmendClinicalNoteAction`, `AnnulClinicalNoteAction` (la nota ya está anulada, ADR 0019) | |
 | `clinical_notes.amendment_unchanged` | 409 | `AmendClinicalNoteAction` (la enmienda repite el texto y los diagnósticos vigentes) | |
 | `clinical_notes.diagnosis_retired` | 409 | `WriteClinicalNoteAction`, `AmendClinicalNoteAction` (se agrega un código CIE-10 dado de baja en el catálogo, ADR 0020) | |
+| `prescriptions.annulled` | 409 | `AmendPrescriptionAction`, `AnnulPrescriptionAction` (la medicación ya está anulada, ADR 0025) | |
 | `prescriptions.amendment_unchanged` | 409 | `AmendPrescriptionAction` (la enmienda repite la medicación vigente) | |
 | `clinical_access.reason_required` | 409 | `ReadPatientHistoryAction`, `RecordClinicalRecordExportAction` (sin un turno propio cerca de hoy ni un acceso excepcional abierto, ADR 0022) | |
 | `clinical_access.reason_not_required` | 409 | `DeclareExceptionalAccessAction` (hay un turno propio cerca de hoy: la historia ya está abierta, ADR 0022) | |

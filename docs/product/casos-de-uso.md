@@ -543,7 +543,7 @@ Convenciones:
     búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
     que cambiarlos es una enmienda y un cambio del catálogo no reescribe la historia.
 
-### CU-53 · Medicación indicada por visita *(issues #31, #319, #323)*
+### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344)*
 
 - **Actor**: profesional que registra la medicación que indicó durante un turno propio.
 - **Decisión**: registro **interno de la historia clínica**, sin vademécum ni catálogo de
@@ -555,12 +555,17 @@ Convenciones:
 - **Invariantes**:
   - Igual que la nota clínica (CU-45), el registro cuelga de un **turno**, un **profesional
     autor** y una **organización**, y además guarda el paciente del turno.
-  - Solo el **profesional autor** lo crea, ve y enmienda — nunca dueño/admin/staff ni otro
+  - Solo el **profesional autor** lo crea, ve, enmienda y anula — nunca dueño/admin/staff ni otro
     profesional de la misma organización, ni siquiera desde la ficha del paciente.
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
-  - Se registra y se enmienda desde el turno en la agenda o desde la ficha del paciente, con
+  - Se **anula** cuando **ya no es necesaria** (el tratamiento terminó o se suspendió) o
+    **nunca lo fue** (se indicó por error), con un motivo obligatorio
+    ([ADR 0025](../adr/0025-anulacion-de-la-medicacion-indicada.md)). Sigue en la historia con
+    todas sus versiones, marcada como anulada, y ya no se enmienda ni se vuelve a anular. Lo que
+    nunca fue necesario se muestra detrás de un desplegable.
+  - Se registra, se enmienda y se anula desde el turno en la agenda o desde la ficha del paciente, con
     el mismo diálogo. Desde la ficha, el registro nuevo cuelga del turno propio de hoy, como
     una nota nueva (CU-45), y una enmienda, del turno del registro.
 
