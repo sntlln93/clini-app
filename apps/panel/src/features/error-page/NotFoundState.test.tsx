@@ -7,15 +7,16 @@ import {
 } from '@tanstack/react-router';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
+import { ERROR_PAGE_COPY, HOME_ACTION } from './error-page-config';
 import { NotFoundState } from './NotFoundState';
 
 // Mounted the way the app does: as the not-found fallback of an unknown URL.
 function renderUnknownUrl(initialEntries: string[]) {
     const rootRoute = createRootRoute();
-    const agendaRoute = createRoute({
+    const homeRoute = createRoute({
         getParentRoute: () => rootRoute,
-        path: '/agenda',
-        component: () => <div>Página de agenda</div>,
+        path: HOME_ACTION.to,
+        component: () => <div>Página de inicio</div>,
     });
     const pacientesRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -23,7 +24,7 @@ function renderUnknownUrl(initialEntries: string[]) {
         component: () => <div>Página de pacientes</div>,
     });
     const router = createRouter({
-        routeTree: rootRoute.addChildren([agendaRoute, pacientesRoute]),
+        routeTree: rootRoute.addChildren([homeRoute, pacientesRoute]),
         history: createMemoryHistory({ initialEntries }),
         defaultNotFoundComponent: NotFoundState,
     });
@@ -32,42 +33,47 @@ function renderUnknownUrl(initialEntries: string[]) {
 }
 
 describe('NotFoundState', () => {
-    it('renders the Spanish not-found copy', async () => {
+    it('renders the not-found page', async () => {
         renderUnknownUrl(['/inexistente']);
 
         expect(
-            await screen.findByText('No encontramos esta página'),
+            await screen.findByRole('heading', {
+                name: ERROR_PAGE_COPY.not_found.title,
+            }),
         ).not.toBeNull();
         expect(
-            screen.getByText(
-                'Puede que el enlace esté mal escrito o que la página ya no exista.',
-            ),
+            screen.getByText(ERROR_PAGE_COPY.not_found.description),
         ).not.toBeNull();
+        expect(screen.getByText('Error 404')).not.toBeNull();
     });
 
-    it('links to the agenda', async () => {
+    it('links home', async () => {
         renderUnknownUrl(['/inexistente']);
 
         // Base UI's Button keeps role="button" on the composed <a>.
-        const link = (await screen.findByText('Ir a la agenda')).closest('a');
-        expect(link?.getAttribute('href')).toBe('/agenda');
+        const link = (await screen.findByText(HOME_ACTION.label)).closest('a');
+        expect(link?.getAttribute('href')).toBe(HOME_ACTION.to);
 
         fireEvent.click(link!);
-        expect(await screen.findByText('Página de agenda')).not.toBeNull();
+        expect(await screen.findByText('Página de inicio')).not.toBeNull();
     });
 
-    it('goes back to the previous page on "Volver"', async () => {
+    it('goes back to the previous page on "Volver atrás"', async () => {
         renderUnknownUrl(['/pacientes', '/xyz']);
 
-        fireEvent.click(await screen.findByRole('button', { name: 'Volver' }));
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Volver atrás' }),
+        );
 
         expect(await screen.findByText('Página de pacientes')).not.toBeNull();
     });
 
-    it('hides "Volver" when there is no previous page in the panel', async () => {
+    it('hides "Volver atrás" when there is no previous page in the panel', async () => {
         renderUnknownUrl(['/xyz']);
 
-        await screen.findByText('No encontramos esta página');
-        expect(screen.queryByRole('button', { name: 'Volver' })).toBeNull();
+        await screen.findByText(ERROR_PAGE_COPY.not_found.title);
+        expect(
+            screen.queryByRole('button', { name: 'Volver atrás' }),
+        ).toBeNull();
     });
 });

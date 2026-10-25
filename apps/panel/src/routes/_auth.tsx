@@ -1,5 +1,5 @@
-import { NotFoundState } from '@/components/NotFoundState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NotFoundState } from '@/features/error-page/NotFoundState';
 import { PanelLayout } from '@/layouts/PanelLayout';
 import { requireSession } from '@/lib/auth-guards';
 import { setPracticeTimeZone } from '@/lib/datetime';

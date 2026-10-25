@@ -77,6 +77,16 @@ describe('queryClient retry policy', () => {
     it('retries a NetworkError (no response) while below the cap', () => {
         expect(retry(0, new Error('Network Error'))).toBe(true);
     });
+
+    it('retries a 503 or a 408, which may pass on their own', () => {
+        expect(retry(0, axiosError(503))).toBe(true);
+        expect(retry(0, axiosError(408))).toBe(true);
+    });
+
+    it('does not retry a 404 or a 400 with no domain envelope (#304)', () => {
+        expect(retry(0, axiosError(404))).toBe(false);
+        expect(retry(0, axiosError(400))).toBe(false);
+    });
 });
 
 describe('queryClient error-logging sink', () => {

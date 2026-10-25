@@ -89,6 +89,8 @@ const PAIRS: Pair[] = [
         min: TEXT,
     })),
     { fg: 'foreground', bg: 'warning-wash', min: TEXT },
+    // The error pages' debug trace (#304).
+    { fg: 'foreground', bg: 'muted', min: TEXT },
     ...['card', 'warning-wash'].map((bg) => ({
         fg: 'warning',
         bg,

@@ -1,7 +1,7 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { CLINICAL_ACCESS_WINDOW_DAYS } from '@/lib/clinical-access';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';

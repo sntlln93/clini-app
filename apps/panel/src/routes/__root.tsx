@@ -1,4 +1,5 @@
 import { Toaster } from '@/components/ui/sonner';
+import { RootErrorState } from '@/features/error-page/RouteErrorState';
 import { ThemeProvider } from '@/features/theme/ThemeProvider';
 import type { QueryClient } from '@tanstack/react-query';
 import {
@@ -19,5 +20,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
                 {import.meta.env.DEV && <TanStackRouterDevtools />}
             </ThemeProvider>
         ),
+        // Whatever no module route caught, instead of the router's own English page (#304).
+        errorComponent: RootErrorState,
     },
 );

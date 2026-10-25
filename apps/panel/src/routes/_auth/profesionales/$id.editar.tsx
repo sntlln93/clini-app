@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { MemberEditForm } from './-components/MemberEditForm';

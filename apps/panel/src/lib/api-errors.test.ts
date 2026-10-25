@@ -8,6 +8,7 @@ import {
     UnauthorizedError,
     UnexpectedError,
     ValidationError,
+    errorDetailsFor,
     mapToAppError,
     type AppError,
 } from './api-errors';
@@ -186,6 +187,113 @@ describe('mapToAppError', () => {
         }
 
         expect(describeKind(new UnexpectedError())).toBe('unexpected');
+    });
+});
+
+describe('mapToAppError keeps the status a page is chosen by (#304)', () => {
+    it('keeps the status of an unexpected HTTP failure', () => {
+        expect(mapToAppError(axiosError(404, {}))).toMatchObject({
+            kind: 'unexpected',
+            status: 404,
+        });
+        expect(mapToAppError(axiosError(503, {}))).toMatchObject({
+            kind: 'unexpected',
+            status: 503,
+        });
+    });
+
+    it('has no status for a failure no response caused', () => {
+        expect(mapToAppError(new TypeError('x is undefined'))).toMatchObject({
+            kind: 'unexpected',
+            status: null,
+        });
+    });
+
+    it('keeps the status the API chose for a business rule', () => {
+        const error = axiosError(404, {
+            error: { code: 'patients.not_found', message: 'x', context: {} },
+        });
+
+        expect(mapToAppError(error)).toMatchObject({
+            kind: 'business',
+            status: 404,
+        });
+    });
+});
+
+describe('errorDetailsFor', () => {
+    it("reads Laravel's debug body and the request that got it", () => {
+        const details = errorDetailsFor({
+            isAxiosError: true,
+            message: 'Request failed with status code 500',
+            response: {
+                status: 500,
+                config: {
+                    method: 'get',
+                    baseURL: 'http://api.test/api/v1',
+                    url: '/patients',
+                },
+                data: {
+                    message: 'Division by zero',
+                    exception: 'DivisionByZeroError',
+                    file: '/var/www/html/app/Actions/X.php',
+                    line: 12,
+                    trace: [
+                        {
+                            file: '/var/www/html/app/Http/Y.php',
+                            line: 30,
+                            class: 'App\\Http\\Y',
+                            type: '->',
+                            function: 'index',
+                        },
+                    ],
+                },
+            },
+        });
+
+        expect(details).toEqual({
+            name: 'DivisionByZeroError',
+            message: 'Division by zero',
+            location: '/var/www/html/app/Actions/X.php:12',
+            trace: ['/var/www/html/app/Http/Y.php:30 App\\Http\\Y->index'],
+            request: {
+                method: 'GET',
+                url: 'http://api.test/api/v1/patients',
+                status: 500,
+            },
+        });
+    });
+
+    it('falls back to the status when the API sent no debug body', () => {
+        const details = errorDetailsFor({
+            isAxiosError: true,
+            message: 'Request failed with status code 500',
+            response: { status: 500, data: { message: 'Server Error' } },
+        });
+
+        expect(details).toMatchObject({
+            name: 'HTTP 500',
+            message: 'Server Error',
+            location: null,
+            trace: [],
+        });
+    });
+
+    it("reads a crash's own name, message and stack frames", () => {
+        const error = new TypeError('cannot read x');
+        error.stack =
+            'TypeError: cannot read x\n    at Page (http://localhost/src/Page.tsx:3:9)\n    at render (react.js:1:1)';
+
+        expect(errorDetailsFor(error)).toEqual({
+            name: 'TypeError',
+            message: 'cannot read x',
+            location: null,
+            trace: [
+                'at Page (http://localhost/src/Page.tsx:3:9)',
+                'at render (react.js:1:1)',
+            ],
+            request: null,
+        });
     });
 });
 

@@ -1,6 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
