@@ -26,3 +26,11 @@ test('the runtime image runs PHP 8.5.12 or later', function () {
     expect($match)->not->toBeEmpty()
         ->and(version_compare($match[1], '8.5.12', '>='))->toBeTrue();
 });
+
+test('the runtime image turns off upload progress and fatal error backtraces', function () {
+    $dockerfile = apiDockerfile();
+
+    expect($dockerfile)
+        ->toContain('session.upload_progress.enabled=0')
+        ->toContain('fatal_error_backtraces=0');
+});

@@ -24,6 +24,11 @@ RUN echo "opcache.enable=1" > /usr/local/etc/php/conf.d/opcache.ini \
 # arguments: a DNI, an email or a name passed to an Action (#322).
 RUN echo "zend.exception_ignore_args=On" > /usr/local/etc/php/conf.d/exceptions.ini
 
+# The API reads no upload progress and never shows a fatal error's backtrace:
+# both features only widen what a request can reach (#349).
+RUN echo "session.upload_progress.enabled=0" > /usr/local/etc/php/conf.d/hardening.ini \
+    && echo "fatal_error_backtraces=0" >> /usr/local/etc/php/conf.d/hardening.ini
+
 WORKDIR /var/www/html
 
 COPY --from=vendor /app/vendor ./vendor
