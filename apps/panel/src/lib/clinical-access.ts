@@ -35,6 +35,7 @@ export const CLINICAL_ACCESS_ACTIONS = [
     'note_annulled',
     'prescription_issued',
     'prescription_amended',
+    'prescription_annulled',
     'record_exported',
 ] as const;
 
@@ -54,6 +55,7 @@ export const CLINICAL_ACCESS_ACTION_LABELS: Record<
     note_annulled: 'Anuló una nota',
     prescription_issued: 'Registró medicación indicada',
     prescription_amended: 'Enmendó medicación indicada',
+    prescription_annulled: 'Anuló medicación indicada',
     record_exported: 'Exportó la historia clínica',
 };
 

@@ -1,21 +1,24 @@
-import { Button } from '@/components/ui/button';
 import { PrescriptionEntry } from '@/features/clinical-history/PrescriptionEntry';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { Prescription } from '@/types/prescription';
+import { PrescriptionActions } from './PrescriptionActions';
 
 type PrescriptionListProps = {
     prescriptions: Prescription[] | undefined;
     isLoading: boolean;
     restricted: boolean;
     onAmend: (prescription: Prescription) => void;
+    onAnnul: (prescription: Prescription) => void;
 };
 
-// The medication recorded in this appointment, each with its earlier versions.
+// The medication recorded in this appointment, each with its earlier versions
+// and, once annulled, how and why (#344).
 export function PrescriptionList({
     prescriptions,
     isLoading,
     restricted,
     onAmend,
+    onAnnul,
 }: PrescriptionListProps) {
     return (
         <div className="space-y-3">
@@ -39,15 +42,12 @@ export function PrescriptionList({
                         </span>
                     }
                     actions={
-                        !restricted && (
-                            <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => onAmend(prescription)}
-                            >
-                                Enmendar
-                            </Button>
+                        !restricted &&
+                        prescription.annulment === null && (
+                            <PrescriptionActions
+                                onAmend={() => onAmend(prescription)}
+                                onAnnul={() => onAnnul(prescription)}
+                            />
                         )
                     }
                 >

@@ -9,6 +9,8 @@ import {
 } from '@/components/ui/card';
 import { PrescriptionEntry } from '@/features/clinical-history/PrescriptionEntry';
 import { PrescriptionItemList } from '@/features/clinical-history/PrescriptionItemList';
+import { AnnulPrescriptionDialog } from '@/features/prescriptions/AnnulPrescriptionDialog';
+import { PrescriptionActions } from '@/features/prescriptions/PrescriptionActions';
 import { PrescriptionsDialog } from '@/features/prescriptions/PrescriptionsDialog';
 import { patientPrescriptionsQueryKey } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
@@ -19,7 +21,7 @@ import {
     type WritesRestriction,
 } from '@/lib/plan';
 import type { Prescription } from '@/types/prescription';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 function formatDate(iso: string): string {
     return fromInstant(iso).toLocaleString({ dateStyle: 'short' });
@@ -42,9 +44,10 @@ type PatientPrescriptionsCardProps = {
 };
 
 // The medication the acting membership indicated to this patient (#319), in
-// full since nothing else shows it, with every earlier version (#323). It is
-// recorded on today's own appointment and amended on its own, both in the
-// agenda's dialog; while the plan or the subscription leaves it read-only the
+// full since nothing else shows it, with every earlier version (#323) and, once
+// annulled, how and why (#344). It is recorded on today's own appointment and
+// amended on its own, both in the agenda's dialog, or annulled with a reason;
+// while the plan or the subscription leaves it read-only the
 // card says why and offers neither. Every record listed is the acting
 // membership's (CU-53).
 export function PatientPrescriptionsCard({
@@ -59,7 +62,11 @@ export function PatientPrescriptionsCard({
         amending: Prescription | null;
     } | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [annulling, setAnnulling] = useState<Prescription | null>(null);
+    const listRef = useRef<HTMLDivElement>(null);
     const refreshPageData = useRefreshPageData();
+    const refreshPrescriptions = () =>
+        refreshPageData(patientPrescriptionsQueryKey(patientId));
     const restriction = useWritesRestriction();
     const includedInPlan = usePlanIncludes('prescriptions');
     const readOnlyReason =
@@ -99,7 +106,7 @@ export function PatientPrescriptionsCard({
                     </CardAction>
                 )}
             </CardHeader>
-            <CardContent className="space-y-3">
+            <CardContent ref={listRef} tabIndex={-1} className="space-y-3">
                 {prescriptions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
                         Todavía no registraste medicación para este paciente.
@@ -110,20 +117,19 @@ export function PatientPrescriptionsCard({
                             key={prescription.id}
                             prescription={prescription}
                             actions={
-                                canWrite && (
-                                    <Button
-                                        type="button"
-                                        size="sm"
-                                        variant="ghost"
-                                        onClick={() =>
+                                canWrite &&
+                                prescription.annulment === null && (
+                                    <PrescriptionActions
+                                        onAmend={() =>
                                             openDialog(
                                                 prescription.appointment_id,
                                                 prescription,
                                             )
                                         }
-                                    >
-                                        Enmendar
-                                    </Button>
+                                        onAnnul={() =>
+                                            setAnnulling(prescription)
+                                        }
+                                    />
                                 )
                             }
                             meta={
@@ -147,9 +153,13 @@ export function PatientPrescriptionsCard({
                     dialog !== null &&
                     dialog.appointmentId === todaysAppointmentId
                 }
-                onSaved={() =>
-                    refreshPageData(patientPrescriptionsQueryKey(patientId))
-                }
+                onSaved={refreshPrescriptions}
+            />
+            <AnnulPrescriptionDialog
+                prescription={annulling}
+                onClose={() => setAnnulling(null)}
+                onAnnulled={refreshPrescriptions}
+                finalFocus={listRef}
             />
         </Card>
     );

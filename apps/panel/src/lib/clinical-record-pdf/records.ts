@@ -1,4 +1,5 @@
 import { fromInstant } from '@/lib/datetime';
+import { PRESCRIPTION_ANNULMENT_KIND_LABELS } from '@/lib/prescription-annulment';
 import type {
     ClinicalRecordNote,
     ClinicalRecordPerson,
@@ -7,7 +8,7 @@ import type {
 import type { Content } from 'pdfmake/interfaces';
 
 // The records of the history as the PDF prints them (ADR 0023): each note and
-// each indicated medication with its versions, and a note's annulment.
+// each indicated medication with its versions and, once void, its annulment.
 
 /** In the practice's zone, Luxon's default (`setPracticeTimeZone`). */
 export function at(iso: string): string {
@@ -36,15 +37,21 @@ function versionLine(version: {
 }
 
 // Above the versions, so a void record reads as one from the start: who
-// annulled it, when and why.
-function annulmentLine(annulment: ClinicalRecordNote['annulment']): Content[] {
+// annulled it, when, how (medication says it, #344) and why.
+function annulmentLine(
+    annulment: Pick<
+        NonNullable<ClinicalRecordNote['annulment']>,
+        'author' | 'reason' | 'created_at'
+    > | null,
+    kind: string | null = null,
+): Content[] {
     if (annulment === null) {
         return [];
     }
 
     return [
         {
-            text: `Anulada el ${at(annulment.created_at)} por ${nameOf(annulment.author)}. Motivo: ${annulment.reason}`,
+            text: `Anulada el ${at(annulment.created_at)} por ${nameOf(annulment.author)}. ${kind ? `${kind}. ` : ''}Motivo: ${annulment.reason}`,
             bold: true,
         },
     ];
@@ -104,6 +111,13 @@ export function prescriptionBlock(
                     },
                 ],
             },
+            ...annulmentLine(
+                prescription.annulment,
+                prescription.annulment &&
+                    PRESCRIPTION_ANNULMENT_KIND_LABELS[
+                        prescription.annulment.kind
+                    ],
+            ),
             ...prescription.versions.map((version): Content => ({
                 style: 'version',
                 stack: [

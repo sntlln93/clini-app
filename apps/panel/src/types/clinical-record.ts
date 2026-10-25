@@ -1,5 +1,6 @@
 import type { AppointmentStatus } from '@/types/appointment';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
+import type { PrescriptionAnnulmentKind } from '@/types/prescription';
 
 // What `GET /patients/{id}/clinical-record` answers (#326, ADR 0021), the
 // data the panel builds the PDF or the JSON file from (ADR 0023). Mirrors
@@ -69,6 +70,12 @@ export type ClinicalRecordPrescription = {
     author: ClinicalRecordPerson;
     issued_at: string;
     created_at: string;
+    annulment: {
+        author: ClinicalRecordPerson;
+        kind: PrescriptionAnnulmentKind;
+        reason: string;
+        created_at: string;
+    } | null;
     versions: ClinicalRecordPrescriptionVersion[];
 };
 

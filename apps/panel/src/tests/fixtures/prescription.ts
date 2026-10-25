@@ -26,6 +26,7 @@ export function buildPrescription(
         version: 1,
         amended_at: null,
         items,
+        annulment: null,
         versions: [{ version: 1, reason: null, created_at: issuedAt, items }],
         ...overrides,
     };

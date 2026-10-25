@@ -324,7 +324,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it.each(['expired'] as const)(
-        'while the subscription is %s it keeps the list but hides the form and the amend action',
+        'while the subscription is %s it keeps the list but hides the form and the amend and annul actions',
         async (status) => {
             vi.mocked(api.get).mockResolvedValue({
                 data: { data: [buildPrescription()] },
@@ -335,6 +335,7 @@ describe('PrescriptionsDialog', () => {
             expect(
                 screen.queryByRole('button', { name: 'Enmendar' }),
             ).toBeNull();
+            expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
             expect(
                 screen.queryByRole('button', { name: 'Registrar medicación' }),
             ).toBeNull();
@@ -350,6 +351,7 @@ describe('PrescriptionsDialog', () => {
 
         await screen.findByText('Amoxicilina × 2');
         expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
         expect(screen.queryByLabelText('Medicamento')).toBeNull();
         expect(
             screen.getByText(
@@ -417,6 +419,114 @@ describe('PrescriptionsDialog', () => {
         expect(
             screen.queryByRole('button', { name: 'Registrar medicación' }),
         ).toBeNull();
+    });
+
+    it('annulling asks whether it is no longer needed or never was, and a reason, then posts them and refetches the list (#344)', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [buildPrescription({ id: 7 })] },
+        });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        const onSaved = vi.fn();
+        renderDialog(true, undefined, undefined, { onSaved });
+
+        await screen.findByText('Amoxicilina × 2');
+        fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
+        await screen.findByRole('heading', { name: 'Anular medicación' });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Anular medicación' }),
+        );
+
+        await screen.findByText(
+            'Elegí si ya no es necesaria o si nunca lo fue.',
+        );
+        expect(
+            screen.getByText('Escribí un motivo de al menos 3 caracteres.'),
+        ).toBeTruthy();
+        expect(api.post).not.toHaveBeenCalled();
+
+        fireEvent.click(
+            screen.getByRole('radio', { name: /Nunca fue necesaria/ }),
+        );
+        fireEvent.change(screen.getByLabelText('Motivo'), {
+            target: { value: 'Indicada al paciente equivocado.' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Anular medicación' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/prescriptions/7/annulment',
+                {
+                    kind: 'never_needed',
+                    reason: 'Indicada al paciente equivocado.',
+                },
+            ),
+        );
+        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
+        await waitFor(() =>
+            expect(
+                screen.queryByRole('heading', { name: 'Anular medicación' }),
+            ).toBeNull(),
+        );
+    });
+
+    it('shows why an annulment was rejected inside its dialog', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { data: [buildPrescription({ id: 7 })] },
+        });
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 409,
+                data: {
+                    message: 'The prescription is annulled.',
+                    error: { code: 'prescriptions.annulled', context: {} },
+                },
+            },
+        });
+        renderDialog();
+
+        await screen.findByText('Amoxicilina × 2');
+        fireEvent.click(screen.getByRole('button', { name: 'Anular' }));
+        fireEvent.click(
+            await screen.findByRole('radio', { name: /Ya no es necesaria/ }),
+        );
+        fireEvent.change(screen.getByLabelText('Motivo'), {
+            target: { value: 'Terminó el tratamiento.' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Anular medicación' }),
+        );
+
+        expect((await screen.findByRole('alert')).textContent).toContain(
+            'La medicación está anulada',
+        );
+    });
+
+    it('an annulled record says how, when and why, and offers neither amending nor annulling it', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: {
+                data: [
+                    buildPrescription({
+                        annulment: {
+                            kind: 'never_needed',
+                            reason: 'Paciente equivocado.',
+                            created_at: '2026-08-04T10:00:00Z',
+                        },
+                    }),
+                ],
+            },
+        });
+        renderDialog();
+
+        await screen.findByText('Anulada');
+        expect(screen.getByText('Nunca fue necesaria')).toBeTruthy();
+        expect(screen.getByText('Motivo: Paciente equivocado.')).toBeTruthy();
+        expect(screen.getByText('Ver la medicación anulada')).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Enmendar' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Anular' })).toBeNull();
     });
 
     it('a new record calls onSaved too', async () => {
