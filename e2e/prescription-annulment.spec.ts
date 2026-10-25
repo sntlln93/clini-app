@@ -7,8 +7,8 @@ import {
 import { expect, test } from './fixtures';
 
 // #344: indicated medication is annulled with a reason, from the agenda and
-// from the patient page, because it is no longer needed or never was. It stays
-// in the history, marked as annulled, and the trail and the export say so.
+// from the patient page. It stays in the history, marked as annulled with its
+// items behind a disclosure, and the trail and the export say so.
 test.use({ expectedIssues: NEW_PATIENT_APPOINTMENT_ISSUES });
 
 test('indicated medication is annulled from the agenda and from the patient page, and stays in the history', async ({
@@ -35,9 +35,6 @@ test('indicated medication is annulled from the agenda and from the patient page
     const annulDialog = page.getByRole('dialog', {
         name: 'Anular medicación',
     });
-    await annulDialog
-        .getByRole('radio', { name: /Ya no es necesaria/ })
-        .click();
     await annulDialog.getByLabel('Motivo').fill('Terminó el tratamiento.');
     await annulDialog
         .getByRole('button', { name: 'Anular medicación' })
@@ -47,13 +44,13 @@ test('indicated medication is annulled from the agenda and from the patient page
         medicationDialog.getByText('Anulada', { exact: true }),
     ).toBeVisible();
     await expect(
-        medicationDialog.getByText('Ya no es necesaria'),
-    ).toBeVisible();
-    await expect(
         medicationDialog.getByText('Motivo: Terminó el tratamiento.'),
     ).toBeVisible();
-    // No longer needed: still in view as the treatment it was.
-    await expect(medicationDialog.getByText('Ibuprofeno × 1')).toBeVisible();
+    // Behind a disclosure, as an annulled note's text.
+    await expect(medicationDialog.getByText('Ibuprofeno × 1')).toBeHidden();
+    await expect(
+        medicationDialog.getByText('Ver la medicación anulada'),
+    ).toBeVisible();
     await expect(
         medicationDialog.getByRole('button', { name: 'Anular' }),
     ).toHaveCount(0);
@@ -83,9 +80,6 @@ test('indicated medication is annulled from the agenda and from the patient page
     // Only the record still in force takes an action.
     await page.getByRole('button', { name: 'Anular' }).click();
     await annulDialog
-        .getByRole('radio', { name: /Nunca fue necesaria/ })
-        .click();
-    await annulDialog
         .getByLabel('Motivo')
         .fill('Indicada en el turno equivocado.');
     await annulDialog
@@ -94,15 +88,15 @@ test('indicated medication is annulled from the agenda and from the patient page
     await expect(annulDialog).toBeHidden();
 
     await expect(page.getByText('Anulada', { exact: true })).toHaveCount(2);
-    await expect(page.getByText('Nunca fue necesaria')).toBeVisible();
     await expect(
         page.getByText('Motivo: Indicada en el turno equivocado.'),
     ).toBeVisible();
-    // Never needed: behind a disclosure, as an annulled note's text.
-    await page.getByText('Ver la medicación anulada').click();
-    await expect(
-        page.getByText('Amoxicilina', { exact: true }).first(),
-    ).toBeVisible();
+    const amoxicillin = page
+        .locator('details')
+        .filter({ hasText: 'Amoxicilina' });
+    await expect(amoxicillin.getByText('Amoxicilina')).toBeHidden();
+    await amoxicillin.getByText('Ver la medicación anulada').click();
+    await expect(amoxicillin.getByText('Amoxicilina')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Anular' })).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Enmendar' })).toHaveCount(0);
     // The trail is read fresh on every load, so this annulment joins the
@@ -121,16 +115,15 @@ test('indicated medication is annulled from the agenda and from the patient page
     const annulments = record.appointments[0].prescriptions.map(
         (prescription: {
             versions: { items: { medication: string }[] }[];
-            annulment: { kind: string; reason: string } | null;
+            annulment: { reason: string } | null;
         }) => [
             prescription.versions[0].items[0].medication,
-            prescription.annulment?.kind,
             prescription.annulment?.reason,
         ],
     );
     expect(annulments).toEqual([
-        ['Ibuprofeno', 'no_longer_needed', 'Terminó el tratamiento.'],
-        ['Amoxicilina', 'never_needed', 'Indicada en el turno equivocado.'],
+        ['Ibuprofeno', 'Terminó el tratamiento.'],
+        ['Amoxicilina', 'Indicada en el turno equivocado.'],
     ]);
     expect(
         record.access_log.filter(
