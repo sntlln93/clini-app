@@ -6,7 +6,6 @@ use App\Enums\AppointmentStatus;
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
 use App\Enums\ErrorCode;
-use App\Enums\PrescriptionAnnulmentKind;
 use App\Enums\SubscriptionStatus;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
@@ -364,7 +363,7 @@ test('issuing, amending and annulling indicated medication each leave a row with
     $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescriptionId}/amendments", $items('Ibuprofeno'))
         ->assertCreated();
     freshRequestState();
-    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescriptionId}/annulment", ['kind' => 'no_longer_needed', 'reason' => 'Terminó el tratamiento.'])
+    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescriptionId}/annulment", ['reason' => 'Terminó el tratamiento.'])
         ->assertCreated();
 
     $rows = accessLog()->orderBy('id')->get();
@@ -396,19 +395,13 @@ test('a write the history rejects leaves no row', function () {
     $annulledNote = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
     $annulledNote->annulment()->create(['membership_id' => $professional->id, 'reason' => 'Primera.']);
     $annulledPrescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
-    $annulledPrescription->annulment()->create([
-        'membership_id' => $professional->id,
-        'kind' => PrescriptionAnnulmentKind::NoLongerNeeded,
-        'reason' => 'Primera.',
-    ]);
+    $annulledPrescription->annulment()->create(['membership_id' => $professional->id, 'reason' => 'Primera.']);
     freshRequestState();
     $this->actingAs($professional->user)->postJson("/api/v1/clinical-notes/{$annulledNote->id}/annulment", ['reason' => 'Segunda.'])
         ->assertStatus(409);
     freshRequestState();
-    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$annulledPrescription->id}/annulment", [
-        'kind' => 'never_needed',
-        'reason' => 'Segunda.',
-    ])->assertStatus(409);
+    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$annulledPrescription->id}/annulment", ['reason' => 'Segunda.'])
+        ->assertStatus(409);
 
     expect(accessLog()->count())->toBe(0);
 });

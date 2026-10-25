@@ -9,8 +9,8 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * Annulling indicated medication (#344): it stays in the history with every
- * version, marked as no longer needed or never needed, with its author and a
- * required reason. As append-only as the record it annuls (ADR 0019).
+ * version, marked as annulled with its author and a required reason. As
+ * append-only as the record it annuls (ADR 0019).
  */
 return new class extends Migration
 {
@@ -23,7 +23,6 @@ return new class extends Migration
             $table->id();
             $table->foreignId('prescription_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('kind');
             $table->string('reason', 500);
             $table->dateTimeTz('created_at');
         });

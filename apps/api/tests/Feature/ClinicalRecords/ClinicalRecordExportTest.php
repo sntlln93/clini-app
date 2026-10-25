@@ -6,7 +6,6 @@ use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
-use App\Enums\PrescriptionAnnulmentKind;
 use App\Enums\SubscriptionStatus;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
@@ -137,20 +136,18 @@ test('the attending professional exports the patient history as JSON with every 
         ->not->toContain('Dr. De Afuera');
 });
 
-test('annulled medication stays in the export with every version, its kind, reason, author and date', function () {
+test('annulled medication stays in the export with every version, its reason, author and date', function () {
     ['exporter' => $exporter, 'patient' => $patient] = sharedPatientHistory();
     $prescription = Prescription::query()->where('membership_id', $exporter->id)->sole();
     $prescription->annulment()->create([
         'membership_id' => $exporter->id,
-        'kind' => PrescriptionAnnulmentKind::NoLongerNeeded,
         'reason' => 'Terminó el tratamiento.',
     ]);
 
     $response = $this->actingAs($exporter->user)->get("/api/v1/patients/{$patient->id}/clinical-record?format=json");
 
     $exported = $response->assertOk()->json('appointments.0.prescriptions.0');
-    expect($exported['annulment']['kind'])->toBe('no_longer_needed')
-        ->and($exported['annulment']['reason'])->toBe('Terminó el tratamiento.')
+    expect($exported['annulment']['reason'])->toBe('Terminó el tratamiento.')
         ->and($exported['annulment']['author']['name'])->toBe('Dra. Exportadora')
         ->and($exported['annulment']['created_at'])->not->toBeNull()
         ->and(collect($exported['versions'])->pluck('version')->all())->toBe([1, 2]);

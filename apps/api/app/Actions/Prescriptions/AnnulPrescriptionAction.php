@@ -15,9 +15,8 @@ use App\Models\Prescription;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Says the indicated medication no longer counts, because it is no longer
- * needed or never was (#344): it stays in the history with every version,
- * marked as annulled, as a note does (ADR 0019).
+ * Says the indicated medication no longer counts (#344): it stays in the
+ * history with every version, marked as annulled, as a note does (ADR 0019).
  *
  * @implements Action<PrescriptionAnnulmentData>
  */
@@ -41,7 +40,6 @@ class AnnulPrescriptionAction implements Action
 
             $prescription->annulment()->create([
                 'membership_id' => $dto->membershipId,
-                'kind' => $dto->kind,
                 'reason' => $dto->reason,
             ]);
 

@@ -23,7 +23,7 @@ function validPrescriptionPayload(): array
 
 function validAnnulmentPayload(): array
 {
-    return ['kind' => 'never_needed', 'reason' => 'Indicada por error.'];
+    return ['reason' => 'Indicada por error.'];
 }
 
 test('a membership that is not the booked professional gets 403 on every endpoint', function (string $role) {

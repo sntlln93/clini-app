@@ -108,7 +108,6 @@ class ClinicalRecordResource extends JsonResource
             'created_at' => $prescription->created_at,
             'annulment' => $annulment === null ? null : [
                 'author' => $this->person($annulment->author),
-                'kind' => $annulment->kind,
                 'reason' => $annulment->reason,
                 'created_at' => $annulment->created_at,
             ],

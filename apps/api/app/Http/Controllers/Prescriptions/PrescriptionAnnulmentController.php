@@ -33,7 +33,6 @@ class PrescriptionAnnulmentController extends Controller
         $annulled = $action->handle(new PrescriptionAnnulmentData(
             prescriptionId: $prescription->id,
             membershipId: $membership->id,
-            kind: $request->kind(),
             reason: $request->string('reason')->trim()->toString(),
         ));
 

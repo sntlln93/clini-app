@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Models;
 
-use App\Enums\PrescriptionAnnulmentKind;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,20 +13,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * the record and every version stay in the history, and it can no longer be
  * amended.
  */
-#[Fillable(['prescription_id', 'membership_id', 'kind', 'reason'])]
+#[Fillable(['prescription_id', 'membership_id', 'reason'])]
 class PrescriptionAnnulment extends Model
 {
     public const null UPDATED_AT = null;
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'kind' => PrescriptionAnnulmentKind::class,
-        ];
-    }
 
     /**
      * @return BelongsTo<Prescription, $this>

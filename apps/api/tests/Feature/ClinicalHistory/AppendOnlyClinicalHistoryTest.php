@@ -5,7 +5,6 @@ declare(strict_types=1);
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
-use App\Enums\PrescriptionAnnulmentKind;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
@@ -100,11 +99,7 @@ test('the database rejects updating or deleting any row of the clinical history'
     'prescription_annulments' => ['prescription_annulments', function () {
         $prescription = Prescription::factory()->create();
 
-        return $prescription->annulment()->create([
-            'membership_id' => $prescription->membership_id,
-            'kind' => PrescriptionAnnulmentKind::NeverNeeded,
-            'reason' => 'Anulada.',
-        ])->id;
+        return $prescription->annulment()->create(['membership_id' => $prescription->membership_id, 'reason' => 'Anulada.'])->id;
     }],
     'clinical_record_exports' => ['clinical_record_exports', function () {
         $membership = Membership::factory()->professional()->create();
