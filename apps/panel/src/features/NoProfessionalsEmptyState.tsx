@@ -1,8 +1,9 @@
-import { EmptyState } from '@/components/EmptyState';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { sessionHasPermission, useSession } from '@/lib/session';
 import { Link } from '@tanstack/react-router';
-import { UserPlus } from 'lucide-react';
+import { MailPlus } from 'lucide-react';
+import type { ComponentProps } from 'react';
 import {
     JoinAsProfessionalButton,
     joinableMembership,
@@ -11,7 +12,7 @@ import {
 type NoProfessionalsEmptyStateProps = {
     /** Next step shown to someone who can invite, e.g. what the invitee unlocks on this page. */
     description: string;
-};
+} & Pick<ComponentProps<typeof EmptyState>, 'size' | 'framed'>;
 
 /**
  * Only offers the invite CTA with `memberships.manage`; otherwise says who can
@@ -20,6 +21,8 @@ type NoProfessionalsEmptyStateProps = {
  */
 export function NoProfessionalsEmptyState({
     description,
+    size,
+    framed,
 }: NoProfessionalsEmptyStateProps) {
     const { data: session } = useSession();
     const canInvite = sessionHasPermission(session, 'memberships.manage');
@@ -35,14 +38,26 @@ export function NoProfessionalsEmptyState({
             : description;
     }
 
+    function title() {
+        if (!canInvite) {
+            return 'Todavía no hay profesionales';
+        }
+
+        return ownMembership
+            ? 'Sumá a tu primer profesional'
+            : 'Invitá a tu primer profesional';
+    }
+
     return (
         <EmptyState
-            icon={UserPlus}
-            title="Todavía no hay profesionales"
+            illustration="team"
+            title={title()}
             description={invitationDescription()}
+            size={size}
+            framed={framed}
             action={
                 canInvite ? (
-                    <div className="flex flex-wrap justify-center gap-2">
+                    <>
                         {ownMembership && (
                             <JoinAsProfessionalButton
                                 membership={ownMembership}
@@ -53,9 +68,10 @@ export function NoProfessionalsEmptyState({
                             render={<Link to="/profesionales/nuevo" />}
                             nativeButton={false}
                         >
+                            <MailPlus data-icon="inline-start" />
                             Invitar profesional
                         </Button>
-                    </div>
+                    </>
                 ) : undefined
             }
         />

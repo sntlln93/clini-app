@@ -182,9 +182,9 @@ describe('WaitingRoomBoard', () => {
         );
 
         expect(
-            screen.getByText(
-                'Todavía no hay profesionales en esta organización.',
-            ),
+            screen.getByRole('heading', {
+                name: 'Todavía no hay profesionales',
+            }),
         ).toBeTruthy();
     });
 });

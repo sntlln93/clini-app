@@ -1,3 +1,4 @@
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
 import { ProfessionalQueueCard } from './ProfessionalQueueCard';
@@ -16,10 +17,13 @@ export function WaitingRoomBoard({
     updatedAt,
 }: WaitingRoomBoardProps) {
     if (professionals.length === 0) {
+        // A screen people watch from the waiting room: it explains, with no step to take.
         return (
-            <p className="text-xl text-muted-foreground">
-                Todavía no hay profesionales en esta organización.
-            </p>
+            <EmptyState
+                illustration="team"
+                title="Todavía no hay profesionales"
+                description="Cuando el consultorio sume profesionales, acá vas a ver quién llegó para cada uno."
+            />
         );
     }
 

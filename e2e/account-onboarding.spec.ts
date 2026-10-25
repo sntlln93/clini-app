@@ -120,6 +120,12 @@ test('an owner who only manages steps out from Ajustes and back in from the chec
     ).toBeVisible();
     await expect(attends).not.toBeChecked();
 
+    // The members list still holds the owner's row, but nobody attends (#305).
+    await page.goto('/profesionales');
+    await expect(
+        page.getByRole('heading', { name: 'Sumá a tu primer profesional' }),
+    ).toBeVisible();
+
     await page.goto('/agenda');
     await expect(page.getByRole('button', { name: 'Nuevo turno' })).toHaveCount(
         0,

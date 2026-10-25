@@ -1,12 +1,12 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS, Searchbar } from '@/features/Searchbar';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
-import { SearchX, Users } from 'lucide-react';
+import { UserPlus } from 'lucide-react';
 import { z } from 'zod';
 import { PatientsTable } from './-components/PatientsTable';
 import { patientsQueryOptions } from './-hooks/use-patients';
@@ -57,7 +57,7 @@ function PacientesPage() {
     const empty =
         q !== '' ? (
             <EmptyState
-                icon={SearchX}
+                illustration="search"
                 title="Sin resultados"
                 description="No encontramos pacientes que coincidan con la búsqueda."
                 action={
@@ -72,7 +72,7 @@ function PacientesPage() {
             />
         ) : (
             <EmptyState
-                icon={Users}
+                illustration="patients"
                 title="Todavía no hay pacientes"
                 description="Cargá el primer paciente para empezar a agendar turnos."
                 action={
@@ -80,6 +80,7 @@ function PacientesPage() {
                         render={<Link to="/pacientes/nuevo" />}
                         nativeButton={false}
                     >
+                        <UserPlus data-icon="inline-start" />
                         Nuevo paciente
                     </Button>
                 }
