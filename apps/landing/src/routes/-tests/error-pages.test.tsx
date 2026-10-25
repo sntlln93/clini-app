@@ -1,4 +1,3 @@
-import { getRouter } from '@/router';
 import { expectNoA11yViolations } from '@/tests/a11y';
 import {
     createMemoryHistory,
@@ -9,12 +8,11 @@ import {
 } from '@tanstack/react-router';
 import { render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { errorRouterOptions } from '../-components/error-page/error-router-options';
 
 // The site's own pages for a miss and for a failure, with the options the
 // real router is built with (#304).
 function renderAt(path: string) {
-    const { defaultNotFoundComponent, defaultErrorComponent } =
-        getRouter().options;
     const rootRoute = createRootRoute();
     const failingRoute = createRoute({
         getParentRoute: () => rootRoute,
@@ -26,8 +24,7 @@ function renderAt(path: string) {
     const router = createRouter({
         routeTree: rootRoute.addChildren([failingRoute]),
         history: createMemoryHistory({ initialEntries: [path] }),
-        defaultNotFoundComponent,
-        defaultErrorComponent,
+        ...errorRouterOptions,
     });
 
     return render(<RouterProvider router={router} />);

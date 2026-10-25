@@ -1,14 +1,12 @@
 import { createRouter } from '@tanstack/react-router';
-import { NotFoundPage } from './routes/-components/error-page/NotFoundPage';
-import { ServerErrorPage } from './routes/-components/error-page/ServerErrorPage';
+import { errorRouterOptions } from './routes/-components/error-page/error-router-options';
 import { routeTree } from './routeTree.gen';
 
 export function getRouter() {
     return createRouter({
         routeTree,
         scrollRestoration: true,
-        defaultNotFoundComponent: NotFoundPage,
-        defaultErrorComponent: ServerErrorPage,
+        ...errorRouterOptions,
     });
 }
 
