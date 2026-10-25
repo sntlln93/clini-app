@@ -97,12 +97,15 @@ test('what another professional did with their own medication stays theirs, whil
     trailRow($colleague, $patient, ClinicalAccessAction::PrescriptionAmended, '2026-10-01 12:01:00');
     trailRow($colleague, $patient, ClinicalAccessAction::PrescriptionsViewed, '2026-10-01 12:02:00');
     trailRow($colleague, $patient, ClinicalAccessAction::NoteAmended, '2026-10-01 12:03:00');
+    trailRow($colleague, $patient, ClinicalAccessAction::PrescriptionAnnulled, '2026-10-01 12:04:00');
     trailRow($reader, $patient, ClinicalAccessAction::PrescriptionIssued, '2026-10-02 09:00:00');
     trailRow($reader, $patient, ClinicalAccessAction::PrescriptionsViewed, '2026-10-02 09:01:00');
+    trailRow($reader, $patient, ClinicalAccessAction::PrescriptionAnnulled, '2026-10-02 09:02:00');
 
     $response = $this->actingAs($reader->user)->getJson(trailUri($patient));
 
     expect(collect($response->assertOk()->json('data'))->map(fn (array $entry) => [$entry['professional']['name'], $entry['action']])->all())->toBe([
+        ['Dra. Lectora', 'prescription_annulled'],
         ['Dra. Lectora', 'prescriptions_viewed'],
         ['Dra. Lectora', 'prescription_issued'],
         ['Dr. Colega', 'note_amended'],

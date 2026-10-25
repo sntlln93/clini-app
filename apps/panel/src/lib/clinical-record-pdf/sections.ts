@@ -1,28 +1,17 @@
 import { STATUS_LABELS } from '@/lib/appointment-status';
 import { describeTrailEntry } from '@/lib/clinical-access';
-import { fromCalendarDate, fromInstant } from '@/lib/datetime';
+import { fromCalendarDate } from '@/lib/datetime';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
 import type {
     ClinicalRecordAppointment,
-    ClinicalRecordNote,
     ClinicalRecordPatient,
-    ClinicalRecordPerson,
-    ClinicalRecordPrescription,
 } from '@/types/clinical-record';
 import type { Content } from 'pdfmake/interfaces';
+import { at, nameOf, noteBlock, prescriptionBlock } from './records';
 
 const DOCUMENT_TYPES = { dni: 'DNI', passport: 'Pasaporte' } as const;
 
 const SEXES = { f: 'Femenino', m: 'Masculino', u: 'Sin especificar' } as const;
-
-/** In the practice's zone, Luxon's default (`setPracticeTimeZone`). */
-export function at(iso: string): string {
-    return fromInstant(iso).toFormat('dd/MM/yyyy HH:mm');
-}
-
-export function nameOf(person: ClinicalRecordPerson): string {
-    return person?.name ?? 'Profesional sin nombre';
-}
 
 // A title never ends a page alone (`keepTitlesWithContent`).
 function sectionTitle(text: string): Content {
@@ -71,101 +60,6 @@ export function patientSection(patient: ClinicalRecordPatient): Content[] {
             layout: 'noBorders',
         },
     ];
-}
-
-// Worded as the panel's version history words it: the first version, then
-// each amendment with its author, time and reason.
-function versionLine(version: {
-    version: number;
-    author: ClinicalRecordPerson;
-    created_at: string;
-    reason: string | null;
-}): string {
-    const who = `${nameOf(version.author)}, ${at(version.created_at)}`;
-
-    if (version.version === 1) {
-        return `Versión 1, ${who}`;
-    }
-
-    return `Enmienda (versión ${version.version}), ${who}${version.reason ? ` · Motivo: ${version.reason}` : ''}`;
-}
-
-function noteBlock(note: ClinicalRecordNote): Content {
-    return {
-        style: 'record',
-        stack: [
-            {
-                text: [
-                    { text: 'Nota clínica', bold: true },
-                    {
-                        text: ` · escrita por ${nameOf(note.author)} el ${at(note.created_at)}`,
-                        style: 'muted',
-                    },
-                ],
-            },
-            ...(note.annulment
-                ? [
-                      {
-                          text: `Anulada el ${at(note.annulment.created_at)} por ${nameOf(note.annulment.author)}. Motivo: ${note.annulment.reason}`,
-                          bold: true,
-                      },
-                  ]
-                : []),
-            ...note.versions.map((version): Content => ({
-                style: 'version',
-                stack: [
-                    {
-                        text: versionLine(version),
-                        style: 'muted',
-                    },
-                    { text: version.body, preserveLeadingSpaces: true },
-                    ...(version.diagnoses.length > 0
-                        ? [
-                              'Diagnósticos (CIE-10):',
-                              {
-                                  ul: version.diagnoses.map(
-                                      (diagnosis) =>
-                                          `${diagnosis.code} · ${diagnosis.description}`,
-                                  ),
-                              },
-                          ]
-                        : []),
-                ],
-            })),
-        ],
-    };
-}
-
-function prescriptionBlock(prescription: ClinicalRecordPrescription): Content {
-    return {
-        style: 'record',
-        stack: [
-            {
-                text: [
-                    { text: 'Medicación indicada', bold: true },
-                    {
-                        text: ` · por ${nameOf(prescription.author)} el ${at(prescription.issued_at)}`,
-                        style: 'muted',
-                    },
-                ],
-            },
-            ...prescription.versions.map((version): Content => ({
-                style: 'version',
-                stack: [
-                    {
-                        text: versionLine(version),
-                        style: 'muted',
-                    },
-                    {
-                        ul: version.items.map(
-                            (item) =>
-                                `${item.medication}${item.presentation ? `, ${item.presentation}` : ''} · ${item.dosage} · Cantidad: ${item.quantity}`,
-                        ),
-                    },
-                ],
-            })),
-        ],
-    };
 }
 
 function appointmentBlock(appointment: ClinicalRecordAppointment): Content {

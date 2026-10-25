@@ -113,8 +113,8 @@ El panel lee la suscripción y el plan una vez en el loader de `_auth` y los obs
 - **Banner:** gracia, vencida, el período pago de una cancelación, Gratis por encima del límite de profesionales, o Gratis con un límite de turnos y el mes actual en el umbral de aviso o lleno. Muestra «Ver plan», que lleva a `/ajustes#suscripcion`. Crear, reprogramar o cancelar un turno en Gratis refresca el plan, así que el contador del banner se actualiza.
 - **Ajustes:** la sección «Plan y suscripción».
 - **Registro (#286, #240):** en Consultorio pregunta la forma de pago (Mensual / Anual), preseleccionada por `?pago=mensual|anual`, que agrega el link de la landing cuando el visitante eligió «Anual».
-- **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda y disponibilidad, las de alta, enmienda y anulación en notas clínicas, y las de alta y enmienda en medicación indicada.
-- **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; la medicación indicada se puede ver pero no registrar ni enmendar; invitar y el link por profesional muestran el límite.
+- **Solo lectura:** `useWritesRestricted()` (suscripción vencida o límite de profesionales excedido) oculta las acciones de alta y edición en agenda y disponibilidad, las de alta, enmienda y anulación en notas clínicas, y las de alta, enmienda y anulación en medicación indicada.
+- **Funciones fuera del plan:** se ocultan o se explican con `PlanFeatureNote`. La sala de espera no aparece en el menú y su página lo explica; la medicación indicada se puede ver pero no registrar, enmendar ni anular; invitar y el link por profesional muestran el límite.
 - **Reserva online:** ante una suscripción vencida o el límite de profesionales excedido, el paciente ve un mensaje genérico que le pide contactar al consultorio, nunca el motivo. Si el mes del turno está lleno, el mensaje le propone elegir otro mes o contactar al consultorio, sin nombrar el plan.
 
 El backend sigue siendo la fuente de verdad.

@@ -25,10 +25,28 @@ export function usePrescriptions(appointmentId: number | null, open: boolean) {
     });
 }
 
+// The loader-only patient list is dropped, not refetched: `ensureQueryData`
+// would serve it while a refetch is in flight (#273). The dialog's first load
+// is cancelled before its own refresh, which would otherwise join it and keep
+// its pre-save answer.
+function useRefreshPrescriptions(appointmentId: number | null) {
+    const queryClient = useQueryClient();
+
+    return async () => {
+        discardPageData(queryClient, ['prescriptions', 'patient']);
+        await queryClient.cancelQueries({
+            queryKey: queryKey(appointmentId),
+        });
+        await queryClient.invalidateQueries({
+            queryKey: queryKey(appointmentId),
+        });
+    };
+}
+
 // Records one when `prescriptionId` is null, amends it otherwise: a record is
 // never edited (#323), an amendment adds a version and keeps the earlier ones.
 export function useSavePrescription(appointmentId: number | null) {
-    const queryClient = useQueryClient();
+    const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
 
     return useMutation({
         mutationFn: ({
@@ -46,18 +64,18 @@ export function useSavePrescription(appointmentId: number | null) {
                       items,
                       reason,
                   }),
-        // The loader-only patient list is dropped, not refetched:
-        // `ensureQueryData` would serve it while a refetch is in flight (#273).
-        // The dialog's first load is cancelled before its own refresh, which
-        // would otherwise join it and keep its pre-save answer.
-        onSuccess: async () => {
-            discardPageData(queryClient, ['prescriptions', 'patient']);
-            await queryClient.cancelQueries({
-                queryKey: queryKey(appointmentId),
-            });
-            await queryClient.invalidateQueries({
-                queryKey: queryKey(appointmentId),
-            });
-        },
+        onSuccess: refreshPrescriptions,
+    });
+}
+
+// Annulling keeps the record with every version, marked as annulled with its
+// reason (#344).
+export function useAnnulPrescription(appointmentId: number | null) {
+    const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
+
+    return useMutation({
+        mutationFn: ({ id, reason }: { id: number; reason: string }) =>
+            api.post(`/prescriptions/${id}/annulment`, { reason }),
+        onSuccess: refreshPrescriptions,
     });
 }

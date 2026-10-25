@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (#323).
+Aceptado (#323). La anulación de la medicación indicada se suma en el [ADR 0025](0025-anulacion-de-la-medicacion-indicada.md) (#344), que revierte la alternativa descartada más abajo.
 
 ## Contexto
 
@@ -31,7 +31,7 @@ Hasta ahora el autor podía editar una nota (`PATCH`, que pisaba el texto) y bor
 - **Una tabla de auditoría genérica (antes/después en JSON) y seguir editando la fila.** La versión vigente quedaría en una tabla y la historia en otra, que se puede olvidar de escribir. La integridad dependería de que cada camino de escritura audite. Con versiones, la historia es el dato mismo.
 - **Guardar el texto vigente en `clinical_notes` y las versiones viejas aparte.** Obliga a actualizar la fila de la nota en cada enmienda, justo lo que el trigger prohíbe, y deja dos copias del texto vigente.
 - **Restaurar las notas borradas como notas comunes, o dejarlas borradas.** Restaurarlas sin marca contradice la decisión del autor de sacarlas. Dejarlas fuera pierde datos de la historia. Anularlas conserva las dos cosas, y mostrarlas u ocultarlas es solo un cambio de interfaz.
-- **Permitir anular la medicación indicada.** Nunca se pudo borrar, y un error en los ítems se corrige con una enmienda. Si hace falta, es un issue aparte.
+- **Permitir anular la medicación indicada.** Nunca se pudo borrar, y un error en los ítems se corrige con una enmienda. Si hace falta, es un issue aparte. *Revertida por el ADR 0025 (#344): una enmienda no puede decir que una indicación ya no vale.*
 - **Validar la inmutabilidad solo en la API** (policies, sin rutas de edición). No protege contra una consola, un script ni una migración mal escrita.
 
 ## Consecuencias

@@ -27,7 +27,7 @@ class PrescriptionController extends Controller
     /**
      * Everything PrescriptionResource renders, so it never lazy-loads.
      */
-    public const array RELATIONS = ['versions.items'];
+    public const array RELATIONS = ['versions.items', 'annulment'];
 
     public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {

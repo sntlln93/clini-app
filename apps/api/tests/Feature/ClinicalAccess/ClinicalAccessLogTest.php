@@ -352,7 +352,7 @@ test('writing, amending and annulling a note each leave a row with the note', fu
         ->and($rows->pluck('membership_id')->unique()->all())->toBe([$professional->id]);
 });
 
-test('issuing and amending indicated medication each leave a row with the record', function () {
+test('issuing, amending and annulling indicated medication each leave a row with the record', function () {
     ['professional' => $professional, 'patient' => $patient] = clinicalAccessFixture();
     $appointment = appointmentDaysFromNow($professional, $patient, 0);
     $items = fn (string $medication): array => ['items' => [['medication' => $medication, 'dosage' => '1 cada 8 h', 'quantity' => 1]]];
@@ -362,12 +362,17 @@ test('issuing and amending indicated medication each leave a row with the record
     freshRequestState();
     $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescriptionId}/amendments", $items('Ibuprofeno'))
         ->assertCreated();
+    freshRequestState();
+    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescriptionId}/annulment", ['reason' => 'Terminó el tratamiento.'])
+        ->assertCreated();
 
     $rows = accessLog()->orderBy('id')->get();
     expect($rows->map(fn (ClinicalAccessLog $row) => $row->action)->all())
-        ->toBe([ClinicalAccessAction::PrescriptionIssued, ClinicalAccessAction::PrescriptionAmended])
+        ->toBe([ClinicalAccessAction::PrescriptionIssued, ClinicalAccessAction::PrescriptionAmended, ClinicalAccessAction::PrescriptionAnnulled])
         ->and($rows->pluck('prescription_id')->unique()->all())->toBe([$prescriptionId])
-        ->and($rows->pluck('patient_id')->unique()->all())->toBe([$patient->id]);
+        ->and($rows->pluck('appointment_id')->unique()->all())->toBe([$appointment->id])
+        ->and($rows->pluck('patient_id')->unique()->all())->toBe([$patient->id])
+        ->and($rows->pluck('membership_id')->unique()->all())->toBe([$professional->id]);
 });
 
 test('a write the history rejects leaves no row', function () {
@@ -386,6 +391,17 @@ test('a write the history rejects leaves no row', function () {
         'dosage' => $current->dosage,
         'quantity' => $current->quantity,
     ]]])->assertStatus(409);
+    // Annulling what is already annulled is rejected too (#344).
+    $annulledNote = ClinicalNote::factory()->create(['appointment_id' => $appointment->id]);
+    $annulledNote->annulment()->create(['membership_id' => $professional->id, 'reason' => 'Primera.']);
+    $annulledPrescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $annulledPrescription->annulment()->create(['membership_id' => $professional->id, 'reason' => 'Primera.']);
+    freshRequestState();
+    $this->actingAs($professional->user)->postJson("/api/v1/clinical-notes/{$annulledNote->id}/annulment", ['reason' => 'Segunda.'])
+        ->assertStatus(409);
+    freshRequestState();
+    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$annulledPrescription->id}/annulment", ['reason' => 'Segunda.'])
+        ->assertStatus(409);
 
     expect(accessLog()->count())->toBe(0);
 });

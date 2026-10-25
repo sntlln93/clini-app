@@ -113,6 +113,9 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain(
             'Ibuprofeno, Comprimidos 400 mg · 1 cada 8 h · Cantidad: 2',
         );
+        expect(text).toContain(
+            'Anulada el 08/09/2026 09:00 por Dra. Exportadora. Motivo: Terminó el tratamiento.',
+        );
     });
 
     it('closes with the access trail, as the patient page words it', () => {

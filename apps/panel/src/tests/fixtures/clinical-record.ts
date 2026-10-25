@@ -1,7 +1,7 @@
 import type { ClinicalRecordDocument } from '@/types/clinical-record';
 
 // One patient's export as the API answers it: an amended note with a
-// diagnosis, a colleague's annulled note, the exporter's amended medication
+// diagnosis, a colleague's annulled note, the exporter's annulled medication
 // and a trail with an exceptional access and the export itself.
 export function buildClinicalRecord(
     overrides: Partial<ClinicalRecordDocument> = {},
@@ -77,6 +77,11 @@ export function buildClinicalRecord(
                         author: exporter,
                         issued_at: '2026-09-01T13:25:00Z',
                         created_at: '2026-09-01T13:25:00Z',
+                        annulment: {
+                            author: exporter,
+                            reason: 'Terminó el tratamiento.',
+                            created_at: '2026-09-08T12:00:00Z',
+                        },
                         versions: [
                             {
                                 version: 1,

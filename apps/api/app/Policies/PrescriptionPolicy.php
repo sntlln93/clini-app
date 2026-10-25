@@ -21,8 +21,8 @@ use App\Support\CurrentOrganization;
  * patient's notes (`ClinicalAccess::attends`, #325), but it only ever returns
  * the acting membership's own prescriptions: it is never widened to other
  * authors (CU-53). Without an appointment near today, reading it also takes a
- * reason (ADR 0022). A record is never edited (#323, ADR 0019): its author
- * amends it instead.
+ * reason (ADR 0022). A record is never edited or deleted (#323, ADR 0019):
+ * its author amends or annuls it instead (#344).
  */
 class PrescriptionPolicy
 {
@@ -42,6 +42,11 @@ class PrescriptionPolicy
     }
 
     public function amend(User $user, Prescription $prescription): bool
+    {
+        return $this->isPrescriptionOwner($user, $prescription);
+    }
+
+    public function annul(User $user, Prescription $prescription): bool
     {
         return $this->isPrescriptionOwner($user, $prescription);
     }

@@ -76,6 +76,7 @@ function gatedWrites(array $fixture): array
         'clinical note annulment' => ['post', "/api/v1/clinical-notes/{$fixture['note']->id}/annulment"],
         'prescription store' => ['post', "/api/v1/appointments/{$appointment->id}/prescriptions"],
         'prescription amendment' => ['post', "/api/v1/prescriptions/{$fixture['prescription']->id}/amendments"],
+        'prescription annulment' => ['post', "/api/v1/prescriptions/{$fixture['prescription']->id}/annulment"],
         'availability store' => ['post', "/api/v1/memberships/{$membership->id}/availabilities"],
         'availability update' => ['patch', "/api/v1/availabilities/{$fixture['availability']->id}"],
         'availability exception store' => ['post', '/api/v1/availability-exceptions'],

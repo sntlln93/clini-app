@@ -5,11 +5,10 @@ import type {
     NodeQueries,
     TDocumentDefinitions,
 } from 'pdfmake/interfaces';
+import { at, nameOf } from './records';
 import {
     accessLogSection,
     appointmentsSection,
-    at,
-    nameOf,
     patientSection,
 } from './sections';
 

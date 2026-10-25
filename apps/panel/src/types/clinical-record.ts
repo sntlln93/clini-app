@@ -69,6 +69,11 @@ export type ClinicalRecordPrescription = {
     author: ClinicalRecordPerson;
     issued_at: string;
     created_at: string;
+    annulment: {
+        author: ClinicalRecordPerson;
+        reason: string;
+        created_at: string;
+    } | null;
     versions: ClinicalRecordPrescriptionVersion[];
 };
 

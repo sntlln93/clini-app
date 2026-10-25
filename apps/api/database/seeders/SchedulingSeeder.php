@@ -23,6 +23,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
 use App\Models\Reminder;
@@ -105,6 +106,7 @@ class SchedulingSeeder extends Seeder
             ClinicalNoteDiagnosis::whereIn('clinical_note_version_id', $noteVersions)->delete();
             ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->delete();
             ClinicalNote::where('organization_id', $organization->id)->delete();
+            PrescriptionAnnulment::whereIn('prescription_id', $prescriptions)->delete();
             PrescriptionItem::whereIn('prescription_version_id', $prescriptionVersions)->delete();
             PrescriptionVersion::whereIn('prescription_id', $prescriptions)->delete();
             Prescription::where('organization_id', $organization->id)->delete();

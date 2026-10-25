@@ -20,6 +20,7 @@ enum ClinicalAccessAction: string
     case NoteAnnulled = 'note_annulled';
     case PrescriptionIssued = 'prescription_issued';
     case PrescriptionAmended = 'prescription_amended';
+    case PrescriptionAnnulled = 'prescription_annulled';
     /**
      * The patient's history went into an export, alone or with every patient the professional attended.
      */
@@ -32,6 +33,6 @@ enum ClinicalAccessAction: string
      */
     public static function ownPrescriptionActions(): array
     {
-        return [self::PrescriptionsViewed, self::PrescriptionIssued, self::PrescriptionAmended];
+        return [self::PrescriptionsViewed, self::PrescriptionIssued, self::PrescriptionAmended, self::PrescriptionAnnulled];
     }
 }

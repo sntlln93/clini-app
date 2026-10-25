@@ -8,7 +8,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { usePrescriptions, useSavePrescription } from './use-prescriptions';
+import {
+    useAnnulPrescription,
+    usePrescriptions,
+    useSavePrescription,
+} from './use-prescriptions';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
@@ -127,5 +131,56 @@ describe('useSavePrescription (#273)', () => {
             items: PAYLOAD.items,
             reason: 'Alergia.',
         });
+    });
+});
+
+describe('useAnnulPrescription (#344)', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+        vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
+    });
+
+    it('posts the reason as the annulment', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        const { result } = renderWithClient(new QueryClient(), () =>
+            useAnnulPrescription(42),
+        );
+
+        await result.current.mutateAsync({
+            id: 9,
+            reason: 'Terminó el tratamiento.',
+        });
+
+        expect(api.post).toHaveBeenCalledWith('/prescriptions/9/annulment', {
+            reason: 'Terminó el tratamiento.',
+        });
+    });
+
+    it('drops the patient page list and refreshes the dialog list', async () => {
+        const queryClient = new QueryClient();
+        vi.mocked(api.get).mockResolvedValueOnce({ data: { data: [] } });
+        await queryClient.ensureQueryData(patientPrescriptionsQueryOptions(50));
+        const annulled = { id: 9, annulment: {} } as Prescription;
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [annulled] } });
+        const { result } = renderWithClient(queryClient, () => ({
+            prescriptions: usePrescriptions(42, true),
+            annul: useAnnulPrescription(42),
+        }));
+        await waitFor(() =>
+            expect(result.current.prescriptions.data).toEqual([annulled]),
+        );
+        vi.mocked(api.get).mockClear();
+
+        await result.current.annul.mutateAsync({
+            id: 9,
+            reason: 'Paciente equivocado.',
+        });
+
+        expect(
+            queryClient.getQueryData(
+                patientPrescriptionsQueryOptions(50).queryKey,
+            ),
+        ).toBeUndefined();
+        expect(api.get).toHaveBeenCalledWith('/appointments/42/prescriptions');
     });
 });
