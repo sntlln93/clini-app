@@ -560,11 +560,10 @@ Convenciones:
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
-  - Se **anula** cuando **ya no es necesaria** (el tratamiento terminó o se suspendió) o
-    **nunca lo fue** (se indicó por error), con un motivo obligatorio
-    ([ADR 0025](../adr/0025-anulacion-de-la-medicacion-indicada.md)). Sigue en la historia con
-    todas sus versiones, marcada como anulada, y ya no se enmienda ni se vuelve a anular. Lo que
-    nunca fue necesario se muestra detrás de un desplegable.
+  - Se **anula** con un motivo obligatorio cuando ya no vale, porque el tratamiento terminó o
+    porque se indicó por error ([ADR 0025](../adr/0025-anulacion-de-la-medicacion-indicada.md)).
+    Sigue en la historia con todas sus versiones, marcada como anulada y con sus ítems detrás de
+    un desplegable, como una nota anulada, y ya no se enmienda ni se vuelve a anular.
   - Se registra, se enmienda y se anula desde el turno en la agenda o desde la ficha del paciente, con
     el mismo diálogo. Desde la ficha, el registro nuevo cuelga del turno propio de hoy, como
     una nota nueva (CU-45), y una enmienda, del turno del registro.
