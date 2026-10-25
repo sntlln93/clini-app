@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
+use App\Enums\PrescriptionAnnulmentKind;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
@@ -33,6 +34,9 @@ const EXPORTS_MIGRATION = 'migrations/2026_10_19_000001_create_clinical_record_e
 
 // And for the access log (#325), which also points at notes and prescriptions.
 const ACCESS_LOG_MIGRATION = 'migrations/2026_10_24_000001_create_clinical_access_logs_table.php';
+
+// And for the annulment of indicated medication (#344).
+const PRESCRIPTION_ANNULMENTS_MIGRATION = 'migrations/2026_10_25_000001_create_prescription_annulments_table.php';
 
 /**
  * Runs one statement in its own savepoint, so the error it raises doesn't
@@ -93,6 +97,15 @@ test('the database rejects updating or deleting any row of the clinical history'
     'prescriptions' => ['prescriptions', fn () => Prescription::factory()->create()->id],
     'prescription_versions' => ['prescription_versions', fn () => Prescription::factory()->create()->versions()->sole()->id],
     'prescription_items' => ['prescription_items', fn () => Prescription::factory()->create()->versions()->sole()->items()->sole()->id],
+    'prescription_annulments' => ['prescription_annulments', function () {
+        $prescription = Prescription::factory()->create();
+
+        return $prescription->annulment()->create([
+            'membership_id' => $prescription->membership_id,
+            'kind' => PrescriptionAnnulmentKind::NeverNeeded,
+            'reason' => 'Anulada.',
+        ])->id;
+    }],
     'clinical_record_exports' => ['clinical_record_exports', function () {
         $membership = Membership::factory()->professional()->create();
 
@@ -120,10 +133,12 @@ test('the database rejects updating or deleting any row of the clinical history'
 test('the migration turns existing rows into version 1 and restores soft-deleted notes as annulled', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create(['organization_id' => $membership->organization_id, 'membership_id' => $membership->id]);
+    $prescriptionAnnulmentsMigration = require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION);
     $accessLogMigration = require database_path(ACCESS_LOG_MIGRATION);
     $exportsMigration = require database_path(EXPORTS_MIGRATION);
     $diagnosesMigration = require database_path(DIAGNOSES_MIGRATION);
     $migration = require database_path(APPEND_ONLY_MIGRATION);
+    $prescriptionAnnulmentsMigration->down();
     $accessLogMigration->down();
     $exportsMigration->down();
     $diagnosesMigration->down();
@@ -145,6 +160,7 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     $diagnosesMigration->up();
     $exportsMigration->up();
     $accessLogMigration->up();
+    $prescriptionAnnulmentsMigration->up();
 
     $edited = ClinicalNote::with('versions', 'annulment')->findOrFail($editedNoteId);
     expect($edited->versions)->toHaveCount(1)
@@ -180,6 +196,7 @@ test('rolling the migration back keeps the latest version and brings annulled no
     $prescription->versions()->create(['version' => 2, 'membership_id' => $prescription->membership_id])
         ->items()->create(['position' => 0, 'medication' => 'Paracetamol', 'dosage' => '1 cada 6 h', 'quantity' => 2]);
 
+    (require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION))->down();
     (require database_path(ACCESS_LOG_MIGRATION))->down();
     (require database_path(EXPORTS_MIGRATION))->down();
     (require database_path(DIAGNOSES_MIGRATION))->down();

@@ -13,7 +13,7 @@ use Illuminate\Support\LazyCollection;
 /**
  * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization, every
  * note on them with all its versions, diagnoses and annulment, and only the exporting membership's own indicated
- * medication, the same records each professional can already read (CU-45, CU-53), plus the patient's access trail in
+ * medication with its versions and annulment, the same records each professional can already read (CU-45, CU-53), plus the patient's access trail in
  * the organization as the exporting membership sees it (#325, ADR 0022). Authors are loaded even when their membership
  * was deactivated.
  */
@@ -75,6 +75,7 @@ class ClinicalRecordLoader
             'appointments.prescriptions.author.user',
             'appointments.prescriptions.versions.author.user',
             'appointments.prescriptions.versions.items',
+            'appointments.prescriptions.annulment.author.user',
             'clinicalAccessLogs' => fn ($query) => $query
                 ->visibleTo($organizationId, $membershipId)
                 ->orderBy('created_at')

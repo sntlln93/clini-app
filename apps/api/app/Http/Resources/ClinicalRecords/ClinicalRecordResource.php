@@ -99,11 +99,19 @@ class ClinicalRecordResource extends JsonResource
      */
     private function prescription(Prescription $prescription): array
     {
+        $annulment = $prescription->annulment;
+
         return [
             'id' => $prescription->id,
             'author' => $this->person($prescription->author),
             'issued_at' => $prescription->issued_at,
             'created_at' => $prescription->created_at,
+            'annulment' => $annulment === null ? null : [
+                'author' => $this->person($annulment->author),
+                'kind' => $annulment->kind,
+                'reason' => $annulment->reason,
+                'created_at' => $annulment->created_at,
+            ],
             'versions' => $prescription->versions->map(fn (PrescriptionVersion $version): array => [
                 'version' => $version->version,
                 'author' => $this->person($version->author),

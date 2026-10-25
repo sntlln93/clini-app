@@ -21,6 +21,11 @@ function validPrescriptionPayload(): array
     ];
 }
 
+function validAnnulmentPayload(): array
+{
+    return ['kind' => 'never_needed', 'reason' => 'Indicada por error.'];
+}
+
 test('a membership that is not the booked professional gets 403 on every endpoint', function (string $role) {
     $organization = Organization::factory()->center()->create();
     $intruder = Membership::factory()->{$role}()->create(['organization_id' => $organization->id]);
@@ -37,8 +42,11 @@ test('a membership that is not the booked professional gets 403 on every endpoin
         ->assertStatus(403);
     $this->actingAs($intruder->user)->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", validPrescriptionPayload())
         ->assertStatus(403);
+    $this->actingAs($intruder->user)->postJson("/api/v1/prescriptions/{$prescription->id}/annulment", validAnnulmentPayload())
+        ->assertStatus(403);
 
-    expect(Prescription::count())->toBe(1);
+    expect(Prescription::count())->toBe(1)
+        ->and($prescription->annulment()->exists())->toBeFalse();
 })->with(['professional', 'owner', 'admin', 'staff']);
 
 test('another professional who attended the patient does not see the author\'s prescriptions in the patient listing', function () {
@@ -88,6 +96,16 @@ test('a prescription belonging to another organization returns 403 on amend', fu
         ->assertStatus(403);
 });
 
+test('a prescription belonging to another organization returns 403 on annul', function () {
+    $membership = Membership::factory()->onPaidPlan()->create();
+    $prescription = Prescription::factory()->create();
+
+    $this->actingAs($membership->user)->postJson("/api/v1/prescriptions/{$prescription->id}/annulment", validAnnulmentPayload())
+        ->assertStatus(403);
+
+    expect($prescription->annulment()->exists())->toBeFalse();
+});
+
 test('another organization\'s prescriptions never leak into the patient listing', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $prescription = Prescription::factory()->create();
@@ -111,4 +129,5 @@ test('a guest gets 401 on every endpoint', function () {
     $this->postJson("/api/v1/appointments/{$prescription->appointment_id}/prescriptions", validPrescriptionPayload())->assertStatus(401);
     $this->getJson("/api/v1/patients/{$prescription->patient_id}/prescriptions")->assertStatus(401);
     $this->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", validPrescriptionPayload())->assertStatus(401);
+    $this->postJson("/api/v1/prescriptions/{$prescription->id}/annulment", validAnnulmentPayload())->assertStatus(401);
 });

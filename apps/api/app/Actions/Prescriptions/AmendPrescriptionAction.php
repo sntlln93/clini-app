@@ -12,6 +12,7 @@ use App\Data\Prescriptions\PrescriptionAmendmentData;
 use App\Data\Prescriptions\PrescriptionItemData;
 use App\Enums\ClinicalAccessAction;
 use App\Exceptions\Prescriptions\PrescriptionAmendmentUnchangedException;
+use App\Exceptions\Prescriptions\PrescriptionAnnulledException;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
@@ -37,6 +38,10 @@ class AmendPrescriptionAction implements Action
     {
         return DB::transaction(function () use ($dto): Prescription {
             $prescription = Prescription::query()->lockForUpdate()->findOrFail($dto->prescriptionId);
+
+            if ($prescription->annulment()->exists()) {
+                throw new PrescriptionAnnulledException($prescription->id);
+            }
 
             /** @var PrescriptionVersion $current */
             $current = $prescription->versions()->reorder('version', 'desc')->with('items')->firstOrFail();

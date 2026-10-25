@@ -8,6 +8,7 @@ use App\Enums\ClinicalAccessAction;
 use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\PrescriptionAnnulmentKind;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
@@ -22,6 +23,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\PlatformAdmin;
 use App\Models\Prescription;
+use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
 use App\Models\ProfessionalService;
@@ -70,6 +72,7 @@ test('re-seeding clears the clinical notes, prescriptions and access log written
     ClinicalNoteDiagnoses::record($note->versions()->firstOrFail(), [Icd10Code::query()->firstOrFail()->id]);
     $note->annulment()->create(['membership_id' => $note->membership_id, 'reason' => 'Anulada.']);
     $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $prescription->annulment()->create(['membership_id' => $prescription->membership_id, 'kind' => PrescriptionAnnulmentKind::NeverNeeded, 'reason' => 'Anulada.']);
     // The access log points at the note, the prescription and the appointment (#325).
     foreach ([['clinical_note_id' => $note->id], ['prescription_id' => $prescription->id]] as $subject) {
         ClinicalAccessLog::query()->withoutGlobalScope('organization')->create([
@@ -91,6 +94,7 @@ test('re-seeding clears the clinical notes, prescriptions and access log written
         ->and(Prescription::where('organization_id', $appointment->organization_id)->count())->toBe(0)
         ->and(PrescriptionVersion::count())->toBe(0)
         ->and(PrescriptionItem::count())->toBe(0)
+        ->and(PrescriptionAnnulment::count())->toBe(0)
         ->and(ClinicalAccessLog::query()->withoutGlobalScope('organization')->count())->toBe(0);
 });
 

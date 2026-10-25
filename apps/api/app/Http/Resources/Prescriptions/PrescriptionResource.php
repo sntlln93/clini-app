@@ -14,8 +14,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * Shapes one indicated-medication record with its items only: no patient
  * identity or author details, since nothing prints it (issue #319). The
  * current items come with every earlier version, since the record is
- * append-only (ADR 0019). The controller eager-loads the versions with
- * their items, see PrescriptionController::RELATIONS.
+ * append-only (ADR 0019), and an annulled one says how and why (#344). The
+ * controller eager-loads the versions with their items and the annulment,
+ * see PrescriptionController::RELATIONS.
  *
  * @mixin Prescription
  */
@@ -29,6 +30,7 @@ class PrescriptionResource extends JsonResource
         $prescription = $this->prescription();
         /** @var PrescriptionVersion $current */
         $current = $prescription->versions->last();
+        $annulment = $prescription->annulment;
 
         return [
             'id' => $prescription->id,
@@ -40,6 +42,11 @@ class PrescriptionResource extends JsonResource
             'version' => $current->version,
             'amended_at' => $current->version > 1 ? $current->created_at : null,
             'items' => $this->items($current),
+            'annulment' => $annulment === null ? null : [
+                'kind' => $annulment->kind,
+                'reason' => $annulment->reason,
+                'created_at' => $annulment->created_at,
+            ],
             'versions' => $prescription->versions->map(fn (PrescriptionVersion $version) => [
                 'version' => $version->version,
                 'reason' => $version->reason,

@@ -135,7 +135,7 @@ test('on Free, the owner becomes its one professional', function () {
         ->assertOk();
 });
 
-test('Free rejects recording or amending a prescription, but keeps them readable', function () {
+test('Free rejects recording, amending or annulling a prescription, but keeps them readable', function () {
     $owner = freeOwner();
     $professional = Membership::factory()->professional()->create(['organization_id' => $owner->organization_id]);
     $appointment = Appointment::factory()->create(['organization_id' => $owner->organization_id, 'membership_id' => $professional->id]);
@@ -144,6 +144,8 @@ test('Free rejects recording or amending a prescription, but keeps them readable
     $this->actingAs($professional->user)->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", [])
         ->assertStatus(409)->assertJsonPath('error', featureUnavailable('prescriptions'));
     $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", [])
+        ->assertStatus(409)->assertJsonPath('error.context.feature', 'prescriptions');
+    $this->actingAs($professional->user)->postJson("/api/v1/prescriptions/{$prescription->id}/annulment", [])
         ->assertStatus(409)->assertJsonPath('error.context.feature', 'prescriptions');
 
     openClinicalHistory($professional, $appointment->patient_id);

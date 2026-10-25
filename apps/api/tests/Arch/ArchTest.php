@@ -14,6 +14,7 @@ use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use App\Models\ClinicalRecordExport;
 use App\Models\Prescription;
+use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
 use Illuminate\Database\Eloquent\Model;
@@ -340,6 +341,7 @@ arch('clinical history models are never soft-deleted')
         Prescription::class,
         PrescriptionVersion::class,
         PrescriptionItem::class,
+        PrescriptionAnnulment::class,
         ClinicalRecordExport::class,
         ClinicalAccessLog::class,
     ])
@@ -362,6 +364,7 @@ arch('platform operator code never reaches the clinical history')
         Prescription::class,
         PrescriptionVersion::class,
         PrescriptionItem::class,
+        PrescriptionAnnulment::class,
         ClinicalRecordExport::class,
         ClinicalAccessLog::class,
     ]);
