@@ -1,13 +1,12 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { titleHead } from '@/lib/page-title';
 import { SUBSCRIPTION_STATUSES } from '@/types/subscription';
 import { createFileRoute } from '@tanstack/react-router';
-import { CreditCard, SearchX } from 'lucide-react';
 import { z } from 'zod';
 import {
     SubscriptionFilters,
@@ -70,7 +69,7 @@ function SuscripcionesPage() {
 
     const empty = isFiltered ? (
         <EmptyState
-            icon={SearchX}
+            illustration="search"
             title="Sin resultados"
             description="No hay suscripciones que coincidan con los filtros."
             action={
@@ -85,7 +84,7 @@ function SuscripcionesPage() {
         />
     ) : (
         <EmptyState
-            icon={CreditCard}
+            illustration="payments"
             title="Todavía no hay suscripciones"
             description="Aparecen acá cuando una organización inicia el pago desde el panel."
         />

@@ -1,7 +1,7 @@
 import { DataTable } from '@/components/DataTable';
-import { EmptyState } from '@/components/EmptyState';
 import { StatusPill } from '@/components/StatusPill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { OrganizationStateBadge } from '@/features/status-badges/OrganizationStateBadge';
 import { formatDate } from '@/lib/format';
 import {
@@ -12,7 +12,6 @@ import {
 import type { UserMembership } from '@/types/user';
 import { Link } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Building2 } from 'lucide-react';
 
 const columns: ColumnDef<UserMembership, unknown>[] = [
     {
@@ -81,7 +80,8 @@ export function UserMembershipsCard({
                     data={memberships}
                     empty={
                         <EmptyState
-                            icon={Building2}
+                            illustration="organizations"
+                            size="section"
                             title="Sin organizaciones"
                             description="Este usuario no pertenece a ninguna organización."
                         />

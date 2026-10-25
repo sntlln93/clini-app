@@ -1,4 +1,3 @@
-import { EmptyState } from '@/components/EmptyState';
 import { Badge } from '@/components/ui/badge';
 import {
     Card,
@@ -7,11 +6,11 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { formatDateTime } from '@/lib/format';
 import { ACTIVITY_KIND_LABELS } from '@/lib/labels';
 import type { RecentActivity } from '@/types/overview';
 import { Link } from '@tanstack/react-router';
-import { Activity } from 'lucide-react';
 
 const LINK_CLASS =
     'font-medium underline-offset-4 hover:underline focus-visible:underline';
@@ -63,7 +62,8 @@ export function RecentActivityList({
             <CardContent>
                 {activity.length === 0 ? (
                     <EmptyState
-                        icon={Activity}
+                        illustration="records"
+                        size="section"
                         title="Sin actividad todavía"
                         description="Acá vas a ver las altas y los eventos de suscripción más recientes."
                     />
