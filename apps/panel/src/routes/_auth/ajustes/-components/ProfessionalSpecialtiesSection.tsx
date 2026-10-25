@@ -33,7 +33,10 @@ export function ProfessionalSpecialtiesSection({
             </div>
 
             {professionals.length === 0 && (
-                <NoProfessionalsEmptyState description="Invitá a un profesional para asignarle sus especialidades." />
+                <NoProfessionalsEmptyState
+                    description="Invitá a un profesional para asignarle sus especialidades."
+                    size="section"
+                />
             )}
 
             {professionals.length > 0 && (

@@ -1,5 +1,5 @@
 import { Button, buttonVariants } from '@/components/ui/button';
-import { notifyError, notifySuccess } from '@/lib/toast';
+import { copyBookingLink } from '@/lib/booking-link';
 import { cn } from '@/lib/utils';
 import { Copy, ExternalLink } from 'lucide-react';
 
@@ -11,15 +11,6 @@ export function PublicLinkActions({
     url: string;
     label?: string;
 }) {
-    async function copy() {
-        try {
-            await navigator.clipboard.writeText(url);
-            notifySuccess('Link copiado');
-        } catch (error) {
-            notifyError(error, 'No se pudo copiar el link');
-        }
-    }
-
     return (
         <div className="space-y-2">
             <p className="text-sm break-all text-muted-foreground">
@@ -30,7 +21,7 @@ export function PublicLinkActions({
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => void copy()}
+                    onClick={() => void copyBookingLink(url)}
                 >
                     <Copy data-icon="inline-start" />
                     Copiar link

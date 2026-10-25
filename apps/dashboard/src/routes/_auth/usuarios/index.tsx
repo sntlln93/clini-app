@@ -1,12 +1,11 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
-import { SearchX, Users } from 'lucide-react';
 import { z } from 'zod';
 import {
     UserFilters,
@@ -82,7 +81,7 @@ function UsuariosPage() {
 
     const empty = isFiltered ? (
         <EmptyState
-            icon={SearchX}
+            illustration="search"
             title="Sin resultados"
             description="No hay usuarios que coincidan con los filtros."
             action={
@@ -97,7 +96,7 @@ function UsuariosPage() {
         />
     ) : (
         <EmptyState
-            icon={Users}
+            illustration="team"
             title="Todavía no hay usuarios"
             description="Los usuarios aparecen acá cuando se registran o aceptan una invitación."
         />

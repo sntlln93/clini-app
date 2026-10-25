@@ -1,5 +1,5 @@
+import { bookingUrl } from '@/lib/booking-link';
 import { PublicLinkActions } from './PublicLinkActions';
-import { bookingUrl } from './booking-url';
 
 /** The practice's own booking link, set when the organization is created (CU-44): read-only, for any member to share. */
 export function OrganizationBookingLinkSection({ slug }: { slug: string }) {

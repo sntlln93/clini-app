@@ -1,4 +1,3 @@
-import { EmptyState } from '@/components/EmptyState';
 import {
     Card,
     CardContent,
@@ -6,12 +5,12 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { formatDateTime } from '@/lib/format';
 import { AUDIT_ACTION_LABELS } from '@/lib/labels';
 import type { AdminAuditLog, AuditSubjectType } from '@/types/audit';
 import type { Paginated } from '@/types/pagination';
 import { Link } from '@tanstack/react-router';
-import { ScrollText } from 'lucide-react';
 import { auditNote } from './audit-summary';
 
 /** "Historial de auditoría" of one organization/user/subscription: who did what, when and why. */
@@ -38,7 +37,8 @@ export function SubjectAuditCard({
             <CardContent>
                 {logs.data.length === 0 ? (
                     <EmptyState
-                        icon={ScrollText}
+                        illustration="records"
+                        size="section"
                         title="Sin acciones registradas"
                         description="Ningún operador modificó este registro todavía."
                     />

@@ -1,13 +1,12 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
 import { titleHead } from '@/lib/page-title';
 import { AUDIT_ACTIONS, AUDIT_SUBJECT_TYPES } from '@/types/audit';
 import { createFileRoute } from '@tanstack/react-router';
-import { ScrollText, SearchX } from 'lucide-react';
 import { z } from 'zod';
 import {
     AuditLogFilters,
@@ -82,7 +81,7 @@ function AuditoriaPage() {
 
     const empty = isFiltered ? (
         <EmptyState
-            icon={SearchX}
+            illustration="search"
             title="Sin resultados"
             description="No hay acciones registradas que coincidan con los filtros."
             action={
@@ -97,7 +96,7 @@ function AuditoriaPage() {
         />
     ) : (
         <EmptyState
-            icon={ScrollText}
+            illustration="records"
             title="Sin acciones registradas"
             description="Cada inicio de sesión y cada acción de moderación de un operador queda registrada acá."
         />

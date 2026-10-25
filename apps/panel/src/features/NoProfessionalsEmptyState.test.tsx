@@ -68,6 +68,7 @@ describe('NoProfessionalsEmptyState', () => {
             name: 'Invitar profesional',
         });
         expect(cta.getAttribute('href')).toBe('/profesionales/nuevo');
+        screen.getByRole('heading', { name: 'Invitá a tu primer profesional' });
         screen.getByText(
             'Invitá a un profesional para configurar sus horarios.',
         );
@@ -79,6 +80,7 @@ describe('NoProfessionalsEmptyState', () => {
         await screen.findByText(
             'Pedile a un administrador que invite a un profesional.',
         );
+        screen.getByRole('heading', { name: 'Todavía no hay profesionales' });
         expect(
             screen.queryByRole('button', { name: 'Invitar profesional' }),
         ).toBeNull();
@@ -95,6 +97,7 @@ describe('NoProfessionalsEmptyState', () => {
         await screen.findByText(
             'Si atendés pacientes, sumate como profesional. Invitá a un profesional para configurar sus horarios.',
         );
+        screen.getByRole('heading', { name: 'Sumá a tu primer profesional' });
         screen.getByRole('button', { name: 'Invitar profesional' });
         fireEvent.click(
             screen.getByRole('button', { name: 'Sumarme como profesional' }),

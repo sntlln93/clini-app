@@ -1,9 +1,8 @@
 import { DataTable } from '@/components/DataTable';
-import { EmptyState } from '@/components/EmptyState';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { formatDateTime } from '@/lib/format';
 import type { SubscriptionEvent } from '@/types/subscription';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Webhook } from 'lucide-react';
 import { EventPayloadDialog } from './EventPayloadDialog';
 
 const columns: ColumnDef<SubscriptionEvent, unknown>[] = [
@@ -52,7 +51,8 @@ export function SubscriptionEventsTable({
             data={events}
             empty={
                 <EmptyState
-                    icon={Webhook}
+                    illustration="payments"
+                    size="section"
                     title="Sin eventos del proveedor"
                     description="Todavía no llegó ninguna notificación de Mercado Pago."
                 />

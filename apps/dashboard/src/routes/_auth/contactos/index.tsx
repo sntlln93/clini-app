@@ -1,7 +1,7 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { FilterSelect } from '@/features/filter-select/FilterSelect';
 import { CONTACT_REQUEST_STATUS_LABELS } from '@/lib/labels';
@@ -11,7 +11,6 @@ import {
     type ContactRequestStatus,
 } from '@/types/contact-request';
 import { createFileRoute } from '@tanstack/react-router';
-import { Inbox, SearchX } from 'lucide-react';
 import { useRef } from 'react';
 import { z } from 'zod';
 import { ContactRequestsTable } from './-components/ContactRequestsTable';
@@ -52,7 +51,7 @@ function ContactosPage() {
     const empty =
         search.status !== undefined ? (
             <EmptyState
-                icon={SearchX}
+                illustration="search"
                 title="Sin resultados"
                 description="No hay consultas con ese estado."
                 action={
@@ -69,7 +68,7 @@ function ContactosPage() {
             />
         ) : (
             <EmptyState
-                icon={Inbox}
+                illustration="inbox"
                 title="Todavía no hay consultas"
                 description="Aparecen acá cuando alguien escribe desde el formulario de contacto de la landing."
             />

@@ -2,12 +2,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
+import { bookingUrl } from '@/lib/booking-link';
 import { usePlanIncludes } from '@/lib/plan';
 import type { Membership } from '@/types/membership';
 import { useId, useState } from 'react';
 import { useUpdateMyPublicLink } from '../-hooks/use-my-public-link';
 import { PublicLinkActions } from './PublicLinkActions';
-import { bookingUrl } from './booking-url';
 
 type MyPublicLinkSectionProps = {
     membership: Pick<Membership, 'id' | 'slug'>;

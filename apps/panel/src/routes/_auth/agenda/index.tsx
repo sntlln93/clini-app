@@ -1,8 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { Button } from '@/components/ui/button';
-import { AppointmentStatusLegend } from '@/features/appointment-status/AppointmentStatusLegend';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
-import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import {
     DateTime,
@@ -16,10 +14,9 @@ import { useState } from 'react';
 import { z } from 'zod';
 import { rangeFor } from './-components/agenda-dates';
 import { agendaNavigation } from './-components/agenda-navigation';
-import { AgendaDayView } from './-components/AgendaDayView';
+import { AgendaContent } from './-components/AgendaContent';
 import { AgendaProfessionalFilter } from './-components/AgendaProfessionalFilter';
 import { AgendaToolbar } from './-components/AgendaToolbar';
-import { AgendaWeekView } from './-components/AgendaWeekView';
 import { filterAgendaAppointments } from './-components/appointment-status';
 import {
     AppointmentFormDialog,
@@ -102,7 +99,6 @@ function AgendaPage() {
     const [formState, setFormState] = useState<FormState>(CLOSED_FORM);
 
     const date = dateParam ? fromCalendarDate(dateParam) : DateTime.now();
-    const { start: rangeStart } = rangeFor(date, view);
     const creatableProfessionals = professionals.filter(canCreate);
     const visibleProfessionals = selectedProfessionalIds
         ? professionals.filter((professional) =>
@@ -188,42 +184,27 @@ function AgendaPage() {
                     onShowCancelledChange={navigation.onShowCancelledChange}
                 />
 
-                {professionals.length === 0 && !showSetup && (
-                    <div className="px-5 pb-5">
-                        <NoProfessionalsEmptyState description="Invitá a un profesional para empezar a cargar turnos." />
-                    </div>
-                )}
-
-                {noneVisibleFromFilter && (
-                    <p className="px-5 pb-5 text-sm text-muted-foreground">
-                        No hay profesionales seleccionados en el filtro.
-                    </p>
-                )}
-
-                {visibleProfessionals.length > 0 &&
-                    (view === 'day' ? (
-                        <AgendaDayView
-                            date={date}
-                            professionals={visibleProfessionals}
-                            appointments={appointments}
-                            canUpdate={canUpdate}
-                            canCreate={canCreate}
-                            onCellClick={handleCellClick}
-                        />
-                    ) : (
-                        <AgendaWeekView
-                            weekStart={rangeStart}
-                            professionals={visibleProfessionals}
-                            appointments={appointments}
-                            canUpdate={canUpdate}
-                            canCreate={canCreate}
-                            onDayClick={handleDayClick}
-                        />
-                    ))}
-
-                {visibleProfessionals.length > 0 && (
-                    <AppointmentStatusLegend className="px-5 pt-3 pb-5" />
-                )}
+                <AgendaContent
+                    date={date}
+                    view={view}
+                    professionals={professionals}
+                    visibleProfessionals={visibleProfessionals}
+                    appointments={appointments}
+                    showSetup={showSetup}
+                    noneVisibleFromFilter={noneVisibleFromFilter}
+                    canCreate={canCreate}
+                    canUpdate={canUpdate}
+                    onCellClick={handleCellClick}
+                    onDayClick={handleDayClick}
+                    onToday={navigation.onToday}
+                    onShowAllProfessionals={() =>
+                        navigation.onProfessionalsChange(
+                            professionals.map(
+                                (professional) => professional.id,
+                            ),
+                        )
+                    }
+                />
             </section>
 
             <AppointmentFormDialog

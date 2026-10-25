@@ -30,7 +30,10 @@ export function ProfessionalServicesSection({
             </div>
 
             {professionals.length === 0 && (
-                <NoProfessionalsEmptyState description="Invitá a un profesional para asignarle los servicios que ofrece." />
+                <NoProfessionalsEmptyState
+                    description="Invitá a un profesional para asignarle los servicios que ofrece."
+                    size="section"
+                />
             )}
 
             {professionals.length > 0 && services.length === 0 && (

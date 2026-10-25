@@ -1,8 +1,8 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
 import { SEARCH_DEBOUNCE_MS } from '@/features/Searchbar';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { titleHead } from '@/lib/page-title';
 import {
@@ -10,7 +10,6 @@ import {
     ORGANIZATION_SUBSCRIPTION_FILTERS,
 } from '@/types/organization';
 import { createFileRoute } from '@tanstack/react-router';
-import { Building2, SearchX } from 'lucide-react';
 import { z } from 'zod';
 import {
     OrganizationFilters,
@@ -87,7 +86,7 @@ function OrganizacionesPage() {
 
     const empty = isFiltered ? (
         <EmptyState
-            icon={SearchX}
+            illustration="search"
             title="Sin resultados"
             description="No hay organizaciones que coincidan con los filtros."
             action={
@@ -98,7 +97,7 @@ function OrganizacionesPage() {
         />
     ) : (
         <EmptyState
-            icon={Building2}
+            illustration="organizations"
             title="Todavía no hay organizaciones"
             description="Las organizaciones aparecen acá cuando un consultorio se registra."
         />

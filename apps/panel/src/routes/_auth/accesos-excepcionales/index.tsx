@@ -1,11 +1,10 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
-import { EmptyState } from '@/components/EmptyState';
 import { TableSkeleton } from '@/components/TableSkeleton';
+import { EmptyState } from '@/features/empty-state/EmptyState';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { CLINICAL_ACCESS_WINDOW_DAYS } from '@/lib/clinical-access';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
-import { ShieldCheck } from 'lucide-react';
 import { z } from 'zod';
 import { ExceptionalAccessesTable } from './-components/ExceptionalAccessesTable';
 import { exceptionalAccessesQueryOptions } from './-hooks/use-exceptional-accesses';
@@ -57,7 +56,7 @@ function AccesosExcepcionalesPage() {
                 accesses={data.data}
                 empty={
                     <EmptyState
-                        icon={ShieldCheck}
+                        illustration="records"
                         title="Sin accesos excepcionales"
                         description="Todavía nadie abrió una historia clínica sin un turno cercano con el paciente."
                     />
