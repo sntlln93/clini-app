@@ -1,8 +1,8 @@
 import { DataTablePagination } from '@/components/DataTablePagination';
 import { EmptyState } from '@/components/EmptyState';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Button } from '@/components/ui/button';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { SEARCH_DEBOUNCE_MS, Searchbar } from '@/features/Searchbar';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';

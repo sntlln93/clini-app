@@ -1,4 +1,4 @@
-import { NotFoundState } from '@/components/NotFoundState';
+import { NotFoundPage } from '@/features/error-page/NotFoundState';
 import { queryClient } from '@/lib/query-client';
 import { routerBehavior } from '@/lib/router-behavior';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -14,11 +14,7 @@ const router = createRouter({
     context: { queryClient },
     ...routerBehavior,
     // Last-resort fallback; unknown URLs normally land on `_auth`'s `$` splat.
-    defaultNotFoundComponent: () => (
-        <main className="flex min-h-svh w-full items-center justify-center bg-background p-4">
-            <NotFoundState />
-        </main>
-    ),
+    defaultNotFoundComponent: NotFoundPage,
 });
 
 declare module '@tanstack/react-router' {

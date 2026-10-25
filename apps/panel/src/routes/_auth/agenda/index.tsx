@@ -1,7 +1,7 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { Button } from '@/components/ui/button';
 import { AppointmentStatusLegend } from '@/features/appointment-status/AppointmentStatusLegend';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import {

@@ -11,7 +11,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
-    env: { TZ: 'America/Argentina/Buenos_Aires' },
+    // Friendly error pages by default; a test that wants the debug view stubs VITE_APP_DEBUG.
+    env: { TZ: 'America/Argentina/Buenos_Aires', VITE_APP_DEBUG: 'false' },
     include: ['src/**/*.test.{ts,tsx}', 'eslint-rules/**/*.test.ts'],
     setupFiles: ['src/tests/setup.ts'],
   },

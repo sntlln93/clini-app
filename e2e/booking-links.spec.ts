@@ -64,7 +64,7 @@ test.describe('an unknown booking link', () => {
             }),
         ).toBeVisible();
         await expect(
-            page.getByRole('button', { name: 'Ir al inicio' }),
+            page.getByRole('button', { name: /Ir al inicio|Ir a la agenda/ }),
         ).toHaveCount(0);
     });
 });

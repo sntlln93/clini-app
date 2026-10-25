@@ -1,5 +1,10 @@
 import axios from 'axios';
 import type { ErrorCode } from './error-codes';
+import {
+    detailsFromResponse,
+    detailsFromThrown,
+    type ErrorDetails,
+} from './error-details';
 
 /**
  * A business rule rejected the request. `message` is English and
@@ -10,16 +15,20 @@ export class BusinessError extends Error {
     readonly kind = 'business' as const;
     readonly code: ErrorCode;
     readonly context: Record<string, unknown>;
+    /** The HTTP status the API chose for the rule (409 for most, 403/404 for some). */
+    readonly status: number;
 
     constructor(
         code: ErrorCode,
         message: string,
         context: Record<string, unknown>,
+        status = 409,
     ) {
         super(message);
         this.name = 'BusinessError';
         this.code = code;
         this.context = context;
+        this.status = status;
     }
 }
 
@@ -88,13 +97,15 @@ export class NetworkError extends Error {
     }
 }
 
-/** Anything else: an unexpected failure with no safe details to show. */
+/** Anything else: an unexpected failure with no safe details to show. `status` is null when no response caused it (a crash in the page itself). */
 export class UnexpectedError extends Error {
     readonly kind = 'unexpected' as const;
+    readonly status: number | null;
 
-    constructor() {
+    constructor(status: number | null = null) {
         super('Unexpected error');
         this.name = 'UnexpectedError';
+        this.status = status;
     }
 }
 
@@ -146,7 +157,7 @@ export async function readBlobErrorBody(error: unknown): Promise<unknown> {
     return error;
 }
 
-/** With `readBlobErrorBody`, the only code allowed to touch `axios.isAxiosError`/`error.response` — enforced by an ESLint rule. */
+/** With `readBlobErrorBody` and `errorDetailsFor`, the only code allowed to touch `axios.isAxiosError`/`error.response` — enforced by an ESLint rule. */
 export function mapToAppError(error: unknown): AppError {
     if (!axios.isAxiosError(error)) {
         return new UnexpectedError();
@@ -166,6 +177,7 @@ export function mapToAppError(error: unknown): AppError {
             code as ErrorCode,
             envelope?.error?.message ?? '',
             envelope?.error?.context ?? {},
+            status,
         );
     }
 
@@ -196,5 +208,22 @@ export function mapToAppError(error: unknown): AppError {
         return new RateLimitedError();
     }
 
-    return new UnexpectedError();
+    return new UnexpectedError(status);
+}
+
+/** Only for debug mode (#304): reads everything the error carries, the API's own debug body included. */
+export function errorDetailsFor(error: unknown): ErrorDetails {
+    if (!axios.isAxiosError(error) || !error.response) {
+        return detailsFromThrown(error);
+    }
+
+    const { config, status, data } = error.response;
+
+    return detailsFromResponse({
+        method: config?.method ?? 'get',
+        url: `${config?.baseURL ?? ''}${config?.url ?? ''}`,
+        status,
+        body: data,
+        fallbackMessage: error.message,
+    });
 }

@@ -1,3 +1,4 @@
+import { mapToAppError } from '@/lib/api-errors';
 import { safeInternalPath } from '@/lib/safe-internal-path';
 import { sessionQueryOptions } from '@/lib/session';
 import type { QueryClient } from '@tanstack/react-query';
@@ -31,7 +32,15 @@ export async function requireSession({
 }: GuardContext & { location?: GuardLocation }) {
     try {
         return await queryClient.ensureQueryData(sessionQueryOptions);
-    } catch {
+    } catch (error) {
+        // An API that doesn't answer, or answers with a crash, says nothing
+        // about the session: the root's error page shows it instead of
+        // passing an outage off as a logout (#304).
+        const { kind } = mapToAppError(error);
+        if (kind === 'network' || kind === 'unexpected') {
+            throw error;
+        }
+
         throw redirect({
             to: '/login',
             search: loginSearchFor(location?.href),

@@ -1,6 +1,6 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
 import { Separator } from '@/components/ui/separator';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { professionalsQueryOptions } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';
 import { planQueryOptions, usePlan } from '@/lib/plan';

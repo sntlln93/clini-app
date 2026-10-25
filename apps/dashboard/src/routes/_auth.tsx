@@ -1,5 +1,5 @@
-import { NotFoundState } from '@/components/NotFoundState';
 import { Skeleton } from '@/components/ui/skeleton';
+import { NotFoundState } from '@/features/error-page/NotFoundState';
 import { DashboardLayout } from '@/layouts/DashboardLayout';
 import { requireSession } from '@/lib/auth-guards';
 import { createFileRoute, Outlet } from '@tanstack/react-router';

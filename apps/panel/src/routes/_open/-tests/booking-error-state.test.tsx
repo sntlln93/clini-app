@@ -1,3 +1,4 @@
+import { HOME_ACTION } from '@/features/error-page/error-page-config';
 import { api } from '@/lib/api';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -105,9 +106,12 @@ describe('the public booking page when its read fails', () => {
         expect(
             await screen.findByRole('button', { name: 'Reintentar' }),
         ).not.toBeNull();
+        // None of the panel's own error page controls (ADR 0018).
         expect(
-            screen.queryByRole('button', { name: 'Ir al inicio' }),
+            screen.queryByRole('button', { name: HOME_ACTION.label }),
         ).toBeNull();
-        expect(screen.queryByRole('button', { name: 'Volver' })).toBeNull();
+        expect(
+            screen.queryByRole('button', { name: 'Volver atrás' }),
+        ).toBeNull();
     });
 });

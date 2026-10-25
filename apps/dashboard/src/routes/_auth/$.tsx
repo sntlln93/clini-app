@@ -1,4 +1,4 @@
-import { NotFoundState } from '@/components/NotFoundState';
+import { NotFoundState } from '@/features/error-page/NotFoundState';
 import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 

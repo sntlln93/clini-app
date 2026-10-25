@@ -29,6 +29,10 @@ RUN test -n "$VITE_API_URL" || { \
 # Optional: without it, «Hecho con Clini» on the booking page renders as text.
 ARG VITE_LANDING_URL
 ENV VITE_LANDING_URL=${VITE_LANDING_URL}
+# Optional: `true` makes the error pages show the exact error (#304). Leave it
+# unset in production, which never shows it then.
+ARG VITE_APP_DEBUG
+ENV VITE_APP_DEBUG=${VITE_APP_DEBUG}
 RUN npm run build --workspace=apps/panel
 
 FROM nginx:1.27-alpine AS runtime

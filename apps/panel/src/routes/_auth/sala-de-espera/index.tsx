@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { DateTime, toInstant } from '@/lib/datetime';

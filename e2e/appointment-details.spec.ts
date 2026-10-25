@@ -47,7 +47,7 @@ test.describe('a details link that shows nothing', () => {
             page.getByRole('button', { name: 'Reintentar' }),
         ).toHaveCount(0);
         await expect(
-            page.getByRole('button', { name: 'Ir al inicio' }),
+            page.getByRole('button', { name: /Ir al inicio|Ir a la agenda/ }),
         ).toHaveCount(0);
     });
 });

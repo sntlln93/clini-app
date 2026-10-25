@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
     createRootRoute,
@@ -7,6 +8,7 @@ import {
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { ERROR_PAGE_COPY, HOME_ACTION } from './error-page-config';
 import { RouteErrorState } from './RouteErrorState';
 
 // A resolvable-from-outside promise, used to keep a child route's reload "in flight"
@@ -95,7 +97,12 @@ function renderRouteErrorState(error: unknown) {
         history: createMemoryHistory({ initialEntries: ['/', '/failing'] }),
     });
 
-    render(<RouterProvider router={router} />);
+    // The 403 page logs out to switch account, through TanStack Query.
+    render(
+        <QueryClientProvider client={new QueryClient()}>
+            <RouterProvider router={router} />
+        </QueryClientProvider>,
+    );
 }
 
 describe('RouteErrorState', () => {
@@ -111,38 +118,37 @@ describe('RouteErrorState', () => {
         ).not.toBeNull();
     });
 
-    it('renders the generic message for a 500 axios error with no domain envelope', async () => {
+    it('renders the unexpected-error page for a 500 axios error with no domain envelope', async () => {
         renderRouteErrorState({
             isAxiosError: true,
             response: { status: 500, data: {} },
         });
 
         expect(
-            await screen.findByText(
-                'Ocurrió un error inesperado. Intentá nuevamente.',
-            ),
+            await screen.findByRole('heading', {
+                name: ERROR_PAGE_COPY.server.title,
+            }),
         ).not.toBeNull();
     });
 
-    it('renders the generic message for a plain non-axios Error', async () => {
+    it('renders the unexpected-error page for a plain non-axios Error', async () => {
         renderRouteErrorState(new Error('boom'));
 
         expect(
-            await screen.findByText(
-                'Ocurrió un error inesperado. Intentá nuevamente.',
-            ),
+            await screen.findByRole('heading', {
+                name: ERROR_PAGE_COPY.server.title,
+            }),
         ).not.toBeNull();
     });
 
-    it('renders retry, go-back and go-home actions, and never re-throws', async () => {
+    it('renders retry and go-home actions, and never re-throws', async () => {
         renderRouteErrorState(new Error('boom'));
 
         expect(
             await screen.findByRole('button', { name: 'Reintentar' }),
         ).not.toBeNull();
-        expect(screen.getByRole('button', { name: 'Volver' })).not.toBeNull();
         expect(
-            screen.getByRole('button', { name: 'Ir al inicio' }),
+            screen.getByRole('button', { name: HOME_ACTION.label }),
         ).not.toBeNull();
     });
 
@@ -170,9 +176,9 @@ describe('RouteErrorState', () => {
         render(<RouterProvider router={router} />);
 
         expect(
-            await screen.findByText(
-                'Ocurrió un error inesperado. Intentá nuevamente.',
-            ),
+            await screen.findByRole('heading', {
+                name: ERROR_PAGE_COPY.server.title,
+            }),
         ).not.toBeNull();
         expect(
             screen.getByRole('button', { name: 'Reintentar' }),
@@ -260,9 +266,8 @@ describe('RouteErrorState', () => {
         expect(
             await screen.findByRole('button', { name: 'Reintentar' }),
         ).not.toBeNull();
-        expect(screen.getByRole('button', { name: 'Volver' })).not.toBeNull();
         expect(
-            screen.getByRole('button', { name: 'Ir al inicio' }),
+            screen.getByRole('button', { name: HOME_ACTION.label }),
         ).not.toBeNull();
         expect(screen.queryByText('Contenido recuperado')).toBeNull();
         expect(document.body.textContent).not.toBe('');

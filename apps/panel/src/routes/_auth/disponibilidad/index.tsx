@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import { ensureScopedProfessionals } from '@/hooks/use-professionals';
 import { titleHead } from '@/lib/page-title';

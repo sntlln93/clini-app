@@ -14,6 +14,7 @@ use App\Support\SafeExceptionLog;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests;
 use Illuminate\Database\DeadlockException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,6 +25,7 @@ use Illuminate\Routing\Middleware\ThrottleRequests;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\Mailer\Exception\TransportExceptionInterface;
 use Symfony\Component\Mime\Exception\RfcComplianceException;
 
@@ -110,8 +112,24 @@ return Application::configure(basePath: dirname(__DIR__))
             ],
         ], $e->httpStatus()));
 
+        // A missed `findOrFail()` or route binding reaches the client as a
+        // 404 whose message names the model class and the id; outside debug
+        // it says only what any other 404 says.
+        $exceptions->render(function (NotFoundHttpException $e, Request $request): ?JsonResponse {
+            if (! $e->getPrevious() instanceof ModelNotFoundException
+                || ! $request->is('api/*')
+                || config('app.debug')
+            ) {
+                return null;
+            }
+
+            return response()->json(['message' => 'Not Found.'], 404);
+        });
+
         // Anything left over is an unexpected failure: never leak class,
-        // file, line or stack to the client. `ValidationException` and
+        // file, line or stack to the client — unless `APP_DEBUG` is on, when
+        // Laravel's own renderer adds them so the SPAs can show the exact
+        // error (#304). `ValidationException` and
         // Laravel's own auth/authorization/routing exceptions
         // (`AuthenticationException`, and everything already carrying an
         // intentional HTTP status via `HttpExceptionInterface` — 403/404
@@ -127,7 +145,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 return null;
             }
 
-            if (! $request->is('api/*')) {
+            if (! $request->is('api/*') || config('app.debug')) {
                 return null;
             }
 

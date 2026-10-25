@@ -26,6 +26,10 @@ RUN test -n "$VITE_API_URL" || { \
       echo "ERROR: falta VITE_API_URL. Es un build arg (--build-arg VITE_API_URL=https://api.ejemplo.com), no una variable de runtime: se hornea en el bundle y definirla al levantar el contenedor no tiene ningún efecto." >&2; \
       exit 1; \
     }
+# Optional: `true` makes the error pages show the exact error (#304). Leave it
+# unset in production, which never shows it then.
+ARG VITE_APP_DEBUG
+ENV VITE_APP_DEBUG=${VITE_APP_DEBUG}
 RUN npm run build --workspace=apps/dashboard
 
 FROM nginx:1.27-alpine AS runtime

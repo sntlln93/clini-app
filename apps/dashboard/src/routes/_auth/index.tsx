@@ -1,5 +1,5 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
-import { RouteErrorState } from '@/components/RouteErrorState';
+import { RouteErrorState } from '@/features/error-page/RouteErrorState';
 import { titleHead } from '@/lib/page-title';
 import type { OverviewPeriod } from '@/types/overview';
 import { createFileRoute } from '@tanstack/react-router';

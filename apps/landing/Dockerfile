@@ -40,6 +40,10 @@ RUN test -n "$VITE_API_URL" || { \
 # an absolute URL, so without it the page declares none.
 ARG VITE_SITE_URL
 ENV VITE_SITE_URL=${VITE_SITE_URL}
+# Optional: `true` makes the error pages show the exact error (#304). Leave it
+# unset in production, which never shows it then.
+ARG VITE_APP_DEBUG
+ENV VITE_APP_DEBUG=${VITE_APP_DEBUG}
 RUN npm run build --workspace=apps/landing
 
 FROM node:24-bookworm-slim AS runtime
