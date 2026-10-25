@@ -1,0 +1,56 @@
+# Every runtime is pinned down to the patch (#349): Dependabot proposes the
+# bumps. It can't open one PR across `docker` and `docker-compose`, so whoever
+# reviews a node bump keeps the Dockerfiles and the compose files in lockstep
+# (apps/panel/src/tests/runtime-pins.test.ts fails in CI until they match).
+version: 2
+
+updates:
+  - package-ecosystem: docker
+    directories:
+      - /apps/api
+      - /apps/panel
+      - /apps/dashboard
+      - /apps/landing
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      php:
+        patterns: ['php']
+      composer:
+        patterns: ['composer']
+      node:
+        patterns: ['node']
+      nginx:
+        patterns: ['nginx']
+
+  - package-ecosystem: docker-compose
+    directories:
+      - /
+      - /apps/api
+      - /apps/panel
+      - /apps/dashboard
+      - /apps/landing
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      node:
+        patterns: ['node']
+      postgres:
+        patterns: ['postgres']
+      mailpit:
+        patterns: ['axllent/mailpit']
+      s3mock:
+        patterns: ['adobe/s3mock']
+
+  - package-ecosystem: github-actions
+    directories:
+      - /
+      - /.github/actions/*
+    target-branch: develop
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
