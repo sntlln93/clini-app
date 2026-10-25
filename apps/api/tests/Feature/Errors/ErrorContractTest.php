@@ -30,7 +30,9 @@ use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
 use App\Exceptions\Users\EmailAlreadyVerifiedException;
 use App\Exceptions\Users\UserAlreadyBlockedException;
 use App\Exceptions\Users\UserNotBlockedException;
+use App\Models\Patient;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
@@ -81,6 +83,10 @@ beforeEach(function () {
 
     Route::any('/api/v1/_test/abort-500', function () {
         abort(500);
+    });
+
+    Route::any('/api/v1/_test/throw-model-not-found', function () {
+        throw (new ModelNotFoundException)->setModel(Patient::class, [4242]);
     });
 
     Route::any('/api/v1/_test/throw-validation', function () {
@@ -153,6 +159,35 @@ test('an unexpected failure does not leak internals when debug is disabled', fun
     expect($body)->not->toContain('trace');
     expect($body)->not->toContain('internal detail 12345');
     expect($body)->not->toContain('RuntimeException');
+});
+
+test('an unexpected failure carries the exact error and its trace when debug is enabled', function () {
+    config(['app.debug' => true]);
+
+    $response = $this->getJson('/api/v1/_test/throw-runtime');
+
+    $response->assertStatus(500);
+    $response->assertJsonStructure(['message', 'exception', 'file', 'line', 'trace']);
+    $response->assertJsonPath('message', 'internal detail 12345');
+    $response->assertJsonPath('exception', RuntimeException::class);
+});
+
+test('a missed model lookup answers a bare 404 that names neither the model nor the id when debug is disabled', function () {
+    config(['app.debug' => false]);
+
+    $this->getJson('/api/v1/_test/throw-model-not-found')
+        ->assertStatus(404)
+        ->assertExactJson(['message' => 'Not Found.']);
+});
+
+test('a missed model lookup keeps the exact error when debug is enabled', function () {
+    config(['app.debug' => true]);
+
+    $response = $this->getJson('/api/v1/_test/throw-model-not-found');
+
+    $response->assertStatus(404);
+    expect($response->json('message'))->toContain(Patient::class);
+    $response->assertJsonStructure(['message', 'exception', 'file', 'line', 'trace']);
 });
 
 test('abort(500) with no message returns the same generic shape as any other unexpected failure, and does not leak the removed Spanish message', function () {
