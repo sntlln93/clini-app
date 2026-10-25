@@ -1,3 +1,4 @@
+import { INACTIVE_STATUSES } from '@/lib/appointment-status';
 import type { Appointment, AppointmentStatus } from '@/types/appointment';
 
 // Mirrors `AppointmentStatus::allowedTransitions()` in `app/Enums/AppointmentStatus.php` — keep in sync.
@@ -44,12 +45,6 @@ export const STATUS_SUCCESS_MESSAGES: Partial<
     completed: 'Turno marcado como atendido.',
     no_show: 'Turno marcado como ausente.',
 };
-
-// Statuses that no longer hold their slot — mirrors the overlap query in `BookAppointmentAction`; hidden from the agenda by default.
-export const INACTIVE_STATUSES: AppointmentStatus[] = [
-    'cancelled',
-    'rescheduled',
-];
 
 /** Presentation-only filter behind the agenda's "Mostrar cancelados" toggle; the API response itself is never narrowed. */
 export function filterAgendaAppointments(

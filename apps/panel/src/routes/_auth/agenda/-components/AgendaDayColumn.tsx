@@ -1,8 +1,8 @@
+import { INACTIVE_STATUSES } from '@/lib/appointment-status';
 import { type DateTime, fromInstant } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { Appointment } from '@/types/appointment';
 import type { Professional } from '@/types/professional';
-import { INACTIVE_STATUSES } from './appointment-status';
 import { AppointmentCard } from './AppointmentCard';
 
 // 72px per half hour, like the landing's agenda example.
