@@ -1,7 +1,7 @@
 # Build context is the repo root (npm workspace) — Dokploy: set this
 # Dockerfile's path to apps/dashboard/Dockerfile with the build context at the
 # repo root.
-FROM node:24-bookworm-slim AS build
+FROM node:24.22.1-bookworm-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -32,7 +32,7 @@ ARG VITE_APP_DEBUG
 ENV VITE_APP_DEBUG=${VITE_APP_DEBUG}
 RUN npm run build --workspace=apps/dashboard
 
-FROM nginx:1.27-alpine AS runtime
+FROM nginx:1.30.6-alpine AS runtime
 COPY apps/dashboard/docker/nginx.conf /etc/nginx/nginx.conf
 COPY --from=build /app/apps/dashboard/dist /usr/share/nginx/html
 
