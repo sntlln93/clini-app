@@ -61,6 +61,18 @@ function imagesIn(source: string): string[] {
     return [...from, ...image].map((match) => match[1]);
 }
 
+// Disposable-container commands: no FROM or image: line, and Dependabot never
+// bumps them, so only this test keeps their Node in step.
+const COMMAND_FILES = [
+    'CLAUDE.md',
+    'docs/architecture/development.md',
+    '.claude/skills/run-forensics/scripts/run-forensics.sh',
+];
+
+function nodeTagsIn(source: string): string[] {
+    return [...source.matchAll(/\bnode:\d[\w.-]*/g)].map((match) => match[0]);
+}
+
 function read(file: string): string {
     return readFileSync(path.join(ROOT, file), 'utf-8');
 }
@@ -76,6 +88,13 @@ describe('runtime versions', () => {
     }
 
     it.skipIf(!reachable)('pins every Docker image down to the patch', () => {
+        // Guards against a regex that stopped matching: no image, no failure.
+        for (const file of runtimeFiles().filter((f) =>
+            f.endsWith('Dockerfile'),
+        )) {
+            expect(imagesIn(read(file)), file).not.toEqual([]);
+        }
+
         const floating = runtimeFiles().flatMap((file) =>
             imagesIn(read(file))
                 .filter((image) => !isPinned(image))
@@ -88,11 +107,14 @@ describe('runtime versions', () => {
     it.skipIf(!reachable)(
         'runs the same Node everywhere, pinned down to the patch',
         () => {
-            const images = runtimeFiles().flatMap((file) =>
-                imagesIn(read(file)).filter((image) =>
-                    image.startsWith('node:'),
+            const images = [
+                ...runtimeFiles().flatMap((file) =>
+                    imagesIn(read(file)).filter((image) =>
+                        image.startsWith('node:'),
+                    ),
                 ),
-            );
+                ...COMMAND_FILES.flatMap((file) => nodeTagsIn(read(file))),
+            ];
             const versions = new Set(
                 images.map((image) => image.replace(/^node:([^-]+)-.*$/, '$1')),
             );
