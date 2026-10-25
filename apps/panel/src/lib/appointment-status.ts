@@ -71,6 +71,12 @@ export const STRUCK_STATUSES: AppointmentStatus[] = [
     'rescheduled',
 ];
 
+// Statuses that no longer hold their slot — mirrors the overlap query in `BookAppointmentAction`; hidden from the agenda by default.
+export const INACTIVE_STATUSES: AppointmentStatus[] = [
+    'cancelled',
+    'rescheduled',
+];
+
 /** Not a status: marks an appointment booked online (`appointments.origin`). */
 export const ONLINE_TONE: ToneStyle = {
     block: 'border-status-online bg-status-online-wash',

@@ -12,7 +12,7 @@ import { OnlineOriginMark } from '@/features/appointment-status/OnlineOriginMark
 import { formatShortDateTime } from '@/lib/datetime';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
-import { agendaDaySearch } from './agenda-day-search';
+import { agendaAppointmentLink } from './agenda-day-search';
 
 type PatientAppointmentHistoryCardProps = {
     appointments: PatientAppointmentHistoryItem[];
@@ -49,8 +49,8 @@ export function PatientAppointmentHistoryCard({
                                         <TableCell>
                                             <Link
                                                 to="/agenda"
-                                                search={agendaDaySearch(
-                                                    appointment.start_at,
+                                                {...agendaAppointmentLink(
+                                                    appointment,
                                                 )}
                                                 className="underline-offset-4 hover:underline"
                                             >

@@ -77,7 +77,7 @@ describe('PatientAppointmentHistoryCard', () => {
         ).toHaveLength(1);
     });
 
-    it("links each date to that day's agenda", async () => {
+    it("links each date to that day's agenda, scrolled to the appointment", async () => {
         const appointment = buildAppointment();
         renderCard([appointment]);
 
@@ -87,7 +87,22 @@ describe('PatientAppointmentHistoryCard', () => {
         );
         const link = await screen.findByRole('link', { name: expectedDate });
         expect(link.getAttribute('href')).toBe(
-            '/agenda?date=2026-08-03&view=day',
+            '/agenda?date=2026-08-03&view=day#turno-1',
+        );
+    });
+
+    // The agenda hides inactive appointments by default, which would leave the link's hash pointing at nothing.
+    it('shows cancelled appointments in the agenda when the linked one is cancelled', async () => {
+        const appointment = buildAppointment({ id: 7, status: 'cancelled' });
+        renderCard([appointment]);
+
+        const expectedDate = new Date(appointment.start_at).toLocaleString(
+            'es-AR',
+            { dateStyle: 'short', timeStyle: 'short' },
+        );
+        const link = await screen.findByRole('link', { name: expectedDate });
+        expect(link.getAttribute('href')).toBe(
+            '/agenda?date=2026-08-03&view=day&showCancelled=true#turno-7',
         );
     });
 

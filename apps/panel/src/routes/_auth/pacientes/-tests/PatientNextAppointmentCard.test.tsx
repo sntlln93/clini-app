@@ -1,11 +1,14 @@
+import { routerBehavior } from '@/lib/router-behavior';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import {
     createMemoryHistory,
     createRootRoute,
+    createRoute,
     createRouter,
+    Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { PatientNextAppointmentCard } from '../-components/PatientNextAppointmentCard';
 
@@ -37,6 +40,29 @@ function renderCard(appointment: PatientAppointmentHistoryItem | null) {
     render(<RouterProvider router={router} />);
 }
 
+// The card on `/`, and an agenda stand-in holding the block the link's hash names.
+function renderCardWithAgenda(appointment: PatientAppointmentHistoryItem) {
+    const rootRoute = createRootRoute({ component: Outlet });
+    const patientRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/',
+        component: () => (
+            <PatientNextAppointmentCard appointment={appointment} />
+        ),
+    });
+    const agendaRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/agenda',
+        component: () => <div id={`turno-${appointment.id}`}>Bloque</div>,
+    });
+    const router = createRouter({
+        routeTree: rootRoute.addChildren([patientRoute, agendaRoute]),
+        history: createMemoryHistory({ initialEntries: ['/'] }),
+        ...routerBehavior,
+    });
+    render(<RouterProvider router={router} />);
+}
+
 describe('PatientNextAppointmentCard', () => {
     beforeEach(() => {
         vi.useFakeTimers({ toFake: ['Date'] });
@@ -57,7 +83,25 @@ describe('PatientNextAppointmentCard', () => {
             screen
                 .getByRole('link', { name: 'Ver en agenda' })
                 .getAttribute('href'),
-        ).toBe('/agenda?date=2026-08-20&view=day');
+        ).toBe('/agenda?date=2026-08-20&view=day#turno-9');
+    });
+
+    // #343: the day grid starts at 08:00, so an evening appointment sits below the fold.
+    it("scrolls the agenda's day to the appointment's block", async () => {
+        renderCardWithAgenda(APPOINTMENT);
+        const scrollIntoView = vi.mocked(Element.prototype.scrollIntoView);
+        scrollIntoView.mockClear();
+
+        fireEvent.click(
+            await screen.findByRole('link', { name: 'Ver en agenda' }),
+        );
+
+        const block = await screen.findByText('Bloque');
+        expect(scrollIntoView).toHaveBeenCalledWith({
+            block: 'center',
+            inline: 'nearest',
+        });
+        expect(scrollIntoView.mock.contexts).toContain(block);
     });
 
     it("says there is nothing upcoming and links to today's agenda", async () => {

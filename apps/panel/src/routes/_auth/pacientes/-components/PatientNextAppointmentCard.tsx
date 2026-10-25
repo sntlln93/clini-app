@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import type { PatientAppointmentHistoryItem } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
 import { CalendarDays } from 'lucide-react';
-import { agendaDaySearch } from './agenda-day-search';
+import { agendaAppointmentLink, agendaDaySearch } from './agenda-day-search';
 
 type PatientNextAppointmentCardProps = {
     appointment: PatientAppointmentHistoryItem | null;
@@ -32,9 +32,9 @@ export function PatientNextAppointmentCard({
     appointment,
 }: PatientNextAppointmentCardProps) {
     // With nothing upcoming, the agenda opens on today, where a new appointment would be booked.
-    const search = agendaDaySearch(
-        appointment?.start_at ?? toInstant(DateTime.now()),
-    );
+    const link = appointment
+        ? agendaAppointmentLink(appointment)
+        : { search: agendaDaySearch(toInstant(DateTime.now())) };
 
     return (
         <Card>
@@ -43,7 +43,7 @@ export function PatientNextAppointmentCard({
                 <CardAction>
                     <Link
                         to="/agenda"
-                        search={search}
+                        {...link}
                         className={cn(
                             buttonVariants({
                                 variant: 'outline',

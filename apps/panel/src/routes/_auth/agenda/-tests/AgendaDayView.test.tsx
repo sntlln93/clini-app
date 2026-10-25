@@ -183,6 +183,20 @@ describe('AgendaDayView', () => {
         expect(block?.style.height).toBe('64px');
     });
 
+    // #343: the patient page's links name this id in their hash, and the router scrolls to it.
+    it("gives each appointment block its anchor id, so a link's hash scrolls the day to it", () => {
+        const professional = buildProfessional({ id: 1 });
+        const { container } = renderDayView({
+            professionals: [professional],
+            appointments: [buildAppointment({ id: 42, membership_id: 1 })],
+        });
+
+        const block = container.querySelector('#turno-42');
+        expect(block?.textContent).toContain('Juan Pérez');
+        // Clear of the sticky header when a fresh load aligns it to the top.
+        expect(block?.className).toContain('scroll-mt-20');
+    });
+
     it('lays the day out as the landing example: a time gutter plus one flexible column per professional', () => {
         const { container } = renderDayView({
             professionals: [
