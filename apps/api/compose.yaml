@@ -90,7 +90,7 @@ services:
     # Dev stand-in for the S3-compatible bucket (Cloudflare R2 in production,
     # ADR 0015): creates the bucket itself and keeps its objects in a volume.
     s3:
-        image: 'adobe/s3mock:4.10.0'
+        image: 'adobe/s3mock:5.2.3'
         ports:
             - '${FORWARD_S3_PORT:-9090}:9090'
         environment:
