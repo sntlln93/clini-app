@@ -7,12 +7,12 @@ services:
     # landing service below (running as WWWUSER, not root) couldn't write
     # into. Runs once as root before landing starts and exits.
     landing-node-modules-init:
-        image: 'node:24.22.1-bookworm-slim'
+        image: 'node:26.12.1-bookworm-slim'
         volumes:
             - 'landing_node_modules:/node_modules'
         command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     landing:
-        image: 'node:24.22.1-bookworm-slim'
+        image: 'node:26.12.1-bookworm-slim'
         # Only apps/landing plus the root manifests are mounted (not the
         # whole repo root): the workspace lockfile is indexed by workspace
         # path, so npm needs both root manifests at /workspace to resolve
