@@ -471,9 +471,10 @@ describe('AppointmentFormDialog', () => {
 describe('AppointmentFormDialog patient search', () => {
     function mockEmptySearch() {
         vi.mocked(api.get).mockImplementation(
-            (url: string, config?: { params?: { q?: string } }) => {
+            (url: string, config?: Parameters<typeof api.get>[1]) => {
                 if (url === '/patients') {
-                    const data = config?.params?.q ? [] : [PATIENT];
+                    const { q } = (config?.params ?? {}) as { q?: string };
+                    const data = q ? [] : [PATIENT];
                     return Promise.resolve({
                         data: {
                             data,
@@ -568,10 +569,11 @@ describe('AppointmentFormDialog patient registration', () => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset();
         vi.mocked(api.get).mockImplementation(
-            (url: string, config?: { params?: { q?: string } }) => {
+            (url: string, config?: Parameters<typeof api.get>[1]) => {
                 if (url === '/patients') {
                     // The search never catches up with the new patient here: the dialog must still list it.
-                    const data = config?.params?.q ? [] : [PATIENT];
+                    const { q } = (config?.params ?? {}) as { q?: string };
+                    const data = q ? [] : [PATIENT];
                     return Promise.resolve({
                         data: {
                             data,

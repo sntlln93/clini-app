@@ -7,12 +7,12 @@ services:
     # dashboard service below (running as WWWUSER, not root) couldn't write
     # into. Runs once as root before dashboard starts and exits.
     dashboard-node-modules-init:
-        image: 'node:24-bookworm-slim'
+        image: 'node:24.22.1-bookworm-slim'
         volumes:
             - 'dashboard_node_modules:/node_modules'
         command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     dashboard:
-        image: 'node:24-bookworm-slim'
+        image: 'node:24.22.1-bookworm-slim'
         # Only apps/dashboard plus the root manifests are mounted (not the
         # whole repo root): the workspace lockfile is indexed by workspace
         # path, so npm needs both root manifests at /workspace to resolve

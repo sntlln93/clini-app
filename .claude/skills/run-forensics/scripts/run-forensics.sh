@@ -51,7 +51,7 @@ landing() {
 # pinned version nor guaranteed to be present.
 e2e_node() {
     docker run --rm -v "$PWD:/app" -w /app --user "$WWWUSER:$WWWGROUP" -e HOME=/tmp \
-        node:24-bookworm-slim "$@"
+        node:24.22.1-bookworm-slim "$@"
 }
 
 FULL=false

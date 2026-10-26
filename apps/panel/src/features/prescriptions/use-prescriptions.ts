@@ -55,7 +55,7 @@ export function useSavePrescription(appointmentId: number | null) {
         }: {
             prescriptionId: number | null;
             payload: PrescriptionAmendmentPayload;
-        }) =>
+        }): Promise<unknown> =>
             prescriptionId === null
                 ? api.post(`/appointments/${appointmentId}/prescriptions`, {
                       items,
