@@ -3,11 +3,13 @@
 declare(strict_types=1);
 
 use App\Enums\ClinicalAccessAction;
+use App\Http\Resources\ClinicalRecords\ClinicalRecordResource;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Support\ClinicalRecordLoader;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -111,3 +113,28 @@ test('a note is found by its own patient, without going through its appointment'
         ->and($query->pluck('id')->all())->toBe([$note->id]);
 });
 
+test('who attended a patient is found by the notes\' own patient, not through their appointments', function () {
+    $note = ClinicalNote::factory()->create();
+
+    $sql = Patient::query()->attendedBy($note->organization_id, $note->membership_id)->toRawSql();
+
+    expect($sql)->toContain('"patients"."id" = "clinical_notes"."patient_id"')
+        ->and($sql)->not->toContain('"appointments"."id" = "clinical_notes"."appointment_id"')
+        ->and(Patient::query()->attendedBy($note->organization_id, $note->membership_id)->pluck('id')->all())->toBe([$note->patient_id]);
+});
+
+test('the export loads notes and medication by their own patient and files them under their appointment', function () {
+    $note = ClinicalNote::factory()->create();
+    $prescription = Prescription::factory()->create(['appointment_id' => $note->appointment_id]);
+    app(CurrentOrganization::class)->set($note->organization_id);
+
+    $patient = ClinicalRecordLoader::patient(Patient::findOrFail($note->patient_id), $note->organization_id, $prescription->membership_id);
+
+    expect($patient->relationLoaded('clinicalNotes'))->toBeTrue()
+        ->and($patient->relationLoaded('prescriptions'))->toBeTrue()
+        ->and($patient->appointments->sole()->relationLoaded('clinicalNotes'))->toBeFalse();
+
+    $appointment = (new ClinicalRecordResource($patient))->resolve()['appointments'][0];
+    expect(array_column($appointment['clinical_notes'], 'id'))->toBe([$note->id])
+        ->and(array_column($appointment['prescriptions'], 'id'))->toBe([$prescription->id]);
+});
