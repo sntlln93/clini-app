@@ -8,12 +8,12 @@ services:
     # runs once as root before panel starts and exits; `chown -R` on an
     # already-correct tree on later restarts is a cheap no-op.
     panel-node-modules-init:
-        image: 'node:24.22.1-bookworm-slim'
+        image: 'node:26.12.1-bookworm-slim'
         volumes:
             - 'panel_node_modules:/node_modules'
         command: chown -R ${WWWUSER:-1000}:${WWWGROUP:-1000} /node_modules
     panel:
-        image: 'node:24.22.1-bookworm-slim'
+        image: 'node:26.12.1-bookworm-slim'
         # Only apps/panel plus the two root manifests (and the sibling
         # dashboard's package.json, see below) are mounted (not the whole
         # repo root): the workspace lockfile is indexed by workspace
