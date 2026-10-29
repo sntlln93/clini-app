@@ -111,10 +111,10 @@ describe('/pacientes search debounce', () => {
         await vi.advanceTimersByTimeAsync(1);
 
         expect(navigateSpy).toHaveBeenCalledTimes(1);
-        expect(router.state.location.search).toMatchObject({
-            q: 'ana',
-            page: 1,
-        });
+        // A new search starts the list over (#306): the cards from the
+        // first page, the table from its first page by default.
+        expect(router.state.location.search).toMatchObject({ q: 'ana' });
+        expect(router.state.location.search).not.toHaveProperty('page');
     });
 
     it('reflects an external `q` change (clear button / browser back) in the input', async () => {
