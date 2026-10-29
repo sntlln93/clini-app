@@ -90,15 +90,18 @@ services:
     # Dev stand-in for the S3-compatible bucket (Cloudflare R2 in production,
     # ADR 0015): creates the bucket itself and keeps its objects in a volume.
     s3:
-        image: 'adobe/s3mock:4.10.0'
+        image: 'adobe/s3mock:5.2.3'
         ports:
             - '${FORWARD_S3_PORT:-9090}:9090'
         environment:
             COM_ADOBE_TESTING_S3MOCK_STORE_INITIAL_BUCKETS: '${AWS_BUCKET:-clini}'
             COM_ADOBE_TESTING_S3MOCK_STORE_RETAIN_FILES_ON_EXIT: 'true'
-            COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /data
+            # s3mock 5 runs as a non-root user that can only write the
+            # directory its image prepares, and can't read a 4.x store:
+            # hence this root and a volume of its own.
+            COM_ADOBE_TESTING_S3MOCK_STORE_ROOT: /s3mockroot
         volumes:
-            - 'clini-s3:/data'
+            - 'clini-s3-v5:/s3mockroot'
         networks:
             - sail
     pgsql:
@@ -132,5 +135,5 @@ networks:
 volumes:
     sail-pgsql:
         driver: local
-    clini-s3:
+    clini-s3-v5:
         driver: local

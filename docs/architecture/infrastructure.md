@@ -82,7 +82,7 @@ Los archivos que suben los usuarios (hoy, el logo de la organización, #239) van
 
 Sin ellas, la API arranca igual, pero subir un logo responde 500. Los backups de los archivos se hacen sobre el bucket, por separado de Postgres.
 
-En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3`.
+En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3-v5` (s3mock 5 no lee lo que guardó la 4.x, así que el volumen `clini-s3` anterior puede borrarse con `docker volume rm clini-app_clini-s3`).
 
 ## Observabilidad
 
