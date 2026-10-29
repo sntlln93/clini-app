@@ -12,6 +12,7 @@ const OPTIONS = [
     { view: 'tabla', label: 'Ver como tabla', icon: List },
 ] as const;
 
+// Same states as the agenda's view selector: the chosen view filled, the other outlined.
 export function ListViewToggle({ value, onChange }: ListViewToggleProps) {
     return (
         <div role="group" aria-label="Vista" className="flex gap-1">
@@ -20,7 +21,7 @@ export function ListViewToggle({ value, onChange }: ListViewToggleProps) {
                     key={view}
                     type="button"
                     size="icon"
-                    variant={value === view ? 'secondary' : 'ghost'}
+                    variant={value === view ? 'default' : 'outline'}
                     aria-label={label}
                     aria-pressed={value === view}
                     title={label}
