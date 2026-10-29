@@ -137,3 +137,28 @@ test('a user with no active membership gets a 403', function () {
 
     $response->assertStatus(403);
 });
+
+// The cards view loads the list page after page (#306): a tie on the name must
+// not move a patient across pages, or one repeats and another never shows.
+test('paginating through patients who share a name breaks ties by id without skipping or repeating rows', function () {
+    $membership = Membership::factory()->create();
+
+    $ids = collect(range(1, 6))->map(function () use ($membership) {
+        $patient = Patient::factory()->create(['name' => 'Ana Pérez']);
+        $patient->organizations()->attach($membership->organization_id);
+
+        return $patient->id;
+    });
+    // Rewriting the rows in reverse puts them on disk against their id order,
+    // so nothing but an explicit tie-break can hand them back by id.
+    $ids->reverse()->each(fn (int $id) => Patient::query()->whereKey($id)->update(['email' => "p{$id}@test.com"]));
+
+    $seenIds = collect(range(1, $ids->count()))->map(function (int $page) use ($membership) {
+        $response = $this->actingAs($membership->user)->getJson("/api/v1/patients?per_page=1&page={$page}");
+        $response->assertOk();
+
+        return $response->json('data.0.id');
+    });
+
+    expect($seenIds->all())->toBe($ids->sort()->values()->all());
+});
