@@ -70,6 +70,26 @@ class Patient extends Model
     }
 
     /**
+     * Notes about the patient, of every author: each one keeps its appointment's patient (#360).
+     *
+     * @return HasMany<ClinicalNote, $this>
+     */
+    public function clinicalNotes(): HasMany
+    {
+        return $this->hasMany(ClinicalNote::class);
+    }
+
+    /**
+     * Indicated medication for the patient, of every author: each one keeps its appointment's patient (#360).
+     *
+     * @return HasMany<Prescription, $this>
+     */
+    public function prescriptions(): HasMany
+    {
+        return $this->hasMany(Prescription::class);
+    }
+
+    /**
      * Every practice's rows: whoever reads them narrows them with `ClinicalAccessLog::visibleTo`.
      *
      * @return HasMany<ClinicalAccessLog, $this>
@@ -111,15 +131,13 @@ class Patient extends Model
      */
     public function scopeAttendedBy(Builder $query, int $organizationId, int $membershipId): Builder
     {
-        return $query->whereHas('appointments', function (Builder $query) use ($organizationId, $membershipId): void {
-            $query->where('organization_id', $organizationId)
-                ->where(function (Builder $query) use ($organizationId, $membershipId): void {
-                    $query->where('membership_id', $membershipId)
-                        ->orWhereHas('clinicalNotes', fn (Builder $query) => $query
-                            ->where('organization_id', $organizationId)
-                            ->where('membership_id', $membershipId));
-                });
-        });
+        return $query->where(fn (Builder $query) => $query
+            ->whereHas('appointments', fn (Builder $query) => $query
+                ->where('organization_id', $organizationId)
+                ->where('membership_id', $membershipId))
+            ->orWhereHas('clinicalNotes', fn (Builder $query) => $query
+                ->where('organization_id', $organizationId)
+                ->where('membership_id', $membershipId)));
     }
 
     /**
