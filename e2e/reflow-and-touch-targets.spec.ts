@@ -77,6 +77,22 @@ test.describe('reflow at ~400% zoom (320x640), authenticated', () => {
         await assertNoPageLevelHorizontalScroll(page);
     });
 
+    // Both list views of both list pages (#306): cards by default, and the table.
+    for (const path of [
+        '/pacientes?vista=tabla',
+        '/profesionales',
+        '/profesionales?vista=tabla',
+    ]) {
+        test(`${path} has no page-level horizontal scroll`, async ({
+            page,
+        }) => {
+            await page.goto(path);
+            await page.waitForLoadState('networkidle');
+
+            await assertNoPageLevelHorizontalScroll(page);
+        });
+    }
+
     test('/reportes has no page-level horizontal scroll', async ({ page }) => {
         await page.goto('/reportes');
         await page.waitForLoadState('networkidle');
