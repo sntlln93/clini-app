@@ -36,7 +36,7 @@ function renderUseToggleUserSpecialty(userId: number) {
         wrapper,
     });
 
-    return { result, invalidateQueries };
+    return { result, invalidateQueries, queryClient };
 }
 
 const USER_ID = 7;
@@ -112,4 +112,23 @@ describe('useToggleUserSpecialty', () => {
             refetchType: 'all',
         });
     });
+    // The member cards list specialties and only their loader reads them (#306).
+    it.each(['assign', 'remove'] as const)(
+        '%s drops the cached member cards, keeping the members table',
+        async (action) => {
+            vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+            vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
+            const { result, queryClient } =
+                renderUseToggleUserSpecialty(USER_ID);
+            const cardsKey = ['memberships', 'cards', { q: '' }];
+            const tableKey = ['memberships', { q: '', page: 1 }];
+            queryClient.setQueryData(cardsKey, { pages: [], pageParams: [] });
+            queryClient.setQueryData(tableKey, { data: [] });
+
+            await result.current[action].mutateAsync(SPECIALTY_ID);
+
+            expect(queryClient.getQueryData(cardsKey)).toBeUndefined();
+            expect(queryClient.getQueryData(tableKey)).toEqual({ data: [] });
+        },
+    );
 });
