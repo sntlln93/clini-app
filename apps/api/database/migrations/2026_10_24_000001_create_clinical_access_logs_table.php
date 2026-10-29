@@ -37,6 +37,9 @@ return new class extends Migration
 
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
+            // A row about an appointment is about that appointment's patient (#360).
+            $table->foreign(['appointment_id', 'patient_id'])
+                ->references(['id', 'patient_id'])->on('appointments')->restrictOnDelete();
             $table->index(['organization_id', 'action', 'created_at']);
             $table->index(['membership_id', 'patient_id', 'action', 'created_at']);
             // A patient's trail, on their page and in the export.

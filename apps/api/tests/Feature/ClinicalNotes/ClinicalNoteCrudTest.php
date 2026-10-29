@@ -11,7 +11,7 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-test('store on one\'s own appointment returns 201 and persists organization, membership and appointment', function () {
+test('store on one\'s own appointment returns 201 and persists organization, membership, appointment and its patient', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -28,9 +28,10 @@ test('store on one\'s own appointment returns 201 and persists organization, mem
     expect($note->membership_id)->toBe($membership->id);
     expect($note->organization_id)->toBe($membership->organization_id);
     expect($note->appointment_id)->toBe($appointment->id);
+    expect($note->patient_id)->toBe($appointment->patient_id);
 });
 
-test('store ignores membership_id, organization_id and appointment_id sent in the payload', function () {
+test('store ignores membership_id, organization_id, appointment_id and patient_id sent in the payload', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
@@ -44,6 +45,7 @@ test('store ignores membership_id, organization_id and appointment_id sent in th
         'membership_id' => $otherMembership->id,
         'organization_id' => $otherMembership->organization_id,
         'appointment_id' => $otherAppointment->id,
+        'patient_id' => $otherAppointment->patient_id,
     ]);
 
     $response->assertCreated();
@@ -52,6 +54,7 @@ test('store ignores membership_id, organization_id and appointment_id sent in th
     expect($note->membership_id)->toBe($membership->id);
     expect($note->organization_id)->toBe($membership->organization_id);
     expect($note->appointment_id)->toBe($appointment->id);
+    expect($note->patient_id)->toBe($appointment->patient_id);
 });
 
 test('store returns 422 when body is missing, and 422 when body exceeds the max length', function () {

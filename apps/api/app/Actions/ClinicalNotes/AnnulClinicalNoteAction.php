@@ -11,7 +11,6 @@ use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\ClinicalNotes\ClinicalNoteAnnulmentData;
 use App\Enums\ClinicalAccessAction;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAnnulledException;
-use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use Illuminate\Support\Facades\DB;
 
@@ -44,13 +43,10 @@ class AnnulClinicalNoteAction implements Action
                 'reason' => $dto->reason,
             ]);
 
-            /** @var Appointment $appointment */
-            $appointment = $clinicalNote->appointment()->withTrashed()->firstOrFail();
-
             $this->record->handle(new ClinicalAccessEntryData(
                 organizationId: $clinicalNote->organization_id,
                 membershipId: $dto->membershipId,
-                patientId: $appointment->patient_id,
+                patientId: $clinicalNote->patient_id,
                 action: ClinicalAccessAction::NoteAnnulled,
                 appointmentId: $clinicalNote->appointment_id,
                 clinicalNoteId: $clinicalNote->id,
