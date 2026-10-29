@@ -31,8 +31,7 @@ export function ClinicalAccessTrailCard({
                 <CardTitle>Registro de accesos</CardTitle>
                 <CardDescription>
                     Quién leyó, escribió, enmendó, anuló o exportó esta historia
-                    clínica, y cuándo. No incluye lo que otros profesionales
-                    hicieron con la medicación que indicaron.
+                    clínica, y cuándo.
                 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">

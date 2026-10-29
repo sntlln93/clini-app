@@ -19,6 +19,11 @@ vi.mock('@/lib/plan', () => ({
 vi.mock('@/hooks/use-refresh-page-data', () => ({
     useRefreshPageData: () => refresh,
 }));
+// The acting membership is the fixture's author (membership_id 1).
+vi.mock('@/lib/session', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/lib/session')>()),
+    useSession: () => ({ data: { membership: { id: 1 } } }),
+}));
 
 // The agenda's own dialog, tested in features/prescriptions: here only what
 // the card hands it matters.
@@ -75,6 +80,7 @@ function buildPrescription(
 ): Prescription {
     return buildSharedPrescription({
         items: [AMOXICILLIN_DAILY],
+        author_name: 'Dra. Ana Gomez',
         ...overrides,
     });
 }
@@ -99,14 +105,40 @@ describe('PatientPrescriptionsCard', () => {
         refresh.mockClear();
     });
 
-    it('shows an empty state when the professional has recorded none', async () => {
+    it('shows an empty state when no professional has recorded any', async () => {
         renderCard([]);
 
         expect(
             await screen.findByText(
-                'Todavía no registraste medicación para este paciente.',
+                'Todavía no hay medicación indicada para este paciente.',
             ),
         ).toBeTruthy();
+    });
+
+    // #359: the medication is part of the history, read as the notes are;
+    // only its author amends or annuls it.
+    it("lists another professional's records with their author, without amending or annulling them", () => {
+        renderCard(
+            [
+                buildPrescription({ id: 7 }),
+                buildPrescription({
+                    id: 8,
+                    membership_id: 2,
+                    author_name: 'Dr. Colega',
+                }),
+            ],
+            31,
+        );
+
+        expect(screen.getByText('Dra. Ana Gomez')).toBeTruthy();
+        expect(screen.getByText('Dr. Colega')).toBeTruthy();
+        expect(
+            screen.getAllByRole('button', { name: 'Enmendar' }),
+        ).toHaveLength(1);
+        expect(screen.getAllByRole('button', { name: 'Anular' })).toHaveLength(
+            1,
+        );
+        expect(screen.queryByText(/Solo ves/)).toBeNull();
     });
 
     // Nothing prints the record anymore (#319), so the card shows it in full.

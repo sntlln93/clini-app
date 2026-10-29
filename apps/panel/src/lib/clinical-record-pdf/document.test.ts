@@ -116,6 +116,9 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain(
             'Anulada el 08/09/2026 09:00 por Dra. Exportadora. Motivo: Terminó el tratamiento.',
         );
+        // Every author's medication, as the notes (#359).
+        expect(text).toContain('Paracetamol · Si hay fiebre · Cantidad: 1');
+        expect(text).toContain('Versión 1, Dr. Colega, 10/09/2026 12:20');
     });
 
     it('closes with the access trail, as the patient page words it', () => {

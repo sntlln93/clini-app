@@ -35,7 +35,7 @@ test.describe('creating a patient lands on its page', () => {
         ).toBeVisible();
         await expect(
             page.getByText(
-                'Solo pueden ver las notas clínicas los profesionales que tienen o tuvieron un turno con este paciente.',
+                'Solo pueden ver la historia clínica los profesionales que tienen o tuvieron un turno con este paciente.',
             ),
         ).toBeVisible();
     });

@@ -75,10 +75,10 @@ export function PrescriptionsDialog({
                 <DialogHeader>
                     <DialogTitle>Medicación indicada</DialogTitle>
                     <DialogDescription>
-                        Solo vos ves la medicación que indicaste en este turno.
-                        Queda registrada en la ficha del paciente y no se borra:
-                        si la corregís, la versión anterior queda en el
-                        historial.
+                        La medicación que indicás en este turno queda en la
+                        historia clínica del paciente, que leen los
+                        profesionales que lo atienden, y no se borra: si la
+                        corregís, la versión anterior queda en el historial.
                     </DialogDescription>
                 </DialogHeader>
 

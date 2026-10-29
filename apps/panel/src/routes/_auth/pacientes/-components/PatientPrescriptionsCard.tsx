@@ -20,6 +20,7 @@ import {
     useWritesRestriction,
     type WritesRestriction,
 } from '@/lib/plan';
+import { useSession } from '@/lib/session';
 import type { Prescription } from '@/types/prescription';
 import { useRef, useState } from 'react';
 
@@ -32,7 +33,7 @@ const READ_ONLY_REASONS: Record<WritesRestriction | 'feature', string> = {
         'Tu suscripción no está activa: la medicación indicada es de solo lectura.',
     plan: 'El plan Gratis incluye un solo profesional activo: la medicación indicada es de solo lectura hasta que pases a Consultorio o desactives profesionales.',
     feature:
-        'Registrar la medicación indicada es parte del plan Consultorio: la que ya registraste sigue disponible para consultar.',
+        'Registrar la medicación indicada es parte del plan Consultorio: la ya registrada sigue disponible para consultar.',
 };
 
 type PatientPrescriptionsCardProps = {
@@ -43,13 +44,13 @@ type PatientPrescriptionsCardProps = {
     todaysAppointmentId: number | null;
 };
 
-// The medication the acting membership indicated to this patient (#319), in
-// full since nothing else shows it, with every earlier version (#323) and, once
+// The medication every professional of the practice indicated to this patient
+// (#319, #359), part of the clinical history as the notes are, with its author,
+// in full since nothing else shows it, every earlier version (#323) and, once
 // annulled, how and why (#344). It is recorded on today's own appointment and
-// amended on its own, both in the agenda's dialog, or annulled with a reason;
-// while the plan or the subscription leaves it read-only the
-// card says why and offers neither. Every record listed is the acting
-// membership's (CU-53).
+// only its author amends it on its own appointment, both in the agenda's
+// dialog, or annuls it with a reason; while the plan or the subscription leaves
+// it read-only the card says why and offers neither.
 export function PatientPrescriptionsCard({
     patientId,
     prescriptions,
@@ -64,6 +65,9 @@ export function PatientPrescriptionsCard({
     const [dialogOpen, setDialogOpen] = useState(false);
     const [annulling, setAnnulling] = useState<Prescription | null>(null);
     const listRef = useRef<HTMLDivElement>(null);
+    // Only its author amends or annuls a record (`PrescriptionPolicy`).
+    const { data: session } = useSession();
+    const ownMembershipId = session?.membership?.id ?? null;
     const refreshPageData = useRefreshPageData();
     const refreshPrescriptions = () =>
         refreshPageData(patientPrescriptionsQueryKey(patientId));
@@ -72,6 +76,12 @@ export function PatientPrescriptionsCard({
     const readOnlyReason =
         restriction ?? (includedInPlan ? null : ('feature' as const));
     const canWrite = readOnlyReason === null;
+    const unavailableReason =
+        readOnlyReason !== null
+            ? READ_ONLY_REASONS[readOnlyReason]
+            : todaysAppointmentId === null
+              ? 'Podés registrarla cuando tengas un turno con este paciente hoy.'
+              : null;
     const openDialog = (
         appointmentId: number,
         amending: Prescription | null,
@@ -84,13 +94,9 @@ export function PatientPrescriptionsCard({
         <Card>
             <CardHeader>
                 <CardTitle>Medicación indicada</CardTitle>
-                <CardDescription>
-                    Solo ves la medicación que indicaste vos.
-                    {readOnlyReason !== null
-                        ? ` ${READ_ONLY_REASONS[readOnlyReason]}`
-                        : todaysAppointmentId === null &&
-                          ' Podés registrarla cuando tengas un turno con este paciente hoy.'}
-                </CardDescription>
+                {unavailableReason && (
+                    <CardDescription>{unavailableReason}</CardDescription>
+                )}
                 {canWrite && todaysAppointmentId !== null && (
                     <CardAction>
                         <Button
@@ -109,7 +115,7 @@ export function PatientPrescriptionsCard({
             <CardContent ref={listRef} tabIndex={-1} className="space-y-3">
                 {prescriptions.length === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                        Todavía no registraste medicación para este paciente.
+                        Todavía no hay medicación indicada para este paciente.
                     </p>
                 ) : (
                     prescriptions.map((prescription) => (
@@ -118,6 +124,8 @@ export function PatientPrescriptionsCard({
                             prescription={prescription}
                             actions={
                                 canWrite &&
+                                prescription.membership_id ===
+                                    ownMembershipId &&
                                 prescription.annulment === null && (
                                     <PrescriptionActions
                                         onAmend={() =>
@@ -133,9 +141,14 @@ export function PatientPrescriptionsCard({
                                 )
                             }
                             meta={
-                                <span className="tabular-nums">
-                                    {formatDate(prescription.issued_at)}
-                                </span>
+                                <>
+                                    <span>
+                                        {prescription.author_name ?? '—'}
+                                    </span>
+                                    <span className="tabular-nums">
+                                        {formatDate(prescription.issued_at)}
+                                    </span>
+                                </>
                             }
                         >
                             <PrescriptionItemList items={prescription.items} />
