@@ -544,7 +544,7 @@ Convenciones:
     búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
     que cambiarlos es una enmienda y un cambio del catálogo no reescribe la historia.
 
-### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344)*
+### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344, #359)*
 
 - **Actor**: profesional que registra la medicación que indicó durante un turno propio.
 - **Decisión**: registro **interno de la historia clínica**, sin vademécum ni catálogo de
@@ -556,8 +556,13 @@ Convenciones:
 - **Invariantes**:
   - Igual que la nota clínica (CU-45), el registro cuelga de un **turno**, un **profesional
     autor** y una **organización**, y además guarda el paciente del turno.
-  - Solo el **profesional autor** lo crea, ve, enmienda y anula — nunca dueño/admin/staff ni otro
-    profesional de la misma organización, ni siquiera desde la ficha del paciente.
+  - Solo el **profesional autor** lo crea, enmienda y anula — nunca dueño/admin/staff ni otro
+    profesional de la misma organización.
+  - Es parte de la historia clínica, con la misma regla de lectura que las notas (#359): lo ve,
+    con su autor, en la ficha, en el registro de accesos y en la exportación, todo profesional
+    que puede leer la historia del paciente (misma relación, ventana y acceso excepcional que
+    las notas, CU-45 y CU-55), nunca dueño/admin/staff por su rol. Leerlo no da derecho a
+    modificarlo.
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
@@ -583,9 +588,9 @@ Convenciones:
     por rol. La exportación del consultorio entero por el dueño espera #315.
   - Contiene lo que quien exporta ya puede leer: los turnos y las notas de todos los
     profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
-    solo su propia medicación indicada (CU-53). Nada de otras organizaciones.
-  - Incluye el registro de accesos del paciente en el consultorio, con el mismo recorte que
-    la ficha (CU-55).
+    la medicación indicada de todos ellos, igual (CU-53, #359). Nada de otras organizaciones.
+  - Incluye el registro de accesos del paciente en el consultorio, igual que en la ficha
+    (CU-55).
   - Cada exportación queda registrada, de solo agregado, antes de generarse, y deja su fila
     en el registro de accesos de cada paciente que incluye.
   - La de un paciente sin un turno cercano pide el mismo motivo que leer su historia (CU-55).
@@ -608,8 +613,8 @@ Convenciones:
   - La ficha del paciente sabe de antemano si la historia se abre, así que nunca la pide
     para recibir un 403.
   - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
-    o exportó y cuándo, sin el texto de los motivos ni lo que otros profesionales hicieron con
-    la medicación que indicaron. La exportación lleva lo mismo.
+    o exportó y cuándo, sin el texto de los motivos. Incluye lo que otros profesionales hicieron
+    con la medicación que indicaron (#359). La exportación lleva lo mismo.
 
 ### CU-46 · Métricas por paciente (alcance)
 

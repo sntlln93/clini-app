@@ -20,7 +20,7 @@ La medicación indicada (CU-53) es de solo agregado (ADR 0019): se corrige con u
 
 **Se muestra como una nota anulada.** En la agenda y en la ficha lleva la marca «Anulada», la fecha y el motivo, y sus ítems quedan detrás de un desplegable. La exportación (ADR 0021, JSON y PDF) la muestra completa, con su autor, la fecha y el motivo, encima de las versiones.
 
-**Queda en el registro de accesos** (ADR 0022) como `prescription_annulled`, escrita por `RecordClinicalAccessAction` dentro de la transacción de la anulación. Es una de las acciones que cada profesional ve solo de su propia medicación (`ClinicalAccessAction::ownPrescriptionActions`, usada por `ClinicalAccessLog::visibleTo`): si la medicación de otro no se ve (CU-53), tampoco su anulación.
+**Queda en el registro de accesos** (ADR 0022) como `prescription_annulled`, escrita por `RecordClinicalAccessAction` dentro de la transacción de la anulación. Como el resto del registro, la ve todo el que lee la historia del paciente (#359), igual que la medicación anulada. Hasta #359 era una de las acciones que cada profesional veía solo de su propia medicación.
 
 ## Alternativas descartadas
 
