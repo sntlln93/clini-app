@@ -107,6 +107,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/profesionales');
             });
 
+            test('/profesionales?vista=tabla has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/profesionales?vista=tabla');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Profesionales');
+                await expect(page.getByRole('table')).toBeVisible();
+
+                await runA11yScan(page, '/profesionales?vista=tabla');
+            });
+
             test('/disponibilidad has no unexpected accessibility violations', async ({
                 page,
             }) => {

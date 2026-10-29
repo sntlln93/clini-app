@@ -2,7 +2,12 @@ import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
 import { STORAGE_STATE } from './storage-state';
 
-test.use({ storageState: STORAGE_STATE });
+// A short window keeps the end of the first page out of the load-ahead
+// margin, so the next page waits for the scroll instead of loading on arrival.
+test.use({
+    storageState: STORAGE_STATE,
+    viewport: { width: 1280, height: 300 },
+});
 
 // The seeded practice lists more patients and members than one page of cards
 // (12), so reaching the end of the list loads the rest (#306).
@@ -12,7 +17,7 @@ async function scrollToTheEnd(page: Page, noun: string) {
     );
 
     await expect(async () => {
-        await page.mouse.wheel(0, 10_000);
+        await shown.scrollIntoViewIfNeeded();
         const [, loaded, total] = /Mostrando (\d+) de (\d+)/.exec(
             (await shown.textContent()) ?? '',
         )!;
