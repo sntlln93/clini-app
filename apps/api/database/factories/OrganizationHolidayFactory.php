@@ -22,7 +22,8 @@ class OrganizationHolidayFactory extends Factory
     {
         return [
             'organization_id' => Organization::factory(),
-            'date' => fake()->unique()->dateTimeBetween('now', '+1 year')->format('Y-m-d'),
+            // Unique by day: a unique instant can still fall on a day already taken.
+            'date' => today()->addDays(fake()->unique()->numberBetween(0, 365))->toDateString(),
             'name' => fake()->sentence(2),
         ];
     }
