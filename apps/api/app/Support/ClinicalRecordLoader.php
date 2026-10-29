@@ -63,19 +63,24 @@ class ClinicalRecordLoader
             'appointments.membership' => fn ($query) => $query->withTrashed(),
             'appointments.membership.user',
             'appointments.service' => fn ($query) => $query->withTrashed(),
-            'appointments.clinicalNotes' => fn ($query) => $query->orderBy('created_at')->orderBy('id'),
-            'appointments.clinicalNotes.author.user',
-            'appointments.clinicalNotes.versions.author.user',
-            'appointments.clinicalNotes.versions.diagnoses',
-            'appointments.clinicalNotes.annulment.author.user',
-            'appointments.prescriptions' => fn ($query) => $query
+            // By the records' own patient, never through the appointment (#360); the resource files them under theirs.
+            'clinicalNotes' => fn ($query) => $query
+                ->where('organization_id', $organizationId)
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            'clinicalNotes.author.user',
+            'clinicalNotes.versions.author.user',
+            'clinicalNotes.versions.diagnoses',
+            'clinicalNotes.annulment.author.user',
+            'prescriptions' => fn ($query) => $query
+                ->where('organization_id', $organizationId)
                 ->where('membership_id', $membershipId)
                 ->orderBy('issued_at')
                 ->orderBy('id'),
-            'appointments.prescriptions.author.user',
-            'appointments.prescriptions.versions.author.user',
-            'appointments.prescriptions.versions.items',
-            'appointments.prescriptions.annulment.author.user',
+            'prescriptions.author.user',
+            'prescriptions.versions.author.user',
+            'prescriptions.versions.items',
+            'prescriptions.annulment.author.user',
             'clinicalAccessLogs' => fn ($query) => $query
                 ->visibleTo($organizationId, $membershipId)
                 ->orderBy('created_at')

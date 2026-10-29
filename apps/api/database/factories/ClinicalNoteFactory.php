@@ -24,6 +24,7 @@ class ClinicalNoteFactory extends Factory
         return [
             'appointment_id' => Appointment::factory(),
             'organization_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->organization_id,
+            'patient_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->patient_id,
             'membership_id' => fn (array $attributes) => Appointment::findOrFail($attributes['appointment_id'])->membership_id,
         ];
     }
