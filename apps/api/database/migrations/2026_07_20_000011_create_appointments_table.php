@@ -40,6 +40,8 @@ return new class extends Migration
             $table->index(['membership_id', 'start_at']);
 
             $table->unique(['id', 'organization_id']);
+            // Backs the clinical records' (appointment_id, patient_id) keys (#360).
+            $table->unique(['id', 'patient_id']);
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
         });

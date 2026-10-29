@@ -17,16 +17,21 @@ return new class extends Migration
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('appointment_id');
+            // Always the appointment's patient, so the history is defined by its own records (#360).
+            $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->text('body');
             $table->timestampsTz();
             $table->softDeletesTz();
 
             $table->index(['appointment_id', 'membership_id']);
+            $table->index(['patient_id', 'membership_id']);
 
             $table->unique(['id', 'organization_id']);
             $table->foreign(['appointment_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('appointments')->restrictOnDelete();
+            $table->foreign(['appointment_id', 'patient_id'])
+                ->references(['id', 'patient_id'])->on('appointments')->restrictOnDelete();
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
         });

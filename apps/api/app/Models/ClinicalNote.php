@@ -18,8 +18,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Part of the clinical history, so append-only (#323, ADR 0019): the body
  * lives in its versions, a correction adds one, and an annulment replaces
  * deletion. A database trigger rejects any UPDATE or DELETE of the row.
+ * Its patient is always its appointment's, which the database enforces and
+ * then keeps from changing (#360).
  */
-#[Fillable(['organization_id', 'appointment_id', 'membership_id'])]
+#[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id'])]
 class ClinicalNote extends Model
 {
     /** @use HasFactory<ClinicalNoteFactory> */
@@ -33,6 +35,14 @@ class ClinicalNote extends Model
     public function appointment(): BelongsTo
     {
         return $this->belongsTo(Appointment::class);
+    }
+
+    /**
+     * @return BelongsTo<Patient, $this>
+     */
+    public function patient(): BelongsTo
+    {
+        return $this->belongsTo(Patient::class);
     }
 
     /**
@@ -64,13 +74,13 @@ class ClinicalNote extends Model
     }
 
     /**
-     * Notes of any author whose appointment belongs to the given patient.
+     * Notes of any author about the given patient.
      *
      * @param  Builder<ClinicalNote>  $query
      * @return Builder<ClinicalNote>
      */
     public function scopeForPatient(Builder $query, int $patientId): Builder
     {
-        return $query->whereHas('appointment', fn (Builder $query) => $query->where('patient_id', $patientId));
+        return $query->where('patient_id', $patientId);
     }
 }
