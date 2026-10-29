@@ -13,9 +13,9 @@ use App\Support\CurrentOrganization;
 
 /**
  * Prescriptions follow the clinical notes access model (issue #31, see
- * ClinicalNotePolicy): every ability is decided exclusively by membership
- * authorship within the active organization, never by a role preset —
- * Owner/Admin/Staff cannot read a prescription they didn't issue.
+ * ClinicalNotePolicy), never a role preset: the appointment-scoped listing,
+ * creating, amending and annulling are decided by membership authorship
+ * within the active organization.
  *
  * The patient-scoped listing opens to the same professionals as the
  * patient's notes (`ClinicalAccess::attends`, #325) and, like them, returns
