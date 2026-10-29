@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\ProfessionalSpecialty;
+use App\Models\Specialty;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 
@@ -175,4 +177,26 @@ test('paginating through tied created_at breaks ties by id without skipping or r
 
     expect($seenIds->unique()->count())->toBe($allIds->count());
     expect($seenIds->sort()->values()->all())->toBe($allIds->all());
+});
+
+// The member card shows what each professional attends (#306), sorted by name.
+test('index lists each membership\'s specialties, sorted by name', function () {
+    $organization = Organization::factory()->create();
+    $owner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $professional = Membership::factory()->create(['organization_id' => $organization->id]);
+    foreach (['Pediatría', 'Cardiología'] as $name) {
+        ProfessionalSpecialty::factory()->create([
+            'organization_id' => $organization->id,
+            'membership_id' => $professional->id,
+            'specialty_id' => Specialty::factory()->create(['name' => $name])->id,
+        ]);
+    }
+
+    $response = $this->actingAs($owner->user)->getJson('/api/v1/memberships');
+
+    $response->assertOk();
+    $rows = collect($response->json('data'))->keyBy('id');
+    expect(collect($rows[$professional->id]['specialties'])->pluck('name')->all())
+        ->toBe(['Cardiología', 'Pediatría']);
+    expect($rows[$owner->id]['specialties'])->toBe([]);
 });
