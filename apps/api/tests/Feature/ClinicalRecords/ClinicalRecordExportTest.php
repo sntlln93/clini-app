@@ -125,11 +125,13 @@ test('the attending professional exports the patient history as JSON with every 
         ->and(collect($own['prescriptions'][0]['versions'])->pluck('version')->all())->toBe([1, 2])
         ->and($own['prescriptions'][0]['versions'][1]['items'][0]['medication'])->toBe('Ibuprofeno');
 
-    // The colleague's notes are part of the history the exporter already reads; their medication is not (CU-53).
+    // The colleague's notes and medication are part of the history the exporter already reads (#359).
     expect($theirs['clinical_notes'][0]['versions'][0]['body'])->toBe('Nota del colega.')
         ->and($theirs['clinical_notes'][0]['annulment']['reason'])->toBe('Paciente equivocado.')
         ->and($theirs['clinical_notes'][0]['annulment']['author']['name'])->toBe($colleague->user->name)
-        ->and($theirs['prescriptions'])->toBe([]);
+        ->and($theirs['prescriptions'])->toHaveCount(1)
+        ->and($theirs['prescriptions'][0]['author']['name'])->toBe('Dr. Colega')
+        ->and($record['export']['notice'])->toContain('la medicación indicada de todos sus profesionales');
 
     expect($response->getContent())->not->toContain('Otro Consultorio')
         ->not->toContain('Nota de otro consultorio.')
@@ -228,16 +230,17 @@ test('the export carries the patient trail in the practice, oldest first, as the
     $response = $this->actingAs($exporter->user)->get("/api/v1/patients/{$patient->id}/clinical-record?format=json");
 
     $trail = collect($response->assertOk()->json('access_log'));
-    // The exporter's own reason (sharedPatientHistory), the colleague's, and this export; never the colleague's
-    // medication, nor the outsider's access in another practice.
+    // The exporter's own reason (sharedPatientHistory), the colleague's, the medication the colleague indicated
+    // (#359), and this export; never the outsider's access in another practice.
     expect($trail->map(fn (array $entry) => [$entry['professional']['name'], $entry['action']])->all())->toBe([
         ['Dr. Colega', 'exceptional_access'],
+        ['Dr. Colega', 'prescription_issued'],
         ['Dra. Exportadora', 'exceptional_access'],
         ['Dra. Exportadora', 'record_exported'],
     ])
         ->and($trail[0]['reason'])->toBe('other')
         ->and($trail[0])->not->toHaveKey('reason_detail')
-        ->and($trail[2]['export'])->toMatchArray(['scope' => 'patient', 'format' => 'json']);
+        ->and($trail[3]['export'])->toMatchArray(['scope' => 'patient', 'format' => 'json']);
     expect($response->getContent())->not->toContain('Palabras del colega.')
         ->not->toContain('Dr. De Afuera');
 });
@@ -338,7 +341,9 @@ test('the attended-patients export holds every patient the professional attended
 
     $sharedRecord = collect($document['patients'])->firstWhere('patient.id', $shared->id);
     expect($sharedRecord['appointments'])->toHaveCount(2)
-        ->and($sharedRecord['appointments'][1]['clinical_notes'][0]['annulment']['reason'])->toBe('Paciente equivocado.');
+        ->and($sharedRecord['appointments'][1]['clinical_notes'][0]['annulment']['reason'])->toBe('Paciente equivocado.')
+        ->and(collect($sharedRecord['appointments'])->map(fn (array $appointment) => collect($appointment['prescriptions'])->pluck('author.name')->all())->all())
+        ->toBe([['Dra. Exportadora'], ['Dr. Colega']]);
 
     expect($response->streamedContent())->not->toContain('Nota ajena.')
         ->not->toContain('Nota de otro consultorio.');

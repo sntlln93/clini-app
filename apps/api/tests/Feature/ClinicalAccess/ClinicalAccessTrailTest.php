@@ -91,7 +91,7 @@ test('whoever reads the history sees its trail, newest first, with who, what, wh
     expect($response->getContent())->not->toContain('Interconsulta por dolor torácico.');
 });
 
-test('what another professional did with their own medication stays theirs, while their notes are part of the trail', function () {
+test('what another professional did with the medication they indicated is part of the trail, as their notes are', function () {
     ['reader' => $reader, 'colleague' => $colleague, 'patient' => $patient] = trailFixture();
     trailRow($colleague, $patient, ClinicalAccessAction::PrescriptionIssued, '2026-10-01 12:00:00');
     trailRow($colleague, $patient, ClinicalAccessAction::PrescriptionAmended, '2026-10-01 12:01:00');
@@ -104,11 +104,16 @@ test('what another professional did with their own medication stays theirs, whil
 
     $response = $this->actingAs($reader->user)->getJson(trailUri($patient));
 
+    // #359: the medication is part of the one history the reader reads, so nothing of it is left out.
     expect(collect($response->assertOk()->json('data'))->map(fn (array $entry) => [$entry['professional']['name'], $entry['action']])->all())->toBe([
         ['Dra. Lectora', 'prescription_annulled'],
         ['Dra. Lectora', 'prescriptions_viewed'],
         ['Dra. Lectora', 'prescription_issued'],
+        ['Dr. Colega', 'prescription_annulled'],
         ['Dr. Colega', 'note_amended'],
+        ['Dr. Colega', 'prescriptions_viewed'],
+        ['Dr. Colega', 'prescription_amended'],
+        ['Dr. Colega', 'prescription_issued'],
     ]);
 });
 

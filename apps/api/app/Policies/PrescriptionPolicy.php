@@ -18,11 +18,11 @@ use App\Support\CurrentOrganization;
  * Owner/Admin/Staff cannot read a prescription they didn't issue.
  *
  * The patient-scoped listing opens to the same professionals as the
- * patient's notes (`ClinicalAccess::attends`, #325), but it only ever returns
- * the acting membership's own prescriptions: it is never widened to other
- * authors (CU-53). Without an appointment near today, reading it also takes a
- * reason (ADR 0022). A record is never edited or deleted (#323, ADR 0019):
- * its author amends or annuls it instead (#344).
+ * patient's notes (`ClinicalAccess::attends`, #325) and, like them, returns
+ * every author's prescriptions: they are part of one clinical history (#359).
+ * Without an appointment near today, reading it also takes a reason (ADR
+ * 0022). A record is never edited or deleted (#323, ADR 0019): only its author
+ * amends or annuls it instead (#344).
  */
 class PrescriptionPolicy
 {

@@ -12,18 +12,17 @@ use Illuminate\Support\LazyCollection;
 
 /**
  * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization, every
- * note on them with all its versions, diagnoses and annulment, and only the exporting membership's own indicated
- * medication with its versions and annulment, the same records each professional can already read (CU-45, CU-53), plus the patient's access trail in
- * the organization as the exporting membership sees it (#325, ADR 0022). Authors are loaded even when their membership
- * was deactivated.
+ * note and every indicated medication on them, of any author, with all their versions, diagnoses and annulments, the
+ * same records each professional can already read (CU-45, CU-53, #359), plus the patient's access trail in the
+ * organization (#325, ADR 0022). Authors are loaded even when their membership was deactivated.
  */
 class ClinicalRecordLoader
 {
     public const int CHUNK = 50;
 
-    public static function patient(Patient $patient, int $organizationId, int $membershipId): Patient
+    public static function patient(Patient $patient, int $organizationId): Patient
     {
-        return $patient->load(self::relations($organizationId, $membershipId));
+        return $patient->load(self::relations($organizationId));
     }
 
     /**
@@ -39,11 +38,11 @@ class ClinicalRecordLoader
             ->attendedBy($organizationId, $membershipId)
             ->lazyById(self::CHUNK)
             ->chunk(self::CHUNK)
-            ->flatMap(function (LazyCollection $chunk) use ($organizationId, $membershipId, $beforeLoad): Collection {
+            ->flatMap(function (LazyCollection $chunk) use ($organizationId, $beforeLoad): Collection {
                 $patients = new Collection($chunk->values()->all());
                 $beforeLoad(array_values($patients->map(fn (Patient $patient): int => $patient->id)->all()));
 
-                return $patients->load(self::relations($organizationId, $membershipId));
+                return $patients->load(self::relations($organizationId));
             });
     }
 
@@ -52,7 +51,7 @@ class ClinicalRecordLoader
      *
      * @return array<int|string, string|Closure>
      */
-    private static function relations(int $organizationId, int $membershipId): array
+    private static function relations(int $organizationId): array
     {
         return [
             'insuranceProvider',
@@ -74,7 +73,6 @@ class ClinicalRecordLoader
             'clinicalNotes.annulment.author.user',
             'prescriptions' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
-                ->where('membership_id', $membershipId)
                 ->orderBy('issued_at')
                 ->orderBy('id'),
             'prescriptions.author.user',
@@ -82,7 +80,7 @@ class ClinicalRecordLoader
             'prescriptions.versions.items',
             'prescriptions.annulment.author.user',
             'clinicalAccessLogs' => fn ($query) => $query
-                ->visibleTo($organizationId, $membershipId)
+                ->visibleTo($organizationId)
                 ->orderBy('created_at')
                 ->orderBy('id'),
             ...array_map(fn (string $relation): string => "clinicalAccessLogs.{$relation}", ClinicalAccessLog::TRAIL_RELATIONS),

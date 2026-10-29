@@ -33,7 +33,7 @@ class ReadClinicalAccessTrailAction implements Action
         }
 
         return ClinicalAccessLog::query()
-            ->visibleTo($dto->organizationId, $dto->membershipId)
+            ->visibleTo($dto->organizationId)
             ->where('patient_id', $dto->patientId)
             ->with(ClinicalAccessLog::TRAIL_RELATIONS)
             ->orderByDesc('created_at')

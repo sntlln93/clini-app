@@ -128,7 +128,7 @@ test('the export loads notes and medication by their own patient and files them 
     $prescription = Prescription::factory()->create(['appointment_id' => $note->appointment_id]);
     app(CurrentOrganization::class)->set($note->organization_id);
 
-    $patient = ClinicalRecordLoader::patient(Patient::findOrFail($note->patient_id), $note->organization_id, $prescription->membership_id);
+    $patient = ClinicalRecordLoader::patient(Patient::findOrFail($note->patient_id), $note->organization_id);
 
     expect($patient->relationLoaded('clinicalNotes'))->toBeTrue()
         ->and($patient->relationLoaded('prescriptions'))->toBeTrue()
