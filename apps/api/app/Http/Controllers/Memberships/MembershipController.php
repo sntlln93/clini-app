@@ -29,7 +29,7 @@ class MembershipController extends Controller
 
         $memberships = Membership::withTrashed()
             ->search($request->string('q')->toString() ?: null)
-            ->with('user')
+            ->with(['user', 'specialties' => fn ($query) => $query->orderBy('name')])
             ->orderBy('created_at')
             ->orderBy('id')
             ->paginate($perPage)

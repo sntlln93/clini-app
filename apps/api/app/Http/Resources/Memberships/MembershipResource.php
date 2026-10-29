@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Resources\Memberships;
 
+use App\Http\Resources\Catalog\SpecialtyResource;
 use App\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -30,6 +31,8 @@ class MembershipResource extends JsonResource
             'roles' => $membership->roles,
             'status' => $membership->status,
             'slug' => $membership->slug,
+            // Only the list loads them, for the member cards (#306).
+            'specialties' => SpecialtyResource::collection($this->whenLoaded('specialties')),
             'deleted_at' => $membership->deleted_at,
             'created_at' => $membership->created_at,
             'updated_at' => $membership->updated_at,

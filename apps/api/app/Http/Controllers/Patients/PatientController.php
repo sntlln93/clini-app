@@ -42,6 +42,7 @@ class PatientController extends Controller
             ->search($request->string('q')->toString() ?: null)
             ->with('insuranceProvider')
             ->orderBy('name')
+            ->orderBy('id')
             ->paginate($perPage)
             ->withQueryString();
 

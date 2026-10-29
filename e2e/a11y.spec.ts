@@ -75,6 +75,18 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/pacientes');
             });
 
+            // The cards are the default view (#306); the table stays one click away.
+            test('/pacientes?vista=tabla has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/pacientes?vista=tabla');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Pacientes');
+                await expect(page.getByRole('table')).toBeVisible();
+
+                await runA11yScan(page, '/pacientes?vista=tabla');
+            });
+
             test('/accesos-excepcionales has no unexpected accessibility violations', async ({
                 page,
             }) => {
@@ -93,6 +105,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await waitForPage(page, 'Profesionales');
 
                 await runA11yScan(page, '/profesionales');
+            });
+
+            test('/profesionales?vista=tabla has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/profesionales?vista=tabla');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Profesionales');
+                await expect(page.getByRole('table')).toBeVisible();
+
+                await runA11yScan(page, '/profesionales?vista=tabla');
             });
 
             test('/disponibilidad has no unexpected accessibility violations', async ({

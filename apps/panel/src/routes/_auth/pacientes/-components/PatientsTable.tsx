@@ -5,11 +5,7 @@ import { Link, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Eye, Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
-
-const DOCUMENT_TYPE_LABELS: Record<Patient['document_type'], string> = {
-    dni: 'DNI',
-    passport: 'Pasaporte',
-};
+import { documentLabel } from './patient-labels';
 
 // The member number only means something next to its provider (#289), so it never shows on its own.
 function insuranceLabel({
@@ -74,8 +70,7 @@ const columns: ColumnDef<Patient, unknown>[] = [
     {
         id: 'document',
         header: 'Documento',
-        cell: ({ row }) =>
-            `${DOCUMENT_TYPE_LABELS[row.original.document_type]} ${row.original.document_number}`,
+        cell: ({ row }) => documentLabel(row.original),
         meta: { className: 'tabular-nums' },
     },
     {

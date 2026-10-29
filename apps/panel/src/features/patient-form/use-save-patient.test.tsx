@@ -44,6 +44,22 @@ describe('useSavePatient', () => {
         expect(queryClient.getQueryState(lookupKey)).toBeDefined();
     });
 
+    it('drops the cached card list too, so the cards refetch after a save (#306)', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 13, name: 'Ana Gómez' } },
+        });
+        const queryClient = new QueryClient();
+        const cardsKey = ['patients', 'cards', { q: '' }];
+        queryClient.setQueryData(cardsKey, { pages: [], pageParams: [] });
+        const { result } = renderSavePatient(queryClient);
+
+        await act(() =>
+            result.current.mutateAsync({ name: 'Ana Gómez' } as PatientPayload),
+        );
+
+        expect(queryClient.getQueryData(cardsKey)).toBeUndefined();
+    });
+
     // Other pages read these only in their loaders (#273).
     it('drops the cached appointments after editing a patient, which show the name', async () => {
         vi.mocked(api.put).mockResolvedValueOnce({

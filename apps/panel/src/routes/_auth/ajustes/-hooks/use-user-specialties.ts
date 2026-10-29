@@ -1,8 +1,13 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
+import { discardPageData } from '@/lib/page-data';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { UserSpecialty } from '@/types/professional';
-import { queryOptions, useMutation } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 
 function queryKey(userId: number) {
     return ['user-specialties', userId];
@@ -19,7 +24,16 @@ export function userSpecialtiesQueryOptions(userId: number) {
 }
 
 export function useToggleUserSpecialty(userId: number) {
+    const queryClient = useQueryClient();
     const refreshPageData = useRefreshPageData();
+
+    // Removing one also takes it off the user's memberships, which the member
+    // cards list (#306) and only their loader reads (#273).
+    function refresh() {
+        discardPageData(queryClient, ['memberships', 'cards']);
+
+        return refreshPageData(queryKey(userId));
+    }
 
     const assign = useMutation({
         mutationFn: (specialtyId: number) =>
@@ -27,9 +41,7 @@ export function useToggleUserSpecialty(userId: number) {
                 specialty_id: specialtyId,
             }),
         onSuccess: () =>
-            refreshPageData(queryKey(userId)).then(() =>
-                notifySuccess('Especialidad asignada'),
-            ),
+            refresh().then(() => notifySuccess('Especialidad asignada')),
         onError: (error) =>
             notifyError(error, 'No se pudo asignar la especialidad'),
     });
@@ -38,9 +50,7 @@ export function useToggleUserSpecialty(userId: number) {
         mutationFn: (specialtyId: number) =>
             api.delete(`/users/${userId}/specialties/${specialtyId}`),
         onSuccess: () =>
-            refreshPageData(queryKey(userId)).then(() =>
-                notifySuccess('Especialidad quitada'),
-            ),
+            refresh().then(() => notifySuccess('Especialidad quitada')),
         onError: (error) =>
             notifyError(error, 'No se pudo quitar la especialidad'),
     });

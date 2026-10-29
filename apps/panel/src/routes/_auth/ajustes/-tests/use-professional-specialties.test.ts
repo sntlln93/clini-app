@@ -36,7 +36,7 @@ function renderUseToggleProfessionalSpecialty(membershipId: number) {
         { wrapper },
     );
 
-    return { result };
+    return { result, queryClient };
 }
 
 const MEMBERSHIP_ID = 9;
@@ -98,4 +98,23 @@ describe('useToggleProfessionalSpecialty', () => {
         await waitFor(() => expect(result.current.remove.isError).toBe(true));
         expect(toast.error).toHaveBeenCalledWith('No se pudo quitar.');
     });
+    // The member cards list specialties and only their loader reads them (#306).
+    it.each(['assign', 'remove'] as const)(
+        '%s drops the cached member cards, keeping the members table',
+        async (action) => {
+            vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+            vi.mocked(api.delete).mockResolvedValueOnce({ data: {} });
+            const { result, queryClient } =
+                renderUseToggleProfessionalSpecialty(MEMBERSHIP_ID);
+            const cardsKey = ['memberships', 'cards', { q: '' }];
+            const tableKey = ['memberships', { q: '', page: 1 }];
+            queryClient.setQueryData(cardsKey, { pages: [], pageParams: [] });
+            queryClient.setQueryData(tableKey, { data: [] });
+
+            await result.current[action].mutateAsync(SPECIALTY_ID);
+
+            expect(queryClient.getQueryData(cardsKey)).toBeUndefined();
+            expect(queryClient.getQueryData(tableKey)).toEqual({ data: [] });
+        },
+    );
 });

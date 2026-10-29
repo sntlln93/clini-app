@@ -12,19 +12,11 @@ import {
     SidebarMenuItem,
     useSidebar,
 } from '@/components/ui/sidebar';
+import { initialsOf } from '@/lib/initials';
 import { useSession } from '@/lib/session';
 import { Link } from '@tanstack/react-router';
 import { ChevronsUpDown, LogOut, Settings } from 'lucide-react';
 import { useLogout } from './use-logout';
-
-function getInitials(name: string) {
-    return name
-        .split(' ')
-        .filter(Boolean)
-        .slice(0, 2)
-        .map((part) => part[0]?.toUpperCase())
-        .join('');
-}
 
 export function ProfileMenu() {
     const { isMobile, setOpenMobile } = useSidebar();
@@ -33,7 +25,7 @@ export function ProfileMenu() {
 
     const name = user?.name ?? '';
     const email = user?.email ?? '';
-    const initials = getInitials(name);
+    const initials = initialsOf(name);
 
     return (
         <SidebarMenu>

@@ -1,31 +1,13 @@
 import { DataTable } from '@/components/DataTable';
 import { DataTableRowActions } from '@/components/DataTableRowActions';
-import { StatusPill, type StatusTone } from '@/components/StatusPill';
+import { StatusPill } from '@/components/StatusPill';
 import { Badge } from '@/components/ui/badge';
-import type { Membership, MembershipRole } from '@/types/membership';
+import type { Membership } from '@/types/membership';
 import { useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Pencil } from 'lucide-react';
 import type { ReactNode } from 'react';
-
-const ROLE_LABELS: Record<MembershipRole, string> = {
-    owner: 'Propietario',
-    admin: 'Administrador',
-    professional: 'Profesional',
-    staff: 'Personal',
-};
-
-const STATUS_LABELS: Record<Membership['status'], string> = {
-    active: 'Activo',
-    inactive: 'Inactivo',
-    suspended: 'Suspendido',
-};
-
-const STATUS_TONES: Record<Membership['status'], StatusTone> = {
-    active: 'success',
-    inactive: 'neutral',
-    suspended: 'warning',
-};
+import { ROLE_LABELS, STATUS_LABELS, STATUS_TONES } from './member-labels';
 
 type MembersTableProps = {
     memberships: Membership[];
