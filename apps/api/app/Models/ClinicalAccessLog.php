@@ -85,17 +85,14 @@ class ClinicalAccessLog extends Model
     }
 
     /**
-     * A patient's trail as a member of the practice sees it: every row on that patient in the practice, except what
-     * another professional did with their own indicated medication, which only they read (CU-53).
+     * A patient's trail as a member of the practice sees it: every row on that patient in the practice, the medication
+     * other professionals indicated included, since it is part of the history the reader already reads (#359).
      *
      * @param  Builder<ClinicalAccessLog>  $query
      * @return Builder<ClinicalAccessLog>
      */
-    public function scopeVisibleTo(Builder $query, int $organizationId, int $membershipId): Builder
+    public function scopeVisibleTo(Builder $query, int $organizationId): Builder
     {
-        return $query->where('organization_id', $organizationId)
-            ->where(fn (Builder $query) => $query
-                ->whereNotIn('action', ClinicalAccessAction::ownPrescriptionActions())
-                ->orWhere('membership_id', $membershipId));
+        return $query->where('organization_id', $organizationId);
     }
 }

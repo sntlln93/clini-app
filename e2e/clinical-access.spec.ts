@@ -39,7 +39,9 @@ test('an exceptional access takes a reason and reaches the owner list', async ({
         page.getByText('Todavía no hay notas clínicas para este paciente.'),
     ).toBeVisible();
     await expect(
-        page.getByText('Todavía no registraste medicación para este paciente.'),
+        page.getByText(
+            'Todavía no hay medicación indicada para este paciente.',
+        ),
     ).toBeVisible();
     // The trail already holds the reason and the reads it just opened.
     const entries = page.getByRole('listitem');

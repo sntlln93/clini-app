@@ -106,6 +106,24 @@ describe('ClinicalAccessTrailCard', () => {
         ).toHaveLength(2);
     });
 
+    // #359: the trail holds what every professional did with the medication
+    // they indicated, so its description no longer says it leaves that out.
+    it("describes a trail that includes other professionals' medication", () => {
+        render(
+            <ClinicalAccessTrailCard
+                trail={page([buildEntry({ action: 'prescription_issued' })])}
+                onPageChange={vi.fn()}
+            />,
+        );
+
+        expect(
+            screen.getByText(
+                'Quién leyó, escribió, enmendó, anuló o exportó esta historia clínica, y cuándo.',
+            ),
+        ).toBeTruthy();
+        expect(screen.queryByText(/No incluye/)).toBeNull();
+    });
+
     it('says so when nothing was recorded yet', () => {
         render(
             <ClinicalAccessTrailCard trail={page([])} onPageChange={vi.fn()} />,

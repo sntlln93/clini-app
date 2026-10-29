@@ -105,6 +105,20 @@ describe('PrescriptionsDialog', () => {
         expect(screen.queryByText(/receta/i)).toBeNull();
     });
 
+    // #359: the medication is part of the history every attending
+    // professional reads, so the dialog never promises otherwise.
+    it('says the medication goes into the clinical history the attending professionals read', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        renderDialog();
+
+        expect(
+            await screen.findByText(
+                /queda en la historia clínica del paciente, que leen los profesionales que lo atienden/,
+            ),
+        ).toBeTruthy();
+        expect(screen.queryByText(/Solo vos/)).toBeNull();
+    });
+
     it('makes no request while the dialog is closed', () => {
         renderDialog(false);
 

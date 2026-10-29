@@ -20,7 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * One patient's clinical history within the organization (#326, ADR 0021), as `ClinicalRecordLoader` loads it: the
- * appointments in order, each with its notes and the exporter's indicated medication, and every version of each with
+ * appointments in order, each with every author's notes and indicated medication (#359), and every version of each with
  * its author, time and reason, so the export shows who did what and when; then the patient's access trail, oldest
  * first, which also says who read it and exported it (#325, ADR 0022). The patient's identity goes without contact
  * data, which isn't part of the history. The PDF renders this same shape.

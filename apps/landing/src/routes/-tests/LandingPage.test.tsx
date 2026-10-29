@@ -48,6 +48,16 @@ describe('LandingPage', () => {
         expect(notes?.body).toMatch(/enmienda/);
     });
 
+    // #359: the medication is part of the history, read as the notes are.
+    it('never claims the medication is seen only by whoever indicated it', () => {
+        const notes = DAY_SLOTS.find((slot) =>
+            /notas de la visita/i.test(slot.title),
+        );
+
+        expect(notes?.body).not.toMatch(/solo la ve/i);
+        expect(notes?.body).toMatch(/historia clínica del paciente/);
+    });
+
     it('links the calls to action to the panel', () => {
         render(<LandingPage />);
 

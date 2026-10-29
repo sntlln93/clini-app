@@ -18,8 +18,8 @@ export function ClinicalRecordExportSection() {
                 <p className="text-sm text-muted-foreground">
                     Descargá la historia clínica de todos los pacientes que
                     atendiste en este consultorio, en un archivo JSON: los
-                    turnos, las notas clínicas con cada versión y su autor, y la
-                    medicación que indicaste. Cada exportación queda registrada.
+                    turnos, las notas clínicas y la medicación indicada, con
+                    cada versión y su autor. Cada exportación queda registrada.
                     La de un solo paciente, también en PDF, está en su ficha.
                 </p>
             </div>

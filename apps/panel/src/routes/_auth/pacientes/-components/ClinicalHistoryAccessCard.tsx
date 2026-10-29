@@ -12,9 +12,9 @@ import { useDeclareExceptionalAccess } from '../-hooks/use-clinical-history';
 import { ExceptionalAccessDialog } from './ExceptionalAccessDialog';
 
 export const NO_ACCESS_REASON =
-    'Solo pueden ver las notas clínicas los profesionales que tienen o tuvieron un turno con este paciente.';
+    'Solo pueden ver la historia clínica los profesionales que tienen o tuvieron un turno con este paciente.';
 
-export const REASON_REQUIRED_DESCRIPTION = `No tenés un turno con este paciente en los ${CLINICAL_ACCESS_WINDOW_DAYS} días anteriores ni en los ${CLINICAL_ACCESS_WINDOW_DAYS} siguientes. Para ver sus notas clínicas y la medicación que indicaste, contá el motivo.`;
+export const REASON_REQUIRED_DESCRIPTION = `No tenés un turno con este paciente en los ${CLINICAL_ACCESS_WINDOW_DAYS} días anteriores ni en los ${CLINICAL_ACCESS_WINDOW_DAYS} siguientes. Para ver sus notas clínicas y la medicación indicada, contá el motivo.`;
 
 type ClinicalHistoryAccessCardProps = {
     patientId: number;

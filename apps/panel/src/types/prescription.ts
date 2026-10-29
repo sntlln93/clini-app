@@ -38,6 +38,9 @@ export type Prescription = {
     items: PrescriptionItem[];
     annulment: PrescriptionAnnulment | null;
     versions: PrescriptionVersion[];
+    // Only on the patient listing, which holds every author's (#359): on one
+    // appointment every record shares its author, as the notes there.
+    author_name?: string | null;
 };
 
 export type PrescriptionItemPayload = {

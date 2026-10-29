@@ -49,15 +49,18 @@ test('a membership that is not the booked professional gets 403 on every endpoin
         ->and($prescription->annulment()->exists())->toBeFalse();
 })->with(['professional', 'owner', 'admin', 'staff']);
 
-test('another professional who attended the patient does not see the author\'s prescriptions in the patient listing', function () {
+// #359: the medication is part of the clinical history, read as the notes are; reading it never lets anyone else
+// amend or annul it.
+test('another professional who attended the patient sees the author\'s prescriptions in the patient listing, but cannot amend or annul them', function () {
     $organization = Organization::factory()->center()->create();
     $viewer = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $author->user->update(['name' => 'Dra. Autora']);
     $appointment = Appointment::factory()->create([
         'organization_id' => $organization->id,
         'membership_id' => $author->id,
     ]);
-    Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $prescription = Prescription::factory()->create(['appointment_id' => $appointment->id]);
     Appointment::factory()->create([
         'organization_id' => $organization->id,
         'membership_id' => $viewer->id,
@@ -68,7 +71,17 @@ test('another professional who attended the patient does not see the author\'s p
 
     $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$appointment->patient_id}/prescriptions")
         ->assertOk()
-        ->assertJsonCount(0, 'data');
+        ->assertJsonCount(1, 'data')
+        ->assertJsonPath('data.0.id', $prescription->id)
+        ->assertJsonPath('data.0.membership_id', $author->id)
+        ->assertJsonPath('data.0.author_name', 'Dra. Autora');
+
+    $this->actingAs($viewer->user)->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", validPrescriptionPayload())
+        ->assertStatus(403);
+    $this->actingAs($viewer->user)->postJson("/api/v1/prescriptions/{$prescription->id}/annulment", validAnnulmentPayload())
+        ->assertStatus(403);
+    expect($prescription->versions()->count())->toBe(1)
+        ->and($prescription->annulment()->exists())->toBeFalse();
 });
 
 // #325: the patient listing opens to the same professionals as the notes, so the panel can know ahead of the read.

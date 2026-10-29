@@ -11,8 +11,9 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * Shapes one indicated-medication record with its items only: no patient
- * identity or author details, since nothing prints it (issue #319). The
+ * Shapes one indicated-medication record with its items: no patient identity,
+ * since nothing prints it (issue #319), and its author's name only on the
+ * patient-scoped listing, which holds every author's (#359). The
  * current items come with every earlier version, since the record is
  * append-only (ADR 0019), and an annulled one says when and why (#344). The
  * controller eager-loads the versions with their items and the annulment,
@@ -52,6 +53,9 @@ class PrescriptionResource extends JsonResource
                 'created_at' => $version->created_at,
                 'items' => $this->items($version),
             ])->values(),
+            // Only when the controller eager-loads it (the patient-scoped listing does; on one appointment every
+            // record shares one author), as ClinicalNoteResource does.
+            'author_name' => $this->whenLoaded('author', fn () => $prescription->author?->user?->name),
         ];
     }
 

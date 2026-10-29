@@ -75,10 +75,10 @@ class PrescriptionController extends Controller
             action: ClinicalAccessAction::PrescriptionsViewed,
         ));
 
+        // Every author's, as the notes (#359): reading never lets the reader amend or annul one.
         $prescriptions = Prescription::query()
             ->where('patient_id', $patient->id)
-            ->where('membership_id', $membership->id)
-            ->with(self::RELATIONS)
+            ->with(['author.user', ...self::RELATIONS])
             ->orderBy('issued_at', 'desc')
             ->orderBy('id', 'desc')
             ->get();

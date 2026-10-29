@@ -157,24 +157,33 @@ test('index returns only the acting membership\'s prescriptions for that appoint
 });
 
 // Nothing prints the record anymore (#319), so it carries no patient
-// identity, insurance or author details, and there is no single-record read.
-test('the listings carry only the medication, without patient or author details', function () {
+// identity or insurance, and there is no single-record read. The patient
+// listing names each record's author, since it holds every author's (#359).
+test('the listings carry the medication without patient details, and the patient listing names its author', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $provider = InsuranceProvider::factory()->create();
     $patient = Patient::factory()->create([
         'insurance_provider_id' => $provider->id,
         'insurance_member_number' => '37415820',
     ]);
+    $membership->user->update(['name' => 'Dra. Autora']);
     $appointment = prescriptionOwnAppointment($membership, ['patient_id' => $patient->id]);
     Prescription::factory()->create(['appointment_id' => $appointment->id]);
     openClinicalHistory($membership, $patient->id);
 
     $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
 
-    $response->assertOk()->assertJsonPath('data.0.items.0.medication', 'Amoxicilina');
-    foreach (['patient_name', 'patient_document_type', 'patient_document_number', 'patient_insurance_provider_name', 'patient_insurance_member_number', 'author_name', 'author_specialties'] as $field) {
+    $response->assertOk()
+        ->assertJsonPath('data.0.items.0.medication', 'Amoxicilina')
+        ->assertJsonPath('data.0.author_name', 'Dra. Autora');
+    foreach (['patient_name', 'patient_document_type', 'patient_document_number', 'patient_insurance_provider_name', 'patient_insurance_member_number', 'author_specialties'] as $field) {
         $response->assertJsonMissingPath("data.0.{$field}");
     }
+
+    // On one appointment every record shares its author, as the notes there.
+    $this->actingAs($membership->user)->getJson("/api/v1/appointments/{$appointment->id}/prescriptions")
+        ->assertOk()
+        ->assertJsonMissingPath('data.0.author_name');
 });
 
 test('a single record has no read endpoint', function () {
@@ -185,7 +194,7 @@ test('a single record has no read endpoint', function () {
         ->assertNotFound();
 });
 
-test('the patient listing returns only the acting membership\'s prescriptions for that patient', function () {
+test('the patient listing returns every author\'s prescriptions for that patient, and only that patient\'s', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $colleague = Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
     $patient = Patient::factory()->create();
@@ -194,7 +203,7 @@ test('the patient listing returns only the acting membership\'s prescriptions fo
     $own = Prescription::factory()->create([
         'appointment_id' => prescriptionOwnAppointment($membership, ['patient_id' => $patient->id])->id,
     ]);
-    Prescription::factory()->create([
+    $colleagues = Prescription::factory()->create([
         'appointment_id' => prescriptionOwnAppointment($colleague, ['patient_id' => $patient->id])->id,
     ]);
     Prescription::factory()->create([
@@ -205,6 +214,5 @@ test('the patient listing returns only the acting membership\'s prescriptions fo
     $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
 
     $response->assertOk();
-    expect($response->json('data'))->toHaveCount(1);
-    $response->assertJsonPath('data.0.id', $own->id);
+    expect(collect($response->json('data'))->pluck('id')->sort()->values()->all())->toBe(collect([$own->id, $colleagues->id])->sort()->values()->all());
 });
