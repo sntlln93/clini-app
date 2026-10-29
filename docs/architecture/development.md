@@ -18,7 +18,7 @@ Cada app tiene su propio compose file — `apps/api/compose.yaml` (Sail: `larave
 git config core.hooksPath .githooks   # una vez por clon
 
 # workspace: panel + dashboard + landing + packages/* + e2e — vía container descartable, npm nunca corre bare en el host
-docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:24.22.1-bookworm-slim npm install
+docker run --rm -v "$PWD:/workspace" -w /workspace --user "$(id -u):$(id -g)" node:26.12.1-bookworm-slim npm install
 
 cp apps/api/.env.example apps/api/.env   # si no existe
 docker compose up -d                     # desde la raíz del repo
@@ -100,7 +100,7 @@ mejor `docker compose down` desde la raíz en lugar de `sail down`.
 
 ### Versiones de los runtimes
 
-Todas las imágenes se fijan con patch (`php:8.5.12-fpm-alpine`, `node:24.22.1-bookworm-slim`, `postgres:18.6-alpine`, …) y Dependabot (`.github/dependabot.yml`) propone los bumps contra `develop` (#349). Las dos excepciones:
+Todas las imágenes se fijan con patch (`php:8.5.12-fpm-alpine`, `node:26.12.1-bookworm-slim`, `postgres:18.6-alpine`, …) y Dependabot (`.github/dependabot.yml`) propone los bumps contra `develop` (#349). Las dos excepciones:
 
 - **Sail** (`sail-8.5/app`, `vendor/laravel/sail/runtimes/8.5`) instala PHP por apt desde el PPA de ondrej, así que el patch depende del día del build y ningún tag lo fija. Después de un bump de PHP, reconstruí la imagen sin caché (por el mismo motivo que `sail up`, desde `apps/api`):
 
