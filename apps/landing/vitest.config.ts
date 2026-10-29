@@ -11,6 +11,8 @@ export default defineConfig({
   },
   test: {
     environment: 'jsdom',
+    // Node 26's own localStorage/sessionStorage shadow jsdom's and are undefined without --localstorage-file.
+    execArgv: ['--no-webstorage'],
     // Friendly error pages by default; a test that wants the debug view stubs VITE_APP_DEBUG.
     env: { TZ: 'America/Argentina/Buenos_Aires', VITE_APP_DEBUG: 'false' },
     include: ['src/**/*.test.{ts,tsx}', 'eslint-rules/**/*.test.ts'],
