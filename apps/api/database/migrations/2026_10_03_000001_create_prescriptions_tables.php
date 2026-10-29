@@ -27,6 +27,9 @@ return new class extends Migration
 
             $table->foreign(['appointment_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('appointments')->restrictOnDelete();
+            // Always the appointment's patient (#360).
+            $table->foreign(['appointment_id', 'patient_id'])
+                ->references(['id', 'patient_id'])->on('appointments')->restrictOnDelete();
             $table->foreign(['membership_id', 'organization_id'])
                 ->references(['id', 'organization_id'])->on('memberships')->restrictOnDelete();
         });

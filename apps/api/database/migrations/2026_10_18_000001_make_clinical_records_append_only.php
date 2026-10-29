@@ -138,6 +138,26 @@ return new class extends Migration
             $$ LANGUAGE plpgsql;
             SQL);
 
+        // The records' (appointment_id, patient_id) keys already refuse it,
+        // but by naming a constraint; this says why (#360).
+        DB::unprepared(<<<'SQL'
+            CREATE OR REPLACE FUNCTION reject_clinical_appointment_patient_change() RETURNS trigger AS $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM clinical_notes WHERE appointment_id = OLD.id)
+                    OR EXISTS (SELECT 1 FROM prescriptions WHERE appointment_id = OLD.id) THEN
+                    RAISE EXCEPTION 'An appointment with clinical records keeps its patient: appointment % has notes or indicated medication.', OLD.id;
+                END IF;
+
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql;
+
+            CREATE TRIGGER appointments_clinical_patient_frozen
+                BEFORE UPDATE OF patient_id ON appointments
+                FOR EACH ROW WHEN (OLD.patient_id IS DISTINCT FROM NEW.patient_id)
+                EXECUTE FUNCTION reject_clinical_appointment_patient_change();
+            SQL);
+
         foreach (self::GUARDED_TABLES as $table) {
             DB::unprepared(<<<SQL
                 CREATE TRIGGER {$table}_append_only
@@ -156,6 +176,8 @@ return new class extends Migration
      */
     public function down(): void
     {
+        DB::unprepared('DROP TRIGGER IF EXISTS appointments_clinical_patient_frozen ON appointments; DROP FUNCTION IF EXISTS reject_clinical_appointment_patient_change();');
+
         foreach (self::GUARDED_TABLES as $table) {
             DB::unprepared("DROP TRIGGER IF EXISTS {$table}_append_only ON {$table}; DROP TRIGGER IF EXISTS {$table}_no_truncate ON {$table};");
         }

@@ -14,6 +14,7 @@ use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -34,6 +35,8 @@ class ClinicalRecordResource extends JsonResource
     public function toArray(Request $request): array
     {
         $patient = $this->patient();
+        $notes = $patient->clinicalNotes->groupBy('appointment_id');
+        $prescriptions = $patient->prescriptions->groupBy('appointment_id');
 
         return [
             'patient' => [
@@ -56,8 +59,8 @@ class ClinicalRecordResource extends JsonResource
                 'reason' => $appointment->reason,
                 'cancelled_at' => $appointment->cancelled_at,
                 'cancellation_reason' => $appointment->cancellation_reason,
-                'clinical_notes' => $appointment->clinicalNotes->map($this->note(...))->values()->all(),
-                'prescriptions' => $appointment->prescriptions->map($this->prescription(...))->values()->all(),
+                'clinical_notes' => $notes->get($appointment->id, new Collection)->map($this->note(...))->values()->all(),
+                'prescriptions' => $prescriptions->get($appointment->id, new Collection)->map($this->prescription(...))->values()->all(),
             ])->values()->all(),
             'access_log' => ClinicalAccessTrailEntryResource::collection($patient->clinicalAccessLogs)->resolve($request),
         ];

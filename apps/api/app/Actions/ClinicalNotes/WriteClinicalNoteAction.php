@@ -35,6 +35,7 @@ class WriteClinicalNoteAction implements Action
             $clinicalNote = ClinicalNote::create([
                 'organization_id' => $dto->organizationId,
                 'appointment_id' => $dto->appointmentId,
+                'patient_id' => $dto->patientId,
                 'membership_id' => $dto->membershipId,
             ]);
 

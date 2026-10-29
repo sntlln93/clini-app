@@ -63,7 +63,6 @@ export const PLANS: Plan[] = [
             yes('Migramos tus pacientes y turnos desde tu sistema actual'),
             yes('Capacitación para todo el equipo'),
             yes('Una persona de Clini asignada, también por WhatsApp'),
-            yes('Factura A'),
         ],
     },
 ];

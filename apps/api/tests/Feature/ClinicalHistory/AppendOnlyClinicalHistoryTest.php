@@ -142,11 +142,12 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     $legacy = [
         'organization_id' => $membership->organization_id,
         'appointment_id' => $appointment->id,
+        'patient_id' => $appointment->patient_id,
         'membership_id' => $membership->id,
     ];
     $editedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota editada.', 'created_at' => '2026-09-01 10:00:00+00', 'updated_at' => '2026-09-02 10:00:00+00']);
     $deletedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota borrada.', 'created_at' => '2026-09-03 10:00:00+00', 'updated_at' => '2026-09-04 10:00:00+00', 'deleted_at' => '2026-09-04 10:00:00+00']);
-    $prescriptionId = DB::table('prescriptions')->insertGetId([...$legacy, 'patient_id' => $appointment->patient_id, 'issued_at' => '2026-09-05 10:00:00+00', 'created_at' => '2026-09-05 10:00:00+00', 'updated_at' => '2026-09-06 10:00:00+00']);
+    $prescriptionId = DB::table('prescriptions')->insertGetId([...$legacy, 'issued_at' => '2026-09-05 10:00:00+00', 'created_at' => '2026-09-05 10:00:00+00', 'updated_at' => '2026-09-06 10:00:00+00']);
     foreach (['Amoxicilina', 'Ibuprofeno'] as $position => $medication) {
         DB::table('prescription_items')->insert(['prescription_id' => $prescriptionId, 'position' => $position, 'medication' => $medication, 'dosage' => '1 por día', 'quantity' => 1, 'created_at' => now(), 'updated_at' => now()]);
     }

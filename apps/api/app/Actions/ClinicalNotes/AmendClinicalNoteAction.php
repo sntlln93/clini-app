@@ -12,7 +12,6 @@ use App\Data\ClinicalNotes\ClinicalNoteAmendmentData;
 use App\Enums\ClinicalAccessAction;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAmendmentUnchangedException;
 use App\Exceptions\ClinicalNotes\ClinicalNoteAnnulledException;
-use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
@@ -66,13 +65,10 @@ class AmendClinicalNoteAction implements Action
 
             ClinicalNoteDiagnoses::record($version, $newCodeIds, $current->diagnoses);
 
-            /** @var Appointment $appointment */
-            $appointment = $clinicalNote->appointment()->withTrashed()->firstOrFail();
-
             $this->record->handle(new ClinicalAccessEntryData(
                 organizationId: $clinicalNote->organization_id,
                 membershipId: $dto->membershipId,
-                patientId: $appointment->patient_id,
+                patientId: $clinicalNote->patient_id,
                 action: ClinicalAccessAction::NoteAmended,
                 appointmentId: $clinicalNote->appointment_id,
                 clinicalNoteId: $clinicalNote->id,
