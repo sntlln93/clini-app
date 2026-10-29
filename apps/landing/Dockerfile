@@ -1,7 +1,7 @@
 # Build context is the repo root (npm workspace) — Dokploy: set this
 # Dockerfile's path to apps/landing/Dockerfile with the build context at the
 # repo root.
-FROM node:24.22.1-bookworm-slim AS build
+FROM node:26.12.1-bookworm-slim AS build
 WORKDIR /app
 
 COPY package.json package-lock.json ./
@@ -46,7 +46,7 @@ ARG VITE_APP_DEBUG
 ENV VITE_APP_DEBUG=${VITE_APP_DEBUG}
 RUN npm run build --workspace=apps/landing
 
-FROM node:24.22.1-bookworm-slim AS runtime
+FROM node:26.12.1-bookworm-slim AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
