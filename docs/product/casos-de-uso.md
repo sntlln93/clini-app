@@ -530,7 +530,8 @@ Convenciones:
 - **Actor**: profesional que agrega una nota clínica a una visita del paciente.
 - **Invariantes**:
   - Una nota clínica está asociada a una **visita/turno**, a un **profesional autor** y a
-    una **organización**; no es un dato global del paciente (coherente con CU-07).
+    una **organización**; no es un dato global del paciente (coherente con CU-07). Guarda el
+    paciente del turno, que la base mantiene igual al del turno y no deja cambiar después (#360).
   - El schema del MVP no debe imposibilitar esta relación nota↔turno↔profesional↔organización.
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     el autor la **enmienda** (queda una versión nueva con fecha, autor y motivo opcional, y
