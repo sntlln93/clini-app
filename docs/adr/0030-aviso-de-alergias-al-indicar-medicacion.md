@@ -55,7 +55,8 @@ La fila de la confirmación se suma a la de `prescription_issued` o `prescriptio
 **Las alergias vigentes de arriba del formulario** salen de `GET /appointments/{id}/allergies`:
 
 - Solo para el profesional del turno.
-- Es una lectura de los antecedentes con la misma regla que la ficha: pide el acceso excepcional sin un turno cercano y deja su fila, que se pliega con la de la ficha dentro de los 15 minutos.
+- Es una lectura de los antecedentes con la misma regla que la ficha, y deja su fila, que se pliega con la de la ficha dentro de los 15 minutos.
+- Sin un turno cercano no lee nada y lo dice (`meta.reason_required`), en lugar de responder 409. El formulario se abre en cualquier turno propio, también uno lejano, y ese estado es esperable, no un error. La historia se abre desde la ficha, con el motivo.
 - Trae solo las alergias vigentes que el profesional lee, no el resto de los antecedentes, que el formulario no usa.
 
 ## Alternativas descartadas
