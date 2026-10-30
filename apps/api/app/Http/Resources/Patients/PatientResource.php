@@ -42,8 +42,7 @@ class PatientResource extends JsonResource
         $data = [
             'id' => $patient->id,
             'name' => $patient->name,
-            'email' => $patient->email,
-            'phone' => $patient->phone,
+            'contacts' => PatientContactResource::collection($this->whenLoaded('contacts')),
             'document_type' => $patient->document_type,
             'document_number' => $patient->document_number,
             'sex' => $patient->sex,

@@ -6,6 +6,7 @@ use App\Enums\AppointmentOrigin;
 use App\Enums\AppointmentStatus;
 use App\Enums\DocumentType;
 use App\Enums\ErrorCode;
+use App\Enums\PatientContactType;
 use App\Enums\Province as ProvinceSlug;
 use App\Models\Address;
 use App\Models\Appointment;
@@ -14,6 +15,7 @@ use App\Models\City;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\PatientContact;
 use App\Models\ProfessionalService;
 use App\Models\Service;
 use App\Support\AppointmentCalendarEvent;
@@ -58,8 +60,10 @@ function bookingPatientPayload(array $overrides = []): array
         'name' => 'Juan Pérez',
         'document_type' => 'dni',
         'document_number' => fake()->unique()->numerify('########'),
-        'email' => 'juan@example.com',
-        'phone' => '1122334455',
+        'contacts' => [
+            ['type' => 'email', 'value' => 'juan@example.com'],
+            ['type' => 'phone', 'value' => '11 2233-4455'],
+        ],
     ], $overrides);
 }
 
@@ -147,6 +151,67 @@ test('store with an already-existing document_number reuses the patient without 
     $response->assertCreated();
     expect(Patient::where('document_number', '30999888')->count())->toBe(1);
     expect($existingPatient->organizations()->whereKey($organization->id)->exists())->toBeTrue();
+});
+
+test('an online booking of a new patient stores its contacts confirmed', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createOnlineBookingFixture();
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-08-03T10:00:00Z',
+        'patient' => bookingPatientPayload(['document_number' => '30999888']),
+    ])->assertCreated();
+
+    $patient = Patient::query()->where('document_number', '30999888')->firstOrFail();
+    expect($patient->contacts()->get(['type', 'value', 'needs_confirmation', 'created_by'])->toArray())->toBe([
+        ['type' => 'email', 'value' => 'juan@example.com', 'needs_confirmation' => false, 'created_by' => null],
+        ['type' => 'phone', 'value' => '+541122334455', 'needs_confirmation' => false, 'created_by' => null],
+    ]);
+});
+
+test('an online booking of an existing patient adds its new contacts unconfirmed and never changes or drops the existing ones', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createOnlineBookingFixture();
+    $patient = Patient::factory()
+        ->withEmail('juan@example.com')
+        ->withContact(PatientContactType::Phone, '+541140000000')
+        ->create(['document_type' => DocumentType::Dni, 'document_number' => '30999888']);
+    PatientContact::query()->where('value', 'juan@example.com')->update(['label' => 'personal']);
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-08-03T10:00:00Z',
+        'patient' => bookingPatientPayload([
+            'document_number' => '30999888',
+            'contacts' => [
+                ['type' => 'email', 'value' => 'JUAN@example.com', 'label' => 'otro'],
+                ['type' => 'email', 'value' => 'intruso@example.com'],
+            ],
+        ]),
+    ])->assertCreated();
+
+    expect($patient->contacts()->get(['value', 'label', 'needs_confirmation'])->toArray())->toBe([
+        ['value' => 'juan@example.com', 'label' => 'personal', 'needs_confirmation' => false],
+        ['value' => '+541140000000', 'label' => null, 'needs_confirmation' => false],
+        ['value' => 'intruso@example.com', 'label' => null, 'needs_confirmation' => true],
+    ]);
+});
+
+test('an online booking takes fewer contacts than the practice\'s form', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    [$organization, $membership, $service] = createOnlineBookingFixture();
+
+    $this->postJson("/api/v1/booking/{$organization->slug}/appointments", [
+        'membership_id' => $membership->id,
+        'service_id' => $service->id,
+        'start_at' => '2026-08-03T10:00:00Z',
+        'patient' => bookingPatientPayload([
+            'contacts' => array_map(fn (int $n): array => ['type' => 'email', 'value' => "p{$n}@example.com"], range(1, 5)),
+        ]),
+    ])->assertStatus(422)->assertJsonValidationErrors('patient.contacts');
 });
 
 test('store with a start_at outside the published schedule returns 409 booking.slot_not_available and creates no appointment', function () {

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\DocumentType;
+use App\Enums\PatientContactType;
 use App\Models\Membership;
 use App\Models\Patient;
 use App\Support\CurrentOrganization;
@@ -31,13 +32,12 @@ test('show on a patient not linked to the active organization is denied', functi
     $response->assertStatus(403);
 });
 
-test('update changes contact fields of a linked patient and the response reflects them', function () {
+test('update changes the contacts of a linked patient and the response reflects them', function () {
     $membership = Membership::factory()->create();
-    $patient = Patient::factory()->create([
+    $patient = Patient::factory()->withContact(PatientContactType::Phone, '+541140000000')->create([
         'name' => 'Nombre Constante',
         'document_type' => DocumentType::Dni,
         'document_number' => '10101010',
-        'phone' => '000000000',
     ]);
     $patient->organizations()->attach($membership->organization_id);
 
@@ -45,13 +45,17 @@ test('update changes contact fields of a linked patient and the response reflect
         'name' => 'Nombre Constante',
         'document_type' => 'dni',
         'document_number' => '10101010',
-        'phone' => '999999999',
-        'email' => 'actualizado@example.com',
+        'contacts' => [
+            ['type' => 'phone', 'value' => '11 4999-9999'],
+            ['type' => 'email', 'value' => 'actualizado@example.com'],
+        ],
     ]);
 
     $response->assertOk();
-    expect($response->json('data.phone'))->toBe('999999999');
-    expect($response->json('data.email'))->toBe('actualizado@example.com');
+    expect($response->json('data.contacts'))->toMatchArray([
+        ['id' => $response->json('data.contacts.0.id'), 'type' => 'phone', 'value' => '+541149999999', 'display' => '011 4999-9999', 'label' => null, 'needs_confirmation' => false],
+        ['id' => $response->json('data.contacts.1.id'), 'type' => 'email', 'value' => 'actualizado@example.com', 'display' => 'actualizado@example.com', 'label' => null, 'needs_confirmation' => false],
+    ]);
 });
 
 test('update can move the patient to a free document pair', function () {

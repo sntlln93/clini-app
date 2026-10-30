@@ -26,7 +26,7 @@ test('a professional membership can index, store and update patients', function 
         'name' => 'Paciente Profesional',
         'document_type' => 'dni',
         'document_number' => '70707070',
-        'phone' => '111000111',
+        'contacts' => [['type' => 'phone', 'value' => '11 4000-1110']],
     ])->assertOk();
 });
 
@@ -46,7 +46,7 @@ test('a staff membership can index, store and update patients', function () {
         'name' => 'Paciente Staff',
         'document_type' => 'dni',
         'document_number' => '80808080',
-        'phone' => '222000222',
+        'contacts' => [['type' => 'phone', 'value' => '11 4000-2220']],
     ])->assertOk();
 });
 

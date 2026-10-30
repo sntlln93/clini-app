@@ -5,17 +5,21 @@ declare(strict_types=1);
 namespace App\Http\Requests\Booking;
 
 use App\Actions\Booking\ListAvailableSlotsAction;
+use App\Data\Patients\PatientContactData;
 use App\Enums\DocumentType;
 use App\Models\AcceptedInsuranceProvider;
 use App\Models\Organization;
 use App\Rules\Iso8601Instant;
 use App\Support\CurrentOrganization;
+use App\Support\PatientContactInput;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class StoreOnlineBookingRequest extends FormRequest
 {
+    private const int MAX_CONTACTS = 4;
+
     // A member number only means something next to its provider, so it's dropped when there is none.
     protected function prepareForValidation(): void
     {
@@ -47,8 +51,8 @@ class StoreOnlineBookingRequest extends FormRequest
             'patient.name' => ['required', 'string', 'max:255'],
             'patient.document_type' => ['required', Rule::enum(DocumentType::class)],
             'patient.document_number' => ['required', 'string', 'max:50'],
-            'patient.email' => ['nullable', 'email', 'max:255'],
-            'patient.phone' => ['nullable', 'string', 'max:50'],
+            // Fewer than the practice's form takes: an anonymous booking only adds to the patient's contacts (#365).
+            ...PatientContactInput::rules('patient.contacts', self::MAX_CONTACTS),
             // Only a provider the practice accepts (#291). Never checked against other patients' member numbers: that would let anyone probe them.
             'patient.insurance_provider_id' => ['nullable', 'integer', Rule::in($this->acceptedInsuranceProviderIds())],
             'patient.insurance_member_number' => [
@@ -74,11 +78,27 @@ class StoreOnlineBookingRequest extends FormRequest
             'patient.name.required' => 'El nombre es obligatorio.',
             'patient.document_type.required' => 'Elegí un tipo de documento.',
             'patient.document_number.required' => 'El número de documento es obligatorio.',
-            'patient.email.email' => 'El correo no es válido.',
+            ...PatientContactInput::messages('patient.contacts'),
             'patient.insurance_provider_id.in' => 'El consultorio no atiende esa obra social.',
             'patient.insurance_member_number.required_with' => 'El número de afiliado es obligatorio.',
             'patient.insurance_member_number.regex' => 'El número de afiliado debe tener al menos una letra o un número.',
         ];
+    }
+
+    /**
+     * @return list<callable>
+     */
+    public function after(): array
+    {
+        return PatientContactInput::after($this, 'patient.contacts');
+    }
+
+    /**
+     * @return list<PatientContactData>
+     */
+    public function contacts(): array
+    {
+        return PatientContactInput::data($this, 'patient.contacts');
     }
 
     /**

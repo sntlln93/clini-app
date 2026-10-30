@@ -12,8 +12,8 @@ use Illuminate\Support\Carbon;
 
 /**
  * A single Reminder is scheduled for 12h before the appointment's start_at,
- * only when the patient has an email to send it to and that time hasn't
- * already passed. Silently skips otherwise — a missing reminder is not an
+ * only when the patient has a confirmed email contact to send it to (#365)
+ * and that time hasn't already passed. Silently skips otherwise — a missing reminder is not an
  * error condition.
  */
 final readonly class ScheduleAppointmentReminder
@@ -24,9 +24,7 @@ final readonly class ScheduleAppointmentReminder
     {
         $appointment = $event->appointment;
 
-        $email = $appointment->patient?->email;
-
-        if ($email === null || $email === '') {
+        if ($appointment->patient?->contacts()->forReminders()->exists() !== true) {
             return;
         }
 

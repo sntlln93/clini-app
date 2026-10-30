@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use App\Enums\DocumentType;
+use App\Enums\PatientContactType;
 use App\Enums\Sex;
 use App\Models\InsuranceProvider;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\PatientContact;
 use Illuminate\Database\Seeder;
 
 /**
@@ -31,15 +33,18 @@ use Illuminate\Database\Seeder;
 class PatientsSeeder extends Seeder
 {
     /**
-     * @var array<int, array{name: string, document_type: DocumentType, document_number: string, email: string|null, phone: string|null, sex: Sex, birth_date: string, insurance_provider: string|null, insurance_member_number: string|null, organizations: array<int, string>}>
+     * @var array<int, array{name: string, document_type: DocumentType, document_number: string, contacts: list<array{type: PatientContactType, value: string, label: string|null}>, sex: Sex, birth_date: string, insurance_provider: string|null, insurance_member_number: string|null, organizations: array<int, string>}>
      */
     private const array PATIENT_FIXTURES = [
         [
             'name' => 'Lucía Fernández',
             'document_type' => DocumentType::Dni,
             'document_number' => '30111222',
-            'email' => 'lucia.fernandez@example.com',
-            'phone' => '+54 9 11 4000-0001',
+            'contacts' => [
+                ['type' => PatientContactType::Email, 'value' => 'lucia.fernandez@example.com', 'label' => null],
+                ['type' => PatientContactType::Whatsapp, 'value' => '+5491140000001', 'label' => null],
+                ['type' => PatientContactType::Phone, 'value' => '+541140000011', 'label' => 'trabajo'],
+            ],
             'sex' => Sex::F,
             'birth_date' => '1990-03-14',
             'insurance_provider' => 'OSDE',
@@ -50,8 +55,10 @@ class PatientsSeeder extends Seeder
             'name' => 'Martín Gómez',
             'document_type' => DocumentType::Dni,
             'document_number' => '28555666',
-            'email' => 'martin.gomez@example.com',
-            'phone' => '+54 9 11 4000-0002',
+            'contacts' => [
+                ['type' => PatientContactType::Email, 'value' => 'martin.gomez@example.com', 'label' => null],
+                ['type' => PatientContactType::Phone, 'value' => '+5491140000002', 'label' => null],
+            ],
             'sex' => Sex::M,
             'birth_date' => '1985-07-22',
             'insurance_provider' => null,
@@ -62,8 +69,10 @@ class PatientsSeeder extends Seeder
             'name' => 'Rocío Álvarez',
             'document_type' => DocumentType::Dni,
             'document_number' => '32777888',
-            'email' => 'rocio.alvarez@example.com',
-            'phone' => '+54 9 11 4000-0003',
+            'contacts' => [
+                ['type' => PatientContactType::Email, 'value' => 'rocio.alvarez@example.com', 'label' => null],
+                ['type' => PatientContactType::Phone, 'value' => '+5491140000003', 'label' => null],
+            ],
             'sex' => Sex::F,
             'birth_date' => '1994-11-02',
             'insurance_provider' => 'Swiss Medical',
@@ -74,8 +83,9 @@ class PatientsSeeder extends Seeder
             'name' => 'Franco Torres',
             'document_type' => DocumentType::Passport,
             'document_number' => 'AAB123456',
-            'email' => null,
-            'phone' => '+54 9 351 400-0004',
+            'contacts' => [
+                ['type' => PatientContactType::Phone, 'value' => '+5493514000004', 'label' => null],
+            ],
             'sex' => Sex::M,
             'birth_date' => '1978-01-30',
             'insurance_provider' => null,
@@ -86,8 +96,10 @@ class PatientsSeeder extends Seeder
             'name' => 'Valentina Suárez',
             'document_type' => DocumentType::Dni,
             'document_number' => '35999000',
-            'email' => 'valentina.suarez@example.com',
-            'phone' => '+54 9 351 400-0005',
+            'contacts' => [
+                ['type' => PatientContactType::Email, 'value' => 'valentina.suarez@example.com', 'label' => null],
+                ['type' => PatientContactType::Phone, 'value' => '+5493514000005', 'label' => null],
+            ],
             'sex' => Sex::F,
             'birth_date' => '2001-05-18',
             'insurance_provider' => 'Galeno',
@@ -171,8 +183,6 @@ class PatientsSeeder extends Seeder
                 ],
                 [
                     'name' => $fixture['name'],
-                    'email' => $fixture['email'],
-                    'phone' => $fixture['phone'],
                     'sex' => $fixture['sex'],
                     'birth_date' => $fixture['birth_date'],
                     'insurance_provider_id' => $insuranceProviderId,
@@ -181,6 +191,7 @@ class PatientsSeeder extends Seeder
                 ],
             );
 
+            $this->seedContacts($patient, $fixture['contacts'], $creatorId);
             $organization->patients()->syncWithoutDetaching([$patient->id]);
         }
 
@@ -207,8 +218,6 @@ class PatientsSeeder extends Seeder
                 ],
                 [
                     'name' => $firstName.' '.self::VOLUME_LAST_NAMES[$index],
-                    'email' => "paciente{$sequence}@example.com",
-                    'phone' => null,
                     'sex' => self::VOLUME_SEXES[$index % count(self::VOLUME_SEXES)],
                     'birth_date' => self::VOLUME_BIRTH_DATES[$index],
                     'insurance_provider_id' => null,
@@ -217,7 +226,23 @@ class PatientsSeeder extends Seeder
                 ],
             );
 
+            $this->seedContacts($patient, [['type' => PatientContactType::Email, 'value' => "paciente{$sequence}@example.com", 'label' => null]], $creatorId);
             $organization->patients()->syncWithoutDetaching([$patient->id]);
+        }
+    }
+
+    /**
+     * Already normalized (E.164, lowercase), as the API stores them (#365).
+     *
+     * @param  list<array{type: PatientContactType, value: string, label: string|null}>  $contacts
+     */
+    private function seedContacts(Patient $patient, array $contacts, mixed $creatorId): void
+    {
+        foreach ($contacts as $position => $contact) {
+            PatientContact::firstOrCreate(
+                ['patient_id' => $patient->id, 'type' => $contact['type'], 'value' => $contact['value']],
+                ['label' => $contact['label'], 'position' => $position, 'created_by' => $creatorId],
+            );
         }
     }
 }

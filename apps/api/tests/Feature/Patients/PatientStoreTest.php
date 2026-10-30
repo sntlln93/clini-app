@@ -33,12 +33,16 @@ test('store creates a new patient, links it to the active organization and sets 
         'name' => 'Juana Diaz',
         'document_type' => 'dni',
         'document_number' => '12345678',
-        'email' => 'juana@example.com',
-        'phone' => '111222333',
+        'contacts' => [
+            ['type' => 'email', 'value' => 'juana@example.com'],
+            ['type' => 'phone', 'value' => '11 2222-3333'],
+        ],
     ]);
 
     $response->assertCreated();
     $patient = Patient::findOrFail($response->json('data.id'));
+
+    expect($patient->contacts()->pluck('value')->all())->toBe(['juana@example.com', '+541122223333']);
 
     expect($patient->created_by)->toBe($membership->user_id);
     expect($patient->organizations()->count())->toBe(1);
@@ -64,13 +68,11 @@ test('store with an already-existing document pair returns that same patient and
     expect($existing->organizations()->whereKey($membership->organization_id)->exists())->toBeTrue();
 });
 
-test('store fills only empty contact fields on an existing patient without overwriting set ones', function () {
+test('store fills only empty personal fields on an existing patient and adds its contacts to theirs', function () {
     $membership = Membership::factory()->create();
-    $existing = Patient::factory()->create([
+    $existing = Patient::factory()->withEmail('original@example.com')->create([
         'document_type' => DocumentType::Dni,
         'document_number' => '55555555',
-        'email' => 'original@example.com',
-        'phone' => null,
         'birth_date' => null,
     ]);
 
@@ -78,14 +80,15 @@ test('store fills only empty contact fields on an existing patient without overw
         'name' => $existing->name,
         'document_type' => 'dni',
         'document_number' => '55555555',
-        'email' => 'nuevo@example.com',
-        'phone' => '444555666',
+        'contacts' => [
+            ['type' => 'email', 'value' => 'nuevo@example.com'],
+            ['type' => 'phone', 'value' => '11 4445-5666'],
+        ],
         'birth_date' => '1990-01-01',
     ])->assertCreated();
 
     $existing->refresh();
-    expect($existing->email)->toBe('original@example.com');
-    expect($existing->phone)->toBe('444555666');
+    expect($existing->contacts()->pluck('value')->all())->toBe(['original@example.com', 'nuevo@example.com', '+541144455666']);
     expect($existing->birth_date?->format('Y-m-d'))->toBe('1990-01-01');
 });
 

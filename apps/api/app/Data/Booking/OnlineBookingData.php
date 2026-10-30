@@ -5,11 +5,15 @@ declare(strict_types=1);
 namespace App\Data\Booking;
 
 use App\Contracts\Data;
+use App\Data\Patients\PatientContactData;
 use App\Enums\DocumentType;
 use Carbon\CarbonImmutable;
 
 final readonly class OnlineBookingData implements Data
 {
+    /**
+     * @param  list<PatientContactData>  $contacts
+     */
     public function __construct(
         public int $organizationId,
         public int $membershipId,
@@ -18,8 +22,7 @@ final readonly class OnlineBookingData implements Data
         public string $patientName,
         public DocumentType $documentType,
         public string $documentNumber,
-        public ?string $email,
-        public ?string $phone,
+        public array $contacts,
         public ?int $insuranceProviderId,
         public ?string $insuranceMemberNumber,
     ) {}
@@ -37,8 +40,7 @@ final readonly class OnlineBookingData implements Data
             'patientName' => $this->patientName,
             'documentType' => $this->documentType,
             'documentNumber' => $this->documentNumber,
-            'email' => $this->email,
-            'phone' => $this->phone,
+            'contacts' => array_map(fn (PatientContactData $contact): array => $contact->toArray(), $this->contacts),
             'insuranceProviderId' => $this->insuranceProviderId,
             'insuranceMemberNumber' => $this->insuranceMemberNumber,
         ];

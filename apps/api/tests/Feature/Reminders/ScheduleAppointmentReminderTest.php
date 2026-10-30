@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
 use App\Enums\ErrorCode;
+use App\Enums\PatientContactType;
 use App\Enums\ReminderChannel;
 use App\Enums\ReminderStatus;
 use App\Models\Appointment;
@@ -23,7 +24,7 @@ test('booking for a patient with an email schedules exactly one pending email re
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
     ]);
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
 
     $response = $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
         'membership_id' => $membership->id,
@@ -45,13 +46,12 @@ test('booking for a patient with an email schedules exactly one pending email re
     expect($reminder->scheduled_at->equalTo($appointment->start_at->clone()->subHours(12)))->toBeTrue();
 });
 
-test('booking for a patient without an email creates no reminder', function () {
+test('booking for a patient without a confirmed email creates no reminder', function (Patient $patient) {
     $membership = Membership::factory()->create();
     $professionalService = ProfessionalService::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
     ]);
-    $patient = Patient::factory()->create(['email' => null]);
 
     $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
         'membership_id' => $membership->id,
@@ -61,7 +61,11 @@ test('booking for a patient without an email creates no reminder', function () {
     ])->assertCreated();
 
     expect(Reminder::query()->count())->toBe(0);
-});
+})->with([
+    'no contacts' => fn () => Patient::factory()->create(),
+    'only a phone' => fn () => Patient::factory()->withContact(PatientContactType::Phone, '+541140000000')->create(),
+    'only an unconfirmed email' => fn () => Patient::factory()->withEmail('desconocido@example.com', needsConfirmation: true)->create(),
+]);
 
 test('booking an appointment starting in less than 12 hours creates no reminder', function () {
     $membership = Membership::factory()->create();
@@ -69,7 +73,7 @@ test('booking an appointment starting in less than 12 hours creates no reminder'
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
     ]);
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
 
     $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
         'membership_id' => $membership->id,
@@ -87,7 +91,7 @@ test('booking an appointment starting just over 12 hours away creates a reminder
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
     ]);
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
 
     $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
         'membership_id' => $membership->id,
@@ -106,7 +110,7 @@ test('rescheduling an appointment schedules a reminder for the new appointment',
         'membership_id' => $membership->id,
         'duration_minutes' => 30,
     ]);
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $original = Appointment::factory()->create([
         'organization_id' => $membership->organization_id,
         'membership_id' => $membership->id,
@@ -145,7 +149,7 @@ test('booking that fails on the overlap check leaves no reminder behind', functi
         'start_at' => $existingStart,
         'end_at' => $existingStart->clone()->addMinutes(30),
     ]);
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
 
     $this->actingAs($membership->user)->postJson('/api/v1/appointments', [
         'membership_id' => $membership->id,

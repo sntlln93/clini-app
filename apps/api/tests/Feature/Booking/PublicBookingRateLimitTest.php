@@ -69,8 +69,10 @@ function bookSlot(string $slug, Membership $membership, Service $service, int $s
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
             'document_number' => fake()->unique()->numerify('########'),
-            'email' => 'juan@example.com',
-            'phone' => '1122334455',
+            'contacts' => [
+                ['type' => 'email', 'value' => 'juan@example.com'],
+                ['type' => 'phone', 'value' => '11 2233-4455'],
+            ],
         ],
     ]);
 }

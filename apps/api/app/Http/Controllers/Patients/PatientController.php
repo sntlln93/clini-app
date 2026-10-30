@@ -4,12 +4,15 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Patients;
 
+use App\Actions\Patients\LookUpPatientAction;
 use App\Actions\Patients\RegisterPatientAction;
+use App\Actions\Patients\UpdatePatientAction;
 use App\Data\ClinicalAccess\ClinicalAccessStateData;
+use App\Data\Patients\PatientLookupData;
 use App\Data\Patients\PatientRegistrationData;
+use App\Data\Patients\PatientUpdateData;
 use App\Enums\DocumentType;
 use App\Enums\Sex;
-use App\Exceptions\Patients\PatientNotFoundException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Patients\IndexPatientRequest;
 use App\Http\Requests\Patients\LookupPatientRequest;
@@ -40,7 +43,7 @@ class PatientController extends Controller
         $patients = Patient::query()
             ->whereHas('organizations', fn ($query) => $query->whereKey($organizationId))
             ->search($request->string('q')->toString() ?: null)
-            ->with('insuranceProvider')
+            ->with(['insuranceProvider', 'contacts'])
             ->orderBy('name')
             ->orderBy('id')
             ->paginate($perPage)
@@ -61,8 +64,7 @@ class PatientController extends Controller
             name: $request->string('name')->toString(),
             documentType: DocumentType::from($request->string('document_type')->toString()),
             documentNumber: $request->string('document_number')->toString(),
-            email: $request->string('email')->toString() ?: null,
-            phone: $request->string('phone')->toString() ?: null,
+            contacts: $request->contacts(),
             sex: $request->filled('sex') ? Sex::from($request->string('sex')->toString()) : null,
             birthDate: $request->string('birth_date')->toString() ?: null,
             insuranceProviderId: $request->integer('insurance_provider_id') ?: null,
@@ -71,7 +73,7 @@ class PatientController extends Controller
 
         $patient = $action->handle($dto);
 
-        return (new PatientResource($patient))->response()->setStatusCode(201);
+        return (new PatientResource($patient->load('contacts')))->response()->setStatusCode(201);
     }
 
     public function show(Request $request, Patient $patient): PatientResource
@@ -86,7 +88,7 @@ class PatientController extends Controller
 
         $canView = Gate::allows('viewAnyForPatient', [ClinicalNote::class, $patient]);
 
-        return (new PatientResource($patient->load('insuranceProvider')))->withClinicalAccess(new ClinicalAccessStateData(
+        return (new PatientResource($patient->load(['insuranceProvider', 'contacts'])))->withClinicalAccess(new ClinicalAccessStateData(
             canView: $canView,
             reasonRequired: $canView
                 && ClinicalAccess::requiresReason($membership->organization_id, $membership->id, $patient->id),
@@ -115,32 +117,39 @@ class PatientController extends Controller
         return PatientAppointmentResource::collection($appointments);
     }
 
-    public function update(UpdatePatientRequest $request, Patient $patient): PatientResource
+    public function update(UpdatePatientRequest $request, Patient $patient, UpdatePatientAction $action): PatientResource
     {
         Gate::authorize('update', $patient);
 
-        $patient->update($request->validated());
+        /** @var User $user */
+        $user = $request->user();
 
-        return new PatientResource($patient);
+        $patient = $action->handle(new PatientUpdateData(
+            patientId: $patient->id,
+            updatedBy: $user->id,
+            attributes: $request->safe()->except('contacts'),
+            contacts: $request->input('contacts') !== null ? $request->contacts() : null,
+        ));
+
+        return new PatientResource($patient->load('contacts'));
     }
 
-    // Deliberate, narrow exception to organization scoping: resolves a patient by document pair globally so the create form can be prefilled before it is linked to this organization. Requires the same permission as create(), since it exists to support it.
-    public function lookup(LookupPatientRequest $request): PatientResource
+    // Deliberate, narrow exception to organization scoping: resolves a patient by their exact document globally so the create form can be prefilled with the personal data the platform shares (#365). Requires the same permission as create(), since it exists to support it, and is throttled and logged per membership.
+    public function lookup(LookupPatientRequest $request, LookUpPatientAction $action): PatientResource
     {
         Gate::authorize('create', Patient::class);
 
-        $documentType = $request->string('document_type')->toString();
-        $documentNumber = $request->string('document_number')->toString();
+        /** @var User $user */
+        $user = $request->user();
 
-        $patient = Patient::query()
-            ->where('document_type', $documentType)
-            ->where('document_number', $documentNumber)
-            ->first();
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
 
-        if ($patient === null) {
-            throw new PatientNotFoundException;
-        }
-
-        return new PatientResource($patient);
+        return new PatientResource($action->handle(new PatientLookupData(
+            organizationId: $membership->organization_id,
+            membershipId: $membership->id,
+            documentType: DocumentType::from($request->string('document_type')->toString()),
+            documentNumber: $request->string('document_number')->toString(),
+        )));
     }
 }

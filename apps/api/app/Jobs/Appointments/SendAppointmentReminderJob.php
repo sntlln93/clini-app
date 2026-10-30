@@ -53,9 +53,22 @@ final class SendAppointmentReminderJob implements ShouldQueue
             return;
         }
 
-        // Accepted risk: a crash between send and this update leaves the reminder
-        // retriable, risking a duplicate mail — no idempotency key is built for it.
-        Mail::to($appointment->patient?->email)->send(new AppointmentReminderMail($appointment));
+        // One mail per address, so no contact sees another's (#365). Accepted
+        // risk: a crash between sends, or before this update, leaves the
+        // reminder retriable, risking a duplicate mail — no idempotency key is
+        // built for it.
+        $emails = $appointment->patient?->contacts()->forReminders()->pluck('value') ?? collect();
+
+        // Its addresses were removed or left unconfirmed since it was scheduled.
+        if ($emails->isEmpty()) {
+            $this->reminder->delete();
+
+            return;
+        }
+
+        foreach ($emails as $email) {
+            Mail::to($email)->send(new AppointmentReminderMail($appointment));
+        }
 
         $this->reminder->update([
             'status' => ReminderStatus::Sent,

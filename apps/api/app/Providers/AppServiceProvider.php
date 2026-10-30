@@ -100,6 +100,19 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(20)->by($request->ip()),
         ]);
 
+        // Searching a patient of any practice by document (#365): roomy for
+        // someone booking appointments, tight for a script walking through
+        // documents to collect the personal data the platform shares. Keyed by
+        // user: the throttle runs before `organization`, and a user acts
+        // through a single membership anyway (ResolveCurrentOrganization), so
+        // it is a bucket per membership. Never `currentMembership()` here: it
+        // would memoize the organization as unresolved for the whole request.
+        RateLimiter::for('patient-lookup', function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinutes(5, 30)->by($user instanceof User ? "user:{$user->id}" : "ip:{$request->ip()}");
+        });
+
         // Exporting the clinical history (#326): each export reads a patient's
         // whole history, or every attended patient's, so a script can't loop
         // it. Keyed by user, since it is authenticated.

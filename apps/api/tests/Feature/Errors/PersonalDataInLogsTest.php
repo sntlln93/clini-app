@@ -130,7 +130,7 @@ test('a failed query is logged without its bindings or the database detail', fun
     Patient::factory()->create(['document_type' => 'dni', 'document_number' => '30111333']);
 
     Route::post('/api/v1/_test/duplicate-patient', function () {
-        Patient::factory()->create(['document_type' => 'dni', 'document_number' => '30111333', 'email' => 'zoe.diaz@example.com']);
+        Patient::factory()->create(['name' => 'Zoe Díaz', 'document_type' => 'dni', 'document_number' => '30111333']);
     });
 
     $this->postJson('/api/v1/_test/duplicate-patient')->assertStatus(500);
@@ -141,7 +141,7 @@ test('a failed query is logged without its bindings or the database detail', fun
         ->toContain('23505')
         ->toContain('patients_document_type_document_number_unique')
         ->not->toContain('30111333')
-        ->not->toContain('zoe.diaz@example.com');
+        ->not->toContain('Zoe Díaz');
 });
 
 test('a deadlock in a nested transaction is logged without the query bindings', function () {

@@ -151,7 +151,7 @@ test('paginating through patients who share a name breaks ties by id without ski
     });
     // Rewriting the rows in reverse puts them on disk against their id order,
     // so nothing but an explicit tie-break can hand them back by id.
-    $ids->reverse()->each(fn (int $id) => Patient::query()->whereKey($id)->update(['email' => "p{$id}@test.com"]));
+    $ids->reverse()->each(fn (int $id) => Patient::query()->whereKey($id)->update(['birth_date' => '1990-01-01']));
 
     $seenIds = collect(range(1, $ids->count()))->map(function (int $page) use ($membership) {
         $response = $this->actingAs($membership->user)->getJson("/api/v1/patients?per_page=1&page={$page}");
