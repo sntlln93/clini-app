@@ -215,3 +215,11 @@ function shareAccessCode(Membership $membership, int $patientId, ?Appointment $a
         'redeemed_at' => now(),
     ]);
 }
+
+/**
+ * A response recorded from ANMAT's public vademecum lookup (#377), under tests/Fixtures/Vademecum.
+ */
+function vademecumFixture(string $name): string
+{
+    return (string) file_get_contents(__DIR__."/Fixtures/Vademecum/{$name}");
+}

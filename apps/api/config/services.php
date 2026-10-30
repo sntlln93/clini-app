@@ -41,6 +41,14 @@ return [
         'url' => env('HOLIDAYS_API_URL', 'https://calendariosnacionales.com'),
     ],
 
+    // ANMAT's public vademecum lookup, which fills the medication catalog on demand (#377, ADR 0031). Off unless
+    // turned on, so tests, CI and e2e never reach it.
+    'anmat_vademecum' => [
+        'enabled' => (bool) env('ANMAT_VADEMECUM_ENABLED', false),
+        'url' => env('ANMAT_VADEMECUM_URL', 'https://servicios.pami.org.ar/vademecum'),
+        'user_agent' => env('ANMAT_VADEMECUM_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
+    ],
+
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.
     'mercadopago' => [
         'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
