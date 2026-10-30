@@ -35,6 +35,9 @@ export type ClinicalAccessTrailEntry = {
     appointment: { id: number; start_at: string } | null;
     clinical_note_id: number | null;
     prescription_id: number | null;
+    vital_sign_id: number | null;
+    blood_type_record_id: number | null;
+    medical_history_entry_id: number | null;
     export: {
         id: number;
         scope: 'patient' | 'attended_patients';

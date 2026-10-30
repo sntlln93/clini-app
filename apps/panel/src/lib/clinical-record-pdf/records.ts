@@ -1,13 +1,16 @@
 import { fromInstant } from '@/lib/datetime';
+import { presentValues } from '@/lib/vital-signs';
 import type {
     ClinicalRecordNote,
     ClinicalRecordPerson,
     ClinicalRecordPrescription,
+    ClinicalRecordVitalSign,
 } from '@/types/clinical-record';
 import type { Content } from 'pdfmake/interfaces';
 
-// The records of the history as the PDF prints them (ADR 0023): each note and
-// each indicated medication with its versions and, once void, its annulment.
+// The records of the history as the PDF prints them (ADR 0023): each note,
+// indicated medication and measurement with its versions and, once void, its
+// annulment.
 
 /** In the practice's zone, Luxon's default (`setPracticeTimeZone`). */
 export function at(iso: string): string {
@@ -20,7 +23,7 @@ export function nameOf(person: ClinicalRecordPerson): string {
 
 // Worded as the panel's version history words it: the first version, then
 // each amendment with its author, time and reason.
-function versionLine(version: {
+export function versionLine(version: {
     version: number;
     author: ClinicalRecordPerson;
     created_at: string;
@@ -118,6 +121,33 @@ export function prescriptionBlock(
                                 `${item.medication}${item.presentation ? `, ${item.presentation}` : ''} · ${item.dosage} · Cantidad: ${item.quantity}`,
                         ),
                     },
+                ],
+            })),
+        ],
+    };
+}
+
+export function vitalSignBlock(vitalSign: ClinicalRecordVitalSign): Content {
+    return {
+        style: 'record',
+        stack: [
+            {
+                text: [
+                    { text: 'Medición', bold: true },
+                    {
+                        text: ` · tomada por ${nameOf(vitalSign.author)} el ${at(vitalSign.measured_at)}`,
+                        style: 'muted',
+                    },
+                ],
+            },
+            ...annulmentLine(vitalSign.annulment),
+            ...vitalSign.versions.map((version): Content => ({
+                style: 'version',
+                stack: [
+                    { text: versionLine(version), style: 'muted' },
+                    presentValues(version.values)
+                        .map(({ label, value }) => `${label}: ${value}`)
+                        .join(' · '),
                 ],
             })),
         ],

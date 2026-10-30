@@ -92,7 +92,7 @@ describe('ClinicalHistoryAccessCard', () => {
         expect(api.post).not.toHaveBeenCalled();
     });
 
-    it('sends the reason and reloads the patient, its notes and its medication', async () => {
+    it('sends the reason and reloads the patient and its whole history', async () => {
         const queryClient = new QueryClient();
         const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
         vi.mocked(api.post).mockResolvedValueOnce({ data: { data: {} } });
@@ -125,6 +125,8 @@ describe('ClinicalHistoryAccessCard', () => {
                 ['patients', 10],
                 ['patients', 10, 'clinical-notes'],
                 ['prescriptions', 'patient', 10],
+                ['patients', 10, 'vital-signs'],
+                ['patients', 10, 'medical-history'],
             ]),
         );
     });
@@ -163,6 +165,8 @@ describe('ClinicalHistoryAccessCard', () => {
                 ['patients', 10],
                 ['patients', 10, 'clinical-notes'],
                 ['prescriptions', 'patient', 10],
+                ['patients', 10, 'vital-signs'],
+                ['patients', 10, 'medical-history'],
             ]),
         );
     });

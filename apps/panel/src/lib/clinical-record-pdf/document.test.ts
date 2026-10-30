@@ -121,6 +121,40 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain('Versión 1, Dr. Colega, 10/09/2026 12:20');
     });
 
+    it('holds every measurement with its versions and the background of every author (#361)', () => {
+        const text = textOf(render().content);
+
+        expect(text).toContain(
+            'Medición\n · tomada por Dra. Exportadora el 01/09/2026 10:10',
+        );
+        expect(text).toContain('Peso: 80 kg · Talla: 180 cm · IMC: 24,7 kg/m²');
+        expect(text).toContain(
+            'Enmienda (versión 2), Dra. Exportadora, 01/09/2026 10:20 · Motivo: Balanza mal calibrada.',
+        );
+        expect(text).toContain('Peso: 78,5 kg');
+        expect(text).toContain('O+ · Dr. Colega, 10/09/2026 12:25');
+        expect(text).toContain('Penicilina · Urticaria · Severidad grave');
+        expect(text).toContain(
+            'Ya no vigente desde el 10/09/2026 12:40, según Dr. Colega. Motivo: Ya no la tiene.',
+        );
+        // The background is of the person: it comes before the appointments.
+        expect(text.indexOf('Antecedentes')).toBeLessThan(
+            text.indexOf('Turnos y actuaciones'),
+        );
+    });
+
+    it('says the blood type is not recorded when there is none', () => {
+        const text = textOf(
+            buildClinicalRecordDocument(
+                buildClinicalRecord({ blood_types: [], medical_history: [] }),
+                { brandName: 'Clini', logoSvg: LOGO },
+            ).content,
+        );
+
+        expect(text).toContain('Grupo sanguíneo: sin registrar.');
+        expect(text).not.toContain('Alergias');
+    });
+
     it('closes with the access trail, as the patient page words it', () => {
         const text = textOf(render().content);
 

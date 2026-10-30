@@ -1,13 +1,24 @@
 import { STATUS_LABELS } from '@/lib/appointment-status';
 import { describeTrailEntry } from '@/lib/clinical-access';
 import { fromCalendarDate } from '@/lib/datetime';
+import { CATEGORY_SECTIONS, entryDetails } from '@/lib/medical-history';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
 import type {
     ClinicalRecordAppointment,
+    ClinicalRecordBloodType,
+    ClinicalRecordMedicalHistoryEntry,
     ClinicalRecordPatient,
 } from '@/types/clinical-record';
+import { MEDICAL_HISTORY_CATEGORIES } from '@/types/medical-history';
 import type { Content } from 'pdfmake/interfaces';
-import { at, nameOf, noteBlock, prescriptionBlock } from './records';
+import {
+    at,
+    nameOf,
+    noteBlock,
+    prescriptionBlock,
+    versionLine,
+    vitalSignBlock,
+} from './records';
 
 const DOCUMENT_TYPES = { dni: 'DNI', passport: 'Pasaporte' } as const;
 
@@ -92,6 +103,7 @@ function appointmentBlock(appointment: ClinicalRecordAppointment): Content {
             { text: details.join(' · '), style: 'muted' },
             ...appointment.clinical_notes.map(noteBlock),
             ...appointment.prescriptions.map(prescriptionBlock),
+            ...appointment.vital_signs.map(vitalSignBlock),
         ],
     };
 }
@@ -107,6 +119,83 @@ export function appointmentsSection(
                   style: 'muted',
               }
             : appointments.map(appointmentBlock),
+    ];
+}
+
+function backgroundEntryBlock(
+    entry: ClinicalRecordMedicalHistoryEntry,
+): Content {
+    return {
+        style: 'record',
+        stack: [
+            {
+                text: `Registrado por ${nameOf(entry.author)} el ${at(entry.created_at)}`,
+                style: 'muted',
+            },
+            ...(entry.withdrawal
+                ? [
+                      {
+                          text: `Ya no vigente desde el ${at(entry.withdrawal.created_at)}, según ${nameOf(entry.withdrawal.author)}.${entry.withdrawal.reason ? ` Motivo: ${entry.withdrawal.reason}` : ''}`,
+                          bold: true,
+                      },
+                  ]
+                : []),
+            ...entry.versions.map((version): Content => ({
+                style: 'version',
+                stack: [
+                    { text: versionLine(version), style: 'muted' },
+                    [version.description, entryDetails(version)]
+                        .filter(Boolean)
+                        .join(' · '),
+                ],
+            })),
+        ],
+    };
+}
+
+function bloodTypeLines(records: ClinicalRecordBloodType[]): Content {
+    if (records.length === 0) {
+        return { text: 'Grupo sanguíneo: sin registrar.', style: 'muted' };
+    }
+
+    return {
+        stack: [
+            { text: 'Grupo sanguíneo', bold: true },
+            {
+                ul: records.map(
+                    (record) =>
+                        `${record.blood_type} · ${nameOf(record.author)}, ${at(record.created_at)}${record.reason ? ` · Motivo: ${record.reason}` : ''}`,
+                ),
+            },
+        ],
+    };
+}
+
+// Of the person rather than of one appointment (#361): the blood type, every
+// value oldest first, then each category's entries.
+export function backgroundSection(
+    bloodTypes: ClinicalRecordBloodType[],
+    entries: ClinicalRecordMedicalHistoryEntry[],
+): Content[] {
+    return [
+        sectionTitle('Antecedentes'),
+        bloodTypeLines(bloodTypes),
+        ...MEDICAL_HISTORY_CATEGORIES.flatMap((category): Content[] => {
+            const ofCategory = entries.filter(
+                (entry) => entry.category === category,
+            );
+
+            return ofCategory.length === 0
+                ? []
+                : [
+                      {
+                          text: CATEGORY_SECTIONS[category],
+                          bold: true,
+                          margin: [0, 8, 0, 0],
+                      },
+                      ...ofCategory.map(backgroundEntryBlock),
+                  ];
+        }),
     ];
 }
 

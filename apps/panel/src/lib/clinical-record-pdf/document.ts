@@ -9,6 +9,7 @@ import { at, nameOf } from './records';
 import {
     accessLogSection,
     appointmentsSection,
+    backgroundSection,
     patientSection,
 } from './sections';
 
@@ -150,6 +151,7 @@ export function buildClinicalRecordDocument(
                 },
             },
             ...patientSection(record.patient),
+            ...backgroundSection(record.blood_types, record.medical_history),
             ...appointmentsSection(record.appointments),
             ...accessLogSection(record.access_log),
         ],

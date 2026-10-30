@@ -36,6 +36,15 @@ export const CLINICAL_ACCESS_ACTIONS = [
     'prescription_issued',
     'prescription_amended',
     'prescription_annulled',
+    'vital_signs_viewed',
+    'vital_sign_recorded',
+    'vital_sign_amended',
+    'vital_sign_annulled',
+    'medical_history_viewed',
+    'blood_type_recorded',
+    'medical_history_recorded',
+    'medical_history_amended',
+    'medical_history_withdrawn',
     'record_exported',
 ] as const;
 
@@ -56,6 +65,15 @@ export const CLINICAL_ACCESS_ACTION_LABELS: Record<
     prescription_issued: 'Registró medicación indicada',
     prescription_amended: 'Enmendó medicación indicada',
     prescription_annulled: 'Anuló medicación indicada',
+    vital_signs_viewed: 'Leyó las mediciones',
+    vital_sign_recorded: 'Registró una medición',
+    vital_sign_amended: 'Enmendó una medición',
+    vital_sign_annulled: 'Anuló una medición',
+    medical_history_viewed: 'Leyó los antecedentes',
+    blood_type_recorded: 'Registró el grupo sanguíneo',
+    medical_history_recorded: 'Registró un antecedente',
+    medical_history_amended: 'Enmendó un antecedente',
+    medical_history_withdrawn: 'Dio de baja un antecedente',
     record_exported: 'Exportó la historia clínica',
 };
 

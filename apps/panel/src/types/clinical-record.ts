@@ -1,5 +1,11 @@
 import type { AppointmentStatus } from '@/types/appointment';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
+import type {
+    BloodType,
+    MedicalHistoryCategory,
+    MedicalHistoryEntryVersion,
+} from '@/types/medical-history';
+import type { VitalSignValues } from '@/types/vital-sign';
 
 // What `GET /patients/{id}/clinical-record` answers (#326, ADR 0021), the
 // data the panel builds the PDF or the JSON file from (ADR 0023). Mirrors
@@ -77,6 +83,51 @@ export type ClinicalRecordPrescription = {
     versions: ClinicalRecordPrescriptionVersion[];
 };
 
+// A measurement under its appointment (#361), as the panel's own `VitalSign`
+// with each version's author.
+export type ClinicalRecordVitalSign = {
+    id: number;
+    author: ClinicalRecordPerson;
+    measured_at: string;
+    annulment: {
+        author: ClinicalRecordPerson;
+        reason: string;
+        created_at: string;
+    } | null;
+    versions: {
+        version: number;
+        author: ClinicalRecordPerson;
+        created_at: string;
+        reason: string | null;
+        values: VitalSignValues;
+    }[];
+};
+
+// The background is of the person (#361): it goes beside the appointments,
+// each record still saying which one it was recorded on.
+export type ClinicalRecordBloodType = {
+    id: number;
+    appointment_id: number;
+    author: ClinicalRecordPerson;
+    created_at: string;
+    blood_type: BloodType;
+    reason: string | null;
+};
+
+export type ClinicalRecordMedicalHistoryEntry = {
+    id: number;
+    appointment_id: number;
+    category: MedicalHistoryCategory;
+    author: ClinicalRecordPerson;
+    created_at: string;
+    withdrawal: {
+        author: ClinicalRecordPerson;
+        reason: string | null;
+        created_at: string;
+    } | null;
+    versions: (MedicalHistoryEntryVersion & { author: ClinicalRecordPerson })[];
+};
+
 export type ClinicalRecordAppointment = {
     id: number;
     start_at: string;
@@ -89,11 +140,14 @@ export type ClinicalRecordAppointment = {
     cancellation_reason: string | null;
     clinical_notes: ClinicalRecordNote[];
     prescriptions: ClinicalRecordPrescription[];
+    vital_signs: ClinicalRecordVitalSign[];
 };
 
 export type ClinicalRecordDocument = {
     export: ClinicalRecordHeading;
     patient: ClinicalRecordPatient;
     appointments: ClinicalRecordAppointment[];
+    blood_types: ClinicalRecordBloodType[];
+    medical_history: ClinicalRecordMedicalHistoryEntry[];
     access_log: ClinicalAccessTrailEntry[];
 };

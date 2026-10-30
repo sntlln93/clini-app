@@ -52,6 +52,11 @@ export type ErrorCode =
     | 'clinical_notes.diagnosis_retired'
     | 'prescriptions.annulled'
     | 'prescriptions.amendment_unchanged'
+    | 'vital_signs.annulled'
+    | 'vital_signs.amendment_unchanged'
+    | 'medical_history.withdrawn'
+    | 'medical_history.amendment_unchanged'
+    | 'medical_history.blood_type_unchanged'
     | 'clinical_access.reason_required'
     | 'clinical_access.reason_not_required'
     | 'auth.two_factor_already_enabled'
@@ -162,6 +167,16 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La medicación está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación indicada.',
+    'vital_signs.annulled':
+        'La medición está anulada y ya no se puede enmendar ni anular.',
+    'vital_signs.amendment_unchanged':
+        'La enmienda no cambia los valores de la medición.',
+    'medical_history.withdrawn':
+        'El antecedente ya no está vigente y no se puede enmendar ni dar de baja.',
+    'medical_history.amendment_unchanged':
+        'La enmienda no cambia el antecedente.',
+    'medical_history.blood_type_unchanged':
+        'Ese ya es el grupo sanguíneo registrado.',
     'clinical_access.reason_required':
         'Abrir esta historia clínica sin un turno cercano requiere indicar un motivo.',
     'clinical_access.reason_not_required':

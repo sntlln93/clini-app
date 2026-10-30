@@ -14,9 +14,11 @@ import { PatientAppointmentHistoryCard } from './-components/PatientAppointmentH
 import { PatientClinicalNotesCard } from './-components/PatientClinicalNotesCard';
 import { PatientContactCard } from './-components/PatientContactCard';
 import { PatientInsuranceCard } from './-components/PatientInsuranceCard';
+import { PatientMedicalHistoryCard } from './-components/PatientMedicalHistoryCard';
 import { PatientNextAppointmentCard } from './-components/PatientNextAppointmentCard';
 import { PatientPersonalDataCard } from './-components/PatientPersonalDataCard';
 import { PatientPrescriptionsCard } from './-components/PatientPrescriptionsCard';
+import { PatientVitalSignsCard } from './-components/PatientVitalSignsCard';
 import { loadClinicalHistory } from './-hooks/use-clinical-history';
 import {
     findNextAppointment,
@@ -123,6 +125,20 @@ function PacienteDetallePage() {
                             prescriptions={history.prescriptions}
                             todaysAppointmentId={todaysAppointmentId}
                         />
+                        <div className="md:col-span-2">
+                            <PatientVitalSignsCard
+                                patientId={id}
+                                vitalSigns={history.vitalSigns}
+                                todaysAppointmentId={todaysAppointmentId}
+                            />
+                        </div>
+                        <div className="md:col-span-2">
+                            <PatientMedicalHistoryCard
+                                patientId={id}
+                                history={history.medicalHistory}
+                                todaysAppointmentId={todaysAppointmentId}
+                            />
+                        </div>
                         <div className="md:col-span-2">
                             <ClinicalAccessTrailCard
                                 trail={history.trail}
