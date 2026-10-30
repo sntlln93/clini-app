@@ -105,6 +105,10 @@ Table users {
   password varchar [not null]
   blocked_at timestamp [null, note: 'Set by a platform operator: login 403 auth.user_blocked, an open panel session is logged out on its next request']
   block_reason varchar(500) [null, note: 'Operator note; hidden from /me']
+  two_factor_secret text [null, note: 'TOTP secret, encrypted (#357); a setup only guards the login once confirmed']
+  two_factor_recovery_codes text [null, note: 'Encrypted JSON list of one-time recovery codes; a spent one is removed']
+  two_factor_confirmed_at timestamp [null, note: 'Set when the first code confirmed the setup: the factor is on']
+  two_factor_last_used_step bigint [null, note: 'Last accepted TOTP time step, so a code is never accepted twice']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
