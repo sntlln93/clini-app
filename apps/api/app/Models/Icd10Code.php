@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Support\FoldedText;
 use Database\Factories\Icd10CodeFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,12 +25,6 @@ class Icd10Code extends Model
     use HasFactory, SoftDeletes;
 
     /**
-     * Spanish accented letters and what they match, for searching without
-     * accents: the same pairs go to PHP's strtr() and SQL's translate().
-     */
-    private const array UNACCENTED = ['á' => 'a', 'é' => 'e', 'í' => 'i', 'ó' => 'o', 'ú' => 'u', 'ü' => 'u', 'ñ' => 'n'];
-
-    /**
      * Codes starting with the term (typed with or without its dot) and
      * descriptions containing it, both ignoring case and accents; code
      * matches come first.
@@ -42,10 +37,10 @@ class Icd10Code extends Model
         // The term is matched literally: LIKE's wildcards are escaped.
         $literal = addcslashes($term, '\\%_');
         $code = str_replace('.', '', $literal).'%';
-        $description = '%'.strtr(mb_strtolower($literal), self::UNACCENTED).'%';
+        $description = '%'.strtr(mb_strtolower($literal), FoldedText::UNACCENTED).'%';
         $codeMatch = "replace(code, '.', '') ilike ?";
-        $accented = implode('', array_keys(self::UNACCENTED));
-        $unaccented = implode('', self::UNACCENTED);
+        $accented = implode('', array_keys(FoldedText::UNACCENTED));
+        $unaccented = implode('', FoldedText::UNACCENTED);
 
         return $query
             ->where(function (Builder $query) use ($code, $description, $codeMatch, $accented, $unaccented) {
