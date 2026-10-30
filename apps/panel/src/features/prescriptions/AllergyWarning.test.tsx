@@ -19,20 +19,23 @@ vi.mock('@/lib/api', () => ({
 
 function mockGets({
     allergies = [],
-    allergiesError,
+    reasonRequired = false,
 }: {
     allergies?: MedicalHistoryEntry[];
-    allergiesError?: unknown;
+    reasonRequired?: boolean;
 } = {}) {
-    vi.mocked(api.get).mockImplementation((url: string) => {
-        if (!url.endsWith('/allergies')) {
-            return Promise.resolve({ data: { data: [] } });
-        }
-
-        return allergiesError
-            ? Promise.reject(allergiesError)
-            : Promise.resolve({ data: { data: allergies } });
-    });
+    vi.mocked(api.get).mockImplementation((url: string) =>
+        Promise.resolve(
+            url.endsWith('/allergies')
+                ? {
+                      data: {
+                          data: allergies,
+                          meta: { reason_required: reasonRequired },
+                      },
+                  }
+                : { data: { data: [] } },
+        ),
+    );
 }
 
 function conflict(code: string, context: Record<string, unknown>) {
@@ -133,9 +136,7 @@ describe('allergy warning when indicating medication', () => {
     });
 
     it('explains that the allergies take an exceptional access without an appointment near today', async () => {
-        mockGets({
-            allergiesError: conflict('clinical_access.reason_required', {}),
-        });
+        mockGets({ reasonRequired: true });
         renderDialog();
 
         expect(
@@ -308,6 +309,7 @@ describe('allergy warning when indicating medication', () => {
         vi.mocked(api.get).mockImplementation((url: string) =>
             Promise.resolve({
                 data: {
+                    meta: { reason_required: false },
                     data: url.endsWith('/allergies')
                         ? []
                         : [

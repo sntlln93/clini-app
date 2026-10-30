@@ -86,7 +86,12 @@ function mockGets(prescriptions: unknown) {
     vi.mocked(api.get).mockImplementation((url: string) =>
         Promise.resolve(
             url.endsWith('/allergies')
-                ? { data: { data: allergies } }
+                ? {
+                      data: {
+                          data: allergies,
+                          meta: { reason_required: false },
+                      },
+                  }
                 : prescriptions,
         ),
     );
