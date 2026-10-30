@@ -69,6 +69,17 @@ describe('LandingPage', () => {
         );
     });
 
+    // #362: indicating medication warns about a matching current allergy.
+    it('says indicating medication warns about a current allergy', () => {
+        const notes = DAY_SLOTS.find((slot) =>
+            /notas de la visita/i.test(slot.title),
+        );
+
+        expect(notes?.body).toMatch(
+            /coincide con una alergia vigente del paciente, Clini te avisa/,
+        );
+    });
+
     it('links the calls to action to the panel', () => {
         render(<LandingPage />);
 
