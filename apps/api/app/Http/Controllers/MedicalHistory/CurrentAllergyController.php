@@ -14,6 +14,7 @@ use App\Models\Appointment;
 use App\Models\MedicalHistoryEntry;
 use App\Models\Membership;
 use App\Models\User;
+use App\Support\ClinicalAccess;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\Gate;
@@ -22,8 +23,10 @@ class CurrentAllergyController extends Controller
 {
     /**
      * The patient's current allergies the appointment's professional reads, shown above the form that indicates
-     * medication (#362): a read of the patient's background like the patient page's, with its reason and its row in
-     * the access log, but without the antecedents the form doesn't need.
+     * medication (#362): a read of the patient's background like the patient page's, with its row in the access log,
+     * but without the antecedents the form doesn't need. Without an appointment near today it reads nothing and says
+     * so (`reason_required`), rather than failing: the form opens on any of the professional's appointments, and the
+     * history is opened from the patient page.
      */
     public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
@@ -34,6 +37,10 @@ class CurrentAllergyController extends Controller
 
         /** @var Membership $membership */
         $membership = $user->currentMembership();
+
+        if (ClinicalAccess::requiresReason($appointment->organization_id, $membership->id, $appointment->patient_id)) {
+            return MedicalHistoryEntryResource::collection([])->additional(['meta' => ['reason_required' => true]]);
+        }
 
         $read->handle(new PatientHistoryReadData(
             organizationId: $appointment->organization_id,
@@ -52,6 +59,6 @@ class CurrentAllergyController extends Controller
             ->orderBy('id', 'desc')
             ->get();
 
-        return MedicalHistoryEntryResource::collection($allergies);
+        return MedicalHistoryEntryResource::collection($allergies)->additional(['meta' => ['reason_required' => false]]);
     }
 }

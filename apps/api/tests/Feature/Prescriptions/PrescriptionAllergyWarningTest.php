@@ -374,13 +374,14 @@ test('the form lists the current allergies the appointment\'s professional reads
         ->getJson("/api/v1/appointments/{$appointment->id}/allergies")
         ->assertOk()
         ->assertJsonPath('data.*.id', [$current->id])
-        ->assertJsonPath('data.0.description', 'Látex');
+        ->assertJsonPath('data.0.description', 'Látex')
+        ->assertJsonPath('meta.reason_required', false);
 
     expect($response->getContent())->not->toContain('Yodo')
         ->and(backgroundReads($membership))->toBe(1);
 });
 
-test('only the appointment\'s professional lists its allergies, and not without an appointment near today', function () {
+test('only the appointment\'s professional lists its allergies, and without an appointment near today it reads none', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $colleague = Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
     $appointment = allergyWarningAppointment($membership);
@@ -390,8 +391,9 @@ test('only the appointment\'s professional lists its allergies, and not without 
     $this->actingAs($colleague->user)->getJson("/api/v1/appointments/{$appointment->id}/allergies")->assertForbidden();
     $this->actingAs($colleague->user)
         ->getJson("/api/v1/appointments/{$past->id}/allergies")
-        ->assertConflict()
-        ->assertJsonPath('error.code', 'clinical_access.reason_required');
+        ->assertOk()
+        ->assertJsonPath('data', [])
+        ->assertJsonPath('meta.reason_required', true);
 
     expect(backgroundReads($colleague))->toBe(0);
 });
