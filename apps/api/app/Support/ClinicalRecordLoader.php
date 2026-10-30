@@ -79,6 +79,25 @@ class ClinicalRecordLoader
             'prescriptions.versions.author.user',
             'prescriptions.versions.items',
             'prescriptions.annulment.author.user',
+            'vitalSigns' => fn ($query) => $query
+                ->where('organization_id', $organizationId)
+                ->orderBy('measured_at')
+                ->orderBy('id'),
+            'vitalSigns.author.user',
+            'vitalSigns.versions.author.user',
+            'vitalSigns.annulment.author.user',
+            'bloodTypeRecords' => fn ($query) => $query
+                ->where('organization_id', $organizationId)
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            'bloodTypeRecords.author.user',
+            'medicalHistoryEntries' => fn ($query) => $query
+                ->where('organization_id', $organizationId)
+                ->orderBy('created_at')
+                ->orderBy('id'),
+            'medicalHistoryEntries.author.user',
+            'medicalHistoryEntries.versions.author.user',
+            'medicalHistoryEntries.withdrawal.author.user',
             'clinicalAccessLogs' => fn ($query) => $query
                 ->visibleTo($organizationId)
                 ->orderBy('created_at')

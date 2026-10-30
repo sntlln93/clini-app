@@ -14,11 +14,15 @@ use App\Enums\ReminderStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
+use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
+use App\Models\MedicalHistoryEntry;
+use App\Models\MedicalHistoryEntryVersion;
+use App\Models\MedicalHistoryEntryWithdrawal;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
@@ -28,6 +32,9 @@ use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
 use App\Models\Reminder;
 use App\Models\Service;
+use App\Models\VitalSign;
+use App\Models\VitalSignAnnulment;
+use App\Models\VitalSignVersion;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -76,7 +83,7 @@ class SchedulingSeeder extends Seeder
     private function clearFixtureRows(Organization $organization): void
     {
         Reminder::where('organization_id', $organization->id)->delete();
-        // Notes and prescriptions restrict deleting their appointment, so any
+        // Clinical records restrict deleting their appointment, so any
         // written since the last seed (by hand or by an e2e run) go first.
         $this->purgeClinicalHistory($organization);
         Appointment::where('organization_id', $organization->id)->forceDelete();
@@ -99,8 +106,10 @@ class SchedulingSeeder extends Seeder
             $noteVersions = ClinicalNoteVersion::whereIn('clinical_note_id', $notes)->select('id');
             $prescriptions = Prescription::where('organization_id', $organization->id)->select('id');
             $prescriptionVersions = PrescriptionVersion::whereIn('prescription_id', $prescriptions)->select('id');
+            $vitalSigns = VitalSign::where('organization_id', $organization->id)->select('id');
+            $entries = MedicalHistoryEntry::where('organization_id', $organization->id)->select('id');
 
-            // The access log points at notes, prescriptions, appointments and exports.
+            // The access log points at every clinical record, appointments and exports.
             ClinicalAccessLog::where('organization_id', $organization->id)->delete();
             ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();
             ClinicalNoteDiagnosis::whereIn('clinical_note_version_id', $noteVersions)->delete();
@@ -110,6 +119,13 @@ class SchedulingSeeder extends Seeder
             PrescriptionItem::whereIn('prescription_version_id', $prescriptionVersions)->delete();
             PrescriptionVersion::whereIn('prescription_id', $prescriptions)->delete();
             Prescription::where('organization_id', $organization->id)->delete();
+            VitalSignAnnulment::whereIn('vital_sign_id', $vitalSigns)->delete();
+            VitalSignVersion::whereIn('vital_sign_id', $vitalSigns)->delete();
+            VitalSign::where('organization_id', $organization->id)->delete();
+            BloodTypeRecord::where('organization_id', $organization->id)->delete();
+            MedicalHistoryEntryWithdrawal::whereIn('medical_history_entry_id', $entries)->delete();
+            MedicalHistoryEntryVersion::whereIn('medical_history_entry_id', $entries)->delete();
+            MedicalHistoryEntry::where('organization_id', $organization->id)->delete();
 
             DB::statement("SELECT set_config('clini.clinical_records_purge', 'off', true)");
         });

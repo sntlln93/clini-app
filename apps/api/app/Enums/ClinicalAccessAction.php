@@ -21,6 +21,18 @@ enum ClinicalAccessAction: string
     case PrescriptionIssued = 'prescription_issued';
     case PrescriptionAmended = 'prescription_amended';
     case PrescriptionAnnulled = 'prescription_annulled';
+    case VitalSignsViewed = 'vital_signs_viewed';
+    case VitalSignRecorded = 'vital_sign_recorded';
+    case VitalSignAmended = 'vital_sign_amended';
+    case VitalSignAnnulled = 'vital_sign_annulled';
+    /**
+     * The patient's background: blood type, allergies and antecedents (#361).
+     */
+    case MedicalHistoryViewed = 'medical_history_viewed';
+    case BloodTypeRecorded = 'blood_type_recorded';
+    case MedicalHistoryRecorded = 'medical_history_recorded';
+    case MedicalHistoryAmended = 'medical_history_amended';
+    case MedicalHistoryWithdrawn = 'medical_history_withdrawn';
     /**
      * The patient's history went into an export, alone or with every patient the professional attended.
      */

@@ -6,12 +6,15 @@ use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
 use App\Models\Appointment;
+use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalRecordExport;
 use App\Models\Icd10Code;
+use App\Models\MedicalHistoryEntry;
 use App\Models\Membership;
 use App\Models\Prescription;
+use App\Models\VitalSign;
 use App\Support\ClinicalNoteDiagnoses;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
@@ -37,6 +40,10 @@ const ACCESS_LOG_MIGRATION = 'migrations/2026_10_24_000001_create_clinical_acces
 // And for the annulment of indicated medication (#344).
 const PRESCRIPTION_ANNULMENTS_MIGRATION = 'migrations/2026_10_25_000001_create_prescription_annulments_table.php';
 
+// And for the measurements and the background (#361), the latter rolled back first.
+const VITAL_SIGNS_MIGRATION = 'migrations/2026_10_30_000001_create_vital_signs_tables.php';
+const MEDICAL_HISTORY_MIGRATION = 'migrations/2026_10_30_000002_create_medical_history_tables.php';
+
 /**
  * Runs one statement in its own savepoint, so the error it raises doesn't
  * abort the test's transaction.
@@ -46,9 +53,9 @@ function inSavepoint(Closure $statement): Closure
     return fn () => DB::transaction($statement);
 }
 
-test('no route edits or deletes a clinical note or an indicated-medication record', function () {
+test('no route edits or deletes a clinical record', function () {
     $offenders = collect(Route::getRoutes()->getRoutes())
-        ->filter(fn (RoutingRoute $route): bool => preg_match('#(clinical-notes|prescriptions)#', $route->uri()) === 1)
+        ->filter(fn (RoutingRoute $route): bool => preg_match('#(clinical-notes|prescriptions|vital-signs|blood-types|medical-history)#', $route->uri()) === 1)
         ->filter(fn (RoutingRoute $route): bool => array_intersect($route->methods(), ['PUT', 'PATCH', 'DELETE']) !== [])
         ->map(fn (RoutingRoute $route): string => implode('|', $route->methods()).' '.$route->uri())
         ->values()
@@ -101,6 +108,21 @@ test('the database rejects updating or deleting any row of the clinical history'
 
         return $prescription->annulment()->create(['membership_id' => $prescription->membership_id, 'reason' => 'Anulada.'])->id;
     }],
+    'vital_signs' => ['vital_signs', fn () => VitalSign::factory()->create()->id],
+    'vital_sign_versions' => ['vital_sign_versions', fn () => VitalSign::factory()->create()->versions()->sole()->id],
+    'vital_sign_annulments' => ['vital_sign_annulments', function () {
+        $vitalSign = VitalSign::factory()->create();
+
+        return $vitalSign->annulment()->create(['membership_id' => $vitalSign->membership_id, 'reason' => 'Cargada por error.'])->id;
+    }],
+    'blood_type_records' => ['blood_type_records', fn () => BloodTypeRecord::factory()->create()->id],
+    'medical_history_entries' => ['medical_history_entries', fn () => MedicalHistoryEntry::factory()->create()->id],
+    'medical_history_entry_versions' => ['medical_history_entry_versions', fn () => MedicalHistoryEntry::factory()->create()->versions()->sole()->id],
+    'medical_history_entry_withdrawals' => ['medical_history_entry_withdrawals', function () {
+        $entry = MedicalHistoryEntry::factory()->create();
+
+        return $entry->withdrawal()->create(['membership_id' => $entry->membership_id, 'reason' => null])->id;
+    }],
     'clinical_record_exports' => ['clinical_record_exports', function () {
         $membership = Membership::factory()->professional()->create();
 
@@ -128,11 +150,15 @@ test('the database rejects updating or deleting any row of the clinical history'
 test('the migration turns existing rows into version 1 and restores soft-deleted notes as annulled', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create(['organization_id' => $membership->organization_id, 'membership_id' => $membership->id]);
+    $medicalHistoryMigration = require database_path(MEDICAL_HISTORY_MIGRATION);
+    $vitalSignsMigration = require database_path(VITAL_SIGNS_MIGRATION);
     $prescriptionAnnulmentsMigration = require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION);
     $accessLogMigration = require database_path(ACCESS_LOG_MIGRATION);
     $exportsMigration = require database_path(EXPORTS_MIGRATION);
     $diagnosesMigration = require database_path(DIAGNOSES_MIGRATION);
     $migration = require database_path(APPEND_ONLY_MIGRATION);
+    $medicalHistoryMigration->down();
+    $vitalSignsMigration->down();
     $prescriptionAnnulmentsMigration->down();
     $accessLogMigration->down();
     $exportsMigration->down();
@@ -157,6 +183,8 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     $exportsMigration->up();
     $accessLogMigration->up();
     $prescriptionAnnulmentsMigration->up();
+    $vitalSignsMigration->up();
+    $medicalHistoryMigration->up();
 
     $edited = ClinicalNote::with('versions', 'annulment')->findOrFail($editedNoteId);
     expect($edited->versions)->toHaveCount(1)
@@ -192,6 +220,8 @@ test('rolling the migration back keeps the latest version and brings annulled no
     $prescription->versions()->create(['version' => 2, 'membership_id' => $prescription->membership_id])
         ->items()->create(['position' => 0, 'medication' => 'Paracetamol', 'dosage' => '1 cada 6 h', 'quantity' => 2]);
 
+    (require database_path(MEDICAL_HISTORY_MIGRATION))->down();
+    (require database_path(VITAL_SIGNS_MIGRATION))->down();
     (require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION))->down();
     (require database_path(ACCESS_LOG_MIGRATION))->down();
     (require database_path(EXPORTS_MIGRATION))->down();

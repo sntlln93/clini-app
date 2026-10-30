@@ -10,7 +10,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * One row of a patient's access trail, on their page and in the export (#325, ADR 0022): who, what, when, and which
- * appointment, note, medication or export it touched. The reason of an exceptional access goes as the listed one,
+ * appointment, note, medication, measurement, background entry or export it touched. The reason of an exceptional access goes as the listed one,
  * never the professional's own words, which can carry clinical content; the content itself is in the history.
  *
  * @mixin ClinicalAccessLog
@@ -41,6 +41,9 @@ class ClinicalAccessTrailEntryResource extends JsonResource
             ],
             'clinical_note_id' => $entry->clinical_note_id,
             'prescription_id' => $entry->prescription_id,
+            'vital_sign_id' => $entry->vital_sign_id,
+            'blood_type_record_id' => $entry->blood_type_record_id,
+            'medical_history_entry_id' => $entry->medical_history_entry_id,
             'export' => $export === null ? null : [
                 'id' => $export->id,
                 'scope' => $export->scope,
