@@ -18,6 +18,7 @@ use App\Exceptions\Prescriptions\PrescriptionAnnulledException;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
+use App\Support\MedicationSnapshot;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,8 +42,9 @@ class AmendPrescriptionAction implements Action
     public function handle(Data $dto): Prescription
     {
         // An amendment that can't succeed says so before any allergy warning (#362); the lock below checks it again.
+        $items = MedicationSnapshot::of($dto->items);
         $prescription = Prescription::query()->findOrFail($dto->prescriptionId);
-        $this->currentVersionToAmend($prescription, $dto);
+        $this->currentVersionToAmend($prescription, $items);
 
         // It indicates its whole item list again, so it is checked like a new record.
         $allergyMatches = $this->screen->handle(new MedicationAllergyScreeningData(
@@ -50,13 +52,13 @@ class AmendPrescriptionAction implements Action
             membershipId: $dto->membershipId,
             patientId: $prescription->patient_id,
             appointmentId: $prescription->appointment_id,
-            items: $dto->items,
+            items: $items,
             confirmedAllergies: $dto->confirmedAllergies,
         ));
 
-        return DB::transaction(function () use ($dto, $allergyMatches): Prescription {
+        return DB::transaction(function () use ($dto, $items, $allergyMatches): Prescription {
             $prescription = Prescription::query()->lockForUpdate()->findOrFail($dto->prescriptionId);
-            $current = $this->currentVersionToAmend($prescription, $dto);
+            $current = $this->currentVersionToAmend($prescription, $items);
 
             $version = $prescription->versions()->create([
                 'version' => $current->version + 1,
@@ -64,7 +66,7 @@ class AmendPrescriptionAction implements Action
                 'reason' => $dto->reason,
             ]);
 
-            foreach ($dto->items as $position => $item) {
+            foreach ($items as $position => $item) {
                 $version->items()->create(['position' => $position, ...$item->toArray()]);
             }
 
@@ -94,7 +96,10 @@ class AmendPrescriptionAction implements Action
     /**
      * The version the amendment follows, unless the record is annulled or the amendment repeats its items.
      */
-    private function currentVersionToAmend(Prescription $prescription, PrescriptionAmendmentData $dto): PrescriptionVersion
+    /**
+     * @param  list<PrescriptionItemData>  $items
+     */
+    private function currentVersionToAmend(Prescription $prescription, array $items): PrescriptionVersion
     {
         if ($prescription->annulment()->exists()) {
             throw new PrescriptionAnnulledException($prescription->id);
@@ -109,9 +114,11 @@ class AmendPrescriptionAction implements Action
                 presentation: $item->presentation,
                 dosage: $item->dosage,
                 quantity: $item->quantity,
+                gtin: $item->gtin,
+                substances: $item->substances,
             ))->toArray())
             ->all();
-        $newItems = array_map(fn (PrescriptionItemData $item): array => $item->toArray(), $dto->items);
+        $newItems = array_map(fn (PrescriptionItemData $item): array => $item->toArray(), $items);
 
         if ($currentItems === $newItems) {
             throw new PrescriptionAmendmentUnchangedException($prescription->id, $current->version);

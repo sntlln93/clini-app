@@ -75,6 +75,8 @@ class PrescriptionResource extends JsonResource
             'presentation' => $item->presentation,
             'dosage' => $item->dosage,
             'quantity' => $item->quantity,
+            'gtin' => $item->gtin,
+            'substances' => $item->substances,
         ])->values()->all();
     }
 
