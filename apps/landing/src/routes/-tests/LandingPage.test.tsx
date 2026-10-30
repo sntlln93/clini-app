@@ -55,7 +55,18 @@ describe('LandingPage', () => {
         );
 
         expect(notes?.body).not.toMatch(/solo la ve/i);
-        expect(notes?.body).toMatch(/historia clínica del paciente/);
+        expect(notes?.body).toMatch(/historia clínica, que es del paciente/);
+    });
+
+    // #364: another professional's records open only with the patient's code.
+    it('says the patient opens what other professionals recorded with their code', () => {
+        const notes = DAY_SLOTS.find((slot) =>
+            /notas de la visita/i.test(slot.title),
+        );
+
+        expect(notes?.body).toMatch(
+            /lo de otros cuando el paciente le comparte su código/,
+        );
     });
 
     it('links the calls to action to the panel', () => {
