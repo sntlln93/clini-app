@@ -18,7 +18,7 @@ export function LatestVitalSigns({ vitalSigns }: { vitalSigns: VitalSign[] }) {
     return (
         <section aria-label="Últimos valores">
             <h3 className="mb-2 text-sm font-medium">Últimos valores</h3>
-            <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <dl className="grid grid-cols-2 gap-3 text-sm xl:grid-cols-3">
                 {latest.map(({ field, value, measuredAt }) => (
                     <div key={field} className="min-w-0">
                         <dt className="text-muted-foreground">

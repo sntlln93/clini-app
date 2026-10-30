@@ -67,7 +67,10 @@ export function VitalSignsEvolution({
                         value !== null && setChosen(value as VitalSignField)
                     }
                 >
-                    <SelectTrigger aria-label="Dato" className="w-56">
+                    <SelectTrigger
+                        aria-label="Dato"
+                        className="w-full max-w-56"
+                    >
                         <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

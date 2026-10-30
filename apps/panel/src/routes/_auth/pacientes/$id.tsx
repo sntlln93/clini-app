@@ -125,20 +125,16 @@ function PacienteDetallePage() {
                             prescriptions={history.prescriptions}
                             todaysAppointmentId={todaysAppointmentId}
                         />
-                        <div className="md:col-span-2">
-                            <PatientVitalSignsCard
-                                patientId={id}
-                                vitalSigns={history.vitalSigns}
-                                todaysAppointmentId={todaysAppointmentId}
-                            />
-                        </div>
-                        <div className="md:col-span-2">
-                            <PatientMedicalHistoryCard
-                                patientId={id}
-                                history={history.medicalHistory}
-                                todaysAppointmentId={todaysAppointmentId}
-                            />
-                        </div>
+                        <PatientVitalSignsCard
+                            patientId={id}
+                            vitalSigns={history.vitalSigns}
+                            todaysAppointmentId={todaysAppointmentId}
+                        />
+                        <PatientMedicalHistoryCard
+                            patientId={id}
+                            history={history.medicalHistory}
+                            todaysAppointmentId={todaysAppointmentId}
+                        />
                         <div className="md:col-span-2">
                             <ClinicalAccessTrailCard
                                 trail={history.trail}
