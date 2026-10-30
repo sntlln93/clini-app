@@ -18,7 +18,7 @@ Quedaba por definir dónde se decide la coincidencia, cómo se confirma lo que s
 
 ## Decisión
 
-**La coincidencia la decide la API, al guardar** (`ScreenMedicationForAllergiesAction`, antes de la Action que registra o enmienda):
+**La coincidencia la decide la API, al guardar** (`ScreenMedicationForAllergiesAction`, que las Actions de registrar y enmendar corren antes de su transacción; la enmienda, después de rechazar una medicación anulada o una enmienda sin cambios, para que su error real no quede detrás de un aviso):
 
 - Una alergia coincide cuando su sustancia (la descripción de su última versión) aparece en el medicamento o en la presentación de algún ítem.
 - Las dos se comparan plegadas: sin mayúsculas, sin tildes ni diéresis, con `ñ` como `n` y los espacios repetidos como uno (`App\Support\FoldedText`, el mismo mapa que la búsqueda CIE-10).
@@ -32,13 +32,15 @@ Quedaba por definir dónde se decide la coincidencia, cómo se confirma lo que s
 - tiene que ser propia o estar abierta con el código del paciente (`readableBy`);
 - y no tiene que hacer falta un acceso excepcional (`ClinicalAccess::requiresReason`).
 
-Si el aviso muestra algún detalle, queda una lectura de los antecedentes en el registro de accesos, como en la ficha (ADR 0022). Las demás coincidencias van solo con su id. En ese caso el panel dice «El paciente tiene una alergia registrada que coincide con esta medicación. Pedile el código para verla.», o que abra la historia con un acceso excepcional, si es eso lo que falta.
+**Cada aviso deja su fila** en el registro de accesos (`allergy_warning_shown`, con el turno y sin texto clínico), también cuando todas sus coincidencias están ocultas, y nunca se pliega con otra. Así, probar sustancias sin confirmar no pasa inadvertido: quien lee la historia ve cada aviso en el registro. Esa fila es también la lectura de lo que el aviso mostró (ADR 0022).
 
-**La confirmación es por id:**
+Las coincidencias que no se muestran van solo con el id de la versión que coincidió. En ese caso el panel dice «El paciente tiene una alergia registrada que coincide con esta medicación. Pedile el código para verla.», o que abra la historia con un acceso excepcional, si es eso lo que falta.
 
-- Sin confirmar, la API responde 409 `prescriptions.allergy_warning` con las alergias que muestra, los ids de las que no muestra y si falta un acceso excepcional.
-- «Indicar igual» reenvía la medicación con esos ids en `confirmed_allergy_ids`.
-- Si al guardar coincide una alergia que no está entre los confirmados (porque se registró en el medio o porque cambió la medicación), vuelve a avisar. Así lo guardado es exactamente lo que se mostró.
+**La confirmación es por versión de la alergia, tal como se mostró:**
+
+- Sin confirmar, la API responde 409 `prescriptions.allergy_warning` con las alergias que muestra (con su `version_id`), los ids de versión de las que no muestra y si falta un acceso excepcional.
+- «Indicar igual» reenvía la medicación con `confirmed_allergies`: cada versión y si se mostró su detalle.
+- Si al guardar coincide algo que no se confirmó así, vuelve a avisar. Pasa con una alergia registrada en el medio, con otra medicación, con una alergia enmendada (es otra versión) o con una que antes estaba oculta y ahora se puede mostrar (se canjeó el código o se abrió la ventana). Así lo guardado es exactamente lo que se mostró.
 - El panel descarta el aviso si el profesional cambia los ítems, para que «Indicar igual» nunca confirme otra cosa.
 
 **Lo confirmado se guarda por versión** (`prescription_allergy_warnings`), de solo agregado como la historia (ADR 0019). Lleva una fila por alergia con:
@@ -59,8 +61,9 @@ La fila de la confirmación se suma a la de `prescription_issued` o `prescriptio
 ## Alternativas descartadas
 
 - **Comparar en el panel.** Duplicaría la regla en TypeScript y no podría avisar de lo que el profesional no lee.
-- **Un endpoint que pregunte si una medicación coincide, antes de guardar.** Sería un oráculo: probando sustancias, cualquier profesional del turno averiguaría las alergias ocultas sin guardar nada. Al guardar, en cambio, la consulta es la indicación real y la confirmación queda registrada.
-- **Confirmar con un booleano.** No garantiza que lo guardado sea lo que se mostró: una alergia registrada entre el aviso y la confirmación quedaría confirmada sin haberse visto.
+- **Un endpoint que pregunte si una medicación coincide, antes de guardar.** Sería el mismo aviso con otra puerta, y una más que vigilar. Al guardar, la consulta es la indicación real, y cada aviso, confirmado o no, queda en el registro de accesos.
+- **Registrar solo los avisos que muestran detalle, como una lectura de los antecedentes.** Un aviso con todas sus coincidencias ocultas no dejaría rastro, y probar sustancias averiguaría alergias de otros profesionales sin que nadie lo viera.
+- **Confirmar con un booleano, o por id de la alergia.** No garantiza que lo guardado sea lo que se mostró: una alergia registrada, enmendada o vuelta visible entre el aviso y la confirmación quedaría confirmada sin haberse visto así.
 - **Ocultar del todo las alergias de otro profesional sin código.** Es lo que pedía la letra del ADR 0029. El triage eligió avisar sin detalle, porque una indicación con una alergia conocida puede dañar al paciente. El aviso revela solo que existe una coincidencia con lo que se está indicando. Pasa al guardar y en un turno propio, y se puede volver más estricto sin migrar datos.
 - **Guardar lo confirmado en la medicación y no en la versión.** Una enmienda cambia los ítems, y con ellos lo que coincide, como los diagnósticos de una nota (ADR 0020).
 - **Una columna JSON en el registro de accesos.** El registro apunta a un registro por columna. Una tabla propia guarda varias alergias con claves foráneas y sin texto clínico.
@@ -70,4 +73,5 @@ La fila de la confirmación se suma a la de `prescription_issued` o `prescriptio
 
 - Las familias de medicamentos (penicilina frente a amoxicilina) y las interacciones necesitan el catálogo de #314. Con texto libre, «Penicilina» sí coincide con «Bencilpenicilina», pero no con «Amoxicilina».
 - Abrir el formulario de medicación lee las alergias del paciente, así que deja una lectura de los antecedentes en el registro de accesos.
+- No hay un límite de avisos sin confirmar por profesional: cada uno queda en el registro de accesos, y un límite se puede sumar sin migrar datos.
 - Un registro clínico nuevo con texto que deba compararse sin tildes usa `FoldedText`.

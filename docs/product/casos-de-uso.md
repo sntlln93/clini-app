@@ -621,8 +621,8 @@ Convenciones:
     para recibir un 403.
   - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
     o exportó y cuándo, sin el texto de los motivos. Incluye lo que otros profesionales hicieron
-    con la medicación que indicaron (#359), cada «Indicar igual» ante un aviso de alergia
-    (CU-53) y la emisión, el envío, el reenvío y el canje del código del paciente (CU-56). La
+    con la medicación que indicaron (#359), cada aviso de alergia al indicar medicación y cada
+    «Indicar igual» (CU-53), y la emisión, el envío, el reenvío y el canje del código del paciente (CU-56). La
     exportación lleva lo mismo.
 
 ### CU-56 · Código del paciente para su historia clínica *(issue #364)*
