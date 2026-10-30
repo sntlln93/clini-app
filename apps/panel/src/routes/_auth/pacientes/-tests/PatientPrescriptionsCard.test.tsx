@@ -155,6 +155,8 @@ describe('PatientPrescriptionsCard', () => {
                         presentation: 'Comprimidos 400 mg',
                         dosage: 'Si hay dolor',
                         quantity: 1,
+                        gtin: null,
+                        substances: null,
                     },
                 ],
             }),

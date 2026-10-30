@@ -175,6 +175,7 @@ describe('allergy warning when indicating medication', () => {
                         presentation: null,
                         dosage: '1 cada 8 h',
                         quantity: 1,
+                        gtin: null,
                     },
                 ],
                 confirmed_allergies: [{ version_id: 30, detail_shown: true }],

@@ -67,6 +67,8 @@ export type ClinicalRecordPrescriptionVersion = {
         presentation: string | null;
         dosage: string;
         quantity: number;
+        gtin: string | null;
+        substances: string[] | null;
     }[];
     allergy_warning_overridden: boolean;
 };

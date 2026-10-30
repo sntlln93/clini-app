@@ -5,6 +5,10 @@ export type PrescriptionItem = {
     presentation: string | null;
     dosage: string;
     quantity: number;
+    // Picked from the medication catalog (#377): its GTIN and the substances
+    // of its active ingredients as they were then; null for free text.
+    gtin: string | null;
+    substances: string[] | null;
 };
 
 // One item list of a record: version 1 is what was recorded first, and each
@@ -54,6 +58,8 @@ export type PrescriptionItemPayload = {
     presentation: string | null;
     dosage: string;
     quantity: number;
+    // The server copies the substances from the catalog, never from here.
+    gtin: string | null;
 };
 
 export type PrescriptionPayload = {

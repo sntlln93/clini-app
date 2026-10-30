@@ -32,6 +32,9 @@ const itemSchema = z.object({
             (value) => Number(value) >= 1 && Number(value) <= 999,
             'La cantidad debe estar entre 1 y 999.',
         ),
+    // The catalog product it was picked from (#377), '' for free text: typing
+    // in «Medicamento» drops it.
+    gtin: z.string(),
 });
 
 // `reason` only goes out with an amendment (#323); recording one ignores it.
@@ -55,6 +58,7 @@ export const EMPTY_ITEM: PrescriptionItemFormValues = {
     presentation: '',
     dosage: '',
     quantity: '1',
+    gtin: '',
 };
 
 export const EMPTY_PRESCRIPTION: PrescriptionFormValues = {
@@ -72,6 +76,7 @@ export function toFormValues(
             presentation: item.presentation ?? '',
             dosage: item.dosage,
             quantity: String(item.quantity),
+            gtin: item.gtin ?? '',
         })),
     };
 }
@@ -86,6 +91,7 @@ export function toPayload(
             presentation: item.presentation.trim() || null,
             dosage: item.dosage.trim(),
             quantity: Number(item.quantity),
+            gtin: item.gtin || null,
         })),
     };
 }
