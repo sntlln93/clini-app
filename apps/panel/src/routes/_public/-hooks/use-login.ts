@@ -1,9 +1,8 @@
 import { api, refreshCsrfCookie } from '@/lib/api';
 import { extractFormErrors } from '@/lib/form-errors';
-import { safeInternalPath } from '@/lib/safe-internal-path';
-import { sessionQueryOptions, type SessionUser } from '@/lib/session';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
+import { type SessionUser } from '@/lib/session';
+import { useMutation } from '@tanstack/react-query';
+import { useFinishLogin } from './use-finish-login';
 
 type LoginPayload = {
     email: string;
@@ -11,8 +10,7 @@ type LoginPayload = {
 };
 
 export function useLogin(redirectTo?: string) {
-    const queryClient = useQueryClient();
-    const navigate = useNavigate();
+    const finishLogin = useFinishLogin(redirectTo);
 
     const mutation = useMutation({
         mutationFn: (payload: LoginPayload) =>
@@ -21,19 +19,7 @@ export function useLogin(redirectTo?: string) {
                     .post<SessionUser>('/login', payload)
                     .then((response) => response.data),
             ),
-        onSuccess: (user) => {
-            // Drops whatever a previous session left cached, so the redirect
-            // target's loaders can't serve another account's data.
-            queryClient.clear();
-            queryClient.setQueryData(sessionQueryOptions.queryKey, user);
-            // Re-checked here too, so no caller can turn this into an open redirect.
-            const target = safeInternalPath(redirectTo);
-            if (target) {
-                navigate({ href: target });
-            } else {
-                navigate({ to: '/agenda' });
-            }
-        },
+        onSuccess: finishLogin,
     });
 
     const { message, errors } = mutation.error
