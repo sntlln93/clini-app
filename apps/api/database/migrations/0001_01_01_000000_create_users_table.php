@@ -23,6 +23,14 @@ return new class extends Migration
             $table->string('block_reason', 500)->nullable();
             $table->string('password');
             $table->rememberToken();
+            // Optional TOTP second factor (#357). The secret and the recovery
+            // codes are stored encrypted (model casts); the factor is on only
+            // once `two_factor_confirmed_at` is set, and the last accepted
+            // time step keeps a code from being replayed inside its window.
+            $table->text('two_factor_secret')->nullable();
+            $table->text('two_factor_recovery_codes')->nullable();
+            $table->dateTimeTz('two_factor_confirmed_at')->nullable();
+            $table->unsignedBigInteger('two_factor_last_used_step')->nullable();
             $table->string('email_verification_token')->nullable()->unique();
             $table->dateTimeTz('email_verification_token_expires_at')->nullable();
             $table->timestampsTz();

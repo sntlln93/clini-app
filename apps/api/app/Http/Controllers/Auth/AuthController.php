@@ -14,6 +14,7 @@ use App\Http\Requests\Auth\LoginRequest;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Resources\Auth\SessionUserResource;
 use App\Models\User;
+use App\Support\PendingTwoFactorLogin;
 use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,16 +27,35 @@ class AuthController extends Controller
         /** @var SessionGuard $guard */
         $guard = Auth::guard('web');
 
+        // A new attempt drops whatever second step an earlier one left open.
+        PendingTwoFactorLogin::clear($request);
+
+        $twoFactorUser = null;
+
         // The callback only runs once the password matched, so a wrong
         // password on a blocked account still gets the plain 422 and never
-        // discloses the account state.
-        $authenticated = $guard->attemptWhen($request->validated(), function (User $user): bool {
+        // discloses the account state, nor whether it uses a second factor.
+        $authenticated = $guard->attemptWhen($request->validated(), function (User $user) use (&$twoFactorUser): bool {
             if ($user->blocked_at !== null) {
                 throw new UserBlockedException($user->id);
             }
 
+            if ($user->hasTwoFactorEnabled()) {
+                $twoFactorUser = $user;
+
+                return false;
+            }
+
             return true;
         });
+
+        // The password matched but the session stays unauthenticated until
+        // the code arrives (`TwoFactorChallengeController`, #357).
+        if ($twoFactorUser instanceof User) {
+            PendingTwoFactorLogin::start($request, $twoFactorUser);
+
+            return response()->json(['two_factor' => true]);
+        }
 
         if (! $authenticated) {
             return response()->json(['message' => 'Invalid credentials.'], 422);

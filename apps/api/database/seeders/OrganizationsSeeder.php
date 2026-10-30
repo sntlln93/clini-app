@@ -48,6 +48,21 @@ class OrganizationsSeeder extends Seeder
     private const string SEEDED_PASSWORD = 'password';
 
     /**
+     * The seeded two-factor user (#357) and its literal TOTP secret and
+     * recovery codes, so the e2e suite can compute a code. Never in
+     * production: the demo server seeds a production image, and a known
+     * second factor there would only be a second known password.
+     */
+    public const string TWO_FACTOR_EMAIL = 'julian.staff@test.com';
+
+    public const string TWO_FACTOR_SECRET = 'KRUG2ZLTMVRXEZLUKRUG2ZLTMVRXEZLU';
+
+    /**
+     * @var list<string>
+     */
+    public const array TWO_FACTOR_RECOVERY_CODES = ['julia-nrcv1', 'julia-nrcv2'];
+
+    /**
      * First names for the volume membership block, combined by index with
      * VOLUME_LAST_NAMES. Only seeded into ORGANIZATION_A_SLUG, so
      * GET /api/v1/memberships has a second page to exercise.
@@ -110,7 +125,9 @@ class OrganizationsSeeder extends Seeder
         $this->seedMembership($organizationB, $this->firstOrCreateUser('gabriela.duena@test.com', 'Gabriela Dueña'), [MembershipRole::Owner], MembershipStatus::Active);
         $this->seedMembership($organizationB, $this->firstOrCreateUser('hernan.admin@test.com', 'Hernán Admin'), [MembershipRole::Admin], MembershipStatus::Suspended);
         $this->seedMembership($organizationB, $sharedProfessional, [MembershipRole::Professional], MembershipStatus::Active);
-        $this->seedMembership($organizationB, $this->firstOrCreateUser('julian.staff@test.com', 'Julián Staff'), [MembershipRole::Staff], MembershipStatus::Active);
+        $twoFactorUser = $this->firstOrCreateUser(self::TWO_FACTOR_EMAIL, 'Julián Staff');
+        $this->seedMembership($organizationB, $twoFactorUser, [MembershipRole::Staff], MembershipStatus::Active);
+        $this->seedTwoFactor($twoFactorUser);
 
         $this->seedVolumeMemberships($organizationA);
     }
@@ -144,6 +161,20 @@ class OrganizationsSeeder extends Seeder
             ['addressable_type' => Organization::class, 'addressable_id' => $organization->id],
             ['street' => $street, 'city_id' => $city->id, 'postal_code' => $postalCode, 'country' => 'Argentina'],
         );
+    }
+
+    private function seedTwoFactor(User $user): void
+    {
+        if (app()->isProduction()) {
+            return;
+        }
+
+        $user->forceFill([
+            'two_factor_secret' => self::TWO_FACTOR_SECRET,
+            'two_factor_recovery_codes' => self::TWO_FACTOR_RECOVERY_CODES,
+            'two_factor_confirmed_at' => $user->two_factor_confirmed_at ?? now(),
+            'two_factor_last_used_step' => null,
+        ])->save();
     }
 
     private function firstOrCreateUser(string $email, string $name): User

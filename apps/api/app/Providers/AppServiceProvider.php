@@ -6,10 +6,13 @@ namespace App\Providers;
 
 use App\Contracts\HolidayProvider;
 use App\Contracts\SubscriptionGateway;
+use App\Contracts\TwoFactorAuthenticator;
 use App\Models\User;
+use App\Services\Auth\Google2FaService;
 use App\Services\Holidays\CalendariosNacionalesService;
 use App\Services\Payments\MercadoPagoService;
 use App\Support\CurrentOrganization;
+use App\Support\PendingTwoFactorLogin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Config;
@@ -26,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
     public array $bindings = [
         HolidayProvider::class => CalendariosNacionalesService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
+        TwoFactorAuthenticator::class => Google2FaService::class,
     ];
 
     public function register(): void
@@ -57,6 +61,26 @@ class AppServiceProvider extends ServiceProvider
 
             return Limit::perMinute(5)
                 ->by((is_string($email) ? Str::lower(trim($email)) : '').'|'.$request->ip());
+        });
+
+        // The login's second step (`throttle:two-factor-challenge`, #357):
+        // keyed by the account whose password already matched, so guessing
+        // its 6-digit code is held to 5 tries a minute from any number of
+        // IPs or sessions. Without a pending login it keys by IP and the
+        // request ends in a 409 anyway.
+        RateLimiter::for('two-factor-challenge', function (Request $request): Limit {
+            $userId = PendingTwoFactorLogin::userId($request);
+
+            return Limit::perMinute(5)->by($userId !== null ? 'user:'.$userId : 'ip:'.$request->ip());
+        });
+
+        // The two-factor settings (`throttle:two-factor`, #357): each of
+        // their requests checks the password or a code, so they share one
+        // bucket per signed-in user.
+        RateLimiter::for('two-factor', function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinute(10)->by($user instanceof User ? 'user:'.$user->id : 'ip:'.$request->ip());
         });
 
         // The landing's contact form (`throttle:contact`, #248): 5 per minute

@@ -35,6 +35,7 @@ class SessionUserResource extends JsonResource
         $membership = $this->latestActiveMembership();
 
         return array_merge($this->user()->toArray(), [
+            'two_factor_enabled' => $this->user()->hasTwoFactorEnabled(),
             'organization' => $membership?->organization,
             'roles' => $membership !== null ? $membership->roles : [],
             'permissions' => $membership !== null

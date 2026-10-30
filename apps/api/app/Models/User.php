@@ -20,10 +20,11 @@ use Illuminate\Notifications\Notifiable;
 /**
  * `blocked_at`/`block_reason` are written only by the platform-operator
  * Actions (forceFill), never mass-assigned, and hidden to keep the clinic
- * `/me` payload unchanged.
+ * `/me` payload unchanged. The `two_factor_*` columns (#357) are written
+ * only by the two-factor Actions, the same way, and never leave the API.
  */
 #[Fillable(['name', 'email', 'password', 'email_verification_token', 'email_verification_token_expires_at'])]
-#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason'])]
+#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -43,7 +44,20 @@ class User extends Authenticatable
             'password' => 'hashed',
             'email_verification_token_expires_at' => 'datetime',
             'blocked_at' => 'immutable_datetime',
+            'two_factor_secret' => 'encrypted',
+            'two_factor_recovery_codes' => 'encrypted:array',
+            'two_factor_confirmed_at' => 'immutable_datetime',
+            'two_factor_last_used_step' => 'integer',
         ];
+    }
+
+    /**
+     * A secret alone is a setup still waiting for its first code; the
+     * factor only guards the login once that code confirmed it.
+     */
+    public function hasTwoFactorEnabled(): bool
+    {
+        return $this->two_factor_secret !== null && $this->two_factor_confirmed_at !== null;
     }
 
     public function isBlocked(): bool
