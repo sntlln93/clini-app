@@ -68,6 +68,7 @@ export type ClinicalRecordPrescriptionVersion = {
         dosage: string;
         quantity: number;
     }[];
+    allergy_warning_overridden: boolean;
 };
 
 export type ClinicalRecordPrescription = {

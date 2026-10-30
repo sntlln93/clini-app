@@ -45,6 +45,7 @@ function useRefreshPrescriptions(appointmentId: number | null) {
 
 // Records one when `prescriptionId` is null, amends it otherwise: a record is
 // never edited (#323), an amendment adds a version and keeps the earlier ones.
+// `confirmedAllergyIds` is «Indicar igual» after an allergy warning (#362).
 export function useSavePrescription(appointmentId: number | null) {
     const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
 
@@ -52,18 +53,28 @@ export function useSavePrescription(appointmentId: number | null) {
         mutationFn: ({
             prescriptionId,
             payload: { items, reason },
+            confirmedAllergyIds = [],
         }: {
             prescriptionId: number | null;
             payload: PrescriptionAmendmentPayload;
-        }): Promise<unknown> =>
-            prescriptionId === null
+            confirmedAllergyIds?: number[];
+        }): Promise<unknown> => {
+            const confirmation =
+                confirmedAllergyIds.length > 0
+                    ? { confirmed_allergy_ids: confirmedAllergyIds }
+                    : {};
+
+            return prescriptionId === null
                 ? api.post(`/appointments/${appointmentId}/prescriptions`, {
                       items,
+                      ...confirmation,
                   })
                 : api.post(`/prescriptions/${prescriptionId}/amendments`, {
                       items,
                       reason,
-                  }),
+                      ...confirmation,
+                  });
+        },
         onSuccess: refreshPrescriptions,
     });
 }

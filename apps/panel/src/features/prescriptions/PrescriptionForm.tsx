@@ -6,20 +6,19 @@ import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { AmendmentReasonField } from '@/features/clinical-history/AmendmentReasonField';
-import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     EMPTY_ITEM,
     EMPTY_PRESCRIPTION,
-    isPrescriptionFieldKey,
     PRESCRIPTION_MAX_ITEMS,
     prescriptionSchema,
     toFormValues,
-    toPayload,
     type PrescriptionFormValues,
 } from '@/lib/prescription-schema';
 import type { Prescription } from '@/types/prescription';
+import { AllergyWarningAlert } from './AllergyWarningAlert';
+import { CurrentAllergies } from './CurrentAllergies';
 import { PrescriptionItemFields } from './PrescriptionItemFields';
-import { useSavePrescription } from './use-prescriptions';
+import { usePrescriptionSubmit } from './use-prescription-submit';
 
 type PrescriptionFormProps = {
     appointmentId: number | null;
@@ -31,6 +30,8 @@ type PrescriptionFormProps = {
 
 // Form for one indicated-medication record: records one when `amending` is
 // null, amends it otherwise (#323) — the reason only goes out with an amendment.
+// The patient's current allergies come first, and medication that matches one
+// is saved only once the warning is confirmed (#362).
 export function PrescriptionForm({
     appointmentId,
     open,
@@ -38,7 +39,6 @@ export function PrescriptionForm({
     onCancelAmendment,
     onSaved,
 }: PrescriptionFormProps) {
-    const save = useSavePrescription(appointmentId);
     const form = useForm<PrescriptionFormValues>({
         resolver: zodResolver(prescriptionSchema),
         defaultValues: EMPTY_PRESCRIPTION,
@@ -52,30 +52,19 @@ export function PrescriptionForm({
         }
     }, [open, amending, form]);
 
-    async function onSubmit(values: PrescriptionFormValues) {
-        try {
-            await save.mutateAsync({
-                prescriptionId: amending?.id ?? null,
-                payload: toPayload(values),
-            });
-            form.reset(EMPTY_PRESCRIPTION);
-            onSaved();
-        } catch (error) {
-            const formErrors = extractFormErrors(error);
-            const fieldMap = Object.fromEntries(
-                Object.keys(formErrors.errors)
-                    .filter(isPrescriptionFieldKey)
-                    .map((key) => [key, key]),
-            );
-            applyFormErrors(form, formErrors, fieldMap);
-        }
-    }
+    const submit = usePrescriptionSubmit({
+        form,
+        appointmentId,
+        amending,
+        onSaved,
+    });
 
     const itemsError = form.formState.errors.items?.root?.message;
 
     return (
         <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+            <form onSubmit={submit.onSubmit} className="space-y-3">
+                <CurrentAllergies appointmentId={appointmentId} />
                 {form.formState.errors.root && (
                     <p className="text-sm text-destructive">
                         {form.formState.errors.root.message}
@@ -109,6 +98,14 @@ export function PrescriptionForm({
                         Agregar medicamento
                     </Button>
                 )}
+                {submit.warning && (
+                    <AllergyWarningAlert
+                        warning={submit.warning}
+                        isPending={submit.isPending}
+                        onConfirm={submit.onConfirm}
+                        onDismiss={submit.onDismiss}
+                    />
+                )}
                 <DialogFooter>
                     {amending && (
                         <Button
@@ -121,7 +118,9 @@ export function PrescriptionForm({
                     )}
                     <Button
                         type="submit"
-                        disabled={save.isPending || form.formState.isSubmitting}
+                        disabled={
+                            submit.isPending || form.formState.isSubmitting
+                        }
                     >
                         {amending ? 'Guardar enmienda' : 'Registrar medicación'}
                     </Button>

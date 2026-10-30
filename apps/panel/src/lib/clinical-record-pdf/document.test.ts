@@ -157,6 +157,33 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).not.toContain('Alergias');
     });
 
+    it('says which medication was indicated despite an allergy warning, and the trail its confirmation (#362)', () => {
+        const record = buildClinicalRecord();
+        const [warned] = record.appointments.flatMap(
+            (appointment) => appointment.prescriptions,
+        );
+        warned.versions[0].allergy_warning_overridden = true;
+        record.access_log = [
+            {
+                ...record.access_log[0],
+                id: 999,
+                action: 'allergy_warning_overridden',
+                reason: null,
+                export: null,
+            },
+        ];
+
+        const text = textOf(
+            buildClinicalRecordDocument(record, {
+                brandName: 'Clini',
+                logoSvg: LOGO,
+            }).content,
+        );
+
+        expect(text).toContain('Indicada pese a un aviso de alergia.');
+        expect(text).toContain('Indicó medicación pese a un aviso de alergia');
+    });
+
     it('closes with the access trail, as the patient page words it', () => {
         const text = textOf(render().content);
 

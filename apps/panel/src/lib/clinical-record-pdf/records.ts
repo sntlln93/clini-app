@@ -121,6 +121,14 @@ export function prescriptionBlock(
                                 `${item.medication}${item.presentation ? `, ${item.presentation}` : ''} · ${item.dosage} · Cantidad: ${item.quantity}`,
                         ),
                     },
+                    ...(version.allergy_warning_overridden
+                        ? [
+                              {
+                                  text: 'Indicada pese a un aviso de alergia.',
+                                  style: 'muted',
+                              },
+                          ]
+                        : []),
                 ],
             })),
         ],

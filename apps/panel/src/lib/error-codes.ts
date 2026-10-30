@@ -52,6 +52,7 @@ export type ErrorCode =
     | 'clinical_notes.diagnosis_retired'
     | 'prescriptions.annulled'
     | 'prescriptions.amendment_unchanged'
+    | 'prescriptions.allergy_warning'
     | 'vital_signs.annulled'
     | 'vital_signs.amendment_unchanged'
     | 'medical_history.withdrawn'
@@ -164,6 +165,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'La medicación está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'prescriptions.amendment_unchanged':
         'La enmienda no cambia la medicación registrada. Corregí algún medicamento o cancelá la enmienda.',
+    'prescriptions.allergy_warning':
+        'El paciente tiene una alergia vigente que coincide con esta medicación. Revisala o indicala igual.',
     'vital_signs.annulled':
         'La medición está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
     'vital_signs.amendment_unchanged':

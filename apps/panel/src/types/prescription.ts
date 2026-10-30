@@ -14,6 +14,9 @@ export type PrescriptionVersion = {
     reason: string | null;
     created_at: string;
     items: PrescriptionItem[];
+    // Its professional indicated it despite an allergy warning (#362); never
+    // which allergy, which the reader may not read.
+    allergy_warning_overridden: boolean;
 };
 
 // It no longer counts (#344), and the reason says why.
@@ -36,6 +39,8 @@ export type Prescription = {
     version: number;
     amended_at: string | null;
     items: PrescriptionItem[];
+    // The current version's, as `items`.
+    allergy_warning_overridden: boolean;
     annulment: PrescriptionAnnulment | null;
     versions: PrescriptionVersion[];
     // Only on the patient listing, which holds every author's the reader may
