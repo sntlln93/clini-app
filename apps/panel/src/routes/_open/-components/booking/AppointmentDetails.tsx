@@ -1,6 +1,7 @@
 import { Separator } from '@/components/ui/separator';
 import type { AppointmentDetailsResponse } from '@/types/booking';
 
+import { AccessCode } from './AccessCode';
 import { BookingCalendarLinks } from './BookingCalendarLinks';
 import { BookingDetailRow } from './BookingDetailRow';
 import { formatAppointmentDateTime } from './booking-format';
@@ -13,6 +14,7 @@ import { formatAppointmentDateTime } from './booking-format';
 export function AppointmentDetails({
     organization,
     appointment,
+    access_code,
 }: AppointmentDetailsResponse) {
     return (
         <div className="space-y-4">
@@ -47,6 +49,8 @@ export function AppointmentDetails({
             </dl>
 
             <BookingCalendarLinks confirmation={appointment} />
+
+            {access_code && <AccessCode code={access_code} />}
 
             <p className="text-sm text-muted-foreground">
                 Si necesitás cancelar o reprogramar el turno, comunicate con{' '}

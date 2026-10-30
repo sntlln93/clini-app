@@ -59,6 +59,9 @@ export type ErrorCode =
     | 'medical_history.blood_type_unchanged'
     | 'clinical_access.reason_required'
     | 'clinical_access.reason_not_required'
+    | 'clinical_access.code_invalid'
+    | 'clinical_access.code_unavailable'
+    | 'clinical_access.contact_unavailable'
     | 'auth.two_factor_already_enabled'
     | 'auth.two_factor_not_enabled'
     | 'auth.two_factor_setup_missing'
@@ -181,6 +184,12 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Abrir esta historia clínica sin un turno cercano requiere indicar un motivo.',
     'clinical_access.reason_not_required':
         'La historia clínica ya está abierta sin indicar un motivo.',
+    'clinical_access.code_invalid':
+        'El código de acceso del paciente no es válido.',
+    'clinical_access.code_unavailable':
+        'El turno ya no tiene código de acceso.',
+    'clinical_access.contact_unavailable':
+        'Ese email no puede recibir el código de acceso.',
     'auth.two_factor_already_enabled':
         'La verificación en dos pasos ya está activada.',
     'auth.two_factor_not_enabled':

@@ -18,6 +18,7 @@ use App\Models\MedicalHistoryEntry;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\PatientAccessCode;
 use App\Models\Prescription;
 use App\Models\Subscription;
 use App\Models\VitalSign;
@@ -86,9 +87,11 @@ function sharedPatientHistory(): array
     ClinicalNote::factory()->withBody('Nota de otro consultorio.')->create(['appointment_id' => $outside->id]);
     Prescription::factory()->create(['appointment_id' => $outside->id]);
 
-    // Every appointment is weeks before today, so the history opens as an exceptional access would (#325).
+    // Every appointment is weeks before today, so the history opens as an exceptional access would (#325), and the
+    // colleague's records with the code the patient shared (#364).
     openClinicalHistory($exporter, $patient->id);
     openClinicalHistory($outsider, $patient->id);
+    shareAccessCode($exporter, $patient->id, $own);
 
     return ['exporter' => $exporter, 'colleague' => $colleague, 'patient' => $patient, 'organization' => $organization];
 }
@@ -129,17 +132,38 @@ test('the attending professional exports the patient history as JSON with every 
         ->and(collect($own['prescriptions'][0]['versions'])->pluck('version')->all())->toBe([1, 2])
         ->and($own['prescriptions'][0]['versions'][1]['items'][0]['medication'])->toBe('Ibuprofeno');
 
-    // The colleague's notes and medication are part of the history the exporter already reads (#359).
+    // The colleague's notes and medication are part of the history the exporter reads with the patient's code (#364).
     expect($theirs['clinical_notes'][0]['versions'][0]['body'])->toBe('Nota del colega.')
         ->and($theirs['clinical_notes'][0]['annulment']['reason'])->toBe('Paciente equivocado.')
         ->and($theirs['clinical_notes'][0]['annulment']['author']['name'])->toBe($colleague->user->name)
         ->and($theirs['prescriptions'])->toHaveCount(1)
         ->and($theirs['prescriptions'][0]['author']['name'])->toBe('Dr. Colega')
-        ->and($record['export']['notice'])->toContain('la medicación indicada, las mediciones y los antecedentes de todos sus profesionales');
+        ->and($record['export']['notice'])->toContain('los suyos y los de otros profesionales que el paciente le abrió con su código');
 
     expect($response->getContent())->not->toContain('Otro Consultorio')
         ->not->toContain('Nota de otro consultorio.')
         ->not->toContain('Dr. De Afuera');
+});
+
+test('without the patient\'s code the export holds only the exporter\'s own records, as the history they read', function () {
+    ['exporter' => $exporter, 'patient' => $patient] = sharedPatientHistory();
+    PatientAccessCode::query()->withoutGlobalScope('organization')->delete();
+    [$own, $theirs] = Appointment::query()->where('organization_id', $exporter->organization_id)->where('patient_id', $patient->id)->orderBy('start_at')->get()->all();
+    BloodTypeRecord::factory()->create(['appointment_id' => $theirs->id]);
+    MedicalHistoryEntry::factory()->create(['appointment_id' => $theirs->id]);
+    VitalSign::factory()->create(['appointment_id' => $theirs->id]);
+
+    $response = $this->actingAs($exporter->user)->getJson("/api/v1/patients/{$patient->id}/clinical-record?format=json")->assertOk();
+
+    [$ownAppointment, $theirAppointment] = $response->json('appointments');
+    expect($ownAppointment['clinical_notes'])->toHaveCount(1)
+        ->and($ownAppointment['prescriptions'])->toHaveCount(1)
+        ->and($theirAppointment['clinical_notes'])->toBe([])
+        ->and($theirAppointment['prescriptions'])->toBe([])
+        ->and($theirAppointment['vital_signs'])->toBe([])
+        ->and($response->json('blood_types'))->toBe([])
+        ->and($response->json('medical_history'))->toBe([]);
+    expect($response->getContent())->not->toContain('Nota del colega.');
 });
 
 test('the export carries every measurement under its appointment and the background of every author, from this practice only', function () {

@@ -70,7 +70,8 @@ export type MedicalHistoryEntry = MedicalHistoryContent & {
     author_name: string | null;
 };
 
-// `GET /patients/{id}/medical-history`: newest first, every author's.
+// `GET /patients/{id}/medical-history`: newest first, every author's the
+// reader may read (another's only with the patient's code, #364).
 export type MedicalHistory = {
     blood_types: BloodTypeRecord[];
     entries: MedicalHistoryEntry[];

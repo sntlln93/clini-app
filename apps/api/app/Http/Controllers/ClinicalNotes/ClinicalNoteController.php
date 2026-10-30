@@ -76,6 +76,7 @@ class ClinicalNoteController extends Controller
 
         $notes = ClinicalNote::query()
             ->forPatient($patient->id)
+            ->readableBy($membership->id)
             ->with(['author.user', 'appointment', ...self::RELATIONS])
             ->orderBy('created_at', 'desc')
             ->get();

@@ -63,6 +63,7 @@ class PatientResource extends JsonResource
         if ($this->clinicalAccess !== null) {
             $data['can_view_clinical_notes'] = $this->clinicalAccess->canView;
             $data['clinical_access_reason_required'] = $this->clinicalAccess->reasonRequired;
+            $data['clinical_records_hidden'] = $this->clinicalAccess->recordsHidden;
         }
 
         return $data;

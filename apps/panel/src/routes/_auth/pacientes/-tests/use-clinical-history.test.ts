@@ -86,6 +86,7 @@ function buildPatient(overrides: Partial<PatientDetail> = {}): PatientDetail {
         created_at: '2026-10-01T12:00:00Z',
         can_view_clinical_notes: true,
         clinical_access_reason_required: false,
+        clinical_records_hidden: false,
         ...overrides,
     };
 }

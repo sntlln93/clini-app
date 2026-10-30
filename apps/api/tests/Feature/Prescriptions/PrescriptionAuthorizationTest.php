@@ -51,7 +51,7 @@ test('a membership that is not the booked professional gets 403 on every endpoin
 
 // #359: the medication is part of the clinical history, read as the notes are; reading it never lets anyone else
 // amend or annul it.
-test('another professional who attended the patient sees the author\'s prescriptions in the patient listing, but cannot amend or annul them', function () {
+test('another professional who attended the patient sees the author\'s prescriptions in the patient listing only with the patient\'s code, and cannot amend or annul them', function () {
     $organization = Organization::factory()->center()->create();
     $viewer = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
     $author = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
@@ -68,6 +68,12 @@ test('another professional who attended the patient sees the author\'s prescript
         'start_at' => now()->subDay(),
         'end_at' => now()->subDay()->addMinutes(30),
     ]);
+
+    $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$appointment->patient_id}/prescriptions")
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    shareAccessCode($viewer, $appointment->patient_id);
 
     $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$appointment->patient_id}/prescriptions")
         ->assertOk()

@@ -77,4 +77,6 @@ export type BookingConfirmation = {
 export type AppointmentDetailsResponse = {
     organization: BookingOrganization;
     appointment: BookingConfirmation;
+    /** The code the patient shares so whoever attends them reads their earlier records (#364); null without one, or once used. */
+    access_code: string | null;
 };

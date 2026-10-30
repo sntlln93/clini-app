@@ -26,6 +26,7 @@ use App\Models\MedicalHistoryEntryWithdrawal;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
+use App\Models\PatientAccessCode;
 use App\Models\Prescription;
 use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
@@ -83,6 +84,8 @@ class SchedulingSeeder extends Seeder
     private function clearFixtureRows(Organization $organization): void
     {
         Reminder::where('organization_id', $organization->id)->delete();
+        // Not a clinical record: a redemption updates it, so no trigger guards it.
+        PatientAccessCode::where('organization_id', $organization->id)->delete();
         // Clinical records restrict deleting their appointment, so any
         // written since the last seed (by hand or by an e2e run) go first.
         $this->purgeClinicalHistory($organization);

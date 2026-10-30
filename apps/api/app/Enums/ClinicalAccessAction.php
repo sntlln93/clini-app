@@ -37,4 +37,13 @@ enum ClinicalAccessAction: string
      * The patient's history went into an export, alone or with every patient the professional attended.
      */
     case RecordExported = 'record_exported';
+    /**
+     * The code the patient shares so another professional's records open (#364, ADR 0029): issued for an appointment,
+     * mailed to the patient on booking, resent by the practice at the patient's request, and redeemed by the
+     * appointment's professional.
+     */
+    case AccessCodeIssued = 'access_code_issued';
+    case AccessCodeSent = 'access_code_sent';
+    case AccessCodeResent = 'access_code_resent';
+    case AccessCodeRedeemed = 'access_code_redeemed';
 }

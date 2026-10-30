@@ -194,7 +194,7 @@ test('a single record has no read endpoint', function () {
         ->assertNotFound();
 });
 
-test('the patient listing returns every author\'s prescriptions for that patient, and only that patient\'s', function () {
+test('the patient listing returns every author\'s prescriptions for that patient once the patient\'s code is redeemed, and only that patient\'s', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $colleague = Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
     $patient = Patient::factory()->create();
@@ -210,6 +210,12 @@ test('the patient listing returns every author\'s prescriptions for that patient
         'appointment_id' => prescriptionOwnAppointment($membership, ['patient_id' => $otherPatient->id])->id,
     ]);
     openClinicalHistory($membership, $patient->id);
+
+    $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions")
+        ->assertOk()
+        ->assertJsonPath('data.*.id', [$own->id]);
+
+    shareAccessCode($membership, $patient->id);
 
     $response = $this->actingAs($membership->user)->getJson("/api/v1/patients/{$patient->id}/prescriptions");
 

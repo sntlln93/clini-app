@@ -46,6 +46,10 @@ export const CLINICAL_ACCESS_ACTIONS = [
     'medical_history_amended',
     'medical_history_withdrawn',
     'record_exported',
+    'access_code_issued',
+    'access_code_sent',
+    'access_code_resent',
+    'access_code_redeemed',
 ] as const;
 
 export type ClinicalAccessAction = (typeof CLINICAL_ACCESS_ACTIONS)[number];
@@ -75,6 +79,10 @@ export const CLINICAL_ACCESS_ACTION_LABELS: Record<
     medical_history_amended: 'Enmendó un antecedente',
     medical_history_withdrawn: 'Dio de baja un antecedente',
     record_exported: 'Exportó la historia clínica',
+    access_code_issued: 'Se generó el código del paciente',
+    access_code_sent: 'Se envió el código al paciente',
+    access_code_resent: 'Reenvió el código al paciente',
+    access_code_redeemed: 'Ingresó el código del paciente',
 };
 
 // `App\Support\ClinicalAccess::WINDOW_DAYS`: an own appointment this close to

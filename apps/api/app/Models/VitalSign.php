@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Support\Concerns\BelongsToOrganization;
+use App\Support\Concerns\ReadableThroughAccessCode;
 use Database\Factories\VitalSignFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class VitalSign extends Model
 {
     /** @use HasFactory<VitalSignFactory> */
-    use BelongsToOrganization, HasFactory;
+    use BelongsToOrganization, HasFactory, ReadableThroughAccessCode;
 
     public const null UPDATED_AT = null;
 

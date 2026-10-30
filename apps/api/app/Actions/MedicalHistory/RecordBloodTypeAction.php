@@ -18,7 +18,8 @@ use Illuminate\Support\Facades\DB;
 /**
  * Records the patient's blood type, or changes it (#361, ADR 0027): the new record becomes the current value and the
  * earlier ones stay with their authors. Repeating the current value is refused, so the history only holds changes.
- * The patient's row is locked so two changes at once can't both pass that check.
+ * The patient's row is locked so two changes at once can't both pass that check. The current value is the one the
+ * author reads (#364): compared against another professional's, a refusal would tell them a value they can't see.
  *
  * @implements Action<BloodTypeRecordData>
  */
@@ -39,6 +40,7 @@ class RecordBloodTypeAction implements Action
             $current = BloodTypeRecord::query()
                 ->where('organization_id', $dto->organizationId)
                 ->where('patient_id', $dto->patientId)
+                ->readableBy($dto->membershipId)
                 ->latest('created_at')
                 ->latest('id')
                 ->first();
