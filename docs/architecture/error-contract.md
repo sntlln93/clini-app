@@ -96,6 +96,11 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `clinical_notes.diagnosis_retired` | 409 | `WriteClinicalNoteAction`, `AmendClinicalNoteAction` (se agrega un código CIE-10 dado de baja en el catálogo, ADR 0020) | |
 | `prescriptions.annulled` | 409 | `AmendPrescriptionAction`, `AnnulPrescriptionAction` (la medicación ya está anulada, ADR 0025) | |
 | `prescriptions.amendment_unchanged` | 409 | `AmendPrescriptionAction` (la enmienda repite la medicación vigente) | |
+| `vital_signs.annulled` | 409 | `AmendVitalSignAction`, `AnnulVitalSignAction` (la medición ya está anulada, ADR 0027) | |
+| `vital_signs.amendment_unchanged` | 409 | `AmendVitalSignAction` (la enmienda repite los valores vigentes) | |
+| `medical_history.withdrawn` | 409 | `AmendMedicalHistoryEntryAction`, `WithdrawMedicalHistoryEntryAction` (el antecedente ya no está vigente, ADR 0027) | |
+| `medical_history.amendment_unchanged` | 409 | `AmendMedicalHistoryEntryAction` (la enmienda repite el antecedente vigente) | |
+| `medical_history.blood_type_unchanged` | 409 | `RecordBloodTypeAction` (ese ya es el grupo sanguíneo vigente) | |
 | `clinical_access.reason_required` | 409 | `ReadPatientHistoryAction`, `RecordClinicalRecordExportAction` (sin un turno propio cerca de hoy ni un acceso excepcional abierto, ADR 0022) | |
 | `clinical_access.reason_not_required` | 409 | `DeclareExceptionalAccessAction` (hay un turno propio cerca de hoy: la historia ya está abierta, ADR 0022) | |
 
