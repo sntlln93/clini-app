@@ -6,6 +6,7 @@ import { patientQueryOptions } from '@/hooks/use-patient';
 import { titleHead } from '@/lib/page-title';
 import { Link, createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
+import { AccessCodeCard } from './-components/AccessCodeCard';
 import { scrollToClinicalAccessTrail } from './-components/clinical-access-trail';
 import { ClinicalAccessTrailCard } from './-components/ClinicalAccessTrailCard';
 import { ClinicalHistoryAccessCard } from './-components/ClinicalHistoryAccessCard';
@@ -115,6 +116,11 @@ function PacienteDetallePage() {
                 </div>
                 {history.access === 'open' ? (
                     <>
+                        {patient.clinical_records_hidden && (
+                            <div className="md:col-span-2">
+                                <AccessCodeCard patientId={id} />
+                            </div>
+                        )}
                         <PatientClinicalNotesCard
                             patientId={id}
                             notes={history.notes}

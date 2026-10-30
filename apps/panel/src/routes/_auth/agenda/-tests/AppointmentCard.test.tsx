@@ -576,6 +576,46 @@ describe('AppointmentCard', () => {
         ).toBeNull();
     });
 
+    // #364: the reception resends the patient's code for an appointment that still brings a consultation.
+    it("offers whoever manages the appointment to resend the patient's code, never for a cancelled one", async () => {
+        renderCard(
+            buildAppointment({ status: 'scheduled', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+            ['patients.view'],
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(
+            await screen.findByRole('menuitem', {
+                name: 'Reenviar código al paciente',
+            }),
+        ).toBeTruthy();
+    });
+
+    it('does not offer to resend the code for a cancelled appointment', async () => {
+        renderCard(
+            buildAppointment({ status: 'cancelled', membership_id: 1 }),
+            true,
+            'default',
+            false,
+            2,
+            ['patients.view'],
+        );
+
+        fireEvent.click(screen.getByRole('button'));
+
+        await screen.findByRole('menuitem', { name: 'Ver ficha del paciente' });
+        expect(
+            screen.queryByRole('menuitem', {
+                name: 'Reenviar código al paciente',
+            }),
+        ).toBeNull();
+    });
+
     it('keeps a completed appointment clickable for staff with patients.view, offering just the patient record', async () => {
         renderCard(
             buildAppointment({ status: 'completed', membership_id: 1 }),

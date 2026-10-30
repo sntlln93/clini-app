@@ -29,6 +29,7 @@ import {
 } from './AppointmentStatusActions';
 import { CancelAppointmentDialog } from './CancelAppointmentDialog';
 import { RescheduleAppointmentDialog } from './RescheduleAppointmentDialog';
+import { ResendAccessCodeDialog } from './ResendAccessCodeDialog';
 
 type AppointmentCardProps = {
     appointment: Appointment;
@@ -42,7 +43,12 @@ type AppointmentCardProps = {
 };
 
 type CardDialog =
-    'reschedule' | 'cancel' | 'notes' | 'prescriptions' | 'noShow';
+    | 'reschedule'
+    | 'cancel'
+    | 'notes'
+    | 'prescriptions'
+    | 'noShow'
+    | 'accessCode';
 
 export function AppointmentCard({
     appointment,
@@ -61,6 +67,12 @@ export function AppointmentCard({
     const isOwnAppointment =
         session?.membership?.id === appointment.membership_id;
     const canViewPatient = sessionHasPermission(session, 'patients.view');
+    // The patient's code (#364) goes with an appointment that still brings a consultation.
+    const canResendCode =
+        canUpdate &&
+        canViewPatient &&
+        appointment.status !== 'cancelled' &&
+        appointment.status !== 'rescheduled';
     const reportedInsurance = describeReportedInsurance(appointment);
 
     const dialogProps = (dialog: CardDialog) => ({
@@ -144,6 +156,13 @@ export function AppointmentCard({
                             Ver ficha del paciente
                         </DropdownMenuItem>
                     )}
+                    {canResendCode && (
+                        <DropdownMenuItem
+                            onClick={() => setOpenDialog('accessCode')}
+                        >
+                            Reenviar código al paciente
+                        </DropdownMenuItem>
+                    )}
                     {isOwnAppointment && (
                         <DropdownMenuItem
                             onClick={() => setOpenDialog('notes')}
@@ -166,6 +185,9 @@ export function AppointmentCard({
             <CancelAppointmentDialog {...dialogProps('cancel')} />
             <ClinicalNotesDialog {...dialogProps('notes')} />
             <PrescriptionsDialog {...dialogProps('prescriptions')} />
+            {canResendCode && (
+                <ResendAccessCodeDialog {...dialogProps('accessCode')} />
+            )}
         </>
     );
 }

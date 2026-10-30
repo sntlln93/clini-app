@@ -7,7 +7,8 @@ import { queryOptions } from '@tanstack/react-query';
 // Page read (ADR 0007): consumed from the `pacientes/$id` route loader only.
 // Saving one from the agenda drops it (`useSavePrescription`), so the page
 // loads it again on the way back.
-// The API returns every author's prescriptions, as the notes (#359), and only
+// The API returns every author's prescriptions the reader may read, as the
+// notes (#359): another author's only with the patient's code (#364). Only
 // the loader's `loadClinicalHistory` asks, once the history is open.
 export function patientPrescriptionsQueryOptions(patientId: number) {
     return queryOptions({

@@ -38,6 +38,7 @@ const DETAILS: AppointmentDetailsResponse = {
             'Av. Pellegrini 1500, Rosario, Santa Fe, Argentina',
         calendar_uid: '0123456789abcdef0123456789abcdef@clini.test',
     },
+    access_code: null,
 };
 
 // The real `_open` layout and details route, assembled the way `routeTree.gen.ts` does, for an anonymous patient.
@@ -134,6 +135,35 @@ describe('the appointment details page the reminder links to', () => {
             expect(decoded).not.toContain('Ana Gómez');
             expect(decoded).not.toContain('Psicoterapia');
         }
+    });
+
+    // #364: the code the patient shares is theirs to show, never something a calendar provider gets.
+    it('shows the access code when the appointment has one, and keeps it out of the calendar links', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { ...DETAILS, access_code: 'ABCD-2345' },
+        });
+        renderAppointment(`/turno/${TOKEN}`);
+
+        expect(
+            await screen.findByRole('heading', {
+                name: 'Tu código para el turno',
+            }),
+        ).not.toBeNull();
+        expect(screen.getByText('ABCD-2345')).not.toBeNull();
+        const google = screen.getByRole('link', { name: /^Google Calendar/ });
+        expect(
+            decodeURIComponent(google.getAttribute('href') ?? ''),
+        ).not.toContain('ABCD');
+    });
+
+    it('shows no code section without a code', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: DETAILS });
+        renderAppointment(`/turno/${TOKEN}`);
+
+        await screen.findByText('Ana Gómez');
+        expect(
+            screen.queryByRole('heading', { name: 'Tu código para el turno' }),
+        ).toBeNull();
     });
 
     it('tells the patient a stale link shows nothing, without a pointless retry', async () => {
