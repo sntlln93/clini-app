@@ -545,7 +545,7 @@ Convenciones:
     búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
     que cambiarlos es una enmienda y un cambio del catálogo no reescribe la historia.
 
-### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344, #359)*
+### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344, #359, #362)*
 
 - **Actor**: profesional que registra la medicación que indicó durante un turno propio.
 - **Decisión**: registro **interno de la historia clínica**, sin vademécum ni catálogo de
@@ -574,6 +574,11 @@ Convenciones:
   - Se registra, se enmienda y se anula desde el turno en la agenda o desde la ficha del paciente, con
     el mismo diálogo. Desde la ficha, el registro nuevo cuelga del turno propio de hoy, como
     una nota nueva (CU-45), y una enmienda, del turno del registro.
+  - El formulario muestra arriba las **alergias vigentes** del paciente que el profesional lee.
+    Si la sustancia de una alergia vigente aparece en lo que indica (sin mayúsculas ni tildes),
+    un registro o una enmienda se guarda solo después de confirmar el aviso con «Indicar igual»,
+    y la versión guarda qué alergias se le mostraron. Una alergia de otro profesional sin el
+    código del paciente avisa sin decir cuál ([ADR 0030](../adr/0030-aviso-de-alergias-al-indicar-medicacion.md)).
 
 ### CU-54 · Exportación de la historia clínica *(issue #326)*
 
@@ -616,8 +621,9 @@ Convenciones:
     para recibir un 403.
   - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
     o exportó y cuándo, sin el texto de los motivos. Incluye lo que otros profesionales hicieron
-    con la medicación que indicaron (#359) y la emisión, el envío, el reenvío y el canje del
-    código del paciente (CU-56). La exportación lleva lo mismo.
+    con la medicación que indicaron (#359), cada «Indicar igual» ante un aviso de alergia
+    (CU-53) y la emisión, el envío, el reenvío y el canje del código del paciente (CU-56). La
+    exportación lleva lo mismo.
 
 ### CU-56 · Código del paciente para su historia clínica *(issue #364)*
 

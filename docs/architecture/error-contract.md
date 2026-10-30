@@ -96,6 +96,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `clinical_notes.diagnosis_retired` | 409 | `WriteClinicalNoteAction`, `AmendClinicalNoteAction` (se agrega un código CIE-10 dado de baja en el catálogo, ADR 0020) | |
 | `prescriptions.annulled` | 409 | `AmendPrescriptionAction`, `AnnulPrescriptionAction` (la medicación ya está anulada, ADR 0025) | |
 | `prescriptions.amendment_unchanged` | 409 | `AmendPrescriptionAction` (la enmienda repite la medicación vigente) | |
+| `prescriptions.allergy_warning` | 409 | `ScreenMedicationForAllergiesAction` (la medicación coincide con alergias vigentes sin confirmar, ADR 0030) | `allergies` (las que el profesional lee: `id`, `description`, `reaction`, `severity`), `hidden_allergy_ids`, `reason_required` |
 | `vital_signs.annulled` | 409 | `AmendVitalSignAction`, `AnnulVitalSignAction` (la medición ya está anulada, ADR 0027) | |
 | `vital_signs.amendment_unchanged` | 409 | `AmendVitalSignAction` (la enmienda repite los valores vigentes) | |
 | `medical_history.withdrawn` | 409 | `AmendMedicalHistoryEntryAction`, `WithdrawMedicalHistoryEntryAction` (el antecedente ya no está vigente, ADR 0027) | |
