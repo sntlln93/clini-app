@@ -17,6 +17,9 @@ export function useCurrentAllergies(appointmentId: number | null) {
                 )
                 .then((response) => response.data.data),
         enabled: appointmentId !== null,
+        // No allergy mutation drops this key, and every open is a logged read
+        // anyway: an earlier open's list is never shown first.
+        gcTime: 0,
         meta: { expectedBusinessCodes: [CLINICAL_ACCESS_EXPIRED] },
     });
 }

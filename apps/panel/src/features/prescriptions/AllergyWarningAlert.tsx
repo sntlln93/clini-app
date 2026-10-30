@@ -23,16 +23,20 @@ function WarnedAllergyItem({ allergy }: { allergy: WarnedAllergy }) {
     );
 }
 
+// «otra» after the allergies the warning lists, so the hidden ones never read
+// as the same ones.
 function hiddenMessage(warning: AllergyWarning): string {
-    const count = warning.hiddenAllergyIds.length;
+    const count = warning.hiddenAllergyVersionIds.length;
+    const also = warning.allergies.length > 0;
     const lead =
         count === 1
-            ? 'El paciente tiene una alergia registrada que coincide con esta medicación.'
-            : `El paciente tiene ${count} alergias registradas que coinciden con esta medicación.`;
+            ? `El paciente tiene ${also ? 'otra' : 'una'} alergia registrada que coincide con esta medicación.`
+            : `El paciente tiene ${also ? 'otras ' : ''}${count} alergias registradas que coinciden con esta medicación.`;
+    const them = count === 1 ? 'verla' : 'verlas';
 
     return warning.reasonRequired
-        ? `${lead} Para verla, abrí su historia clínica con un acceso excepcional.`
-        : `${lead} Pedile el código para verla.`;
+        ? `${lead} Para ${them}, abrí su historia clínica con un acceso excepcional.`
+        : `${lead} Pedile el código para ${them}.`;
 }
 
 // The medication matches current allergies of the patient (#362). It doesn't
@@ -65,7 +69,7 @@ export function AllergyWarningAlert({
                         </ul>
                     </>
                 )}
-                {warning.hiddenAllergyIds.length > 0 && (
+                {warning.hiddenAllergyVersionIds.length > 0 && (
                     <p>{hiddenMessage(warning)}</p>
                 )}
                 <div className="flex flex-wrap gap-2 pt-1">

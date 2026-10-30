@@ -48,7 +48,7 @@ function conflict(code: string, context: Record<string, unknown>) {
 function allergyWarning(context: Record<string, unknown>) {
     return conflict('prescriptions.allergy_warning', {
         allergies: [],
-        hidden_allergy_ids: [],
+        hidden_allergy_version_ids: [],
         reason_required: false,
         ...context,
     });
@@ -93,6 +93,7 @@ const PENICILLIN_WARNING = allergyWarning({
     allergies: [
         {
             id: 3,
+            version_id: 30,
             description: 'Penicilina',
             reaction: 'Urticaria',
             severity: 'severe',
@@ -175,7 +176,7 @@ describe('allergy warning when indicating medication', () => {
                         quantity: 1,
                     },
                 ],
-                confirmed_allergy_ids: [3],
+                confirmed_allergies: [{ version_id: 30, detail_shown: true }],
             },
         );
     });
@@ -183,7 +184,9 @@ describe('allergy warning when indicating medication', () => {
     it("warns about another author's allergy without its detail, and asks for the patient's code", async () => {
         mockGets();
         vi.mocked(api.post)
-            .mockRejectedValueOnce(allergyWarning({ hidden_allergy_ids: [9] }))
+            .mockRejectedValueOnce(
+                allergyWarning({ hidden_allergy_version_ids: [90] }),
+            )
             .mockResolvedValueOnce({ data: {} });
         renderDialog();
 
@@ -199,7 +202,11 @@ describe('allergy warning when indicating medication', () => {
         await waitFor(() =>
             expect(api.post).toHaveBeenLastCalledWith(
                 '/appointments/42/prescriptions',
-                expect.objectContaining({ confirmed_allergy_ids: [9] }),
+                expect.objectContaining({
+                    confirmed_allergies: [
+                        { version_id: 90, detail_shown: false },
+                    ],
+                }),
             ),
         );
     });
@@ -207,7 +214,10 @@ describe('allergy warning when indicating medication', () => {
     it('points to the exceptional access when that is what withholds the detail', async () => {
         mockGets();
         vi.mocked(api.post).mockRejectedValueOnce(
-            allergyWarning({ hidden_allergy_ids: [9], reason_required: true }),
+            allergyWarning({
+                hidden_allergy_version_ids: [90],
+                reason_required: true,
+            }),
         );
         renderDialog();
 
@@ -234,6 +244,49 @@ describe('allergy warning when indicating medication', () => {
         expect(
             screen.queryByRole('button', { name: 'Indicar igual' }),
         ).toBeNull();
+    });
+
+    it('speaks of the hidden allergies apart from the ones it lists, in plural when there are several', async () => {
+        mockGets();
+        vi.mocked(api.post).mockRejectedValueOnce(
+            allergyWarning({
+                allergies: [
+                    {
+                        id: 3,
+                        version_id: 30,
+                        description: 'Penicilina',
+                        reaction: null,
+                        severity: null,
+                    },
+                ],
+                hidden_allergy_version_ids: [90, 91],
+            }),
+        );
+        renderDialog();
+
+        await submitMedication('Penicilina G');
+
+        expect((await screen.findByRole('alert')).textContent).toContain(
+            'El paciente tiene otras 2 alergias registradas que coinciden con esta medicación. Pedile el código para verlas.',
+        );
+    });
+
+    it('sends «Indicar igual» once, even when the form is submitted again while it is saving', async () => {
+        mockGets();
+        vi.mocked(api.post)
+            .mockRejectedValueOnce(PENICILLIN_WARNING)
+            .mockReturnValueOnce(new Promise(() => {}));
+        renderDialog();
+
+        await submitMedication('Penicilina G');
+        await screen.findByRole('alert');
+        fireEvent.click(screen.getByRole('button', { name: 'Indicar igual' }));
+        await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
+
+        fireEvent.submit(screen.getByLabelText('Medicamento').closest('form')!);
+
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(api.post).toHaveBeenCalledTimes(2);
     });
 
     it('«Revisar la medicación» closes the warning without saving', async () => {

@@ -10,8 +10,9 @@ import {
 } from '@/lib/prescription-schema';
 import type { Prescription } from '@/types/prescription';
 import {
+    allergyConfirmations,
     readAllergyWarning,
-    warnedAllergyIds,
+    type AllergyConfirmation,
     type AllergyWarning,
 } from './allergy-warning';
 import { useSavePrescription } from './use-prescriptions';
@@ -50,13 +51,19 @@ export function usePrescriptionSubmit({
 
     async function submit(
         values: PrescriptionFormValues,
-        confirmedAllergyIds: number[] = [],
+        confirmedAllergies: AllergyConfirmation[] = [],
     ) {
+        // Enter in a field while «Indicar igual» is in flight would send it
+        // again, unconfirmed.
+        if (save.isPending) {
+            return;
+        }
+
         try {
             await save.mutateAsync({
                 prescriptionId: amending?.id ?? null,
                 payload: toPayload(values),
-                confirmedAllergyIds,
+                confirmedAllergies,
             });
             setPending(null);
             form.reset(EMPTY_PRESCRIPTION);
@@ -92,7 +99,7 @@ export function usePrescriptionSubmit({
         warning,
         onSubmit: form.handleSubmit((values) => submit(values)),
         onConfirm: form.handleSubmit((values) =>
-            submit(values, warning ? warnedAllergyIds(warning) : []),
+            submit(values, warning ? allergyConfirmations(warning) : []),
         ),
         onDismiss: () => setPending(null),
     };

@@ -5,6 +5,7 @@ import type {
     PrescriptionAmendmentPayload,
 } from '@/types/prescription';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { AllergyConfirmation } from './allergy-warning';
 
 function queryKey(appointmentId: number | null) {
     return ['prescriptions', appointmentId];
@@ -45,7 +46,7 @@ function useRefreshPrescriptions(appointmentId: number | null) {
 
 // Records one when `prescriptionId` is null, amends it otherwise: a record is
 // never edited (#323), an amendment adds a version and keeps the earlier ones.
-// `confirmedAllergyIds` is «Indicar igual» after an allergy warning (#362).
+// `confirmedAllergies` is «Indicar igual» after an allergy warning (#362).
 export function useSavePrescription(appointmentId: number | null) {
     const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
 
@@ -53,15 +54,15 @@ export function useSavePrescription(appointmentId: number | null) {
         mutationFn: ({
             prescriptionId,
             payload: { items, reason },
-            confirmedAllergyIds = [],
+            confirmedAllergies = [],
         }: {
             prescriptionId: number | null;
             payload: PrescriptionAmendmentPayload;
-            confirmedAllergyIds?: number[];
+            confirmedAllergies?: AllergyConfirmation[];
         }): Promise<unknown> => {
             const confirmation =
-                confirmedAllergyIds.length > 0
-                    ? { confirmed_allergy_ids: confirmedAllergyIds }
+                confirmedAllergies.length > 0
+                    ? { confirmed_allergies: confirmedAllergies }
                     : {};
 
             return prescriptionId === null

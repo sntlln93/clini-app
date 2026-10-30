@@ -4,6 +4,8 @@ import type { AllergySeverity } from '@/types/medical-history';
 // An allergy the warning shows in full: one the professional reads.
 export type WarnedAllergy = {
     id: number;
+    // The version of the allergy that matched, which «Indicar igual» confirms.
+    version_id: number;
     description: string;
     reaction: string | null;
     severity: AllergySeverity | null;
@@ -15,8 +17,15 @@ export type WarnedAllergy = {
 // (`reasonRequired`): the warning says there is one, not which.
 export type AllergyWarning = {
     allergies: WarnedAllergy[];
-    hiddenAllergyIds: number[];
+    hiddenAllergyVersionIds: number[];
     reasonRequired: boolean;
+};
+
+// What «Indicar igual» sends back for each allergy: the version that matched,
+// as it was shown. A newer version, or one now shown otherwise, warns again.
+export type AllergyConfirmation = {
+    version_id: number;
+    detail_shown: boolean;
 };
 
 function isIdList(value: unknown): value is number[] {
@@ -28,9 +37,13 @@ function isWarnedAllergy(value: unknown): value is WarnedAllergy {
         return false;
     }
 
-    const { id, description } = value as Record<string, unknown>;
+    const { id, version_id, description } = value as Record<string, unknown>;
 
-    return typeof id === 'number' && typeof description === 'string';
+    return (
+        typeof id === 'number' &&
+        typeof version_id === 'number' &&
+        typeof description === 'string'
+    );
 }
 
 // Narrows a mutation error into the warning; `null` for any other error, so
@@ -45,27 +58,36 @@ export function readAllergyWarning(error: unknown): AllergyWarning | null {
         return null;
     }
 
-    const { allergies, hidden_allergy_ids, reason_required } = appError.context;
+    const { allergies, hidden_allergy_version_ids, reason_required } =
+        appError.context;
 
     if (
         !Array.isArray(allergies) ||
         !allergies.every(isWarnedAllergy) ||
-        !isIdList(hidden_allergy_ids)
+        !isIdList(hidden_allergy_version_ids)
     ) {
         return null;
     }
 
     return {
         allergies,
-        hiddenAllergyIds: hidden_allergy_ids,
+        hiddenAllergyVersionIds: hidden_allergy_version_ids,
         reasonRequired: reason_required === true,
     };
 }
 
-// What «Indicar igual» sends back: every allergy it warned about.
-export function warnedAllergyIds(warning: AllergyWarning): number[] {
+// What «Indicar igual» sends back: every allergy it warned about, as shown.
+export function allergyConfirmations(
+    warning: AllergyWarning,
+): AllergyConfirmation[] {
     return [
-        ...warning.allergies.map((allergy) => allergy.id),
-        ...warning.hiddenAllergyIds,
+        ...warning.allergies.map((allergy) => ({
+            version_id: allergy.version_id,
+            detail_shown: true,
+        })),
+        ...warning.hiddenAllergyVersionIds.map((versionId) => ({
+            version_id: versionId,
+            detail_shown: false,
+        })),
     ];
 }

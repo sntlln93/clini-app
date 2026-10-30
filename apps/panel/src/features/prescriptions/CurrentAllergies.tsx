@@ -49,12 +49,12 @@ export function CurrentAllergies({
                     {errorMessage(query.error)}
                 </p>
             )}
-            {query.data?.length === 0 && (
+            {!query.isError && query.data?.length === 0 && (
                 <p className="text-sm text-muted-foreground">
                     No hay alergias vigentes registradas que puedas ver.
                 </p>
             )}
-            {query.data && query.data.length > 0 && (
+            {!query.isError && query.data && query.data.length > 0 && (
                 <ul className="space-y-1 text-sm">
                     {query.data.map((allergy) => (
                         <li key={allergy.id} className="wrap-break-word">
