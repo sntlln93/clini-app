@@ -43,7 +43,7 @@ describe('vital signs', () => {
     it('lists only the values a measurement holds, in the page order', () => {
         expect(
             presentValues(vitalSigns[2].values).map((value) => value.label),
-        ).toEqual(['Peso', 'Talla', 'IMC']);
+        ).toEqual(['Peso', 'Altura', 'IMC']);
     });
 
     it('takes each value from its latest reading, leaving annulled ones out', () => {

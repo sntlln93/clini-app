@@ -127,7 +127,9 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain(
             'Medición\n · tomada por Dra. Exportadora el 01/09/2026 10:10',
         );
-        expect(text).toContain('Peso: 80 kg · Talla: 180 cm · IMC: 24,7 kg/m²');
+        expect(text).toContain(
+            'Peso: 80 kg · Altura: 180 cm · IMC: 24,7 kg/m²',
+        );
         expect(text).toContain(
             'Enmienda (versión 2), Dra. Exportadora, 01/09/2026 10:20 · Motivo: Balanza mal calibrada.',
         );

@@ -6,14 +6,14 @@ Aceptado (#361). Extiende el ADR 0019 (solo agregado), el ADR 0021 (exportación
 
 ## Contexto
 
-La historia clínica tenía notas (con diagnósticos CIE-10) y medicación indicada. Faltaban datos estructurados: las **mediciones** de cada consulta (peso, talla, presión, temperatura…) y los **antecedentes** de la persona (grupo sanguíneo, alergias y antecedentes personales, familiares y quirúrgicos). El triage de #361 fijó el qué: registro propio y no dentro de la nota, de solo agregado, con autor, con el acceso de notas y medicación y dentro de la exportación. Quedaban por definir varias cosas: cómo se enmienda un grupo sanguíneo, a qué se ata un antecedente que es de la persona y no de una consulta, y en qué se distingue «ya no vigente» de una anulación.
+La historia clínica tenía notas (con diagnósticos CIE-10) y medicación indicada. Faltaban datos estructurados: las **mediciones** de cada consulta (peso, altura, presión, temperatura…) y los **antecedentes** de la persona (grupo sanguíneo, alergias y antecedentes personales, familiares y quirúrgicos). El triage de #361 fijó el qué: registro propio y no dentro de la nota, de solo agregado, con autor, con el acceso de notas y medicación y dentro de la exportación. Quedaban por definir varias cosas: cómo se enmienda un grupo sanguíneo, a qué se ata un antecedente que es de la persona y no de una consulta, y en qué se distingue «ya no vigente» de una anulación.
 
 ## Decisión
 
 **Todo registro clínico nuevo va atado a un turno propio**, mediciones y antecedentes por igual. El turno da el `patient_id` del lado del servidor, con la misma FK compuesta `(appointment_id, patient_id)` de #360. También da la organización y el profesional. Un antecedente es de la persona, pero se registra en una consulta: el turno dice dónde y cuándo se supo. Así, las reglas de acceso (`ClinicalAccess::attends`, la ventana de 7 días, el acceso excepcional), el trigger `appointments_clinical_patient_frozen` y la purga del seeder cubren los registros nuevos sin casos especiales. El panel registra en el turno propio de hoy, como la medicación.
 
 **Mediciones** (`vital_signs`, `vital_sign_versions`, `vital_sign_annulments`):
-- Once datos, todos opcionales pero al menos uno, con rangos plausibles: un valor fuera de rango responde 422. El IMC no se guarda: la API lo calcula con el peso y la talla de la misma versión.
+- Once datos, todos opcionales pero al menos uno, con rangos plausibles: un valor fuera de rango responde 422. El IMC no se guarda: la API lo calcula con el peso y la altura de la misma versión. En la interfaz la talla se llama «Altura», para que no se confunda (por ejemplo, con un talle); la columna es `height_cm`.
 - Una **enmienda** corrige la misma medición con una versión nueva, y `measured_at` no cambia. Una medición nueva es un punto nuevo de la serie.
 - La **anulación** pide un motivo, como la de una nota. Saca la medición de la serie y del gráfico, pero la deja en la historia.
 
@@ -34,7 +34,7 @@ La historia clínica tenía notas (con diagnósticos CIE-10) y medicación indic
 - **Una tabla por alergias y otra por antecedentes.** Tienen el mismo ciclo de vida (versión, enmienda, baja) y solo difieren en dos campos. Si las alergias necesitan más estructura (por ejemplo, un catálogo de sustancias para #362), una columna nula se suma sin migrar datos.
 - **Anular un antecedente con motivo obligatorio.** Confundiría «fue un error» con «ya no aplica». El motivo opcional de la baja cubre los dos casos.
 - **Guardar el IMC.** Sería un dato derivado que puede quedar desalineado de su versión.
-- **Tomar la talla de otra medición para el IMC.** Mezclaría consultas distintas sin que el profesional lo vea. El panel solo muestra el IMC cuando la misma medición tiene peso y talla.
+- **Tomar la altura de otra medición para el IMC.** Mezclaría consultas distintas sin que el profesional lo vea. El panel solo muestra el IMC cuando la misma medición tiene peso y altura.
 
 ## Consecuencias
 

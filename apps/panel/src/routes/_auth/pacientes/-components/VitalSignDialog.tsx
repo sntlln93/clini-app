@@ -119,7 +119,7 @@ export function VitalSignDialog({
                             <DialogDescription>
                                 Cargá los datos que tomaste; los demás quedan
                                 vacíos. El IMC se calcula con el peso y la
-                                talla.
+                                altura.
                             </DialogDescription>
                         </DialogHeader>
                         {rootError && (

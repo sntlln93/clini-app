@@ -18,7 +18,7 @@ type FieldDefinition = {
 // The ranges live in `vital-sign-schema.ts`, mirroring the API's.
 export const VITAL_SIGN_FIELDS: Record<VitalSignField, FieldDefinition> = {
     weight_kg: { label: 'Peso', unit: 'kg', tracked: true, decimals: 2 },
-    height_cm: { label: 'Talla', unit: 'cm', tracked: true, decimals: 1 },
+    height_cm: { label: 'Altura', unit: 'cm', tracked: true, decimals: 1 },
     bmi: { label: 'IMC', unit: 'kg/m²', tracked: true, decimals: 1 },
     head_circumference_cm: {
         label: 'Perímetro cefálico',
