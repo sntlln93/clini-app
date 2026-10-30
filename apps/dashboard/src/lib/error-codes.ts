@@ -23,6 +23,7 @@ export type ErrorCode =
     | 'availability.exception_already_covered'
     | 'availability.exception_type_conflict'
     | 'holidays.provider_unavailable'
+    | 'medications.source_unavailable'
     | 'subscriptions.inactive'
     | 'subscriptions.already_active'
     | 'subscriptions.gateway_unavailable'
@@ -112,6 +113,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
     'holidays.provider_unavailable':
         'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
+    'medications.source_unavailable':
+        'No se pudo consultar el Vademécum Nacional. Escribí el medicamento a mano.',
     'subscriptions.inactive':
         'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, medicación indicada y disponibilidad, y para recibir reservas online.',
     'subscriptions.already_active':
