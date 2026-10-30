@@ -3,12 +3,15 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\MedicalHistory\BloodTypeController;
+use App\Http\Controllers\MedicalHistory\CurrentAllergyController;
 use App\Http\Controllers\MedicalHistory\MedicalHistoryAmendmentController;
 use App\Http\Controllers\MedicalHistory\MedicalHistoryController;
 use App\Http\Controllers\MedicalHistory\MedicalHistoryWithdrawalController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('patients/{patient}/medical-history', [MedicalHistoryController::class, 'show']);
+// The current ones, above the form that indicates medication (#362).
+Route::get('appointments/{appointment}/allergies', [CurrentAllergyController::class, 'index']);
 
 // Writes are read-only while the subscription is expired (#28) or the
 // organization exceeds its plan's professional limit (#237). Part of the

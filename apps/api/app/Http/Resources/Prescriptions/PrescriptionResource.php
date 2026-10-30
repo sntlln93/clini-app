@@ -15,9 +15,11 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * since nothing prints it (issue #319), and its author's name only on the
  * patient-scoped listing, which holds every author's (#359). The
  * current items come with every earlier version, since the record is
- * append-only (ADR 0019), and an annulled one says when and why (#344). The
- * controller eager-loads the versions with their items and the annulment,
- * see PrescriptionController::RELATIONS.
+ * append-only (ADR 0019), and an annulled one says when and why (#344). Each
+ * version says whether its professional indicated it despite an allergy
+ * warning (#362), never which allergy: the reader may not read it. The
+ * controller eager-loads the versions with their items, their warnings and the
+ * annulment, see PrescriptionController::RELATIONS.
  *
  * @mixin Prescription
  */
@@ -43,6 +45,7 @@ class PrescriptionResource extends JsonResource
             'version' => $current->version,
             'amended_at' => $current->version > 1 ? $current->created_at : null,
             'items' => $this->items($current),
+            'allergy_warning_overridden' => $current->allergyWarnings->isNotEmpty(),
             'annulment' => $annulment === null ? null : [
                 'reason' => $annulment->reason,
                 'created_at' => $annulment->created_at,
@@ -52,6 +55,7 @@ class PrescriptionResource extends JsonResource
                 'reason' => $version->reason,
                 'created_at' => $version->created_at,
                 'items' => $this->items($version),
+                'allergy_warning_overridden' => $version->allergyWarnings->isNotEmpty(),
             ])->values(),
             // Only when the controller eager-loads it (the patient-scoped listing does; on one appointment every
             // record shares one author), as ClinicalNoteResource does.

@@ -146,6 +146,8 @@ class ClinicalRecordResource extends JsonResource
                     'dosage' => $item->dosage,
                     'quantity' => $item->quantity,
                 ])->values()->all(),
+                // Whether it was indicated despite an allergy warning (#362), never which allergy.
+                'allergy_warning_overridden' => $version->allergyWarnings->isNotEmpty(),
             ])->values()->all(),
         ];
     }

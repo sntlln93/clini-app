@@ -8,6 +8,7 @@ use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\ClinicalAccess\ClinicalAccessEntryData;
+use App\Data\Prescriptions\AllergyWarningOverrideData;
 use App\Data\Prescriptions\PrescriptionAmendmentData;
 use App\Data\Prescriptions\PrescriptionItemData;
 use App\Enums\ClinicalAccessAction;
@@ -29,6 +30,7 @@ class AmendPrescriptionAction implements Action
 {
     public function __construct(
         private readonly RecordClinicalAccessAction $record,
+        private readonly RecordAllergyWarningOverrideAction $recordOverride,
     ) {}
 
     /**
@@ -77,6 +79,16 @@ class AmendPrescriptionAction implements Action
                 action: ClinicalAccessAction::PrescriptionAmended,
                 appointmentId: $prescription->appointment_id,
                 prescriptionId: $prescription->id,
+            ));
+
+            $this->recordOverride->handle(new AllergyWarningOverrideData(
+                organizationId: $prescription->organization_id,
+                membershipId: $dto->membershipId,
+                patientId: $prescription->patient_id,
+                appointmentId: $prescription->appointment_id,
+                prescriptionId: $prescription->id,
+                prescriptionVersionId: $version->id,
+                matches: $dto->allergyMatches,
             ));
 
             return $prescription;

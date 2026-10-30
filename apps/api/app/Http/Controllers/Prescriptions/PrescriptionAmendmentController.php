@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Prescriptions;
 
 use App\Actions\Prescriptions\AmendPrescriptionAction;
+use App\Actions\Prescriptions\ScreenMedicationForAllergiesAction;
+use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionAmendmentData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Prescriptions\AmendPrescriptionRequest;
@@ -20,7 +22,8 @@ class PrescriptionAmendmentController extends Controller
     public function store(
         AmendPrescriptionRequest $request,
         Prescription $prescription,
-        AmendPrescriptionAction $action
+        AmendPrescriptionAction $action,
+        ScreenMedicationForAllergiesAction $screen,
     ): JsonResponse {
         Gate::authorize('amend', $prescription);
 
@@ -30,11 +33,23 @@ class PrescriptionAmendmentController extends Controller
         /** @var Membership $membership */
         $membership = $user->currentMembership();
 
+        $items = $request->prescriptionItems();
+
+        // An amendment indicates its whole item list again, so it is checked like a new record.
+        $allergyMatches = $screen->handle(new MedicationAllergyScreeningData(
+            organizationId: $prescription->organization_id,
+            membershipId: $membership->id,
+            patientId: $prescription->patient_id,
+            items: $items,
+            confirmedAllergyIds: $request->confirmedAllergyIds(),
+        ));
+
         $amended = $action->handle(new PrescriptionAmendmentData(
             prescriptionId: $prescription->id,
             membershipId: $membership->id,
-            items: $request->prescriptionItems(),
+            items: $items,
             reason: $request->reason(),
+            allergyMatches: $allergyMatches,
         ));
 
         return (new PrescriptionResource($amended->load(PrescriptionController::RELATIONS)))

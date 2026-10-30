@@ -14,6 +14,7 @@ use App\Models\Icd10Code;
 use App\Models\MedicalHistoryEntry;
 use App\Models\Membership;
 use App\Models\Prescription;
+use App\Models\PrescriptionAllergyWarning;
 use App\Models\VitalSign;
 use App\Support\ClinicalNoteDiagnoses;
 use App\Support\CurrentOrganization;
@@ -43,6 +44,9 @@ const PRESCRIPTION_ANNULMENTS_MIGRATION = 'migrations/2026_10_25_000001_create_p
 // And for the measurements and the background (#361), the latter rolled back first.
 const VITAL_SIGNS_MIGRATION = 'migrations/2026_10_30_000001_create_vital_signs_tables.php';
 const MEDICAL_HISTORY_MIGRATION = 'migrations/2026_10_30_000002_create_medical_history_tables.php';
+
+// And for the allergy warnings confirmed when indicating medication (#362), which point at both.
+const ALLERGY_WARNINGS_MIGRATION = 'migrations/2026_10_31_000002_create_prescription_allergy_warnings_table.php';
 
 /**
  * Runs one statement in its own savepoint, so the error it raises doesn't
@@ -123,6 +127,26 @@ test('the database rejects updating or deleting any row of the clinical history'
 
         return $entry->withdrawal()->create(['membership_id' => $entry->membership_id, 'reason' => null])->id;
     }],
+    'prescription_allergy_warnings' => ['prescription_allergy_warnings', function () {
+        $prescription = Prescription::factory()->create();
+        $allergy = MedicalHistoryEntry::factory()->create(['appointment_id' => $prescription->appointment_id]);
+        $log = ClinicalAccessLog::query()->create([
+            'organization_id' => $prescription->organization_id,
+            'membership_id' => $prescription->membership_id,
+            'patient_id' => $prescription->patient_id,
+            'action' => ClinicalAccessAction::AllergyWarningOverridden,
+            'appointment_id' => $prescription->appointment_id,
+            'prescription_id' => $prescription->id,
+        ]);
+
+        return PrescriptionAllergyWarning::query()->create([
+            'prescription_version_id' => $prescription->versions()->sole()->id,
+            'clinical_access_log_id' => $log->id,
+            'medical_history_entry_id' => $allergy->id,
+            'medical_history_entry_version_id' => $allergy->versions()->sole()->id,
+            'detail_shown' => true,
+        ])->id;
+    }],
     'clinical_record_exports' => ['clinical_record_exports', function () {
         $membership = Membership::factory()->professional()->create();
 
@@ -150,6 +174,7 @@ test('the database rejects updating or deleting any row of the clinical history'
 test('the migration turns existing rows into version 1 and restores soft-deleted notes as annulled', function () {
     $membership = Membership::factory()->create();
     $appointment = Appointment::factory()->create(['organization_id' => $membership->organization_id, 'membership_id' => $membership->id]);
+    $allergyWarningsMigration = require database_path(ALLERGY_WARNINGS_MIGRATION);
     $medicalHistoryMigration = require database_path(MEDICAL_HISTORY_MIGRATION);
     $vitalSignsMigration = require database_path(VITAL_SIGNS_MIGRATION);
     $prescriptionAnnulmentsMigration = require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION);
@@ -157,6 +182,7 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     $exportsMigration = require database_path(EXPORTS_MIGRATION);
     $diagnosesMigration = require database_path(DIAGNOSES_MIGRATION);
     $migration = require database_path(APPEND_ONLY_MIGRATION);
+    $allergyWarningsMigration->down();
     $medicalHistoryMigration->down();
     $vitalSignsMigration->down();
     $prescriptionAnnulmentsMigration->down();
@@ -185,6 +211,7 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
     $prescriptionAnnulmentsMigration->up();
     $vitalSignsMigration->up();
     $medicalHistoryMigration->up();
+    $allergyWarningsMigration->up();
 
     $edited = ClinicalNote::with('versions', 'annulment')->findOrFail($editedNoteId);
     expect($edited->versions)->toHaveCount(1)
@@ -220,6 +247,7 @@ test('rolling the migration back keeps the latest version and brings annulled no
     $prescription->versions()->create(['version' => 2, 'membership_id' => $prescription->membership_id])
         ->items()->create(['position' => 0, 'medication' => 'Paracetamol', 'dosage' => '1 cada 6 h', 'quantity' => 2]);
 
+    (require database_path(ALLERGY_WARNINGS_MIGRATION))->down();
     (require database_path(MEDICAL_HISTORY_MIGRATION))->down();
     (require database_path(VITAL_SIGNS_MIGRATION))->down();
     (require database_path(PRESCRIPTION_ANNULMENTS_MIGRATION))->down();

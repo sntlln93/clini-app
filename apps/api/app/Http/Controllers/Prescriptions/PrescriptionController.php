@@ -6,7 +6,9 @@ namespace App\Http\Controllers\Prescriptions;
 
 use App\Actions\ClinicalAccess\ReadPatientHistoryAction;
 use App\Actions\Prescriptions\IssuePrescriptionAction;
+use App\Actions\Prescriptions\ScreenMedicationForAllergiesAction;
 use App\Data\ClinicalAccess\PatientHistoryReadData;
+use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Http\Controllers\Controller;
@@ -27,7 +29,7 @@ class PrescriptionController extends Controller
     /**
      * Everything PrescriptionResource renders, so it never lazy-loads.
      */
-    public const array RELATIONS = ['versions.items', 'annulment'];
+    public const array RELATIONS = ['versions.items', 'versions.allergyWarnings', 'annulment'];
 
     public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
@@ -90,7 +92,8 @@ class PrescriptionController extends Controller
     public function store(
         StorePrescriptionRequest $request,
         Appointment $appointment,
-        IssuePrescriptionAction $action
+        IssuePrescriptionAction $action,
+        ScreenMedicationForAllergiesAction $screen,
     ): JsonResponse {
         Gate::authorize('create', [Prescription::class, $appointment]);
 
@@ -100,12 +103,23 @@ class PrescriptionController extends Controller
         /** @var Membership $membership */
         $membership = $user->currentMembership();
 
+        $items = $request->prescriptionItems();
+
+        $allergyMatches = $screen->handle(new MedicationAllergyScreeningData(
+            organizationId: $appointment->organization_id,
+            membershipId: $membership->id,
+            patientId: $appointment->patient_id,
+            items: $items,
+            confirmedAllergyIds: $request->confirmedAllergyIds(),
+        ));
+
         $prescription = $action->handle(new PrescriptionDraftData(
             organizationId: $appointment->organization_id,
             appointmentId: $appointment->id,
             patientId: $appointment->patient_id,
             membershipId: $membership->id,
-            items: $request->prescriptionItems(),
+            items: $items,
+            allergyMatches: $allergyMatches,
         ));
 
         return (new PrescriptionResource($prescription->load(self::RELATIONS)))

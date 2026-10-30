@@ -28,6 +28,7 @@ use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\PatientAccessCode;
 use App\Models\Prescription;
+use App\Models\PrescriptionAllergyWarning;
 use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
@@ -112,6 +113,8 @@ class SchedulingSeeder extends Seeder
             $vitalSigns = VitalSign::where('organization_id', $organization->id)->select('id');
             $entries = MedicalHistoryEntry::where('organization_id', $organization->id)->select('id');
 
+            // The allergy warnings point at the access log, prescriptions and allergies alike.
+            PrescriptionAllergyWarning::whereIn('prescription_version_id', $prescriptionVersions)->delete();
             // The access log points at every clinical record, appointments and exports.
             ClinicalAccessLog::where('organization_id', $organization->id)->delete();
             ClinicalNoteAnnulment::whereIn('clinical_note_id', $notes)->delete();

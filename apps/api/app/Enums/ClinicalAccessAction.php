@@ -21,6 +21,11 @@ enum ClinicalAccessAction: string
     case PrescriptionIssued = 'prescription_issued';
     case PrescriptionAmended = 'prescription_amended';
     case PrescriptionAnnulled = 'prescription_annulled';
+    /**
+     * The professional indicated medication that matched a current allergy of the patient, confirming the warning
+     * (#362, ADR 0030).
+     */
+    case AllergyWarningOverridden = 'allergy_warning_overridden';
     case VitalSignsViewed = 'vital_signs_viewed';
     case VitalSignRecorded = 'vital_sign_recorded';
     case VitalSignAmended = 'vital_sign_amended';

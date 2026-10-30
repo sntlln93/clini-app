@@ -10,12 +10,14 @@ final readonly class PrescriptionAmendmentData implements Data
 {
     /**
      * @param  list<PrescriptionItemData>  $items
+     * @param  list<AllergyMatchData>  $allergyMatches  confirmed with «Indicar igual» (#362)
      */
     public function __construct(
         public int $prescriptionId,
         public int $membershipId,
         public array $items,
         public ?string $reason,
+        public array $allergyMatches,
     ) {}
 
     /**
@@ -28,6 +30,7 @@ final readonly class PrescriptionAmendmentData implements Data
             'membershipId' => $this->membershipId,
             'items' => array_map(fn (PrescriptionItemData $item) => $item->toArray(), $this->items),
             'reason' => $this->reason,
+            'allergyMatches' => array_map(fn (AllergyMatchData $match) => $match->toArray(), $this->allergyMatches),
         ];
     }
 }

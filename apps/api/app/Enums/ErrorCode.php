@@ -59,6 +59,7 @@ enum ErrorCode: string
     case ClinicalNotesDiagnosisRetired = 'clinical_notes.diagnosis_retired';
     case PrescriptionsAnnulled = 'prescriptions.annulled';
     case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
+    case PrescriptionsAllergyWarning = 'prescriptions.allergy_warning';
     case VitalSignsAnnulled = 'vital_signs.annulled';
     case VitalSignsAmendmentUnchanged = 'vital_signs.amendment_unchanged';
     case MedicalHistoryWithdrawn = 'medical_history.withdrawn';

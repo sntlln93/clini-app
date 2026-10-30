@@ -18,6 +18,7 @@ use App\Models\MedicalHistoryEntry;
 use App\Models\MedicalHistoryEntryVersion;
 use App\Models\MedicalHistoryEntryWithdrawal;
 use App\Models\Prescription;
+use App\Models\PrescriptionAllergyWarning;
 use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
@@ -349,6 +350,7 @@ arch('clinical history models are never soft-deleted')
         PrescriptionVersion::class,
         PrescriptionItem::class,
         PrescriptionAnnulment::class,
+        PrescriptionAllergyWarning::class,
         VitalSign::class,
         VitalSignVersion::class,
         VitalSignAnnulment::class,
@@ -385,6 +387,7 @@ arch('platform operator code never reaches the clinical history')
         PrescriptionVersion::class,
         PrescriptionItem::class,
         PrescriptionAnnulment::class,
+        PrescriptionAllergyWarning::class,
         VitalSign::class,
         VitalSignVersion::class,
         VitalSignAnnulment::class,

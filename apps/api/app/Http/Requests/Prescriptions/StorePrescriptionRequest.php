@@ -28,6 +28,9 @@ class StorePrescriptionRequest extends FormRequest
             'items.*.presentation' => ['nullable', 'string', 'max:255'],
             'items.*.dosage' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
+            // The allergies a warning listed, sent back with «Indicar igual» (#362).
+            'confirmed_allergy_ids' => ['sometimes', 'array', 'max:100'],
+            'confirmed_allergy_ids.*' => ['integer', 'distinct'],
         ];
     }
 
@@ -49,5 +52,13 @@ class StorePrescriptionRequest extends FormRequest
                 quantity: $this->integer("items.{$key}.quantity"),
             );
         }, array_keys($this->array('items')));
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function confirmedAllergyIds(): array
+    {
+        return array_values(array_map(intval(...), $this->array('confirmed_allergy_ids')));
     }
 }

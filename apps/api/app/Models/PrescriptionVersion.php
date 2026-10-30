@@ -53,4 +53,14 @@ class PrescriptionVersion extends Model
     {
         return $this->hasMany(PrescriptionItem::class)->orderBy('position');
     }
+
+    /**
+     * The allergies its professional was warned about and indicated it anyway (#362).
+     *
+     * @return HasMany<PrescriptionAllergyWarning, $this>
+     */
+    public function allergyWarnings(): HasMany
+    {
+        return $this->hasMany(PrescriptionAllergyWarning::class);
+    }
 }
