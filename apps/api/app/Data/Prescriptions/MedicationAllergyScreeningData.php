@@ -14,14 +14,15 @@ final readonly class MedicationAllergyScreeningData implements Data
 {
     /**
      * @param  list<PrescriptionItemData>  $items
-     * @param  list<int>  $confirmedAllergyIds
+     * @param  list<AllergyConfirmationData>  $confirmedAllergies
      */
     public function __construct(
         public int $organizationId,
         public int $membershipId,
         public int $patientId,
+        public int $appointmentId,
         public array $items,
-        public array $confirmedAllergyIds,
+        public array $confirmedAllergies,
     ) {}
 
     /**
@@ -33,8 +34,9 @@ final readonly class MedicationAllergyScreeningData implements Data
             'organizationId' => $this->organizationId,
             'membershipId' => $this->membershipId,
             'patientId' => $this->patientId,
+            'appointmentId' => $this->appointmentId,
             'items' => array_map(fn (PrescriptionItemData $item) => $item->toArray(), $this->items),
-            'confirmedAllergyIds' => $this->confirmedAllergyIds,
+            'confirmedAllergies' => array_map(fn (AllergyConfirmationData $confirmation) => $confirmation->toArray(), $this->confirmedAllergies),
         ];
     }
 }

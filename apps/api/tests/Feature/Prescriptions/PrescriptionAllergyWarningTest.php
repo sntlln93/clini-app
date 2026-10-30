@@ -59,6 +59,23 @@ function allergyWarningPayload(string $medication, array $overrides = []): array
     ];
 }
 
+/**
+ * What «Indicar igual» sends back for an allergy the warning listed: the version that matched, as it was shown.
+ */
+function confirmedAllergy(MedicalHistoryEntry $allergy, bool $detailShown = true): array
+{
+    return ['version_id' => $allergy->versions()->reorder('version', 'desc')->firstOrFail()->id, 'detail_shown' => $detailShown];
+}
+
+function allergyWarningsShown(Membership $membership): int
+{
+    return ClinicalAccessLog::query()
+        ->withoutGlobalScope('organization')
+        ->where('membership_id', $membership->id)
+        ->where('action', ClinicalAccessAction::AllergyWarningShown)
+        ->count();
+}
+
 function backgroundReads(Membership $membership): int
 {
     return ClinicalAccessLog::query()
@@ -79,16 +96,17 @@ test('medication matching a current allergy, ignoring case and accents, is not i
         ->assertJsonPath('error.code', 'prescriptions.allergy_warning')
         ->assertJsonPath('error.context.allergies', [[
             'id' => $allergy->id,
+            'version_id' => confirmedAllergy($allergy)['version_id'],
             'description' => 'Ácido Acetilsalicílico',
             'reaction' => 'Urticaria',
             'severity' => null,
         ]])
-        ->assertJsonPath('error.context.hidden_allergy_ids', [])
+        ->assertJsonPath('error.context.hidden_allergy_version_ids', [])
         ->assertJsonPath('error.context.reason_required', false);
 
     expect(Prescription::query()->withoutGlobalScope('organization')->count())->toBe(0)
-        // The warning showed the allergy, so it read the patient's background.
-        ->and(backgroundReads($membership))->toBe(1);
+        ->and(allergyWarningsShown($membership))->toBe(1)
+        ->and(ClinicalAccessLog::query()->where('action', ClinicalAccessAction::AllergyWarningShown)->sole()->appointment_id)->toBe($appointment->id);
 });
 
 test('an allergy also matches the presentation of what is indicated', function () {
@@ -130,7 +148,7 @@ test('«Indicar igual» indicates it, logs the confirmation and keeps on the ver
 
     $response = $this->actingAs($membership->user)
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Amoxicilina', [
-            'confirmed_allergy_ids' => [$allergy->id],
+            'confirmed_allergies' => [confirmedAllergy($allergy)],
         ]))
         ->assertCreated()
         ->assertJsonPath('data.allergy_warning_overridden', true)
@@ -162,7 +180,7 @@ test('a confirmation that leaves a matching allergy out is warned again', functi
 
     $this->actingAs($membership->user)
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina G benzatínica', [
-            'confirmed_allergy_ids' => [$confirmed->id],
+            'confirmed_allergies' => [confirmedAllergy($confirmed)],
         ]))
         ->assertConflict()
         ->assertJsonPath('error.context.allergies.*.id', [$confirmed->id, $missed->id]);
@@ -180,16 +198,16 @@ test('another author\'s allergy warns without its detail until the patient share
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina'))
         ->assertConflict()
         ->assertJsonPath('error.context.allergies', [])
-        ->assertJsonPath('error.context.hidden_allergy_ids', [$theirs->id])
+        ->assertJsonPath('error.context.hidden_allergy_version_ids', [confirmedAllergy($theirs)['version_id']])
         ->assertJsonPath('error.context.reason_required', false);
 
     expect($response->getContent())->not->toContain('Penicilina')->not->toContain('Urticaria')
-        // Nothing of the background was shown, so nothing was read.
-        ->and(backgroundReads($membership))->toBe(0);
+        // Even without the detail, the warning leaves its row: trying substances never goes unseen.
+        ->and(allergyWarningsShown($membership))->toBe(1);
 
     $this->actingAs($membership->user)
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina', [
-            'confirmed_allergy_ids' => [$theirs->id],
+            'confirmed_allergies' => [confirmedAllergy($theirs, detailShown: false)],
         ]))
         ->assertCreated();
     expect(PrescriptionAllergyWarning::query()->sole()->detail_shown)->toBeFalse();
@@ -200,7 +218,7 @@ test('another author\'s allergy warns without its detail until the patient share
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina'))
         ->assertConflict()
         ->assertJsonPath('error.context.allergies.0.description', 'Penicilina')
-        ->assertJsonPath('error.context.hidden_allergy_ids', []);
+        ->assertJsonPath('error.context.hidden_allergy_version_ids', []);
 });
 
 test('without an appointment near today the warning withholds even one\'s own allergy, as the history would', function () {
@@ -212,7 +230,7 @@ test('without an appointment near today the warning withholds even one\'s own al
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina'))
         ->assertConflict()
         ->assertJsonPath('error.context.allergies', [])
-        ->assertJsonPath('error.context.hidden_allergy_ids', [$allergy->id])
+        ->assertJsonPath('error.context.hidden_allergy_version_ids', [confirmedAllergy($allergy)['version_id']])
         ->assertJsonPath('error.context.reason_required', true);
 
     openClinicalHistory($membership, $appointment->patient_id);
@@ -238,7 +256,7 @@ test('an amendment is checked like a new record, and only its new version keeps 
 
     $this->actingAs($membership->user)
         ->postJson("/api/v1/prescriptions/{$prescription->id}/amendments", allergyWarningPayload('Diclofenac 75 mg', [
-            'confirmed_allergy_ids' => [$allergy->id],
+            'confirmed_allergies' => [confirmedAllergy($allergy)],
         ]))
         ->assertCreated()
         ->assertJsonPath('data.allergy_warning_overridden', true)
@@ -249,16 +267,78 @@ test('an amendment is checked like a new record, and only its new version keeps 
         ->toBe($prescription->versions()->where('version', 2)->sole()->id);
 });
 
-test('the confirmed allergies must be ids', function () {
+test('a confirmation of an earlier version of the allergy is warned again with the current one', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $appointment = allergyWarningAppointment($membership);
+    $allergy = recordAllergy($appointment);
+    $shown = confirmedAllergy($allergy);
+    $allergy->versions()->create(['version' => 2, 'membership_id' => $membership->id, 'description' => 'Penicilina', 'reaction' => 'Anafilaxia']);
+
+    $this->actingAs($membership->user)
+        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina', [
+            'confirmed_allergies' => [$shown],
+        ]))
+        ->assertConflict()
+        ->assertJsonPath('error.context.allergies.0.reaction', 'Anafilaxia');
+
+    expect(PrescriptionAllergyWarning::query()->count())->toBe(0);
+});
+
+test('a hidden allergy confirmed without its detail is warned again once its detail can be shown', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $colleague = Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
+    $appointment = allergyWarningAppointment($membership);
+    $theirs = recordAllergy(allergyWarningAppointment($colleague, ['patient_id' => $appointment->patient_id]));
+    shareAccessCode($membership, $appointment->patient_id, $appointment);
+
+    $this->actingAs($membership->user)
+        ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina', [
+            'confirmed_allergies' => [confirmedAllergy($theirs, detailShown: false)],
+        ]))
+        ->assertConflict()
+        ->assertJsonPath('error.context.allergies.0.description', 'Penicilina');
+
+    expect(PrescriptionAllergyWarning::query()->count())->toBe(0);
+});
+
+test('an amendment that can\'t succeed says why before any allergy warning', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $appointment = allergyWarningAppointment($membership);
+    recordAllergy($appointment);
+    $annulled = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $annulled->annulment()->create(['membership_id' => $membership->id, 'reason' => 'Terminó el tratamiento.']);
+    $unchanged = Prescription::factory()->create(['appointment_id' => $appointment->id]);
+    $item = $unchanged->versions()->sole()->items()->sole();
+    recordAllergy($appointment, $item->medication);
+
+    $this->actingAs($membership->user)
+        ->postJson("/api/v1/prescriptions/{$annulled->id}/amendments", allergyWarningPayload('Penicilina'))
+        ->assertConflict()
+        ->assertJsonPath('error.code', 'prescriptions.annulled');
+
+    $this->actingAs($membership->user)
+        ->postJson("/api/v1/prescriptions/{$unchanged->id}/amendments", ['items' => [[
+            'medication' => $item->medication,
+            'presentation' => $item->presentation,
+            'dosage' => $item->dosage,
+            'quantity' => $item->quantity,
+        ]]])
+        ->assertConflict()
+        ->assertJsonPath('error.code', 'prescriptions.amendment_unchanged');
+
+    expect(allergyWarningsShown($membership))->toBe(0);
+});
+
+test('the confirmed allergies must be version ids, each saying whether it was shown', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $appointment = allergyWarningAppointment($membership);
 
     $this->actingAs($membership->user)
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Amoxicilina', [
-            'confirmed_allergy_ids' => ['penicilina'],
+            'confirmed_allergies' => [['version_id' => 'penicilina']],
         ]))
         ->assertUnprocessable()
-        ->assertJsonValidationErrors('confirmed_allergy_ids.0');
+        ->assertJsonValidationErrors(['confirmed_allergies.0.version_id', 'confirmed_allergies.0.detail_shown']);
 });
 
 test('the export says which version was indicated despite an allergy warning, and its trail the confirmation', function () {
@@ -268,7 +348,7 @@ test('the export says which version was indicated despite an allergy warning, an
 
     $this->actingAs($membership->user)
         ->postJson("/api/v1/appointments/{$appointment->id}/prescriptions", allergyWarningPayload('Penicilina', [
-            'confirmed_allergy_ids' => [$allergy->id],
+            'confirmed_allergies' => [confirmedAllergy($allergy)],
         ]))
         ->assertCreated();
 

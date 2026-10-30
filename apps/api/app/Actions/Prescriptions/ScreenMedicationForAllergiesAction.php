@@ -4,10 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Prescriptions;
 
-use App\Actions\ClinicalAccess\ReadPatientHistoryAction;
+use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
-use App\Data\ClinicalAccess\PatientHistoryReadData;
+use App\Data\ClinicalAccess\ClinicalAccessEntryData;
+use App\Data\Prescriptions\AllergyConfirmationData;
 use App\Data\Prescriptions\AllergyMatchData;
 use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionItemData;
@@ -24,14 +25,17 @@ use App\Support\FoldedText;
  * matches when its substance appears in a medication or its presentation, ignoring case and accents. Every current
  * allergy counts, another author's too, since missing one could harm the patient; its detail goes to the warning only
  * when the professional reads it as they would read the patient's background (`readableBy`, without a pending
- * exceptional access), and that read is logged. Until every match is confirmed, the medication is not indicated.
+ * exceptional access). Every warning leaves its own row in the access log, hidden matches too, so trying substances
+ * never goes unseen. Until every match is confirmed as it is now (the same version, shown the same way), the
+ * medication is not indicated, so what is kept is exactly what the professional was shown. It runs before the write's
+ * transaction, which would roll that row back.
  *
  * @implements Action<MedicationAllergyScreeningData>
  */
 class ScreenMedicationForAllergiesAction implements Action
 {
     public function __construct(
-        private readonly ReadPatientHistoryAction $read,
+        private readonly RecordClinicalAccessAction $record,
     ) {}
 
     /**
@@ -42,7 +46,7 @@ class ScreenMedicationForAllergiesAction implements Action
     {
         $reasonRequired = ClinicalAccess::requiresReason($dto->organizationId, $dto->membershipId, $dto->patientId);
         $matches = $this->matches($dto, $reasonRequired);
-        $unconfirmed = array_filter($matches, fn (AllergyMatchData $match): bool => ! in_array($match->entryId, $dto->confirmedAllergyIds, true));
+        $unconfirmed = array_filter($matches, fn (AllergyMatchData $match): bool => ! $this->confirmed($match, $dto->confirmedAllergies));
 
         if ($unconfirmed === []) {
             return $matches;
@@ -50,25 +54,25 @@ class ScreenMedicationForAllergiesAction implements Action
 
         $shown = array_values(array_filter($matches, fn (AllergyMatchData $match): bool => $match->detailShown));
 
-        if ($shown !== []) {
-            $this->read->handle(new PatientHistoryReadData(
-                organizationId: $dto->organizationId,
-                membershipId: $dto->membershipId,
-                patientId: $dto->patientId,
-                action: ClinicalAccessAction::MedicalHistoryViewed,
-            ));
-        }
+        $this->record->handle(new ClinicalAccessEntryData(
+            organizationId: $dto->organizationId,
+            membershipId: $dto->membershipId,
+            patientId: $dto->patientId,
+            action: ClinicalAccessAction::AllergyWarningShown,
+            appointmentId: $dto->appointmentId,
+        ));
 
         throw new PrescriptionAllergyWarningException(
             patientId: $dto->patientId,
             allergies: array_map(fn (AllergyMatchData $match): array => [
                 'id' => $match->entryId,
+                'version_id' => $match->entryVersionId,
                 'description' => $match->description,
                 'reaction' => $match->reaction,
                 'severity' => $match->severity?->value,
             ], $shown),
-            hiddenAllergyIds: array_values(array_map(
-                fn (AllergyMatchData $match): int => $match->entryId,
+            hiddenAllergyVersionIds: array_values(array_map(
+                fn (AllergyMatchData $match): int => $match->entryVersionId,
                 array_filter($matches, fn (AllergyMatchData $match): bool => ! $match->detailShown),
             )),
             reasonRequired: $reasonRequired,
@@ -129,6 +133,20 @@ class ScreenMedicationForAllergiesAction implements Action
         }
 
         return $matches;
+    }
+
+    /**
+     * @param  list<AllergyConfirmationData>  $confirmations
+     */
+    private function confirmed(AllergyMatchData $match, array $confirmations): bool
+    {
+        foreach ($confirmations as $confirmation) {
+            if ($confirmation->entryVersionId === $match->entryVersionId && $confirmation->detailShown === $match->detailShown) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

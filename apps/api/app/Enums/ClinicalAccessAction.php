@@ -26,6 +26,11 @@ enum ClinicalAccessAction: string
      * (#362, ADR 0030).
      */
     case AllergyWarningOverridden = 'allergy_warning_overridden';
+    /**
+     * The warning itself, every time it is answered, so that probing substances leaves a trace even when it only says
+     * that a hidden allergy matched (#362, ADR 0030).
+     */
+    case AllergyWarningShown = 'allergy_warning_shown';
     case VitalSignsViewed = 'vital_signs_viewed';
     case VitalSignRecorded = 'vital_sign_recorded';
     case VitalSignAmended = 'vital_sign_amended';

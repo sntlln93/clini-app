@@ -14,13 +14,13 @@ use App\Exceptions\DomainException;
 final class PrescriptionAllergyWarningException extends DomainException
 {
     /**
-     * @param  list<array{id: int, description: string, reaction: ?string, severity: ?string}>  $allergies
-     * @param  list<int>  $hiddenAllergyIds
+     * @param  list<array{id: int, version_id: int, description: string, reaction: ?string, severity: ?string}>  $allergies
+     * @param  list<int>  $hiddenAllergyVersionIds
      */
     public function __construct(
         private readonly int $patientId,
         private readonly array $allergies,
-        private readonly array $hiddenAllergyIds,
+        private readonly array $hiddenAllergyVersionIds,
         private readonly bool $reasonRequired,
     ) {
         parent::__construct('The medication matches a current allergy of the patient.');
@@ -45,15 +45,16 @@ final class PrescriptionAllergyWarningException extends DomainException
     {
         return [
             'patient_id' => $this->patientId,
-            'medical_history_entry_ids' => [...array_column($this->allergies, 'id'), ...$this->hiddenAllergyIds],
+            'medical_history_entry_version_ids' => [...array_column($this->allergies, 'version_id'), ...$this->hiddenAllergyVersionIds],
             'reason_required' => $this->reasonRequired,
         ];
     }
 
     /**
-     * The matches the professional may read come with their detail; the others only with their id, which is all
-     * «Indicar igual» sends back. `reason_required` says the detail is withheld because the history takes an
-     * exceptional access, rather than because the allergy is another author's.
+     * The matches the professional may read come with their detail; the others only with the id of the version that
+     * matched. «Indicar igual» sends every version back, saying whether it was shown. `reason_required` says the
+     * detail is withheld because the history takes an exceptional access, rather than because the allergy is another
+     * author's.
      *
      * @return array<string, mixed>
      */
@@ -61,7 +62,7 @@ final class PrescriptionAllergyWarningException extends DomainException
     {
         return [
             'allergies' => $this->allergies,
-            'hidden_allergy_ids' => $this->hiddenAllergyIds,
+            'hidden_allergy_version_ids' => $this->hiddenAllergyVersionIds,
             'reason_required' => $this->reasonRequired,
         ];
     }

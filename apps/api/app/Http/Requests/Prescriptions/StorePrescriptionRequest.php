@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Prescriptions;
 
+use App\Data\Prescriptions\AllergyConfirmationData;
 use App\Data\Prescriptions\PrescriptionItemData;
 use Illuminate\Foundation\Http\FormRequest;
 
@@ -28,9 +29,11 @@ class StorePrescriptionRequest extends FormRequest
             'items.*.presentation' => ['nullable', 'string', 'max:255'],
             'items.*.dosage' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
-            // The allergies a warning listed, sent back with «Indicar igual» (#362).
-            'confirmed_allergy_ids' => ['sometimes', 'array', 'max:100'],
-            'confirmed_allergy_ids.*' => ['integer', 'distinct'],
+            // The allergies a warning listed, sent back with «Indicar igual» (#362): each version as it was shown.
+            'confirmed_allergies' => ['sometimes', 'array', 'max:100'],
+            'confirmed_allergies.*' => ['required', 'array'],
+            'confirmed_allergies.*.version_id' => ['required', 'integer'],
+            'confirmed_allergies.*.detail_shown' => ['required', 'boolean'],
         ];
     }
 
@@ -55,10 +58,13 @@ class StorePrescriptionRequest extends FormRequest
     }
 
     /**
-     * @return list<int>
+     * @return list<AllergyConfirmationData>
      */
-    public function confirmedAllergyIds(): array
+    public function confirmedAllergies(): array
     {
-        return array_values(array_map(intval(...), $this->array('confirmed_allergy_ids')));
+        return array_map(fn (int|string $key): AllergyConfirmationData => new AllergyConfirmationData(
+            entryVersionId: $this->integer("confirmed_allergies.{$key}.version_id"),
+            detailShown: $this->boolean("confirmed_allergies.{$key}.detail_shown"),
+        ), array_keys($this->array('confirmed_allergies')));
     }
 }

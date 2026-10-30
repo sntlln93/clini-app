@@ -10,7 +10,7 @@ final readonly class PrescriptionDraftData implements Data
 {
     /**
      * @param  list<PrescriptionItemData>  $items
-     * @param  list<AllergyMatchData>  $allergyMatches  confirmed with «Indicar igual» (#362)
+     * @param  list<AllergyConfirmationData>  $confirmedAllergies  sent back with «Indicar igual» (#362)
      */
     public function __construct(
         public int $organizationId,
@@ -18,7 +18,7 @@ final readonly class PrescriptionDraftData implements Data
         public int $patientId,
         public int $membershipId,
         public array $items,
-        public array $allergyMatches,
+        public array $confirmedAllergies,
     ) {}
 
     /**
@@ -32,7 +32,7 @@ final readonly class PrescriptionDraftData implements Data
             'patientId' => $this->patientId,
             'membershipId' => $this->membershipId,
             'items' => array_map(fn (PrescriptionItemData $item) => $item->toArray(), $this->items),
-            'allergyMatches' => array_map(fn (AllergyMatchData $match) => $match->toArray(), $this->allergyMatches),
+            'confirmedAllergies' => array_map(fn (AllergyConfirmationData $confirmation) => $confirmation->toArray(), $this->confirmedAllergies),
         ];
     }
 }
