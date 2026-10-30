@@ -59,6 +59,11 @@ enum ErrorCode: string
     case ClinicalNotesDiagnosisRetired = 'clinical_notes.diagnosis_retired';
     case PrescriptionsAnnulled = 'prescriptions.annulled';
     case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
+    case VitalSignsAnnulled = 'vital_signs.annulled';
+    case VitalSignsAmendmentUnchanged = 'vital_signs.amendment_unchanged';
+    case MedicalHistoryWithdrawn = 'medical_history.withdrawn';
+    case MedicalHistoryAmendmentUnchanged = 'medical_history.amendment_unchanged';
+    case MedicalHistoryBloodTypeUnchanged = 'medical_history.blood_type_unchanged';
     case ClinicalAccessReasonRequired = 'clinical_access.reason_required';
     case ClinicalAccessReasonNotRequired = 'clinical_access.reason_not_required';
     case AuthTwoFactorAlreadyEnabled = 'auth.two_factor_already_enabled';

@@ -90,6 +90,36 @@ class Patient extends Model
     }
 
     /**
+     * Measurements of the patient, of every author: each one keeps its appointment's patient (#360, #361).
+     *
+     * @return HasMany<VitalSign, $this>
+     */
+    public function vitalSigns(): HasMany
+    {
+        return $this->hasMany(VitalSign::class);
+    }
+
+    /**
+     * Every blood type recorded for the patient, of every author; the latest is the current one (#361).
+     *
+     * @return HasMany<BloodTypeRecord, $this>
+     */
+    public function bloodTypeRecords(): HasMany
+    {
+        return $this->hasMany(BloodTypeRecord::class);
+    }
+
+    /**
+     * Allergies and antecedents of the patient, of every author (#361).
+     *
+     * @return HasMany<MedicalHistoryEntry, $this>
+     */
+    public function medicalHistoryEntries(): HasMany
+    {
+        return $this->hasMany(MedicalHistoryEntry::class);
+    }
+
+    /**
      * Every practice's rows: whoever reads them narrows them with `ClinicalAccessLog::visibleTo`.
      *
      * @return HasMany<ClinicalAccessLog, $this>

@@ -5,10 +5,13 @@ declare(strict_types=1);
 use App\Enums\ClinicalAccessAction;
 use App\Http\Resources\ClinicalRecords\ClinicalRecordResource;
 use App\Models\Appointment;
+use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
+use App\Models\MedicalHistoryEntry;
 use App\Models\Patient;
 use App\Models\Prescription;
+use App\Models\VitalSign;
 use App\Support\ClinicalRecordLoader;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
@@ -55,6 +58,36 @@ test('the database rejects a clinical record whose patient isn\'t its appointmen
             'created_at' => now(),
         ]);
     }],
+    'measurement' => [function (Appointment $appointment, Patient $patient): void {
+        DB::table('vital_signs')->insert([
+            'organization_id' => $appointment->organization_id,
+            'appointment_id' => $appointment->id,
+            'patient_id' => $patient->id,
+            'membership_id' => $appointment->membership_id,
+            'measured_at' => now(),
+            'created_at' => now(),
+        ]);
+    }],
+    'blood type' => [function (Appointment $appointment, Patient $patient): void {
+        DB::table('blood_type_records')->insert([
+            'organization_id' => $appointment->organization_id,
+            'appointment_id' => $appointment->id,
+            'patient_id' => $patient->id,
+            'membership_id' => $appointment->membership_id,
+            'blood_type' => 'O+',
+            'created_at' => now(),
+        ]);
+    }],
+    'background entry' => [function (Appointment $appointment, Patient $patient): void {
+        DB::table('medical_history_entries')->insert([
+            'organization_id' => $appointment->organization_id,
+            'appointment_id' => $appointment->id,
+            'patient_id' => $patient->id,
+            'membership_id' => $appointment->membership_id,
+            'category' => 'allergy',
+            'created_at' => now(),
+        ]);
+    }],
     'access log row' => [function (Appointment $appointment, Patient $patient): void {
         DB::table('clinical_access_logs')->insert([
             'organization_id' => $appointment->organization_id,
@@ -78,6 +111,9 @@ test('the database rejects changing the patient of an appointment with clinical 
 })->with([
     'a clinical note' => [fn (Appointment $appointment) => ClinicalNote::factory()->create(['appointment_id' => $appointment->id])],
     'indicated medication' => [fn (Appointment $appointment) => Prescription::factory()->create(['appointment_id' => $appointment->id])],
+    'a measurement' => [fn (Appointment $appointment) => VitalSign::factory()->create(['appointment_id' => $appointment->id])],
+    'a blood type' => [fn (Appointment $appointment) => BloodTypeRecord::factory()->create(['appointment_id' => $appointment->id])],
+    'a background entry' => [fn (Appointment $appointment) => MedicalHistoryEntry::factory()->create(['appointment_id' => $appointment->id])],
 ]);
 
 test('an appointment with only access log rows keeps its patient too', function () {

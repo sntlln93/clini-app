@@ -45,9 +45,9 @@ class ClinicalRecordExportResource extends JsonResource
             ? 'del paciente'
             : 'de todos los pacientes que atendió quien la generó';
 
-        return "Copia de la historia clínica {$patients} en este consultorio: los turnos, las notas clínicas y la "
-            .'medicación indicada de todos sus profesionales, con cada versión, enmienda, diagnóstico y anulación, su '
-            .'autor y su fecha. '
+        return "Copia de la historia clínica {$patients} en este consultorio: los turnos, las notas clínicas, la "
+            .'medicación indicada, las mediciones y los antecedentes de todos sus profesionales, con cada versión, '
+            .'enmienda, diagnóstico, anulación y baja, su autor y su fecha. '
             .'El registro de accesos dice quién leyó, escribió, enmendó, anuló o exportó la historia y cuándo. '
             .'No incluye nada de otros consultorios. '.self::NOT_A_PRESCRIPTION;
     }

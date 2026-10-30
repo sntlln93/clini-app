@@ -6,17 +6,21 @@ use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
 use App\Enums\ClinicalRecordExportFormat;
 use App\Enums\ClinicalRecordExportScope;
+use App\Enums\MedicalHistoryCategory;
 use App\Enums\SubscriptionStatus;
 use App\Models\Appointment;
+use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalRecordExport;
 use App\Models\Icd10Code;
+use App\Models\MedicalHistoryEntry;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
 use App\Models\Prescription;
 use App\Models\Subscription;
+use App\Models\VitalSign;
 use App\Support\ClinicalNoteDiagnoses;
 use App\Support\CurrentOrganization;
 
@@ -131,11 +135,45 @@ test('the attending professional exports the patient history as JSON with every 
         ->and($theirs['clinical_notes'][0]['annulment']['author']['name'])->toBe($colleague->user->name)
         ->and($theirs['prescriptions'])->toHaveCount(1)
         ->and($theirs['prescriptions'][0]['author']['name'])->toBe('Dr. Colega')
-        ->and($record['export']['notice'])->toContain('la medicación indicada de todos sus profesionales');
+        ->and($record['export']['notice'])->toContain('la medicación indicada, las mediciones y los antecedentes de todos sus profesionales');
 
     expect($response->getContent())->not->toContain('Otro Consultorio')
         ->not->toContain('Nota de otro consultorio.')
         ->not->toContain('Dr. De Afuera');
+});
+
+test('the export carries every measurement under its appointment and the background of every author, from this practice only', function () {
+    ['exporter' => $exporter, 'colleague' => $colleague, 'patient' => $patient] = sharedPatientHistory();
+    [$own, $theirs] = Appointment::query()->where('organization_id', $exporter->organization_id)->where('patient_id', $patient->id)->orderBy('start_at')->get()->all();
+
+    $measurement = VitalSign::factory()->create(['appointment_id' => $own->id]);
+    $measurement->versions()->create(['version' => 2, 'membership_id' => $exporter->id, 'weight_kg' => 72, 'height_cm' => 170, 'reason' => 'Balanza mal calibrada.']);
+    $annulled = VitalSign::factory()->create(['appointment_id' => $theirs->id]);
+    $annulled->annulment()->create(['membership_id' => $colleague->id, 'reason' => 'Otro paciente.']);
+    BloodTypeRecord::factory()->create(['appointment_id' => $theirs->id]);
+    $allergy = MedicalHistoryEntry::factory()->create(['appointment_id' => $theirs->id]);
+    $allergy->withdrawal()->create(['membership_id' => $colleague->id, 'reason' => 'Ya no la tiene.']);
+    MedicalHistoryEntry::factory()->create(['appointment_id' => $own->id, 'category' => MedicalHistoryCategory::Family]);
+
+    $outside = Appointment::query()->where('organization_id', '!=', $exporter->organization_id)->where('patient_id', $patient->id)->sole();
+    VitalSign::factory()->create(['appointment_id' => $outside->id]);
+    BloodTypeRecord::factory()->create(['appointment_id' => $outside->id, 'blood_type' => 'AB-']);
+
+    $record = $this->actingAs($exporter->user)->getJson("/api/v1/patients/{$patient->id}/clinical-record?format=json")->assertOk()->json();
+
+    [$ownAppointment, $theirAppointment] = $record['appointments'];
+    expect($ownAppointment['vital_signs'])->toHaveCount(1)
+        ->and(collect($ownAppointment['vital_signs'][0]['versions'])->pluck('values.weight_kg')->all())->toEqual([70.5, 72])
+        ->and($ownAppointment['vital_signs'][0]['versions'][1]['values']['bmi'])->toEqual(24.9)
+        ->and($ownAppointment['vital_signs'][0]['versions'][1]['reason'])->toBe('Balanza mal calibrada.')
+        ->and($theirAppointment['vital_signs'][0]['annulment']['author']['name'])->toBe('Dr. Colega');
+
+    expect($record['blood_types'])->toHaveCount(1)
+        ->and($record['blood_types'][0]['blood_type'])->toBe('O+')
+        ->and($record['blood_types'][0]['author']['name'])->toBe('Dr. Colega')
+        ->and(collect($record['medical_history'])->pluck('category')->all())->toBe(['allergy', 'family'])
+        ->and($record['medical_history'][0]['versions'][0]['description'])->toBe('Penicilina')
+        ->and($record['medical_history'][0]['withdrawal']['reason'])->toBe('Ya no la tiene.');
 });
 
 test('annulled medication stays in the export with every version, its reason, author and date', function () {

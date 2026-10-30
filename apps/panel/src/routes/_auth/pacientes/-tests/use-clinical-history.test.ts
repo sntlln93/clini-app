@@ -1,8 +1,10 @@
 import {
     patientClinicalAccessQueryKey,
     patientClinicalNotesQueryKey,
+    patientMedicalHistoryQueryKey,
     patientPrescriptionsQueryKey,
     patientQueryOptions,
+    patientVitalSignsQueryKey,
 } from '@/hooks/use-patient';
 import { api } from '@/lib/api';
 import { buildClinicalNote } from '@/tests/fixtures/clinical-note';
@@ -21,23 +23,37 @@ const EMPTY_TRAIL = {
     links: { first: null, last: null, prev: null, next: null },
 };
 
+const EMPTY_BACKGROUND = { blood_types: [], entries: [] };
+
 // The notes' list for `/clinical-notes`, the trail's page for
-// `/clinical-access-logs`, an empty list for the medication.
+// `/clinical-access-logs`, an empty background for `/medical-history` and an
+// empty list for the medication and the measurements.
 function answerHistory(note: unknown, trail: unknown = EMPTY_TRAIL) {
     vi.mocked(api.get).mockImplementation((url: string) =>
         Promise.resolve({
             data: url.endsWith('/clinical-access-logs')
                 ? trail
-                : { data: url.endsWith('/clinical-notes') ? [note] : [] },
+                : {
+                      data: url.endsWith('/clinical-notes')
+                          ? [note]
+                          : url.endsWith('/medical-history')
+                            ? EMPTY_BACKGROUND
+                            : [],
+                  },
         }),
     );
 }
 
-// A history already in the cache: no notes, no medication.
+// A history already in the cache: nothing written yet.
 function seededHistory(): QueryClient {
     const queryClient = new QueryClient();
     queryClient.setQueryData(patientClinicalNotesQueryKey(10), []);
     queryClient.setQueryData(patientPrescriptionsQueryKey(10), []);
+    queryClient.setQueryData(patientVitalSignsQueryKey(10), []);
+    queryClient.setQueryData(
+        patientMedicalHistoryQueryKey(10),
+        EMPTY_BACKGROUND,
+    );
 
     return queryClient;
 }
@@ -104,7 +120,7 @@ describe('loadClinicalHistory', () => {
         expect(api.get).not.toHaveBeenCalled();
     });
 
-    it('reads the notes, the medication and then the page of the trail once the history is open', async () => {
+    it('reads the notes, the medication, the measurements, the background and then the page of the trail once the history is open', async () => {
         const note = buildClinicalNote({ id: 3 });
         answerHistory(note);
 
@@ -117,11 +133,15 @@ describe('loadClinicalHistory', () => {
             access: 'open',
             notes: [note],
             prescriptions: [],
+            vitalSigns: [],
+            medicalHistory: EMPTY_BACKGROUND,
             trail: EMPTY_TRAIL,
         });
         expect(api.get).toHaveBeenCalledWith('/patients/10/clinical-notes');
         expect(api.get).toHaveBeenCalledWith('/patients/10/prescriptions');
-        // Last, so it already holds the reads the other two just logged.
+        expect(api.get).toHaveBeenCalledWith('/patients/10/vital-signs');
+        expect(api.get).toHaveBeenCalledWith('/patients/10/medical-history');
+        // Last, so it already holds the reads the others just logged.
         expect(vi.mocked(api.get).mock.calls.at(-1)).toEqual([
             '/patients/10/clinical-access-logs',
             { params: { page: 2 } },
@@ -151,7 +171,7 @@ describe('loadClinicalHistory', () => {
 
     // ADR 0022: the API logs each read it answers (a repeat within
     // READ_REPEAT_MINUTES keeps its first row), so each visit asks again.
-    it('asks for the notes and the medication again on arriving at the page', async () => {
+    it('asks for the whole history again on arriving at the page', async () => {
         const queryClient = seededHistory();
         answerHistory(buildClinicalNote({ id: 3 }));
 
@@ -162,6 +182,8 @@ describe('loadClinicalHistory', () => {
 
         expect(api.get).toHaveBeenCalledWith('/patients/10/clinical-notes');
         expect(api.get).toHaveBeenCalledWith('/patients/10/prescriptions');
+        expect(api.get).toHaveBeenCalledWith('/patients/10/vital-signs');
+        expect(api.get).toHaveBeenCalledWith('/patients/10/medical-history');
     });
 
     // Paging the trail would otherwise push new reads onto the page it pages.
@@ -174,7 +196,12 @@ describe('loadClinicalHistory', () => {
                 trailPage: 2,
                 fresh: false,
             }),
-        ).resolves.toMatchObject({ notes: [], prescriptions: [] });
+        ).resolves.toMatchObject({
+            notes: [],
+            prescriptions: [],
+            vitalSigns: [],
+            medicalHistory: EMPTY_BACKGROUND,
+        });
         expect(vi.mocked(api.get).mock.calls).toEqual([
             ['/patients/10/clinical-access-logs', { params: { page: 2 } }],
         ]);

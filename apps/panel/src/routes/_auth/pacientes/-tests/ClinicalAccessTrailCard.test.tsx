@@ -18,6 +18,9 @@ function buildEntry(
         appointment: null,
         clinical_note_id: null,
         prescription_id: null,
+        vital_sign_id: null,
+        blood_type_record_id: null,
+        medical_history_entry_id: null,
         export: null,
         ...overrides,
     };

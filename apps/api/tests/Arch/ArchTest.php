@@ -7,16 +7,23 @@ use App\Contracts\Data;
 use App\Contracts\DomainError;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
+use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use App\Models\ClinicalRecordExport;
+use App\Models\MedicalHistoryEntry;
+use App\Models\MedicalHistoryEntryVersion;
+use App\Models\MedicalHistoryEntryWithdrawal;
 use App\Models\Prescription;
 use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
+use App\Models\VitalSign;
+use App\Models\VitalSignAnnulment;
+use App\Models\VitalSignVersion;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Http\FormRequest;
@@ -342,6 +349,13 @@ arch('clinical history models are never soft-deleted')
         PrescriptionVersion::class,
         PrescriptionItem::class,
         PrescriptionAnnulment::class,
+        VitalSign::class,
+        VitalSignVersion::class,
+        VitalSignAnnulment::class,
+        BloodTypeRecord::class,
+        MedicalHistoryEntry::class,
+        MedicalHistoryEntryVersion::class,
+        MedicalHistoryEntryWithdrawal::class,
         ClinicalRecordExport::class,
         ClinicalAccessLog::class,
     ])
@@ -349,7 +363,13 @@ arch('clinical history models are never soft-deleted')
 
 // Issue #323, ADR 0019: no clinical history controller may edit or delete. Nor may the access log's (#325, ADR 0022).
 arch('clinical history controllers only read and add')
-    ->expect(['App\Http\Controllers\ClinicalNotes', 'App\Http\Controllers\Prescriptions', 'App\Http\Controllers\ClinicalAccess'])
+    ->expect([
+        'App\Http\Controllers\ClinicalNotes',
+        'App\Http\Controllers\Prescriptions',
+        'App\Http\Controllers\VitalSigns',
+        'App\Http\Controllers\MedicalHistory',
+        'App\Http\Controllers\ClinicalAccess',
+    ])
     ->not->toHaveMethods(['update', 'destroy']);
 
 // Issue #325, ADR 0022: platform operators never reach the clinical history, nor its access log. Their code touches
@@ -365,6 +385,13 @@ arch('platform operator code never reaches the clinical history')
         PrescriptionVersion::class,
         PrescriptionItem::class,
         PrescriptionAnnulment::class,
+        VitalSign::class,
+        VitalSignVersion::class,
+        VitalSignAnnulment::class,
+        BloodTypeRecord::class,
+        MedicalHistoryEntry::class,
+        MedicalHistoryEntryVersion::class,
+        MedicalHistoryEntryWithdrawal::class,
         ClinicalRecordExport::class,
         ClinicalAccessLog::class,
     ]);

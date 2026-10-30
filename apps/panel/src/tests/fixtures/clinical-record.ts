@@ -1,9 +1,26 @@
 import type { ClinicalRecordDocument } from '@/types/clinical-record';
+import type { VitalSignValues } from '@/types/vital-sign';
+
+const NO_VALUES: VitalSignValues = {
+    weight_kg: null,
+    height_cm: null,
+    bmi: null,
+    head_circumference_cm: null,
+    waist_circumference_cm: null,
+    systolic_mmhg: null,
+    diastolic_mmhg: null,
+    capillary_glucose_mg_dl: null,
+    heart_rate_bpm: null,
+    respiratory_rate_rpm: null,
+    temperature_c: null,
+    oxygen_saturation_pct: null,
+};
 
 // One patient's export as the API answers it: an amended note with a
 // diagnosis, a colleague's annulled note, the exporter's annulled medication,
-// the colleague's medication (#359) and a trail with an exceptional access and
-// the export itself.
+// the colleague's medication (#359), an amended measurement, the colleague's
+// blood type and withdrawn allergy (#361), and a trail with an exceptional
+// access and the export itself.
 export function buildClinicalRecord(
     overrides: Partial<ClinicalRecordDocument> = {},
 ): ClinicalRecordDocument {
@@ -101,6 +118,40 @@ export function buildClinicalRecord(
                         ],
                     },
                 ],
+                vital_signs: [
+                    {
+                        id: 41,
+                        author: exporter,
+                        measured_at: '2026-09-01T13:10:00Z',
+                        annulment: null,
+                        versions: [
+                            {
+                                version: 1,
+                                author: exporter,
+                                created_at: '2026-09-01T13:10:00Z',
+                                reason: null,
+                                values: {
+                                    ...NO_VALUES,
+                                    weight_kg: 80,
+                                    height_cm: 180,
+                                    bmi: 24.7,
+                                },
+                            },
+                            {
+                                version: 2,
+                                author: exporter,
+                                created_at: '2026-09-01T13:20:00Z',
+                                reason: 'Balanza mal calibrada.',
+                                values: {
+                                    ...NO_VALUES,
+                                    weight_kg: 78.5,
+                                    height_cm: 180,
+                                    bmi: 24.2,
+                                },
+                            },
+                        ],
+                    },
+                ],
             },
             {
                 id: 2,
@@ -159,6 +210,43 @@ export function buildClinicalRecord(
                         ],
                     },
                 ],
+                vital_signs: [],
+            },
+        ],
+        blood_types: [
+            {
+                id: 51,
+                appointment_id: 2,
+                author: colleague,
+                created_at: '2026-09-10T15:25:00Z',
+                blood_type: 'O+',
+                reason: null,
+            },
+        ],
+        medical_history: [
+            {
+                id: 61,
+                appointment_id: 2,
+                category: 'allergy',
+                author: colleague,
+                created_at: '2026-09-10T15:26:00Z',
+                withdrawal: {
+                    author: colleague,
+                    reason: 'Ya no la tiene.',
+                    created_at: '2026-09-10T15:40:00Z',
+                },
+                versions: [
+                    {
+                        version: 1,
+                        author: colleague,
+                        created_at: '2026-09-10T15:26:00Z',
+                        reason: null,
+                        description: 'Penicilina',
+                        reaction: 'Urticaria',
+                        severity: 'severe',
+                        approximate_date: null,
+                    },
+                ],
             },
         ],
         access_log: [
@@ -171,6 +259,9 @@ export function buildClinicalRecord(
                 appointment: null,
                 clinical_note_id: null,
                 prescription_id: null,
+                vital_sign_id: null,
+                blood_type_record_id: null,
+                medical_history_entry_id: null,
                 export: null,
             },
             {
@@ -182,6 +273,9 @@ export function buildClinicalRecord(
                 appointment: null,
                 clinical_note_id: null,
                 prescription_id: null,
+                vital_sign_id: null,
+                blood_type_record_id: null,
+                medical_history_entry_id: null,
                 export: { id: 9, scope: 'patient', format: 'pdf' },
             },
         ],

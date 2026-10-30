@@ -30,3 +30,13 @@ export function patientClinicalAccessQueryKey(patientId: number) {
 export function patientPrescriptionsQueryKey(patientId: number) {
     return ['prescriptions', 'patient', patientId];
 }
+
+// The measurements and the background (#361), both read only by the patient
+// page's loader, under the patient's key.
+export function patientVitalSignsQueryKey(patientId: number) {
+    return ['patients', patientId, 'vital-signs'];
+}
+
+export function patientMedicalHistoryQueryKey(patientId: number) {
+    return ['patients', patientId, 'medical-history'];
+}

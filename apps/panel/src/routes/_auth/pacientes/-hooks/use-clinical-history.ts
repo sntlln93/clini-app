@@ -1,7 +1,9 @@
 import {
     patientClinicalNotesQueryKey,
+    patientMedicalHistoryQueryKey,
     patientPrescriptionsQueryKey,
     patientQueryOptions,
+    patientVitalSignsQueryKey,
 } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
@@ -14,9 +16,11 @@ import {
 import { discardPageData } from '@/lib/page-data';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
 import type { ClinicalNote } from '@/types/clinical-note';
+import type { MedicalHistory } from '@/types/medical-history';
 import type { Paginated } from '@/types/pagination';
 import type { PatientDetail } from '@/types/patient';
 import type { Prescription } from '@/types/prescription';
+import type { VitalSign } from '@/types/vital-sign';
 import {
     useMutation,
     useQueryClient,
@@ -26,7 +30,9 @@ import {
 } from '@tanstack/react-query';
 import { loadClinicalAccessTrail } from './use-clinical-access-trail';
 import { patientClinicalNotesQueryOptions } from './use-patient-clinical-notes';
+import { patientMedicalHistoryQueryOptions } from './use-patient-medical-history';
 import { patientPrescriptionsQueryOptions } from './use-patient-prescriptions';
+import { patientVitalSignsQueryOptions } from './use-patient-vital-signs';
 
 // What the patient page shows of the clinical history (#325): nothing when the
 // acting membership may not read it, a request for the reason when it has no
@@ -39,6 +45,8 @@ export type ClinicalHistory =
           access: 'open';
           notes: ClinicalNote[];
           prescriptions: Prescription[];
+          vitalSigns: VitalSign[];
+          medicalHistory: MedicalHistory;
           trail: Paginated<ClinicalAccessTrailEntry>;
       };
 
@@ -49,7 +57,8 @@ export type ClinicalHistory =
 //
 // Every read the API answers is logged (ADR 0022), unless the same membership
 // made the same read within the last 15 minutes (READ_REPEAT_MINUTES). So
-// arriving at the page (`fresh`) asks for the notes and the medication again
+// arriving at the page (`fresh`) asks for the notes, the medication, the
+// measurements and the background again
 // instead of showing a cached copy: each visit past that span leaves its read. Paging the trail or reloading after
 // a mutation reuses them, so paging doesn't push new reads onto the trail it
 // pages. The trail comes last, so it already holds the reads just logged.
@@ -67,25 +76,43 @@ export async function loadClinicalHistory(
     }
 
     try {
-        const [notes, prescriptions] = await Promise.all([
-            readHistory(
-                queryClient,
-                patientClinicalNotesQueryOptions(patient.id),
-                fresh,
-            ),
-            readHistory(
-                queryClient,
-                patientPrescriptionsQueryOptions(patient.id),
-                fresh,
-            ),
-        ]);
+        const [notes, prescriptions, vitalSigns, medicalHistory] =
+            await Promise.all([
+                readHistory(
+                    queryClient,
+                    patientClinicalNotesQueryOptions(patient.id),
+                    fresh,
+                ),
+                readHistory(
+                    queryClient,
+                    patientPrescriptionsQueryOptions(patient.id),
+                    fresh,
+                ),
+                readHistory(
+                    queryClient,
+                    patientVitalSignsQueryOptions(patient.id),
+                    fresh,
+                ),
+                readHistory(
+                    queryClient,
+                    patientMedicalHistoryQueryOptions(patient.id),
+                    fresh,
+                ),
+            ]);
         const trail = await loadClinicalAccessTrail(
             queryClient,
             patient.id,
             trailPage,
         );
 
-        return { access: 'open', notes, prescriptions, trail };
+        return {
+            access: 'open',
+            notes,
+            prescriptions,
+            vitalSigns,
+            medicalHistory,
+            trail,
+        };
     } catch (error) {
         const appError = mapToAppError(error);
 
@@ -133,6 +160,8 @@ export function useDeclareExceptionalAccess(patientId: number) {
             patientQueryOptions(patientId).queryKey,
             patientClinicalNotesQueryKey(patientId),
             patientPrescriptionsQueryKey(patientId),
+            patientVitalSignsQueryKey(patientId),
+            patientMedicalHistoryQueryKey(patientId),
         );
 
     return useMutation({

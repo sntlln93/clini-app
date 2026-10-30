@@ -1,19 +1,23 @@
 import { STATUS_TONES } from '@/lib/appointment-status';
 import { cn } from '@/lib/utils';
 
-export type ClinicalRecordStatus = 'annulled' | 'amended';
+export type ClinicalRecordStatus = 'annulled' | 'amended' | 'withdrawn';
 
 const LABELS: Record<ClinicalRecordStatus, string> = {
     annulled: 'Anulada',
     amended: 'Enmendada',
+    // A background entry that no longer applies (#361): not a mistake, so
+    // not the annulled red.
+    withdrawn: 'Ya no vigente',
 };
 
 // A clinical record's state reads in the agenda's colors, so the history
 // speaks the same palette as the appointments it hangs from: annulled is the
-// no-show red, amended the confirmed teal.
+// no-show red, amended the confirmed teal, withdrawn the scheduled gray.
 const TONES = {
     annulled: STATUS_TONES.no_show,
     amended: STATUS_TONES.confirmed,
+    withdrawn: STATUS_TONES.scheduled,
 } satisfies Record<ClinicalRecordStatus, unknown>;
 
 type ClinicalRecordStatusChipProps = {

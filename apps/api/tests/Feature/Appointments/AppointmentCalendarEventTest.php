@@ -81,5 +81,6 @@ test('the uid is opaque, stable for an appointment and distinct between appointm
     expect($calendar->uidOf($first))->toMatch('/^[0-9a-f]{32}@'.preg_quote((string) $host, '/').'$/')
         ->toBe($calendar->uidOf($first->fresh()))
         ->not->toBe($calendar->uidOf($second))
-        ->not->toContain((string) $first->id.'@');
+        // The hash may end in the id's digits by chance; the format above already keeps the id out.
+        ->not->toBe($first->id.'@'.$host);
 });
