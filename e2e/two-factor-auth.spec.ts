@@ -113,8 +113,10 @@ test('a user turns two-factor authentication on from Ajustes and off again', asy
     await expect(
         dialog.getByRole('list', { name: 'Códigos de recuperación' }),
     ).toBeVisible();
-    await expect(section.getByText('Activada')).toBeVisible();
+    // The modal hides the page from the accessibility tree: the section is
+    // only reachable by its heading once the dialog closes.
     await dialog.getByRole('button', { name: 'Listo' }).click();
+    await expect(section.getByText('Activada')).toBeVisible();
 
     await turnOff(page);
 });
