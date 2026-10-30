@@ -15,6 +15,15 @@ type PrescriptionEntryProps = {
     actions?: ReactNode;
 };
 
+// Its professional confirmed an allergy warning to indicate it (#362).
+function AllergyWarningNote() {
+    return (
+        <p className="mt-1 text-xs text-muted-foreground">
+            Indicada pese a un aviso de alergia.
+        </p>
+    );
+}
+
 // One indicated-medication record as the clinical history keeps it (#323):
 // the current items and every earlier version. Annulled medication says when
 // and why, with its items behind a disclosure, as an annulled note's text
@@ -48,12 +57,22 @@ export function PrescriptionEntry({
                     </details>
                 </div>
             ) : (
-                children
+                <>
+                    {children}
+                    {prescription.allergy_warning_overridden && (
+                        <AllergyWarningNote />
+                    )}
+                </>
             )}
             <VersionHistory
                 versions={prescription.versions}
                 renderContent={(version) => (
-                    <PrescriptionItemList items={version.items} />
+                    <>
+                        <PrescriptionItemList items={version.items} />
+                        {version.allergy_warning_overridden && (
+                            <AllergyWarningNote />
+                        )}
+                    </>
                 )}
             />
             <div className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">

@@ -30,6 +30,15 @@ class MedicalHistoryEntryPolicy
         return $this->isAppointmentOwner($user, $appointment);
     }
 
+    /**
+     * The current allergies above the form that indicates medication (#362), which only the appointment's professional
+     * fills in.
+     */
+    public function viewCurrentAllergies(User $user, Appointment $appointment): bool
+    {
+        return $this->isAppointmentOwner($user, $appointment);
+    }
+
     public function amend(User $user, MedicalHistoryEntry $entry): bool
     {
         return $this->actsAs($user, $entry->organization_id, $entry->membership_id);

@@ -35,6 +35,7 @@ class PrescriptionAmendmentController extends Controller
             membershipId: $membership->id,
             items: $request->prescriptionItems(),
             reason: $request->reason(),
+            confirmedAllergies: $request->confirmedAllergies(),
         ));
 
         return (new PrescriptionResource($amended->load(PrescriptionController::RELATIONS)))

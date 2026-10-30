@@ -80,6 +80,7 @@ class ClinicalRecordLoader
             'prescriptions.author.user',
             'prescriptions.versions.author.user',
             'prescriptions.versions.items',
+            'prescriptions.versions.allergyWarnings',
             'prescriptions.annulment.author.user',
             'vitalSigns' => fn ($query) => $query
                 ->where('organization_id', $organizationId)

@@ -40,6 +40,6 @@ Hasta ahora la historia clínica era de cada organización: todo profesional que
 
 - Cambia la regla de #359: quien lee la historia ya no lee automáticamente la de sus colegas. CLAUDE.md, CU-45, CU-53, CU-54 y CU-55 lo dicen.
 - La lectura entre organizaciones con el código, y la historia que sigue al paciente entre consultorios, quedan para un issue propio.
-- #362 (aviso de alergias) y #363 (curvas de crecimiento) usan lo de otros profesionales solo si se canjeó el código, con `readableBy`.
+- #362 (aviso de alergias) y #363 (curvas de crecimiento) usan lo de otros profesionales solo si se canjeó el código, con `readableBy`. El aviso de alergias precisa esto ([ADR 0030](0030-aviso-de-alergias-al-indicar-medicacion.md)): una alergia de otro profesional sin el código también avisa, pero sin decir cuál.
 - Un paciente sin email confirmado ve el código en `/turno/<token>`, pero ese link le llega por el recordatorio, que también va por email. Hasta que haya SMS o WhatsApp (fuera de alcance), la recepción le agrega un email en su ficha y reenvía el código.
 - El seeder borra los códigos de las organizaciones de prueba antes que los turnos. No es un registro clínico: el canje lo actualiza, así que no lleva el trigger de solo agregado.

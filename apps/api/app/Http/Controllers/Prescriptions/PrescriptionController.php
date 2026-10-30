@@ -27,7 +27,7 @@ class PrescriptionController extends Controller
     /**
      * Everything PrescriptionResource renders, so it never lazy-loads.
      */
-    public const array RELATIONS = ['versions.items', 'annulment'];
+    public const array RELATIONS = ['versions.items', 'versions.allergyWarnings', 'annulment'];
 
     public function index(Request $request, Appointment $appointment, ReadPatientHistoryAction $read): AnonymousResourceCollection
     {
@@ -106,6 +106,7 @@ class PrescriptionController extends Controller
             patientId: $appointment->patient_id,
             membershipId: $membership->id,
             items: $request->prescriptionItems(),
+            confirmedAllergies: $request->confirmedAllergies(),
         ));
 
         return (new PrescriptionResource($prescription->load(self::RELATIONS)))

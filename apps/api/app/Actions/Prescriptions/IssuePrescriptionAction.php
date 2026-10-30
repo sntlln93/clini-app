@@ -8,6 +8,8 @@ use App\Actions\ClinicalAccess\RecordClinicalAccessAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\ClinicalAccess\ClinicalAccessEntryData;
+use App\Data\Prescriptions\AllergyWarningOverrideData;
+use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\Prescription;
@@ -15,7 +17,9 @@ use Illuminate\Support\Facades\DB;
 
 /**
  * The items are the record's version 1 (ADR 0019), and the access log records
- * who indicated them (#325).
+ * who indicated them (#325). Medication that matches current allergies of the
+ * patient is indicated only once the warning is confirmed, which the access log
+ * and the version keep too (#362).
  *
  * @implements Action<PrescriptionDraftData>
  */
@@ -23,6 +27,8 @@ class IssuePrescriptionAction implements Action
 {
     public function __construct(
         private readonly RecordClinicalAccessAction $record,
+        private readonly ScreenMedicationForAllergiesAction $screen,
+        private readonly RecordAllergyWarningOverrideAction $recordOverride,
     ) {}
 
     /**
@@ -30,7 +36,16 @@ class IssuePrescriptionAction implements Action
      */
     public function handle(Data $dto): Prescription
     {
-        return DB::transaction(function () use ($dto): Prescription {
+        $allergyMatches = $this->screen->handle(new MedicationAllergyScreeningData(
+            organizationId: $dto->organizationId,
+            membershipId: $dto->membershipId,
+            patientId: $dto->patientId,
+            appointmentId: $dto->appointmentId,
+            items: $dto->items,
+            confirmedAllergies: $dto->confirmedAllergies,
+        ));
+
+        return DB::transaction(function () use ($dto, $allergyMatches): Prescription {
             $prescription = Prescription::create([
                 'organization_id' => $dto->organizationId,
                 'appointment_id' => $dto->appointmentId,
@@ -55,6 +70,16 @@ class IssuePrescriptionAction implements Action
                 action: ClinicalAccessAction::PrescriptionIssued,
                 appointmentId: $prescription->appointment_id,
                 prescriptionId: $prescription->id,
+            ));
+
+            $this->recordOverride->handle(new AllergyWarningOverrideData(
+                organizationId: $prescription->organization_id,
+                membershipId: $dto->membershipId,
+                patientId: $prescription->patient_id,
+                appointmentId: $prescription->appointment_id,
+                prescriptionId: $prescription->id,
+                prescriptionVersionId: $version->id,
+                matches: $allergyMatches,
             ));
 
             return $prescription;

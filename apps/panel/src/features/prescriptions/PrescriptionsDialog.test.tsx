@@ -5,6 +5,7 @@ import { buildPlan } from '@/tests/fixtures/plan';
 import { AMOXICILLIN, buildPrescription } from '@/tests/fixtures/prescription';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Appointment } from '@/types/appointment';
+import type { MedicalHistoryEntry } from '@/types/medical-history';
 import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -77,6 +78,31 @@ function renderDialog(
     render(<RouterProvider router={router} />);
 }
 
+// The medication of the appointment answers `prescriptions`; the patient's
+// current allergies, above the form (#362), answer `allergies`.
+let allergies: MedicalHistoryEntry[] = [];
+
+function mockGets(prescriptions: unknown) {
+    vi.mocked(api.get).mockImplementation((url: string) =>
+        Promise.resolve(
+            url.endsWith('/allergies')
+                ? {
+                      data: {
+                          data: allergies,
+                          meta: { reason_required: false },
+                      },
+                  }
+                : prescriptions,
+        ),
+    );
+}
+
+function prescriptionGets() {
+    return vi
+        .mocked(api.get)
+        .mock.calls.filter(([url]) => url === '/appointments/42/prescriptions');
+}
+
 function fillItem(index: number, medication: string, dosage: string) {
     fireEvent.change(screen.getAllByLabelText('Medicamento')[index], {
         target: { value: medication },
@@ -89,12 +115,13 @@ function fillItem(index: number, medication: string, dosage: string) {
 describe('PrescriptionsDialog', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
+        allergies = [];
         vi.mocked(api.post).mockReset();
     });
 
     // Nothing prints the record anymore (#319).
     it("lists the appointment's indicated medication, with no print link", async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [buildPrescription()] },
         });
         renderDialog();
@@ -108,7 +135,7 @@ describe('PrescriptionsDialog', () => {
     // #359: the medication is part of the history every attending
     // professional reads, so the dialog never promises otherwise.
     it('says the medication goes into the clinical history the attending professionals read', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         renderDialog();
 
         expect(
@@ -126,7 +153,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('starts with one item row that cannot be removed, and adds/removes rows', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         renderDialog();
 
         await screen.findByText(
@@ -152,11 +179,11 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('recording posts every item, with no diagnosis, then refetches the list', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         renderDialog();
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(1));
 
         expect(screen.queryByLabelText(/Diagnóstico/)).toBeNull();
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
@@ -195,14 +222,14 @@ describe('PrescriptionsDialog', () => {
                 },
             ),
         );
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(2));
     });
 
     it('does not submit an item without medication or dosage', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         renderDialog();
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(1));
 
         fireEvent.click(
             screen.getByRole('button', { name: 'Registrar medicación' }),
@@ -214,10 +241,10 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('does not submit a quantity lower than 1', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         renderDialog();
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(1));
 
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
         fireEvent.change(screen.getByLabelText('Cantidad'), {
@@ -232,7 +259,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('shows a server validation error inline on the offending item field', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         vi.mocked(api.post).mockRejectedValueOnce({
             isAxiosError: true,
             response: {
@@ -247,7 +274,7 @@ describe('PrescriptionsDialog', () => {
         });
         renderDialog();
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(1));
 
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
         fireEvent.click(
@@ -258,7 +285,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('amending prefills the form and posts the corrected items and the reason as an amendment', async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [buildPrescription({ id: 7 })] },
         });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
@@ -302,7 +329,7 @@ describe('PrescriptionsDialog', () => {
 
     it('an amended record lists every version with its reason', async () => {
         const cefalexin = { ...AMOXICILLIN, id: 2, medication: 'Cefalexina' };
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: {
                 data: [
                     buildPrescription({
@@ -315,12 +342,14 @@ describe('PrescriptionsDialog', () => {
                                 reason: null,
                                 created_at: '2026-08-03T10:15:00Z',
                                 items: [AMOXICILLIN],
+                                allergy_warning_overridden: false,
                             },
                             {
                                 version: 2,
                                 reason: 'Alergia a la penicilina.',
                                 created_at: '2026-08-03T11:00:00Z',
                                 items: [cefalexin],
+                                allergy_warning_overridden: false,
                             },
                         ],
                     }),
@@ -340,7 +369,7 @@ describe('PrescriptionsDialog', () => {
     it.each(['expired'] as const)(
         'while the subscription is %s it keeps the list but hides the form and the amend and annul actions',
         async (status) => {
-            vi.mocked(api.get).mockResolvedValue({
+            mockGets({
                 data: { data: [buildPrescription()] },
             });
             renderDialog(true, buildSubscription(status));
@@ -358,7 +387,7 @@ describe('PrescriptionsDialog', () => {
     );
 
     it("on a plan without prescriptions it keeps the list, explains why it can't record them and hides the form", async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [buildPrescription()] },
         });
         renderDialog(true, undefined, buildPlan('free'));
@@ -382,7 +411,7 @@ describe('PrescriptionsDialog', () => {
     // The patient page's «Enmendar»: straight on that record, no new one.
     it('amendOnOpen opens on amending that record, and saving calls onSaved and leaves no new-record form', async () => {
         const prescription = buildPrescription({ id: 7 });
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [prescription] },
         });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
@@ -416,7 +445,7 @@ describe('PrescriptionsDialog', () => {
 
     it('without allowCreate, cancelling the amendment leaves no new-record form', async () => {
         const prescription = buildPrescription({ id: 7 });
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [prescription] },
         });
         renderDialog(true, undefined, undefined, {
@@ -436,7 +465,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('annulling asks for a reason, then posts it and refetches the list (#344)', async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [buildPrescription({ id: 7 })] },
         });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
@@ -468,7 +497,7 @@ describe('PrescriptionsDialog', () => {
                 },
             ),
         );
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(2));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(2));
         await waitFor(() => expect(onSaved).toHaveBeenCalledTimes(1));
         await waitFor(() =>
             expect(
@@ -478,7 +507,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('shows why an annulment was rejected inside its dialog', async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: { data: [buildPrescription({ id: 7 })] },
         });
         vi.mocked(api.post).mockRejectedValueOnce({
@@ -508,7 +537,7 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('an annulled record says when and why, keeps its items behind a disclosure, and offers neither amending nor annulling it', async () => {
-        vi.mocked(api.get).mockResolvedValue({
+        mockGets({
             data: {
                 data: [
                     buildPrescription({
@@ -530,12 +559,12 @@ describe('PrescriptionsDialog', () => {
     });
 
     it('a new record calls onSaved too', async () => {
-        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        mockGets({ data: { data: [] } });
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         const onSaved = vi.fn();
         renderDialog(true, undefined, undefined, { onSaved });
 
-        await waitFor(() => expect(api.get).toHaveBeenCalledTimes(1));
+        await waitFor(() => expect(prescriptionGets()).toHaveLength(1));
         fillItem(0, 'Amoxicilina', '1 cada 8 h');
         fireEvent.click(
             screen.getByRole('button', { name: 'Registrar medicación' }),
