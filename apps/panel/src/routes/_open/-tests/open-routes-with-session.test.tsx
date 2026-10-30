@@ -43,6 +43,7 @@ function renderWithSession(path: string) {
         id: 1,
         name: 'Beto Recepción',
         email: 'beto@clini.app',
+        two_factor_enabled: false,
     });
 
     const rootRoute = createRootRouteWithContext<{

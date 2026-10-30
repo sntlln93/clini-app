@@ -18,7 +18,8 @@ import { OrganizationBookingSettings } from './-components/OrganizationBookingSe
 import { ProfessionalServicesSection } from './-components/ProfessionalServicesSection';
 import { ProfessionalSpecialtiesSection } from './-components/ProfessionalSpecialtiesSection';
 import { SubscriptionSection } from './-components/SubscriptionSection';
-import { ThemeToggle } from './-components/ThemeToggle';
+import { ThemeSection } from './-components/ThemeSection';
+import { TwoFactorSection } from './-components/TwoFactorSection';
 import { loadOrganizationSettings } from './-hooks/load-organization-settings';
 import { loadProfessionalAssignments } from './-hooks/load-professional-assignments';
 import { ownMemberships } from './-hooks/own-memberships';
@@ -101,6 +102,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
 
         return {
             userId: session.id,
+            twoFactorEnabled: session.two_factor_enabled,
             hasOrganization: Boolean(session.membership),
             subscription,
             plan,
@@ -124,6 +126,7 @@ export const Route = createFileRoute('/_auth/ajustes/')({
 function AjustesPage() {
     const {
         userId,
+        twoFactorEnabled,
         hasOrganization,
         subscription: loaderSubscription,
         plan: loaderPlan,
@@ -159,21 +162,15 @@ function AjustesPage() {
             <header className="space-y-1">
                 <h1 className="text-2xl tracking-tight">Ajustes</h1>
                 <p className="text-sm text-muted-foreground">
-                    Personalizá la apariencia del panel y las asignaciones del
-                    consultorio.
+                    Personalizá la apariencia del panel, la seguridad de tu
+                    cuenta y las asignaciones del consultorio.
                 </p>
             </header>
 
-            <section className="space-y-3">
-                <div className="space-y-1">
-                    <h2 className="text-sm font-medium">Tema</h2>
-                    <p className="text-sm text-muted-foreground">
-                        Elegí cómo se ve el panel. «Sistema» sigue la
-                        preferencia de tu dispositivo.
-                    </p>
-                </div>
-                <ThemeToggle />
-            </section>
+            <ThemeSection />
+
+            <Separator />
+            <TwoFactorSection enabled={twoFactorEnabled} />
 
             {hasOrganization && (
                 <>

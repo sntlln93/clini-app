@@ -13,6 +13,7 @@ const user: SessionUser = {
     id: 1,
     name: 'Ana Ejemplo',
     email: 'ana@clini.app',
+    two_factor_enabled: false,
 };
 const unauthorized = { isAxiosError: true, response: { status: 401 } };
 

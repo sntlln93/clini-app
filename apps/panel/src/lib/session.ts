@@ -6,6 +6,8 @@ export type SessionUser = {
     id: number;
     name: string;
     email: string;
+    /** The account's own TOTP second factor (#357) is on. */
+    two_factor_enabled: boolean;
     // Additive over the original flat /me payload: absent for a user with
     // no active membership in any organization.
     organization?: {

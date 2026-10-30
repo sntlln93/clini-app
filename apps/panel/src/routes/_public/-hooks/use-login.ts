@@ -9,17 +9,35 @@ type LoginPayload = {
     password: string;
 };
 
-export function useLogin(redirectTo?: string) {
+/** The password matched, but the account asks for its second factor (#357): nothing is signed in yet. */
+type TwoFactorPending = { two_factor: true };
+
+type LoginResponse = SessionUser | TwoFactorPending;
+
+function isTwoFactorPending(data: LoginResponse): data is TwoFactorPending {
+    return 'two_factor' in data && data.two_factor === true;
+}
+
+export function useLogin(
+    redirectTo?: string,
+    onTwoFactorRequired?: () => void,
+) {
     const finishLogin = useFinishLogin(redirectTo);
 
     const mutation = useMutation({
         mutationFn: (payload: LoginPayload) =>
             refreshCsrfCookie().then(() =>
                 api
-                    .post<SessionUser>('/login', payload)
+                    .post<LoginResponse>('/login', payload)
                     .then((response) => response.data),
             ),
-        onSuccess: finishLogin,
+        onSuccess: (data) => {
+            if (isTwoFactorPending(data)) {
+                onTwoFactorRequired?.();
+            } else {
+                finishLogin(data);
+            }
+        },
     });
 
     const { message, errors } = mutation.error
