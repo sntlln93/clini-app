@@ -559,11 +559,11 @@ Convenciones:
     autor** y una **organización**, y además guarda el paciente del turno.
   - Solo el **profesional autor** lo crea, enmienda y anula — nunca dueño/admin/staff ni otro
     profesional de la misma organización.
-  - Es parte de la historia clínica, con la misma regla de lectura que las notas (#359): lo ve,
-    con su autor, en la ficha, en el registro de accesos y en la exportación, todo profesional
-    que puede leer la historia del paciente (misma relación, ventana y acceso excepcional que
-    las notas, CU-45 y CU-55), nunca dueño/admin/staff por su rol. Leerlo no da derecho a
-    modificarlo.
+  - Es parte de la historia clínica, con la misma regla de lectura que las notas (#359, #364):
+    su autor lo ve siempre que puede leer la historia del paciente (misma relación, ventana y
+    acceso excepcional que las notas, CU-45 y CU-55), y otro profesional, con su autor, solo con
+    el código que el paciente le comparte ([ADR 0029](../adr/0029-la-historia-clinica-es-del-paciente-acceso-con-codigo.md)),
+    nunca dueño/admin/staff por su rol. Leerlo no da derecho a modificarlo.
   - **No se edita ni se borra** ([ADR 0019](../adr/0019-historia-clinica-de-solo-agregado.md)):
     una enmienda agrega una versión con la lista completa de ítems y un motivo opcional,
     conserva las anteriores y la fecha de registro.
@@ -587,9 +587,10 @@ Convenciones:
 - **Invariantes**:
   - Solo exporta quien atendió al paciente en esa organización (turno o nota propia), nunca
     por rol. La exportación del consultorio entero por el dueño espera #315.
-  - Contiene lo que quien exporta ya puede leer: los turnos y las notas de todos los
-    profesionales del consultorio, con cada versión, diagnóstico, anulación, autor y fecha, y
-    la medicación indicada de todos ellos, igual (CU-53, #359). Nada de otras organizaciones.
+  - Contiene exactamente lo que quien exporta puede leer: los turnos del consultorio, sus
+    propios registros y los de otros profesionales que el paciente le abrió con su código
+    (CU-56), con cada versión, diagnóstico, anulación, autor y fecha. Nada de otras
+    organizaciones.
   - Incluye el registro de accesos del paciente en el consultorio, igual que en la ficha
     (CU-55).
   - Cada exportación queda registrada, de solo agregado, antes de generarse, y deja su fila
@@ -615,7 +616,27 @@ Convenciones:
     para recibir un 403.
   - Quien puede leer la historia ve, debajo de ella, quién la leyó, escribió, enmendó, anuló
     o exportó y cuándo, sin el texto de los motivos. Incluye lo que otros profesionales hicieron
-    con la medicación que indicaron (#359). La exportación lleva lo mismo.
+    con la medicación que indicaron (#359) y la emisión, el envío, el reenvío y el canje del
+    código del paciente (CU-56). La exportación lleva lo mismo.
+
+### CU-56 · Código del paciente para su historia clínica *(issue #364)*
+
+- **Actor**: paciente que decide si quien lo atiende lee lo que registraron otros
+  profesionales; profesional que lo atiende; recepción que le reenvía el código.
+- **Decisión** ([ADR 0029](../adr/0029-la-historia-clinica-es-del-paciente-acceso-con-codigo.md)):
+  la historia clínica es del paciente. Cada profesional lee lo suyo; lo de otro, incluso del
+  mismo consultorio, solo con el código del turno que el paciente le comparte.
+- **Invariantes**:
+  - El código se emite al dar un turno a un paciente con registros de otro profesional del
+    consultorio, y llega a sus emails confirmados con solo el consultorio, el día, la hora y el
+    código. También se ve en el link del turno mientras no se usó.
+  - Lo canjea una sola vez el profesional de ese turno, desde la ficha, y abre lo de los otros
+    profesionales hasta que termina la ventana del turno (7 días después de su inicio). Un
+    turno cancelado o reprogramado no lo deja canjear.
+  - La recepción lo reenvía a un email confirmado del paciente, sin verlo.
+  - Emitir, enviar, reenviar y canjear el código queda en el registro de accesos (CU-55).
+  - Fuera de alcance: leer lo de otros consultorios, revocarlo (requiere una cuenta del
+    paciente), un acceso de urgencia sin código y el envío por SMS o WhatsApp.
 
 ### CU-46 · Métricas por paciente (alcance)
 
