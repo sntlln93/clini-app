@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Patients;
 
+use App\Data\Patients\PatientContactData;
 use App\Enums\DocumentType;
 use App\Enums\Sex;
 use App\Rules\UniqueInsuranceMemberNumber;
+use App\Support\PatientContactInput;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -35,8 +37,7 @@ class StorePatientRequest extends FormRequest
             'document_type' => ['required', Rule::enum(DocumentType::class)],
             // Not unique: an existing pair is reused by find-or-create, never rejected here.
             'document_number' => ['required', 'string', 'max:50'],
-            'email' => ['nullable', 'email', 'max:255'],
-            'phone' => ['nullable', 'string', 'max:50'],
+            ...PatientContactInput::rules('contacts'),
             'sex' => ['nullable', Rule::enum(Sex::class)],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
             'insurance_provider_id' => ['nullable', 'integer', 'exists:insurance_providers,id'],
@@ -62,6 +63,23 @@ class StorePatientRequest extends FormRequest
     {
         return [
             'insurance_member_number.regex' => 'El número de afiliado debe tener al menos una letra o un número.',
+            ...PatientContactInput::messages('contacts'),
         ];
+    }
+
+    /**
+     * @return list<callable>
+     */
+    public function after(): array
+    {
+        return PatientContactInput::after($this, 'contacts');
+    }
+
+    /**
+     * @return list<PatientContactData>
+     */
+    public function contacts(): array
+    {
+        return PatientContactInput::data($this, 'contacts');
     }
 }

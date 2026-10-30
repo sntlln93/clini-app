@@ -110,8 +110,7 @@ class PublicBookingController extends Controller
             patientName: $request->string('patient.name')->toString(),
             documentType: DocumentType::from($request->string('patient.document_type')->toString()),
             documentNumber: $request->string('patient.document_number')->toString(),
-            email: $request->filled('patient.email') ? $request->string('patient.email')->toString() : null,
-            phone: $request->filled('patient.phone') ? $request->string('patient.phone')->toString() : null,
+            contacts: $request->contacts(),
             insuranceProviderId: $request->filled('patient.insurance_provider_id') ? $request->integer('patient.insurance_provider_id') : null,
             insuranceMemberNumber: $request->filled('patient.insurance_member_number') ? $request->string('patient.insurance_member_number')->toString() : null,
         ));

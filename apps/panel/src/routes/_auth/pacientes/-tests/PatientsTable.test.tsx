@@ -15,8 +15,7 @@ const PATIENTS: Patient[] = [
     {
         id: 1,
         name: 'Ana Gomez',
-        email: null,
-        phone: null,
+        contacts: [],
         document_type: 'dni',
         document_number: '12345678',
         sex: null,

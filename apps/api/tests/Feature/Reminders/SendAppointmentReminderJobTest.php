@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\AppointmentStatus;
+use App\Enums\PatientContactType;
 use App\Enums\ReminderStatus;
 use App\Jobs\Appointments\SendAppointmentReminderJob;
 use App\Mail\Appointments\AppointmentReminderMail;
@@ -15,7 +16,7 @@ use Illuminate\Support\Facades\Mail;
 test('a queued reminder for an active appointment is sent and marked sent', function () {
     Mail::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -38,7 +39,7 @@ test('a queued reminder for an active appointment is sent and marked sent', func
 test('a queued reminder whose appointment is no longer active is deleted without sending', function (AppointmentStatus $status) {
     Mail::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => $status,
@@ -61,7 +62,7 @@ test('a queued reminder whose appointment is no longer active is deleted without
 test('a reminder already marked sent is not sent again', function () {
     Mail::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -81,7 +82,7 @@ test('a reminder already marked sent is not sent again', function () {
 });
 
 test('a failing send propagates and leaves the reminder queued', function () {
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -104,7 +105,7 @@ test('a failing send propagates and leaves the reminder queued', function () {
 });
 
 test('failed() marks the reminder failed', function () {
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -141,4 +142,51 @@ test('failed() logs the exception class, never its message', function () {
             'exception' => RuntimeException::class,
         ],
     );
+});
+
+test('the reminder goes to every confirmed email contact, one mail each, and never to an unconfirmed one', function () {
+    Mail::fake();
+
+    $patient = Patient::factory()
+        ->withEmail('madre@example.com')
+        ->withContact(PatientContactType::Phone, '+541140000000')
+        ->withEmail('padre@example.com')
+        ->withEmail('desconocido@example.com', needsConfirmation: true)
+        ->create();
+    $appointment = Appointment::factory()->create([
+        'patient_id' => $patient->id,
+        'status' => AppointmentStatus::Scheduled,
+    ]);
+    $reminder = Reminder::factory()->create([
+        'organization_id' => $appointment->organization_id,
+        'appointment_id' => $appointment->id,
+        'status' => ReminderStatus::Queued,
+    ]);
+
+    (new SendAppointmentReminderJob($reminder))->handle();
+
+    Mail::assertSentCount(2);
+    Mail::assertSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('madre@example.com') && count($mailable->to) === 1);
+    Mail::assertSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('padre@example.com') && count($mailable->to) === 1);
+    Mail::assertNotSent(AppointmentReminderMail::class, fn (AppointmentReminderMail $mailable) => $mailable->hasTo('desconocido@example.com'));
+});
+
+test('a reminder whose patient no longer has a confirmed email is deleted without sending', function () {
+    Mail::fake();
+
+    $patient = Patient::factory()->withEmail('desconocido@example.com', needsConfirmation: true)->create();
+    $appointment = Appointment::factory()->create([
+        'patient_id' => $patient->id,
+        'status' => AppointmentStatus::Scheduled,
+    ]);
+    $reminder = Reminder::factory()->create([
+        'organization_id' => $appointment->organization_id,
+        'appointment_id' => $appointment->id,
+        'status' => ReminderStatus::Queued,
+    ]);
+
+    (new SendAppointmentReminderJob($reminder))->handle();
+
+    Mail::assertNothingSent();
+    expect(Reminder::query()->whereKey($reminder->id)->exists())->toBeFalse();
 });

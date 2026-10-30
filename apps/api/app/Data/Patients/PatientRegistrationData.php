@@ -10,14 +10,16 @@ use App\Enums\Sex;
 
 final readonly class PatientRegistrationData implements Data
 {
+    /**
+     * @param  list<PatientContactData>  $contacts
+     */
     public function __construct(
         public int $organizationId,
         public ?int $createdBy,
         public string $name,
         public DocumentType $documentType,
         public string $documentNumber,
-        public ?string $email,
-        public ?string $phone,
+        public array $contacts,
         public ?Sex $sex,
         public ?string $birthDate,
         public ?int $insuranceProviderId,
@@ -35,8 +37,7 @@ final readonly class PatientRegistrationData implements Data
             'name' => $this->name,
             'documentType' => $this->documentType,
             'documentNumber' => $this->documentNumber,
-            'email' => $this->email,
-            'phone' => $this->phone,
+            'contacts' => array_map(fn (PatientContactData $contact): array => $contact->toArray(), $this->contacts),
             'sex' => $this->sex,
             'birthDate' => $this->birthDate,
             'insuranceProviderId' => $this->insuranceProviderId,

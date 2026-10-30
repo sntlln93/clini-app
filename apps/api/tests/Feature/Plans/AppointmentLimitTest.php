@@ -172,8 +172,10 @@ test('online booking is rejected at the limit without registering the patient, a
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
             'document_number' => '30111222',
-            'email' => 'juan@example.com',
-            'phone' => '1122334455',
+            'contacts' => [
+                ['type' => 'email', 'value' => 'juan@example.com'],
+                ['type' => 'phone', 'value' => '11 2233-4455'],
+            ],
         ],
     ]);
 
@@ -239,8 +241,10 @@ test('online booking of a service the professional no longer offers reports that
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
             'document_number' => '30111223',
-            'email' => 'juan@example.com',
-            'phone' => '1122334455',
+            'contacts' => [
+                ['type' => 'email', 'value' => 'juan@example.com'],
+                ['type' => 'phone', 'value' => '11 2233-4455'],
+            ],
         ],
     ])->assertStatus(409)->assertJsonPath('error.code', ErrorCode::AppointmentsServiceNotActiveForProfessional->value);
 });
@@ -338,8 +342,10 @@ test('with the limit at 0, Free books past 40, online too, and never warns', fun
             'name' => 'Juan Pérez',
             'document_type' => 'dni',
             'document_number' => '30111222',
-            'email' => 'juan@example.com',
-            'phone' => '1122334455',
+            'contacts' => [
+                ['type' => 'email', 'value' => 'juan@example.com'],
+                ['type' => 'phone', 'value' => '11 2233-4455'],
+            ],
         ],
     ])->assertCreated();
 

@@ -22,8 +22,14 @@ export const patientSchema = z
         document_number: z
             .string()
             .min(1, 'El número de documento es obligatorio.'),
-        email: z.string(),
-        phone: z.string(),
+        contacts: z.array(
+            z.object({
+                type: z.enum(['phone', 'whatsapp', 'email']),
+                value: z.string(),
+                label: z.string(),
+                needs_confirmation: z.boolean().optional(),
+            }),
+        ),
         sex: z.union([z.enum(['f', 'm', 'u']), z.literal('')]),
         birth_date: z.string(),
         insurance_provider_id: z.number().nullable(),

@@ -1,19 +1,14 @@
-export function mailtoHref(email: string): string {
-    return `mailto:${email}`;
-}
+import type { PatientContact } from '@/types/patient';
 
-// `tel:` URIs take digits (and a leading `+`) only, without the separators people type.
-export function telHref(phone: string): string {
-    return `tel:${phone.replace(/[^\d+]/g, '')}`;
-}
+// Contacts come normalized from the API (#365): numbers in E.164, so `tel:`
+// and WhatsApp take them as they are.
+export function contactHref({ type, value }: PatientContact): string {
+    if (type === 'email') {
+        return `mailto:${value}`;
+    }
 
-// WhatsApp needs the full international number, and the phone is free text:
-// only a number written with its `+` country code is sure to reach the right
-// person. The chat opens empty, so nothing about the visit goes through it.
-export function whatsappHref(phone: string): string | null {
-    const digits = phone.replace(/\D/g, '');
-
-    return phone.trim().startsWith('+') && digits.length >= 8
-        ? `https://wa.me/${digits}`
-        : null;
+    // The chat opens empty, so nothing about the visit goes through it.
+    return type === 'whatsapp'
+        ? `https://wa.me/${value.replace(/\D/g, '')}`
+        : `tel:${value}`;
 }

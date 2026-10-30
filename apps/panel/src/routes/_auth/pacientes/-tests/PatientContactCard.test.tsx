@@ -1,3 +1,4 @@
+import { buildContact } from '@/tests/fixtures/patient';
 import type { Patient } from '@/types/patient';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
@@ -7,8 +8,7 @@ import { PatientInsuranceCard } from '../-components/PatientInsuranceCard';
 const PATIENT: Patient = {
     id: 1,
     name: 'Ana Gomez',
-    email: 'ana@example.com',
-    phone: '(011) 4555-1234',
+    contacts: [],
     document_type: 'dni',
     document_number: '12345678',
     sex: null,
@@ -20,8 +20,30 @@ const PATIENT: Patient = {
 };
 
 describe('PatientContactCard', () => {
-    it('links the email and phone, stripping separators from the tel: href', () => {
-        render(<PatientContactCard patient={PATIENT} />);
+    it('links every contact by its type, with its label', () => {
+        render(
+            <PatientContactCard
+                patient={{
+                    ...PATIENT,
+                    contacts: [
+                        buildContact({
+                            id: 1,
+                            type: 'email',
+                            value: 'ana@example.com',
+                            display: 'ana@example.com',
+                        }),
+                        buildContact({ id: 2, label: 'trabajo' }),
+                        buildContact({
+                            id: 3,
+                            type: 'whatsapp',
+                            value: '+5491123456789',
+                            display: '011 15-2345-6789',
+                            label: 'madre',
+                        }),
+                    ],
+                }}
+            />,
+        );
 
         expect(
             screen
@@ -30,20 +52,38 @@ describe('PatientContactCard', () => {
         ).toBe('mailto:ana@example.com');
         expect(
             screen
-                .getByRole('link', { name: '(011) 4555-1234' })
+                .getByRole('link', { name: '011 4555-1234' })
                 .getAttribute('href'),
-        ).toBe('tel:01145551234');
+        ).toBe('tel:+541145551234');
+        expect(
+            screen
+                .getByRole('link', { name: '011 15-2345-6789' })
+                .getAttribute('href'),
+        ).toBe('https://wa.me/5491123456789');
+        screen.getByText('Teléfono · trabajo');
+        screen.getByText('WhatsApp · madre');
+        expect(screen.queryByText('Sin confirmar')).toBeNull();
     });
 
-    it('shows a dash and no link when the contact data is missing', () => {
+    it('marks a contact an online booking added and nobody confirmed yet', () => {
         render(
             <PatientContactCard
-                patient={{ ...PATIENT, email: null, phone: null }}
+                patient={{
+                    ...PATIENT,
+                    contacts: [buildContact({ needs_confirmation: true })],
+                }}
             />,
         );
 
+        screen.getByText('Sin confirmar');
+        screen.getByText(/no recibe recordatorios/);
+    });
+
+    it('says so, with no link, when the patient has no contacts', () => {
+        render(<PatientContactCard patient={PATIENT} />);
+
         expect(screen.queryByRole('link')).toBeNull();
-        expect(screen.getAllByText('—')).toHaveLength(2);
+        screen.getByText('Sin datos de contacto.');
     });
 });
 

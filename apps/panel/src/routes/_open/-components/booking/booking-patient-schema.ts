@@ -55,3 +55,29 @@ export const EMPTY_PATIENT_DRAFT: BookingPatientDraft = {
     insurance_provider_id: null,
     insurance_member_number: '',
 };
+
+// The two fields the patient fills, sent as the API's list of contacts
+// (#365). `fields[n]` is the form field behind the sent contact `n`, so a
+// `patient.contacts.<n>.value` error lands on it.
+export function bookingContacts(draft: BookingPatientDraft): {
+    contacts: { type: 'email' | 'phone'; value: string }[];
+    fields: ('patient.email' | 'patient.phone')[];
+} {
+    const entries = [
+        {
+            type: 'email' as const,
+            value: draft.email.trim(),
+            field: 'patient.email' as const,
+        },
+        {
+            type: 'phone' as const,
+            value: draft.phone.trim(),
+            field: 'patient.phone' as const,
+        },
+    ].filter((entry) => entry.value !== '');
+
+    return {
+        contacts: entries.map(({ type, value }) => ({ type, value })),
+        fields: entries.map((entry) => entry.field),
+    };
+}

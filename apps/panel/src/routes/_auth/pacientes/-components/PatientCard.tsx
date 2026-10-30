@@ -2,33 +2,46 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { buttonVariants } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { initialsOf } from '@/lib/initials';
+import { mainPhone } from '@/lib/patient-contacts';
 import { cn } from '@/lib/utils';
 import type { Patient } from '@/types/patient';
 import { Link } from '@tanstack/react-router';
 import { Mail, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
-import { mailtoHref, telHref, whatsappHref } from './contact-links';
+import { contactHref } from './contact-links';
 import { ageInYears, formatAge } from './patient-age';
 import { documentLabel } from './patient-labels';
 
 type ContactAction = { label: string; href: string; icon: LucideIcon };
 
-// The main contact (#306): the phone, to call or write by WhatsApp, or else
-// the email.
-function contactActions({ phone, email }: Patient): ContactAction[] {
-    if (phone) {
-        const whatsapp = whatsappHref(phone);
+// The main contacts (#306, #365): a number to call and a WhatsApp to write
+// to, or else an email.
+function contactActions({ contacts }: Patient): ContactAction[] {
+    const phone = mainPhone(contacts);
+    const whatsapp = contacts.find((contact) => contact.type === 'whatsapp');
+    const email = contacts.find((contact) => contact.type === 'email');
 
-        return [
-            { label: 'Llamar', href: telHref(phone), icon: Phone },
-            ...(whatsapp
-                ? [{ label: 'WhatsApp', href: whatsapp, icon: MessageCircle }]
-                : []),
-        ];
+    if (!phone) {
+        return email
+            ? [{ label: 'Enviar mail', href: contactHref(email), icon: Mail }]
+            : [];
     }
 
-    return email
-        ? [{ label: 'Enviar mail', href: mailtoHref(email), icon: Mail }]
-        : [];
+    return [
+        {
+            label: 'Llamar',
+            href: `tel:${phone.value}`,
+            icon: Phone,
+        },
+        ...(whatsapp
+            ? [
+                  {
+                      label: 'WhatsApp',
+                      href: contactHref(whatsapp),
+                      icon: MessageCircle,
+                  },
+              ]
+            : []),
+    ];
 }
 
 // The whole card opens the patient: the name's link covers it, and the

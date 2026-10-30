@@ -18,8 +18,6 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'name',
-    'email',
-    'phone',
     'document_type',
     'document_number',
     'sex',
@@ -59,6 +57,16 @@ class Patient extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * In the order the practice keeps them (#365).
+     *
+     * @return HasMany<PatientContact, $this>
+     */
+    public function contacts(): HasMany
+    {
+        return $this->hasMany(PatientContact::class)->orderBy('position')->orderBy('id');
     }
 
     /**

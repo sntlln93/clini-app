@@ -33,7 +33,7 @@ function detailsAppointment(array $attributes = []): Appointment
     return Appointment::factory()->create([
         'organization_id' => $organization->id,
         'membership_id' => $membership->id,
-        'patient_id' => Patient::factory()->create(['name' => 'Juan Pérez', 'email' => 'juan@example.com'])->id,
+        'patient_id' => Patient::factory()->withEmail('juan@example.com')->create(['name' => 'Juan Pérez'])->id,
         'service_id' => Service::factory()->create(['name' => 'Psicoterapia'])->id,
         'start_at' => now()->addDay(),
         'end_at' => now()->addDay()->addMinutes(45),

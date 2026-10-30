@@ -13,8 +13,7 @@ import {
 const PATIENT: Patient = {
     id: 50,
     name: 'Juan Pérez',
-    email: null,
-    phone: null,
+    contacts: [],
     document_type: 'dni',
     document_number: '30111222',
     sex: null,

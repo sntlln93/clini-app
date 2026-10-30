@@ -97,6 +97,7 @@ Convenciones:
 ### CU-07 · Datos de paciente compartidos vs. datos por organización
 
 - **Actor**: recepcionista de A que edita el teléfono del paciente.
+- **Resolución (#365, ADR 0028)**: los datos personales y los contactos (varios, en `patient_contacts`) son globales y se comparten entre consultorios; se encuentran solo por documento exacto, con límite y registro de cada búsqueda.
 - **Tensión de diseño**: ¿qué datos del paciente son globales (identidad, nombre,
   documento) y cuáles podrían variar por relación con la organización?
 - **Invariantes**:

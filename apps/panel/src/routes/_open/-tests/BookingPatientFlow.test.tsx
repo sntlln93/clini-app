@@ -237,12 +237,50 @@ describe('BookingPatientForm validation and submission', () => {
                     name: 'Juan Pérez',
                     document_type: 'dni',
                     document_number: '30111222',
-                    email: null,
-                    phone: null,
+                    contacts: [],
                     insurance_provider_id: null,
                     insurance_member_number: null,
                 },
             },
+        );
+    });
+
+    it('sends the email and phone as contacts, and shows an API error on the phone under it', async () => {
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 422,
+                data: {
+                    message: 'El número no es válido.',
+                    errors: {
+                        'patient.contacts.0.value': ['El número no es válido.'],
+                    },
+                },
+            },
+        });
+        await goToPatientForm();
+
+        fillValidPatientData();
+        fireEvent.change(screen.getByLabelText('Teléfono (opcional)'), {
+            target: { value: '1234' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Confirmar turno' }),
+        );
+
+        await screen.findByText('El número no es válido.');
+        expect(
+            screen
+                .getByLabelText('Teléfono (opcional)')
+                .getAttribute('aria-invalid'),
+        ).toBe('true');
+        expect(api.post).toHaveBeenCalledWith(
+            `/booking/${ORGANIZATION.slug}/appointments`,
+            expect.objectContaining({
+                patient: expect.objectContaining({
+                    contacts: [{ type: 'phone', value: '1234' }],
+                }),
+            }),
         );
     });
 

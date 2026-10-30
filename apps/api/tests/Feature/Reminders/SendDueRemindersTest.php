@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Queue;
 test('a due pending reminder is marked queued and dispatches the send job', function () {
     Queue::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -37,7 +37,7 @@ test('a due pending reminder is marked queued and dispatches the send job', func
 test('a pending reminder scheduled in the future is left untouched', function () {
     Queue::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -58,7 +58,7 @@ test('a pending reminder scheduled in the future is left untouched', function ()
 test('a reminder already queued, sent or failed is never reprocessed', function (ReminderStatus $status) {
     Queue::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => AppointmentStatus::Scheduled,
@@ -91,7 +91,7 @@ test('a reminder already queued, sent or failed is never reprocessed', function 
 test('a due reminder whose appointment is no longer active is deleted without dispatching a job', function (AppointmentStatus $status) {
     Queue::fake();
 
-    $patient = Patient::factory()->create(['email' => 'patient@example.com']);
+    $patient = Patient::factory()->withEmail('patient@example.com')->create();
     $appointment = Appointment::factory()->create([
         'patient_id' => $patient->id,
         'status' => $status,
@@ -115,7 +115,7 @@ test('a due reminder whose appointment is no longer active is deleted without di
 test('the command processes due reminders across different organizations in a single run', function () {
     Queue::fake();
 
-    $patientA = Patient::factory()->create(['email' => 'org-a@example.com']);
+    $patientA = Patient::factory()->withEmail('org-a@example.com')->create();
     $appointmentA = Appointment::factory()->create([
         'patient_id' => $patientA->id,
         'status' => AppointmentStatus::Scheduled,
@@ -127,7 +127,7 @@ test('the command processes due reminders across different organizations in a si
         'scheduled_at' => now()->subHour(),
     ]);
 
-    $patientB = Patient::factory()->create(['email' => 'org-b@example.com']);
+    $patientB = Patient::factory()->withEmail('org-b@example.com')->create();
     $appointmentB = Appointment::factory()->create([
         'patient_id' => $patientB->id,
         'status' => AppointmentStatus::Scheduled,
