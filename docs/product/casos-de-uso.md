@@ -545,7 +545,7 @@ Convenciones:
     búsqueda. Cada versión guarda los suyos con el código y la descripción del momento, así
     que cambiarlos es una enmienda y un cambio del catálogo no reescribe la historia.
 
-### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344, #359, #362)*
+### CU-53 · Medicación indicada por visita *(issues #31, #319, #323, #344, #359, #362, #377)*
 
 - **Actor**: profesional que registra la medicación que indicó durante un turno propio.
 - **Decisión**: registro **interno de la historia clínica**, sin vademécum ni catálogo de
@@ -579,6 +579,10 @@ Convenciones:
     un registro o una enmienda se guarda solo después de confirmar el aviso con «Indicar igual»,
     y la versión guarda qué alergias se le mostraron. Una alergia de otro profesional sin el
     código del paciente avisa sin decir cuál ([ADR 0030](../adr/0030-aviso-de-alergias-al-indicar-medicacion.md)).
+  - «Medicamento» sigue siendo texto libre, pero desde 5 caracteres sugiere hasta 10 productos del
+    catálogo de medicamentos, que se llena a demanda desde la consulta pública del Vademécum Nacional
+    ([ADR 0031](../adr/0031-catalogo-de-medicamentos-desde-el-vademecum-nacional.md)). Elegir uno guarda
+    su GTIN y sus principios activos, y el aviso de alergias los compara también.
 
 ### CU-54 · Exportación de la historia clínica *(issue #326)*
 

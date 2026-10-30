@@ -74,6 +74,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `availability.exception_already_covered` | 409 | `SaveAvailabilityExceptionAction` | `covering` |
 | `availability.exception_type_conflict` | 409 | `SaveAvailabilityExceptionAction` | `existing_type` |
 | `holidays.provider_unavailable` | 409 | `CalendariosNacionalesService` | |
+| `medications.source_unavailable` | 503 | `AnmatVademecumService` (la consulta del Vademécum Nacional falló o cambió; las Actions del catálogo la atrapan y responden con la base, así que no llega al panel, ADR 0031) | |
 | `subscriptions.inactive` | 409 | middleware `EnsureSubscriptionActive` (suscripción vencida) | `subscription_status` |
 | `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
 | `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `CancelSubscriptionAction`, `MercadoPagoService` | |
