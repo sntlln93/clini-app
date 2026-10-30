@@ -6,6 +6,7 @@ namespace App\Models;
 
 use App\Enums\MedicalHistoryCategory;
 use App\Support\Concerns\BelongsToOrganization;
+use App\Support\Concerns\ReadableThroughAccessCode;
 use Database\Factories\MedicalHistoryEntryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,7 +24,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class MedicalHistoryEntry extends Model
 {
     /** @use HasFactory<MedicalHistoryEntryFactory> */
-    use BelongsToOrganization, HasFactory;
+    use BelongsToOrganization, HasFactory, ReadableThroughAccessCode;
 
     public const null UPDATED_AT = null;
 

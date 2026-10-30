@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Support\Concerns\BelongsToOrganization;
+use App\Support\Concerns\ReadableThroughAccessCode;
 use Database\Factories\ClinicalNoteFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -25,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class ClinicalNote extends Model
 {
     /** @use HasFactory<ClinicalNoteFactory> */
-    use BelongsToOrganization, HasFactory;
+    use BelongsToOrganization, HasFactory, ReadableThroughAccessCode;
 
     public const null UPDATED_AT = null;
 

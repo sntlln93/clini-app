@@ -46,9 +46,10 @@ class VitalSignController extends Controller
             action: ClinicalAccessAction::VitalSignsViewed,
         ));
 
-        // Every author's, as the medication (#359): reading never lets the reader amend or annul one.
+        // Every author's the reader may read, as the medication (#359, #364): reading never lets them amend or annul one.
         $vitalSigns = VitalSign::query()
             ->where('patient_id', $patient->id)
+            ->readableBy($membership->id)
             ->with(self::RELATIONS)
             ->orderBy('measured_at', 'desc')
             ->orderBy('id', 'desc')

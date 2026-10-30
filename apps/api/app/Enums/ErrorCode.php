@@ -66,6 +66,9 @@ enum ErrorCode: string
     case MedicalHistoryBloodTypeUnchanged = 'medical_history.blood_type_unchanged';
     case ClinicalAccessReasonRequired = 'clinical_access.reason_required';
     case ClinicalAccessReasonNotRequired = 'clinical_access.reason_not_required';
+    case ClinicalAccessCodeInvalid = 'clinical_access.code_invalid';
+    case ClinicalAccessCodeUnavailable = 'clinical_access.code_unavailable';
+    case ClinicalAccessContactUnavailable = 'clinical_access.contact_unavailable';
     case AuthTwoFactorAlreadyEnabled = 'auth.two_factor_already_enabled';
     case AuthTwoFactorNotEnabled = 'auth.two_factor_not_enabled';
     case AuthTwoFactorSetupMissing = 'auth.two_factor_setup_missing';

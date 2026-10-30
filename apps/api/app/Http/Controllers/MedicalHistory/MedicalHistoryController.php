@@ -51,8 +51,10 @@ class MedicalHistoryController extends Controller
             action: ClinicalAccessAction::MedicalHistoryViewed,
         ));
 
+        // Every author's the reader may read (#364): the latest of them is the blood type they see.
         $bloodTypes = BloodTypeRecord::query()
             ->where('patient_id', $patient->id)
+            ->readableBy($membership->id)
             ->with('author.user')
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')
@@ -60,6 +62,7 @@ class MedicalHistoryController extends Controller
 
         $entries = MedicalHistoryEntry::query()
             ->where('patient_id', $patient->id)
+            ->readableBy($membership->id)
             ->with(self::ENTRY_RELATIONS)
             ->orderBy('created_at', 'desc')
             ->orderBy('id', 'desc')

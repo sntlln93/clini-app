@@ -122,6 +122,23 @@ class AppServiceProvider extends ServiceProvider
             return Limit::perMinute(10)->by($user instanceof User ? "user:{$user->id}" : (string) $request->ip());
         });
 
+        // The patient's access code (#364, ADR 0029): a redemption is checked
+        // against the redeemer's own appointments with the patient, and a
+        // handful of tries a minute keeps guessing a 39-bit code out of reach;
+        // a resend mails the patient, so it can't be looped into a flood.
+        // Keyed by user, never `currentMembership()` (see `patient-lookup`).
+        RateLimiter::for('access-code-redemption', function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinute(5)->by($user instanceof User ? "user:{$user->id}" : "ip:{$request->ip()}");
+        });
+
+        RateLimiter::for('access-code-delivery', function (Request $request): Limit {
+            $user = $request->user();
+
+            return Limit::perMinute(5)->by($user instanceof User ? "user:{$user->id}" : "ip:{$request->ip()}");
+        });
+
         // The public booking page (#299), values in config/booking.php.
         // `public-organization` runs before the throttle (bootstrap/app.php),
         // so the organization is resolved: its two slugs (the practice's and

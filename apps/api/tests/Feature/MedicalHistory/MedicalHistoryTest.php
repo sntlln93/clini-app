@@ -181,7 +181,14 @@ test('only the author amends or withdraws an entry, and only the appointment\'s 
         ->postJson("/api/v1/appointments/{$appointment->id}/blood-types", ['blood_type' => 'O+'])
         ->assertForbidden();
 
-    // Yet the colleague reads the author's entry: one clinical history (#359).
+    // The colleague reads the author's entry only with the patient's code (#364, ADR 0029).
+    $this->actingAs($colleague->user)
+        ->getJson("/api/v1/patients/{$appointment->patient_id}/medical-history")
+        ->assertOk()
+        ->assertJsonCount(0, 'data.entries');
+
+    shareAccessCode($colleague, $appointment->patient_id);
+
     $this->actingAs($colleague->user)
         ->getJson("/api/v1/patients/{$appointment->patient_id}/medical-history")
         ->assertOk()

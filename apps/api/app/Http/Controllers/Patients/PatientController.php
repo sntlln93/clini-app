@@ -92,6 +92,9 @@ class PatientController extends Controller
             canView: $canView,
             reasonRequired: $canView
                 && ClinicalAccess::requiresReason($membership->organization_id, $membership->id, $patient->id),
+            recordsHidden: $canView
+                && ClinicalAccess::hasRecordsByOthers($membership->organization_id, $membership->id, $patient->id)
+                && ! ClinicalAccess::holdsCode($membership->id, $patient->id),
         ));
     }
 

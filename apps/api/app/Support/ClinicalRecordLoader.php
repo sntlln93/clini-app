@@ -11,18 +11,18 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\LazyCollection;
 
 /**
- * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization, every
- * note and every indicated medication on them, of any author, with all their versions, diagnoses and annulments, the
- * same records each professional can already read (CU-45, CU-53, #359), plus the patient's access trail in the
+ * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization and the
+ * records on them the exporting professional reads, with all their versions, diagnoses and annulments: their own, and
+ * another author's only through the patient's code (#364, ADR 0029), plus the patient's access trail in the
  * organization (#325, ADR 0022). Authors are loaded even when their membership was deactivated.
  */
 class ClinicalRecordLoader
 {
     public const int CHUNK = 50;
 
-    public static function patient(Patient $patient, int $organizationId): Patient
+    public static function patient(Patient $patient, int $organizationId, int $membershipId): Patient
     {
-        return $patient->load(self::relations($organizationId));
+        return $patient->load(self::relations($organizationId, $membershipId));
     }
 
     /**
@@ -38,11 +38,11 @@ class ClinicalRecordLoader
             ->attendedBy($organizationId, $membershipId)
             ->lazyById(self::CHUNK)
             ->chunk(self::CHUNK)
-            ->flatMap(function (LazyCollection $chunk) use ($organizationId, $beforeLoad): Collection {
+            ->flatMap(function (LazyCollection $chunk) use ($organizationId, $membershipId, $beforeLoad): Collection {
                 $patients = new Collection($chunk->values()->all());
                 $beforeLoad(array_values($patients->map(fn (Patient $patient): int => $patient->id)->all()));
 
-                return $patients->load(self::relations($organizationId));
+                return $patients->load(self::relations($organizationId, $membershipId));
             });
     }
 
@@ -51,7 +51,7 @@ class ClinicalRecordLoader
      *
      * @return array<int|string, string|Closure>
      */
-    private static function relations(int $organizationId): array
+    private static function relations(int $organizationId, int $membershipId): array
     {
         return [
             'insuranceProvider',
@@ -65,6 +65,7 @@ class ClinicalRecordLoader
             // By the records' own patient, never through the appointment (#360); the resource files them under theirs.
             'clinicalNotes' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
+                ->readableBy($membershipId)
                 ->orderBy('created_at')
                 ->orderBy('id'),
             'clinicalNotes.author.user',
@@ -73,6 +74,7 @@ class ClinicalRecordLoader
             'clinicalNotes.annulment.author.user',
             'prescriptions' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
+                ->readableBy($membershipId)
                 ->orderBy('issued_at')
                 ->orderBy('id'),
             'prescriptions.author.user',
@@ -81,6 +83,7 @@ class ClinicalRecordLoader
             'prescriptions.annulment.author.user',
             'vitalSigns' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
+                ->readableBy($membershipId)
                 ->orderBy('measured_at')
                 ->orderBy('id'),
             'vitalSigns.author.user',
@@ -88,11 +91,13 @@ class ClinicalRecordLoader
             'vitalSigns.annulment.author.user',
             'bloodTypeRecords' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
+                ->readableBy($membershipId)
                 ->orderBy('created_at')
                 ->orderBy('id'),
             'bloodTypeRecords.author.user',
             'medicalHistoryEntries' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
+                ->readableBy($membershipId)
                 ->orderBy('created_at')
                 ->orderBy('id'),
             'medicalHistoryEntries.author.user',

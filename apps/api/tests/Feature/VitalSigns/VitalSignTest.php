@@ -172,7 +172,7 @@ test('a measurement of another practice is forbidden', function () {
         ->assertForbidden();
 });
 
-test('the patient listing holds every author\'s measurements of the practice, newest first, and logs the read', function () {
+test('the patient listing holds every author\'s measurements of the practice once the patient\'s code is redeemed, newest first, and logs the read', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
     $colleague = Membership::factory()->onPaidPlan()->professional()->create(['organization_id' => $membership->organization_id]);
     $own = measuringAppointment($membership);
@@ -180,6 +180,13 @@ test('the patient listing holds every author\'s measurements of the practice, ne
     $older = VitalSign::factory()->create(['appointment_id' => measuringAppointment($colleague, ['patient_id' => $patient->id])->id, 'measured_at' => now()->subMonth()]);
     $newer = VitalSign::factory()->create(['appointment_id' => $own->id]);
     $elsewhere = VitalSign::factory()->create(['appointment_id' => Appointment::factory()->create(['patient_id' => $patient->id])->id]);
+
+    $this->actingAs($membership->user)
+        ->getJson("/api/v1/patients/{$patient->id}/vital-signs")
+        ->assertOk()
+        ->assertJsonPath('data.*.id', [$newer->id]);
+
+    shareAccessCode($membership, $patient->id);
 
     $this->actingAs($membership->user)
         ->getJson("/api/v1/patients/{$patient->id}/vital-signs")

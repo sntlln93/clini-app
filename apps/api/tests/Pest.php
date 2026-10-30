@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
+use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
 use App\Models\ContactRequest;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Models\PatientAccessCode;
 use App\Models\PlatformAdmin;
 use App\Models\ProfessionalService;
 use App\Models\Service;
@@ -185,5 +187,31 @@ function openClinicalHistory(Membership $membership, int $patientId): void
         'patient_id' => $patientId,
         'action' => ClinicalAccessAction::ExceptionalAccess,
         'reason' => ClinicalAccessReason::PreparingConsultation,
+    ]);
+}
+
+/**
+ * Gives a membership what the patient's code opens (#364, ADR 0029), as if the patient shared it and the membership
+ * redeemed it: the code of an appointment of theirs with the patient (one today, unless given), redeemed and valid for
+ * a week whatever the appointment's date.
+ */
+function shareAccessCode(Membership $membership, int $patientId, ?Appointment $appointment = null): PatientAccessCode
+{
+    $appointment ??= Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => $patientId,
+        'start_at' => now(),
+        'end_at' => now()->addMinutes(30),
+    ]);
+
+    return PatientAccessCode::query()->withoutGlobalScope('organization')->create([
+        'organization_id' => $membership->organization_id,
+        'appointment_id' => $appointment->id,
+        'patient_id' => $patientId,
+        'membership_id' => $membership->id,
+        'code' => 'ABCD2345',
+        'expires_at' => now()->addDays(7),
+        'redeemed_at' => now(),
     ]);
 }

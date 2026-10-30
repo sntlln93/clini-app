@@ -13,7 +13,7 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-test('a professional who has a past appointment with the patient gets 200 and sees a note authored by a different membership of the same organization', function () {
+test('a professional who has a past appointment with the patient sees a note authored by a different membership of the same organization only once they redeemed the patient\'s code', function () {
     $organization = Organization::factory()->create();
     $patient = Patient::factory()->create();
     $viewer = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
@@ -36,6 +36,12 @@ test('a professional who has a past appointment with the patient gets 200 and se
         'organization_id' => $organization->id,
         'membership_id' => $author->id,
     ]);
+
+    $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes")
+        ->assertOk()
+        ->assertJsonCount(0, 'data');
+
+    shareAccessCode($viewer, $patient->id);
 
     $response = $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
 
@@ -186,6 +192,7 @@ test('a note keeps its author name after the author membership is deactivated', 
         'membership_id' => $author->id,
     ]);
     $author->delete();
+    shareAccessCode($viewer, $patient->id);
 
     $response = $this->actingAs($viewer->user)->getJson("/api/v1/patients/{$patient->id}/clinical-notes");
 

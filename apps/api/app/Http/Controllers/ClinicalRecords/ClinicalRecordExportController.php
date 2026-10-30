@@ -68,7 +68,7 @@ class ClinicalRecordExportController extends Controller
         return response()->json([
             'export' => (new ClinicalRecordExportResource($export->load(['organization', 'exporter.user'])))->resolve($request),
             ...(new ClinicalRecordResource(
-                ClinicalRecordLoader::patient($patient, $membership->organization_id)
+                ClinicalRecordLoader::patient($patient, $membership->organization_id, $membership->id)
             ))->resolve($request),
         ], 200, self::HEADERS, self::JSON_FLAGS | JSON_PRETTY_PRINT);
     }
