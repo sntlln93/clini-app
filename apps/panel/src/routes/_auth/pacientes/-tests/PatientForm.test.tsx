@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { notifySuccess } from '@/lib/toast';
+import { buildContact } from '@/tests/fixtures/patient';
 import type { InsuranceProvider, Patient } from '@/types/patient';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -49,8 +50,14 @@ function mockLookupHit(patient: Record<string, unknown>) {
 const EXISTING_PATIENT: Patient = {
     id: 7,
     name: 'Juan Perez',
-    email: 'juan@example.com',
-    phone: '1122334455',
+    contacts: [
+        buildContact({
+            id: 1,
+            value: '+541122334455',
+            display: '011 2233-4455',
+            needs_confirmation: true,
+        }),
+    ],
     document_type: 'dni',
     document_number: '12345678',
     sex: 'm',
@@ -117,6 +124,12 @@ async function pickInsuranceProvider(name: string) {
     fireEvent.click(option);
 }
 
+function contactInput(row: number, label: 'Número' | 'Correo') {
+    return within(
+        screen.getByRole('group', { name: `Contacto ${row}` }),
+    ).getByLabelText(label) as HTMLInputElement;
+}
+
 async function fillMinimalPatientForm() {
     fireEvent.change(await screen.findByLabelText('Nombre'), {
         target: { value: 'Juan Perez' },
@@ -150,8 +163,7 @@ describe('PatientForm', () => {
                 name: 'Juan Perez',
                 document_type: 'dni',
                 document_number: '12345678',
-                email: '',
-                phone: '',
+                contacts: [],
                 sex: '',
                 birth_date: '',
                 insurance_provider_id: null,
@@ -291,8 +303,19 @@ describe('PatientForm', () => {
         mockLookupHit({
             id: 7,
             name: 'Juan Perez',
-            email: 'juan@example.com',
-            phone: '1122334455',
+            contacts: [
+                buildContact({
+                    id: 1,
+                    type: 'email',
+                    value: 'juan@example.com',
+                    display: 'juan@example.com',
+                }),
+                buildContact({
+                    id: 2,
+                    value: '+541122334455',
+                    display: '011 2233-4455',
+                }),
+            ],
             document_type: 'dni',
             document_number: '12345678',
             sex: 'm',
@@ -312,18 +335,51 @@ describe('PatientForm', () => {
         // The match may belong to another organization only, whose page answers 403 (#266).
         expect(within(notice).queryByRole('link')).toBeNull();
         await waitFor(() =>
-            expect(
-                (
-                    screen.getByLabelText(
-                        'Correo electrónico (opcional)',
-                    ) as HTMLInputElement
-                ).value,
-            ).toBe('juan@example.com'),
+            expect(contactInput(1, 'Correo').value).toBe('juan@example.com'),
         );
-        expect(
-            (screen.getByLabelText('Teléfono (opcional)') as HTMLInputElement)
-                .value,
-        ).toBe('1122334455');
+        expect(contactInput(2, 'Número').value).toBe('011 2233-4455');
+        expect(screen.queryByRole('group', { name: 'Contacto 3' })).toBeNull();
+    });
+
+    it('keeps a typed contact the found patient lacks, drops one it has, and never offers an unconfirmed one', async () => {
+        mockLookupHit({
+            ...EXISTING_PATIENT,
+            contacts: [
+                buildContact({
+                    id: 1,
+                    type: 'email',
+                    value: 'juan@example.com',
+                    display: 'juan@example.com',
+                }),
+                buildContact({
+                    id: 2,
+                    value: '+541122334455',
+                    display: '011 2233-4455',
+                    needs_confirmation: true,
+                }),
+            ],
+        });
+        renderPatientForm();
+
+        fireEvent.change(await screen.findByLabelText('Nombre'), {
+            target: { value: 'Juan Perez' },
+        });
+        fireEvent.change(contactInput(1, 'Número'), {
+            target: { value: '11 4000-0000' },
+        });
+        fireEvent.change(contactInput(2, 'Correo'), {
+            target: { value: 'Juan@Example.com' },
+        });
+        fireEvent.change(screen.getByLabelText('Número de documento'), {
+            target: { value: '12345678' },
+        });
+
+        await waitFor(() =>
+            expect(contactInput(1, 'Correo').value).toBe('juan@example.com'),
+        );
+        expect(contactInput(2, 'Número').value).toBe('11 4000-0000');
+        expect(screen.queryByRole('group', { name: 'Contacto 3' })).toBeNull();
+        expect(screen.queryByText(/Lo agregó una reserva online/)).toBeNull();
     });
 
     it('leaves the form untouched and shows no error when the document does not exist', async () => {
@@ -333,17 +389,8 @@ describe('PatientForm', () => {
         await fillMinimalPatientForm();
 
         await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1));
-        expect(
-            (
-                screen.getByLabelText(
-                    'Correo electrónico (opcional)',
-                ) as HTMLInputElement
-            ).value,
-        ).toBe('');
-        expect(
-            (screen.getByLabelText('Teléfono (opcional)') as HTMLInputElement)
-                .value,
-        ).toBe('');
+        expect(contactInput(1, 'Número').value).toBe('');
+        expect(contactInput(2, 'Correo').value).toBe('');
         expect(screen.queryByText(/ya existe un paciente/i)).toBeNull();
         expect(screen.queryByText(/ocurrió un error inesperado/i)).toBeNull();
     });
@@ -464,13 +511,95 @@ describe('PatientForm', () => {
         );
     });
 
-    it('uses a phone input type for Teléfono', async () => {
+    it('starts with an empty phone and email, a phone input for the number', async () => {
         renderPatientForm();
 
-        expect(
-            (await screen.findByLabelText('Teléfono (opcional)')).getAttribute(
-                'type',
+        await screen.findByRole('group', { name: 'Contacto 1' });
+        expect(contactInput(1, 'Número').getAttribute('type')).toBe('tel');
+        expect(contactInput(2, 'Correo').getAttribute('type')).toBe('email');
+    });
+
+    it('sends only the filled contacts, with their labels, and drops a removed one', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { data: { id: 1 } },
+        });
+        renderPatientForm();
+
+        await fillMinimalPatientForm();
+        fireEvent.change(contactInput(2, 'Correo'), {
+            target: { value: ' juan@example.com ' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Agregar contacto' }),
+        );
+        fireEvent.change(contactInput(3, 'Número'), {
+            target: { value: '11 4000-0000' },
+        });
+        fireEvent.change(
+            within(
+                screen.getByRole('group', { name: 'Contacto 3' }),
+            ).getByLabelText('Etiqueta (opcional)'),
+            { target: { value: 'madre' } },
+        );
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Agregar contacto' }),
+        );
+        fireEvent.change(contactInput(4, 'Número'), {
+            target: { value: '11 5000-0000' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Quitar contacto 4' }),
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/patients',
+                expect.objectContaining({
+                    contacts: [
+                        { type: 'email', value: 'juan@example.com', label: '' },
+                        {
+                            type: 'phone',
+                            value: '11 4000-0000',
+                            label: 'madre',
+                        },
+                    ],
+                }),
             ),
-        ).toBe('tel');
+        );
+    });
+
+    it('shows an API error on a contact under the row the user filled, not the sent index', async () => {
+        mockLookupMiss();
+        vi.mocked(api.post).mockRejectedValueOnce(
+            unauthorizedError({
+                message: 'El correo no es válido.',
+                errors: { 'contacts.0.value': ['El correo no es válido.'] },
+            }),
+        );
+        renderPatientForm();
+
+        await fillMinimalPatientForm();
+        fireEvent.change(contactInput(2, 'Correo'), {
+            target: { value: 'juan@example' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        const group = screen.getByRole('group', { name: 'Contacto 2' });
+        await within(group).findByText('El correo no es válido.');
+        expect(
+            within(
+                screen.getByRole('group', { name: 'Contacto 1' }),
+            ).queryByText('El correo no es válido.'),
+        ).toBeNull();
+    });
+
+    it('explains, in the edit form, what saving does to a contact nobody confirmed', async () => {
+        renderPatientForm(EXISTING_PATIENT);
+
+        expect((await screen.findAllByRole('group')).length).toBeGreaterThan(0);
+        expect(contactInput(1, 'Número').value).toBe('011 2233-4455');
+        screen.getByText(/Lo agregó una reserva online/);
     });
 });

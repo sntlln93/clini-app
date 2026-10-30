@@ -1,5 +1,6 @@
 import { DataTable } from '@/components/DataTable';
 import { DataTableRowActions } from '@/components/DataTableRowActions';
+import { mainPhone } from '@/lib/patient-contacts';
 import type { Patient } from '@/types/patient';
 import { Link, useNavigate } from '@tanstack/react-router';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -76,7 +77,7 @@ const columns: ColumnDef<Patient, unknown>[] = [
     {
         id: 'phone',
         header: 'Teléfono',
-        cell: ({ row }) => row.original.phone ?? '—',
+        cell: ({ row }) => mainPhone(row.original.contacts)?.display ?? '—',
         meta: { className: 'hidden md:table-cell tabular-nums' },
     },
     {

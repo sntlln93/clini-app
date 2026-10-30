@@ -9,11 +9,33 @@ export type InsuranceProvider = {
     name: string;
 };
 
+export type PatientContactType = 'phone' | 'whatsapp' | 'email';
+
+// `value` is normalized (E.164 for numbers); `display` is how a person reads
+// it. An anonymous online booking's contact waits for the practice to confirm
+// it before a reminder goes there (#365).
+export type PatientContact = {
+    id: number;
+    type: PatientContactType;
+    value: string;
+    display: string;
+    label: string | null;
+    needs_confirmation: boolean;
+};
+
+// One row of the contacts editor, and of the payload once its empty rows are dropped.
+// `needs_confirmation` only marks a saved row in the editor; it isn't sent.
+export type PatientContactDraft = {
+    type: PatientContactType;
+    value: string;
+    label: string;
+    needs_confirmation?: boolean;
+};
+
 export type Patient = {
     id: number;
     name: string;
-    email: string | null;
-    phone: string | null;
+    contacts: PatientContact[];
     document_type: DocumentType;
     document_number: string;
     sex: Sex | null;
@@ -53,8 +75,7 @@ export type PatientPayload = {
     name: string;
     document_type: DocumentType | '';
     document_number: string;
-    email: string;
-    phone: string;
+    contacts: PatientContactDraft[];
     sex: Sex | '';
     birth_date: string;
     insurance_provider_id: number | null;

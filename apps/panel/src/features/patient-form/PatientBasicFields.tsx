@@ -88,32 +88,6 @@ export function PatientBasicFields({ control }: PatientBasicFieldsProps) {
                     )}
                 />
             </div>
-
-            <FormField
-                control={control}
-                name="email"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Correo electrónico (opcional)</FormLabel>
-                        <FormControl
-                            render={<Input type="email" {...field} />}
-                        />
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
-
-            <FormField
-                control={control}
-                name="phone"
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Teléfono (opcional)</FormLabel>
-                        <FormControl render={<Input type="tel" {...field} />} />
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
         </>
     );
 }

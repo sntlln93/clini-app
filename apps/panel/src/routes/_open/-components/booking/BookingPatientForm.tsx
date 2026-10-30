@@ -19,6 +19,7 @@ import {
 import { BookingInsuranceFields } from './BookingInsuranceFields';
 import { BookingPatientFormFields } from './BookingPatientFormFields';
 import {
+    bookingContacts,
     bookingPatientSchema,
     EMPTY_PATIENT_DRAFT,
     type BookingPatientDraft,
@@ -93,8 +94,14 @@ export function BookingPatientForm({
                 'patient.name': 'patient.name',
                 'patient.document_type': 'patient.document_type',
                 'patient.document_number': 'patient.document_number',
-                'patient.email': 'patient.email',
-                'patient.phone': 'patient.phone',
+                ...Object.fromEntries(
+                    bookingContacts(values.patient).fields.map(
+                        (field, index) => [
+                            `patient.contacts.${index}.value`,
+                            field,
+                        ],
+                    ),
+                ),
                 'patient.insurance_provider_id':
                     'patient.insurance_provider_id',
                 'patient.insurance_member_number':

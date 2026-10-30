@@ -76,8 +76,7 @@ function buildPatient(overrides: Partial<PatientDetail> = {}): PatientDetail {
     return {
         id: 10,
         name: 'Lucía Fernández',
-        email: null,
-        phone: null,
+        contacts: [],
         document_type: 'dni',
         document_number: '30111222',
         sex: null,

@@ -1,4 +1,4 @@
-import { buildPatient } from '@/tests/fixtures/patient';
+import { buildContact, buildPatient } from '@/tests/fixtures/patient';
 import { renderInRouter } from '@/tests/render-in-router';
 import type { Patient } from '@/types/patient';
 import { screen } from '@testing-library/react';
@@ -38,13 +38,27 @@ describe('PatientCard', () => {
         await screen.findByText('DNI 30111222');
     });
 
-    it('calls the phone, and writes by WhatsApp when it has its country code', async () => {
-        renderCard({ phone: '+54 9 380 412-3456', email: 'ana@example.com' });
+    it('calls the phone and writes to the WhatsApp contact', async () => {
+        renderCard({
+            contacts: [
+                buildContact({
+                    id: 1,
+                    type: 'email',
+                    value: 'ana@example.com',
+                }),
+                buildContact({ id: 2, value: '+543804123456' }),
+                buildContact({
+                    id: 3,
+                    type: 'whatsapp',
+                    value: '+5493804123456',
+                }),
+            ],
+        });
 
         const call = await screen.findByRole('link', {
             name: 'Llamar a Ana Gómez',
         });
-        expect(call.getAttribute('href')).toBe('tel:+5493804123456');
+        expect(call.getAttribute('href')).toBe('tel:+543804123456');
         expect(
             screen
                 .getByRole('link', { name: 'WhatsApp a Ana Gómez' })
@@ -55,8 +69,8 @@ describe('PatientCard', () => {
         ).toBeNull();
     });
 
-    it('offers no WhatsApp for a phone without its country code', async () => {
-        renderCard({ phone: '380 412-3456' });
+    it('offers no WhatsApp without a WhatsApp contact', async () => {
+        renderCard({ contacts: [buildContact({ value: '+543804123456' })] });
 
         await screen.findByRole('link', { name: 'Llamar a Ana Gómez' });
         expect(
@@ -64,8 +78,26 @@ describe('PatientCard', () => {
         ).toBeNull();
     });
 
+    it('calls the WhatsApp number when it is the only one', async () => {
+        renderCard({
+            contacts: [
+                buildContact({ type: 'whatsapp', value: '+5493804123456' }),
+            ],
+        });
+
+        const call = await screen.findByRole('link', {
+            name: 'Llamar a Ana Gómez',
+        });
+        expect(call.getAttribute('href')).toBe('tel:+5493804123456');
+        screen.getByRole('link', { name: 'WhatsApp a Ana Gómez' });
+    });
+
     it('falls back to the email without a phone', async () => {
-        renderCard({ email: 'ana@example.com' });
+        renderCard({
+            contacts: [
+                buildContact({ type: 'email', value: 'ana@example.com' }),
+            ],
+        });
 
         const mail = await screen.findByRole('link', {
             name: 'Enviar mail a Ana Gómez',
