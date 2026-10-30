@@ -44,4 +44,21 @@ class UserFactory extends Factory
             'email_verified_at' => null,
         ]);
     }
+
+    /**
+     * Two-factor authentication on (#357), with a known secret and recovery
+     * codes so a test can compute or spend them.
+     *
+     * @param  list<string>  $recoveryCodes
+     */
+    public function withTwoFactor(
+        string $secret = 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+        array $recoveryCodes = ['abcde-fghjk', 'mnpqr-stuvw'],
+    ): static {
+        return $this->state(fn (array $attributes) => [
+            'two_factor_secret' => $secret,
+            'two_factor_recovery_codes' => $recoveryCodes,
+            'two_factor_confirmed_at' => now(),
+        ]);
+    }
 }

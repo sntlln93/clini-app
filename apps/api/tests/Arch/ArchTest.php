@@ -421,3 +421,28 @@ test('the API never answers a downloadable file nor ships a PDF library', functi
     expect($offenders)->toBe([], 'These files answer a download: '.implode(', ', $offenders))
         ->and($pdfLibraries)->toBe([]);
 });
+
+// Content scan (#357, ADR 0026): a session-opening `login()` is where a second
+// factor gets skipped, so every file that logs a user in also checks it. The
+// one exception is the login's second step, which is the factor itself.
+test('every clinic login respects the two-factor authentication', function () {
+    $appDir = dirname(__DIR__, 2).'/app';
+    $exempt = ['Http/Controllers/Auth/TwoFactorChallengeController.php'];
+    $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($appDir, FilesystemIterator::SKIP_DOTS));
+
+    $offenders = [];
+    foreach ($iterator as $file) {
+        $relative = substr($file->getPathname(), strlen($appDir) + 1);
+        if ($file->getExtension() !== 'php' || in_array($relative, $exempt, true)) {
+            continue;
+        }
+
+        $contents = (string) file_get_contents($file->getPathname());
+        if (preg_match('/(->|::)login\(/', $contents) === 1 && ! str_contains($contents, 'hasTwoFactorEnabled()')) {
+            $offenders[] = $relative;
+        }
+    }
+
+    sort($offenders);
+    expect($offenders)->toBe([], 'These files log a user in without checking hasTwoFactorEnabled(): '.implode(', ', $offenders));
+});

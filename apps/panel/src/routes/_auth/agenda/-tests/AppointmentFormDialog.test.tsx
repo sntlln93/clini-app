@@ -103,6 +103,7 @@ function renderDialog(
             id: 1,
             name: 'Ana Ejemplo',
             email: 'ana@clini.app',
+            two_factor_enabled: false,
             permissions,
         });
     }
@@ -761,6 +762,7 @@ describe('AppointmentFormDialog patient registration', () => {
             id: 1,
             name: 'Ana Ejemplo',
             email: 'ana@clini.app',
+            two_factor_enabled: false,
             permissions: ['patients.create'],
         });
         const dialog = (open: boolean) => (

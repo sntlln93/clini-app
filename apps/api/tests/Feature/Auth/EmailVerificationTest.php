@@ -181,6 +181,20 @@ test('confirming with a valid token authenticates the user', function () {
     $me->assertJsonPath('email', 'ana@example.com');
 });
 
+test('confirming with a valid token verifies but does not sign in a user with two-factor authentication on', function () {
+    $rawToken = Str::random(40);
+    $user = User::factory()->unverified()->withTwoFactor()->create();
+    $user->forceFill([
+        'email_verification_token' => hash('sha256', $rawToken),
+        'email_verification_token_expires_at' => now()->addDay(),
+    ])->save();
+
+    $this->withHeader('Referer', 'http://localhost:5174')->postJson('/api/v1/email-verification/'.$rawToken)->assertOk();
+
+    expect($user->fresh()?->email_verified_at)->not->toBeNull();
+    $this->assertGuest('web');
+});
+
 test('a verification token is single use: the second confirmation fails and email_verified_at keeps its first value', function () {
     Mail::fake();
     $rawToken = registerAndCaptureToken();

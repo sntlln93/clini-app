@@ -26,6 +26,7 @@ function renderPermissions(
         id: 10,
         name: 'Dra. Ana López',
         email: 'ana@example.com',
+        two_factor_enabled: false,
         permissions: [
             'appointments.view',
             'appointments.create',

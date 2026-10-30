@@ -34,6 +34,7 @@ function renderSection(session?: {
             id: 9,
             name: 'Ana',
             email: 'ana@example.com',
+            two_factor_enabled: false,
             permissions: session.permissions,
             membership: {
                 id: 3,

@@ -26,6 +26,7 @@ function renderPermissions(
         id: 10,
         name: 'Dra. Ana López',
         email: 'ana@example.com',
+        two_factor_enabled: false,
         permissions: ['availability.manage'],
     });
     if (subscription !== undefined) {
@@ -94,6 +95,7 @@ describe('useAvailabilityPermissions read-only reason', () => {
             id: 99,
             name: 'Otro profesional',
             email: 'otro@example.com',
+            two_factor_enabled: false,
             permissions: ['availability.manage.own'],
         });
 

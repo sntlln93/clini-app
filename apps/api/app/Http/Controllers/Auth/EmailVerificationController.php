@@ -35,8 +35,12 @@ class EmailVerificationController extends Controller
     {
         $user = $action->handle(new EmailVerificationData($token));
 
-        Auth::guard('web')->login($user);
-        $request->session()->regenerate();
+        // The link alone never stands in for a second factor (#357): with it
+        // on, the email is verified but the user signs in through /login.
+        if (! $user->hasTwoFactorEnabled()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
 
         return response()->json(['message' => 'Correo confirmado.']);
     }

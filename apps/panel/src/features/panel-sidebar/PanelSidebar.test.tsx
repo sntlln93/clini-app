@@ -35,6 +35,7 @@ function renderSidebarAt(path: string, permissions?: string[], plan?: Plan) {
         id: 1,
         name: 'Ana Ejemplo',
         email: 'ana@clini.app',
+        two_factor_enabled: false,
         ...(permissions ? { permissions } : {}),
     });
     const rootRoute = createRootRoute({

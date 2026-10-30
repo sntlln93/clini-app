@@ -50,6 +50,7 @@ function renderChecklist(
         id: 1,
         name: 'Ana',
         email: 'ana@example.com',
+        two_factor_enabled: false,
         permissions: ['memberships.manage'],
         membership: membership(roles),
     };

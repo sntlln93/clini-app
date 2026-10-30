@@ -129,6 +129,8 @@ Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`, con 
 | `hernan.admin@test.com`         | Consultorio Dos  | Admin            | Suspended   |
 | `julian.staff@test.com`         | Consultorio Dos  | Staff            | Active      |
 
+`julian.staff@test.com` además tiene la **verificación en dos pasos** activada (#357), solo fuera de producción (en el server de demo un segundo factor conocido sería otra contraseña conocida): después de la contraseña pide el código de una app autenticadora cargada con el secreto `KRUG2ZLTMVRXEZLUKRUG2ZLTMVRXEZLU` (`OrganizationsSeeder::TWO_FACTOR_SECRET`; se carga a mano en la app, o con `e2e/totp.ts`), o uno de sus códigos de recuperación, `julia-nrcv1` y `julia-nrcv2`, que se gastan al usarlos hasta el próximo `db:seed`. A cualquier usuario se le desactiva con `php artisan user:reset-two-factor <email>` (el camino de soporte para quien perdió la app y los códigos).
+
 Además, fuera de producción, `PlatformAdminSeeder` crea un **operador** del dashboard de operación (tabla `platform_admins`, identidad separada de `users` — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md)):
 
 | Email                | Nombre            | App        | Contraseña |

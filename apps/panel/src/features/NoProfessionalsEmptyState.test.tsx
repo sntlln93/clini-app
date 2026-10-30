@@ -38,6 +38,7 @@ function renderEmptyState(
         id: 1,
         name: 'Ana',
         email: 'ana@example.com',
+        two_factor_enabled: false,
         permissions,
         membership: ownMembership,
     };

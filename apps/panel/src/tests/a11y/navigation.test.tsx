@@ -29,6 +29,7 @@ function renderPanelChrome(path: string) {
         id: 1,
         name: 'Ana Ejemplo',
         email: 'ana@clini.app',
+        two_factor_enabled: false,
     });
     const rootRoute = createRootRoute({
         component: () => (

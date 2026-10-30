@@ -58,7 +58,12 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `patients.not_found` | 404 | `PatientController::lookup` | |
 | `patients.insurance_member_number_taken` | 409 | `RegisterPatientAction` (otro paciente de la misma obra social ya tiene ese número de afiliado) | |
 | `auth.email_verification_invalid_or_expired` | 404 | `FindValidEmailVerificationUserAction`, `VerifyEmailAction` | |
-| `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta) y middleware `EnsureUserNotBlocked` | |
+| `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta), `TwoFactorChallengeController` (bloqueado entre la contraseña y el código, #357) y middleware `EnsureUserNotBlocked` | |
+| `auth.two_factor_already_enabled` | 409 | `StartTwoFactorSetupAction`, `ConfirmTwoFactorSetupAction` (la verificación en dos pasos ya está activada, #357) | |
+| `auth.two_factor_not_enabled` | 409 | `DisableTwoFactorAction`, `RegenerateTwoFactorRecoveryCodesAction`, `VerifyTwoFactorChallengeAction` (no está activada, o se desactivó entre la contraseña y el código) | |
+| `auth.two_factor_setup_missing` | 409 | `ConfirmTwoFactorSetupAction` (no hay una activación empezada) | |
+| `auth.two_factor_code_invalid` | 409 | `ConfirmTwoFactorSetupAction`, `VerifyTwoFactorChallengeAction` (código de la app incorrecto, fuera de ventana o ya usado; código de recuperación inexistente o ya usado). Es una credencial rechazada como la contraseña, pero va como 409 con código propio para que el panel lo muestre en el campo | |
+| `auth.two_factor_challenge_expired` | 409 | `TwoFactorChallengeController` (la sesión no tiene un login con contraseña verificada esperando el código: nunca empezó, venció a los 10 minutos o ya se completó) | |
 | `booking.slot_not_available` | 409 | `AssertSlotWithinPublishedScheduleAction` | |
 | `booking.organization_unavailable` | 403 | middleware `ResolvePublicOrganization` (organización suspendida) | |
 | `booking.appointment_unavailable` | 404 | `AppointmentDetailsLink` (el link `/turno/<token>` no se descifra o el turno ya no se muestra, ADR 0018) | |

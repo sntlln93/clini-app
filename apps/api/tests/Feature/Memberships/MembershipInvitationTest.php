@@ -225,6 +225,21 @@ test('accepting with an email that already has a user creates only the membershi
     expect(Membership::where('user_id', $user->id)->count())->toBe(1);
 });
 
+test('accepting as an existing user with two-factor authentication on accepts the membership but opens no session', function () {
+    $user = User::factory()->withTwoFactor()->create(['email' => 'existing@example.com']);
+    $rawToken = Str::random(40);
+    MembershipInvitation::factory()->create([
+        'email' => $user->email,
+        'roles' => [MembershipRole::Staff],
+        'token' => hash('sha256', $rawToken),
+    ]);
+
+    $this->withHeader('Referer', 'http://localhost:5174')->postJson('/api/v1/invitations/'.$rawToken, [])->assertOk();
+
+    expect(Membership::where('user_id', $user->id)->count())->toBe(1);
+    $this->assertGuest('web');
+});
+
 test('accepting without name/password when registration is required returns 422', function () {
     $rawToken = Str::random(40);
     MembershipInvitation::factory()->create([

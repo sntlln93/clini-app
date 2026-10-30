@@ -53,7 +53,12 @@ export type ErrorCode =
     | 'prescriptions.annulled'
     | 'prescriptions.amendment_unchanged'
     | 'clinical_access.reason_required'
-    | 'clinical_access.reason_not_required';
+    | 'clinical_access.reason_not_required'
+    | 'auth.two_factor_already_enabled'
+    | 'auth.two_factor_not_enabled'
+    | 'auth.two_factor_setup_missing'
+    | 'auth.two_factor_code_invalid'
+    | 'auth.two_factor_challenge_expired';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -161,6 +166,14 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Abrir esta historia clínica sin un turno cercano requiere indicar un motivo.',
     'clinical_access.reason_not_required':
         'La historia clínica ya está abierta sin indicar un motivo.',
+    'auth.two_factor_already_enabled':
+        'La verificación en dos pasos ya está activada.',
+    'auth.two_factor_not_enabled':
+        'La verificación en dos pasos no está activada.',
+    'auth.two_factor_setup_missing':
+        'No hay una activación de la verificación en dos pasos pendiente.',
+    'auth.two_factor_code_invalid': 'El código de verificación no es válido.',
+    'auth.two_factor_challenge_expired': 'El inicio de sesión venció.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

@@ -48,8 +48,13 @@ class InvitationAcceptanceController extends Controller
             abort(500);
         }
 
-        Auth::guard('web')->login($user);
-        $request->session()->regenerate();
+        // The token alone never stands in for a second factor (#357): with it
+        // on, the membership is accepted but the user signs in through
+        // /login, password and code.
+        if (! $user->hasTwoFactorEnabled()) {
+            Auth::guard('web')->login($user);
+            $request->session()->regenerate();
+        }
 
         return response()->json(['message' => 'Invitación aceptada.']);
     }

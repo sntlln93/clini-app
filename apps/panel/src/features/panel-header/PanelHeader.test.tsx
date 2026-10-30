@@ -21,7 +21,12 @@ function renderHeader(session: SessionUser) {
     );
 }
 
-const user = { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' };
+const user = {
+    id: 1,
+    name: 'Ana Ejemplo',
+    email: 'ana@clini.app',
+    two_factor_enabled: false,
+};
 
 describe('PanelHeader', () => {
     it("shows the active organization's name, with the full name as title", () => {

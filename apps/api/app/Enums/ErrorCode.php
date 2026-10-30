@@ -61,4 +61,9 @@ enum ErrorCode: string
     case PrescriptionsAmendmentUnchanged = 'prescriptions.amendment_unchanged';
     case ClinicalAccessReasonRequired = 'clinical_access.reason_required';
     case ClinicalAccessReasonNotRequired = 'clinical_access.reason_not_required';
+    case AuthTwoFactorAlreadyEnabled = 'auth.two_factor_already_enabled';
+    case AuthTwoFactorNotEnabled = 'auth.two_factor_not_enabled';
+    case AuthTwoFactorSetupMissing = 'auth.two_factor_setup_missing';
+    case AuthTwoFactorCodeInvalid = 'auth.two_factor_code_invalid';
+    case AuthTwoFactorChallengeExpired = 'auth.two_factor_challenge_expired';
 }

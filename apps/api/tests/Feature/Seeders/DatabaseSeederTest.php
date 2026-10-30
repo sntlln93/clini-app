@@ -33,6 +33,7 @@ use App\Models\User;
 use App\Models\UserSpecialty;
 use App\Support\ClinicalNoteDiagnoses;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\OrganizationsSeeder;
 use Database\Seeders\PlatformAdminSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -480,4 +481,26 @@ test('the platform operator is never seeded in production', function () {
 
     $this->app['env'] = 'testing';
     expect(PlatformAdmin::query()->count())->toBe(0);
+});
+
+test('julian.staff is seeded with the documented second factor, idempotently', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+
+    $user = User::query()->where('email', OrganizationsSeeder::TWO_FACTOR_EMAIL)->sole();
+    expect($user->hasTwoFactorEnabled())->toBeTrue()
+        ->and($user->two_factor_secret)->toBe(OrganizationsSeeder::TWO_FACTOR_SECRET)
+        ->and($user->two_factor_recovery_codes)->toBe(OrganizationsSeeder::TWO_FACTOR_RECOVERY_CODES)
+        ->and(User::query()->whereNotNull('two_factor_secret')->count())->toBe(1);
+});
+
+test('the second factor is never seeded in production', function () {
+    // Run directly: `db:seed` would stop to ask for confirmation in production.
+    $this->app['env'] = 'production';
+
+    $this->app->make(DatabaseSeeder::class)->run();
+
+    $this->app['env'] = 'testing';
+    expect(User::query()->where('email', OrganizationsSeeder::TWO_FACTOR_EMAIL)->exists())->toBeTrue()
+        ->and(User::query()->whereNotNull('two_factor_secret')->exists())->toBeFalse();
 });

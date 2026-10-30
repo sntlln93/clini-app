@@ -248,6 +248,7 @@ describe('AcceptInvitationForm', () => {
             id: 3,
             name: 'Beto',
             email: 'beto@clini.app',
+            two_factor_enabled: false,
         });
         queryClient.setQueryData(['patients', { q: '', page: 1 }], {
             data: [{ id: 1, name: 'Paciente de Beto' }],
