@@ -43,7 +43,7 @@ test('a search opens a session and sends the events a browser would, as Clini', 
         && $request->hasHeader('User-Agent', 'Clini/test'));
     Http::assertSent(fn (Request $request) => $request->method() === 'POST'
         && $request->url() === 'https://servicios.pami.org.ar/vademecum/zkau;jsessionid=BB587BE36C0C6B60F21268702D5F57B0'
-        && $request->hasHeader('ZK-SID', '1')
+        && $request->header('ZK-SID') === ['1']
         && $request->data() === [
             'dtid' => 'z_1y40',
             'cmd_0' => 'onChange',
@@ -70,8 +70,9 @@ test('a detail replays the search, clicks the product\'s row and reads the page 
 
     expect($detail?->ingredients)->toHaveCount(3)
         ->and($detail?->dispensingCondition)->toBe('BAJO RECETA');
+    // Exactly the next sequence: ZK answers a repeated one with its previous response, never the click.
     Http::assertSent(fn (Request $request) => $request->method() === 'POST'
-        && $request->hasHeader('ZK-SID', '2')
+        && $request->header('ZK-SID') === ['2']
         && $request->data() === ['dtid' => 'z_1y40', 'cmd_0' => 'onClick', 'uuid_0' => 'zk_comp_327', 'data_0' => '{"pageX":0,"pageY":0,"which":1,"x":0,"y":0}']);
     Http::assertSent(fn (Request $request) => $request->url() === 'https://servicios.pami.org.ar/vademecum/views/consultaPublica/presentacion.zul');
 });
@@ -81,6 +82,19 @@ test('a product the search no longer lists has no detail, and nothing is clicked
 
     expect(app(AnmatVademecumService::class)->detail(MedicationSearchField::Commercial, 'migral', '07790000000000'))->toBeNull();
     Http::assertSentCount(2);
+});
+
+test('a detail that fails fails only that pick, not the searches', function () {
+    Http::fake([
+        'servicios.pami.org.ar/vademecum/views/consultaPublica/listado.zul' => Http::response(vademecumFixture('listado.html')),
+        'servicios.pami.org.ar/vademecum/zkau*' => Http::sequence()
+            ->push(vademecumFixture('busqueda.txt'))
+            ->push(vademecumFixture('busqueda.txt')),
+    ]);
+    $service = app(AnmatVademecumService::class);
+
+    expect(fn () => $service->detail(MedicationSearchField::Commercial, 'migral', '07795378001096'))->toThrow(MedicationSourceUnavailableException::class)
+        ->and($service->available())->toBeTrue();
 });
 
 test('a failing lookup is unavailable and stays unasked for a while', function () {
