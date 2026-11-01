@@ -5,6 +5,18 @@ import type { PlanId } from '@/routes/-components/plans';
 // panel.
 const PANEL_URL = (import.meta.env.VITE_PANEL_URL ?? '').replace(/\/+$/, '');
 
+/**
+ * The panel's host (`panel.example.com`), to show a booking link the way the
+ * panel itself does (`<host>/reservar/<slug>`); empty without a valid URL.
+ */
+export function panelHost(panelUrl: string = PANEL_URL): string {
+    try {
+        return new URL(panelUrl).host;
+    } catch {
+        return '';
+    }
+}
+
 export const loginUrl = `${PANEL_URL}/login`;
 export const registerUrl = `${PANEL_URL}/registro`;
 // Preselects Consultorio on the panel's registration, which then sends the
