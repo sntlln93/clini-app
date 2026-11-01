@@ -5,9 +5,7 @@ declare(strict_types=1);
 namespace App\Support;
 
 /**
- * One-time recovery codes for a lost authenticator (#357): `xxxxx-xxxxx`
- * from an alphabet without look-alike characters, compared ignoring case,
- * spaces and the dash, so a code read aloud or retyped still matches.
+ * No look-alike characters, compared ignoring case, spaces and the dash, so a retyped code still matches.
  */
 final class TwoFactorRecoveryCodes
 {
@@ -29,8 +27,7 @@ final class TwoFactorRecoveryCodes
     }
 
     /**
-     * The position of `$candidate` among `$codes`, or `null` when it matches
-     * none. Every code is compared in constant time.
+     * Every code is compared in constant time.
      *
      * @param  list<string>  $codes
      */

@@ -12,17 +12,7 @@ use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 
 /**
- * Prescriptions follow the clinical notes access model (issue #31, see
- * ClinicalNotePolicy), never a role preset: the appointment-scoped listing,
- * creating, amending and annulling are decided by membership authorship
- * within the active organization.
- *
- * The patient-scoped listing opens to the same professionals as the
- * patient's notes (`ClinicalAccess::attends`, #325) and, like them, returns
- * every author's prescriptions: they are part of one clinical history (#359).
- * Without an appointment near today, reading it also takes a reason (ADR
- * 0022). A record is never edited or deleted (#323, ADR 0019): only its author
- * amends or annuls it instead (#344).
+ * Same authorship-only model as ClinicalNotePolicy, never a role preset.
  */
 class PrescriptionPolicy
 {

@@ -10,23 +10,8 @@ use App\Support\CurrentOrganization;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Three-layer authorization base. Reused as-is by concrete model policies
- * (none exist yet — this issue is infrastructure only); a concrete policy
- * method just delegates to allows() with the org-wide permission it needs
- * and, when it has one, the resource being authorized.
- *
- * Layers, evaluated in order:
- *  1. Tenant check — the user must have an active membership in the
- *     currently active organization, and, when a resource is given, the
- *     resource's own organization_id must match that organization. Either
- *     mismatch denies immediately, before any permission is considered.
- *  2. Org-wide permission — the membership has $permission itself → allow,
- *     regardless of the resource's ownership.
- *  3. Own-scoped permission — the membership has the `.own` variant of
- *     $permission AND the resource's membership_id is the acting
- *     membership's own → allow.
- *
- * Anything else denies.
+ * Three layers, in order: 1. tenant (active membership, and the resource's organization_id) denies on mismatch;
+ * 2. the org-wide permission allows; 3. its `.own` variant allows when the resource's membership_id is the actor's.
  */
 abstract class OrganizationScopedPolicy
 {

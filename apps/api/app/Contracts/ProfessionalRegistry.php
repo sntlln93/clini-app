@@ -7,10 +7,6 @@ namespace App\Contracts;
 use App\Data\Professionals\RegistryProfessionalData;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
 
-/**
- * Where a professional's licenses are checked (#380, ADR 0032). Today the Buscador Nacional de Profesionales de la
- * Salud; the official REFEPS access (#379) is another adapter and another binding.
- */
 interface ProfessionalRegistry
 {
     /**
@@ -19,7 +15,7 @@ interface ProfessionalRegistry
     public function available(): bool;
 
     /**
-     * Every professional the registry holds under that DNI, with all their licenses; an empty list when it holds none.
+     * An empty list when the registry holds no one under that DNI.
      *
      * @return list<RegistryProfessionalData>
      *

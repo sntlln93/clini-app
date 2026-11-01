@@ -12,9 +12,7 @@ use App\Enums\SubscriptionNotificationKind;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 
 /**
- * Isolates the subscription domain from the payment provider wired in
- * (see `App\Services\Payments`): every provider status is normalized into
- * SubscriptionStatus / SubscriptionPaymentOutcome by the adapter.
+ * The adapter normalizes every provider status into SubscriptionStatus / SubscriptionPaymentOutcome.
  */
 interface SubscriptionGateway
 {
@@ -29,8 +27,7 @@ interface SubscriptionGateway
     public function createSubscription(SubscriptionSignupData $signup): ProviderSubscriptionData;
 
     /**
-     * Null when the provider reports that the subscription doesn't exist
-     * (for these credentials): a definitive answer, not a failure to retry.
+     * Null when the provider says it doesn't exist (for these credentials): definitive, not a failure to retry.
      *
      * @throws SubscriptionGatewayUnavailableException on any other failure
      */
@@ -49,8 +46,7 @@ interface SubscriptionGateway
     public function updateSubscriptionAmount(string $id, int $amount, string $currency): void;
 
     /**
-     * Null when the provider reports that the payment doesn't exist (for
-     * these credentials): a definitive answer, not a failure to retry.
+     * Null when the provider says it doesn't exist (for these credentials): definitive, not a failure to retry.
      *
      * @throws SubscriptionGatewayUnavailableException on any other failure
      */

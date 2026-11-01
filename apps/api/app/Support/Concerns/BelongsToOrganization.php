@@ -9,12 +9,7 @@ use App\Support\CurrentOrganization;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-/**
- * Applies organization_id tenant scoping to a model.
- *
- * No-ops when no current organization is set (App\Support\CurrentOrganization),
- * so migrate:fresh, factories and context-less tests are unaffected.
- */
+/** No-ops without a current organization, so migrate:fresh, factories and context-less tests are unaffected. */
 trait BelongsToOrganization
 {
     public static function bootBelongsToOrganization(): void

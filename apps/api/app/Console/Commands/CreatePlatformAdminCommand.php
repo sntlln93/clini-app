@@ -12,11 +12,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Validator;
 
 /**
- * The only way to create a platform operator in production and on the demo
- * server (the seeder skips its operator there). Missing options are
- * prompted — the password twice, hidden — unless `--no-interaction`, where
- * a missing option is a validation failure. The email is trimmed and
- * lowercased before validation, matching the dashboard login.
+ * The only way to create an operator where the seeder skips it (production, demo); the email is lowercased to match the dashboard login.
  */
 #[Signature('admin:create {--name= : Display name} {--email= : Login email} {--password= : Avoid in shared shells; prompted securely when omitted}')]
 #[Description('Creates a platform operator for the dashboard')]

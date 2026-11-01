@@ -13,7 +13,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Str;
 
 /**
- * A contact's `value` must be a valid one of the `type` next to it (#365); the type is checked by its own rule.
+ * Validates `value` against its sibling `type`; the type itself is checked by its own rule.
  */
 final class PatientContactValue implements DataAwareRule, ValidationRule
 {

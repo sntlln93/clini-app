@@ -19,10 +19,7 @@ use App\Models\Subscription;
 use Carbon\CarbonImmutable;
 
 /**
- * Resolves an organization's plan (Plan::resolve) and enforces it on the
- * server (#237). Reads bypass the tenant scope, so it serves the public
- * booking routes and the invitation acceptance too, which have no current
- * organization of their own.
+ * Reads bypass the tenant scope: public booking and invitation acceptance have no current organization.
  */
 final class OrganizationPlan
 {
@@ -72,10 +69,7 @@ final class OrganizationPlan
     }
 
     /**
-     * Rejects a membership becoming active with roles the plan leaves out:
-     * owner, admin or staff without the Team feature, or a professional
-     * past the plan's limit. Callers pass only the roles the membership
-     * gains, so a downgraded organization can still edit what it has.
+     * Callers pass only the gained roles, so a downgraded organization can still edit what it has.
      *
      * @param  array<int, MembershipRole>  $gainedRoles
      *
@@ -124,8 +118,7 @@ final class OrganizationPlan
     }
 
     /**
-     * Start of the calendar month holding `$at`, in the organization's
-     * timezone: the unit of the monthly appointment limit (#238).
+     * In the organization's timezone: the unit of the monthly appointment limit.
      */
     public function monthOf(int $organizationId, CarbonImmutable $at): CarbonImmutable
     {
@@ -136,9 +129,7 @@ final class OrganizationPlan
     }
 
     /**
-     * Appointments starting within the month, counted by their date
-     * rather than by when they were booked. Cancelled and rescheduled ones
-     * free their place, as they free their slot (ADR 0004).
+     * Counted by start date, not booking date; cancelled and rescheduled ones free their place.
      */
     public function appointmentsInMonth(int $organizationId, CarbonImmutable $month): int
     {
@@ -154,8 +145,7 @@ final class OrganizationPlan
     }
 
     /**
-     * Not race-safe on its own: BookAppointmentAction calls it under the
-     * organization's lock.
+     * Not race-safe on its own: BookAppointmentAction calls it under the organization's lock.
      *
      * @throws PlanAppointmentLimitReachedException
      */

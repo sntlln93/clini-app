@@ -10,12 +10,7 @@ use Closure;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\LazyCollection;
 
-/**
- * Loads what a clinical history export holds (#326, ADR 0021): the patient's appointments in the organization and the
- * records on them the exporting professional reads, with all their versions, diagnoses and annulments: their own, and
- * another author's only through the patient's code (#364, ADR 0029), plus the patient's access trail in the
- * organization (#325, ADR 0022). Authors are loaded even when their membership was deactivated.
- */
+/** Loads what a clinical history export holds (ADR 0021). */
 class ClinicalRecordLoader
 {
     public const int CHUNK = 50;
@@ -26,8 +21,7 @@ class ClinicalRecordLoader
     }
 
     /**
-     * Every patient the membership attended in the organization, loaded a chunk at a time. Each chunk's ids go through
-     * `$beforeLoad` before its history loads, so what it records (the export's row in each trail) is in the export.
+     * Each chunk's ids go through `$beforeLoad` before its history loads, so the trail row it records is in the export.
      *
      * @param  Closure(list<int>): mixed  $beforeLoad
      * @return LazyCollection<int, Patient>
@@ -62,7 +56,7 @@ class ClinicalRecordLoader
             'appointments.membership' => fn ($query) => $query->withTrashed(),
             'appointments.membership.user',
             'appointments.service' => fn ($query) => $query->withTrashed(),
-            // By the records' own patient, never through the appointment (#360); the resource files them under theirs.
+            // By the records' own patient, never through the appointment; the resource files them under theirs.
             'clinicalNotes' => fn ($query) => $query
                 ->where('organization_id', $organizationId)
                 ->readableBy($membershipId)

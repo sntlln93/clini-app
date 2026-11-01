@@ -12,9 +12,7 @@ use App\Policies\Concerns\AuthorsClinicalRecords;
 use App\Support\ClinicalAccess;
 
 /**
- * The patient's background (blood type, allergies, antecedents, #361) follows the indicated medication (see
- * PrescriptionPolicy): whoever reads the patient's history reads every author's, an entry is recorded on one's own
- * appointment, and only its author amends or withdraws it. A new blood type is a new record, so it takes `create`.
+ * A new blood type is a new record, so it takes `create`.
  */
 class MedicalHistoryEntryPolicy
 {
@@ -31,8 +29,7 @@ class MedicalHistoryEntryPolicy
     }
 
     /**
-     * The current allergies above the form that indicates medication (#362), which only the appointment's professional
-     * fills in.
+     * Shown above the medication form, which only the appointment's professional fills in.
      */
     public function viewCurrentAllergies(User $user, Appointment $appointment): bool
     {

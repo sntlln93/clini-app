@@ -7,9 +7,6 @@ namespace App\Exceptions\Organizations;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
-/**
- * Thrown by ReactivateOrganizationAction when the organization is not suspended.
- */
 final class OrganizationNotSuspendedException extends DomainException
 {
     public function __construct(

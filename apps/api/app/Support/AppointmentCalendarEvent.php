@@ -10,12 +10,7 @@ use App\Models\Organization;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Carbon;
 
-/**
- * The patient's view of an appointment as a calendar event (#295): titled by
- * the practice, with the practice's primary address as the location, when it
- * has one. Never the professional nor the service: they can reveal the
- * specialty, and the event ends up with a calendar provider (#320, ADR 0018).
- */
+/** The patient's view of an appointment as a calendar event: never the professional nor the service (ADR 0018). */
 final class AppointmentCalendarEvent
 {
     public function of(Appointment $appointment): CalendarEventData
@@ -36,11 +31,7 @@ final class AppointmentCalendarEvent
         );
     }
 
-    /**
-     * The same for the reminder's `.ics` and the booking confirmation's, so a
-     * patient who imports both keeps one event. Opaque: the confirmation is
-     * public, and a raw id would tell how many appointments a practice has.
-     */
+    /** Shared by the reminder's and the confirmation's `.ics` (one event); opaque, since the confirmation is public and a raw id would leak the practice's volume. */
     public function uidOf(Appointment $appointment): string
     {
         /** @var string $key */
@@ -49,7 +40,6 @@ final class AppointmentCalendarEvent
         return substr(hash_hmac('sha256', "appointment-{$appointment->id}", $key), 0, 32).'@'.$this->host();
     }
 
-    /** One line, e.g. «Av. Corrientes 1234, Rosario, Santa Fe, Argentina»; null without an address. */
     public function locationOf(Organization $organization): ?string
     {
         $address = $organization->address;

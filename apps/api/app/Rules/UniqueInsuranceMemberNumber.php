@@ -10,10 +10,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * A member number identifies one person within its provider (#290), so it
- * can't be taken by another patient. "Another" is everyone but the patient
- * being edited, or, on create, the patient that find-or-create will reuse
- * for the submitted document.
+ * "Another" patient excludes the one being edited or, on create, the one find-or-create will reuse for the document.
  */
 final readonly class UniqueInsuranceMemberNumber implements ValidationRule
 {

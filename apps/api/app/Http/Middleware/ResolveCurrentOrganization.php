@@ -15,22 +15,9 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Resolves the active organization for the authenticated user from their
- * own active membership and populates App\Support\CurrentOrganization for
- * the rest of the request lifecycle.
- *
- * The organization is never informed by the client — no header, no query
- * or route parameter influences this resolution. When a user has several
- * active memberships, the most recently created one wins, deterministically.
- *
- * When that organization was suspended by a platform operator the request
- * is rejected with 403 `organizations.suspended` — there is no fallback to
- * another of the user's organizations, so resolution stays deterministic
- * and identical to the one SessionUserResource reports on `/me`.
- *
- * Extension point: a future client-driven organization selector would
- * validate the chosen organization against the user's own memberships
- * here, before falling back to this default.
+ * Never informed by the client: the newest active membership wins, with no
+ * fallback when its organization is suspended, so it matches what
+ * SessionUserResource reports on `/me`.
  */
 class ResolveCurrentOrganization
 {

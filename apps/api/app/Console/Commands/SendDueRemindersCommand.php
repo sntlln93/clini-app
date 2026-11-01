@@ -11,13 +11,7 @@ use App\Models\Reminder;
 use Illuminate\Console\Command;
 
 /**
- * Runs from the scheduler once a minute (routes/console.php). Only
- * dispatches the send job — the retry policy lives on the queue worker.
- * Never reprocesses `queued`/`sent`/`failed` reminders.
- *
- * Doesn't scope to a current organization on purpose: BelongsToOrganization
- * no-ops its global scope when none is set, which is always the case here
- * (CLI context).
+ * Only dispatches the job (retries live on the worker); unscoped on purpose, since BelongsToOrganization no-ops in CLI.
  */
 class SendDueRemindersCommand extends Command
 {
@@ -59,8 +53,7 @@ class SendDueRemindersCommand extends Command
             return;
         }
 
-        // Mark before dispatch: a fast worker setting Sent first must not be
-        // overwritten by this update running after it.
+        // Mark before dispatch, or this update could overwrite a fast worker's Sent.
         $reminder->update(['status' => ReminderStatus::Queued]);
 
         SendAppointmentReminderJob::dispatch($reminder);

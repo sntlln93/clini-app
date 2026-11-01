@@ -9,10 +9,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Every API answer is `no-store` unless it declares itself `public` (the
- * booking page's logo). Symfony's default, `no-cache, private`, still lets
- * the browser keep a patient read on disk after the session ends (Res. AAIP
- * 47/2018, A.2.2; docs/architecture/security.md).
+ * Symfony's default, `no-cache, private`, still lets the browser keep a patient
+ * read on disk.
  */
 class PreventResponseCaching
 {

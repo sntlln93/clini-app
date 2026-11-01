@@ -8,16 +8,10 @@ use App\Support\ClinicalAccess;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 
-/**
- * A clinical record of the patient's history, which is the patient's (#364, ADR 0029): its author reads it, and
- * another professional only through the code the patient shared with them.
- */
+/** A clinical record another professional reads only through the patient's code (ADR 0029). */
 trait ReadableThroughAccessCode
 {
     /**
-     * What the membership reads: what it wrote, and every other author's only while it holds a redeemed, still valid
-     * code of that patient.
-     *
      * @param  Builder<static>  $query
      * @return Builder<static>
      */

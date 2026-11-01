@@ -8,13 +8,8 @@ use App\Enums\MembershipRole;
 use App\Models\User;
 
 /**
- * Billing is the owner's call, not a delegable permission: the product
- * permission matrix has no billing entry, so `create` (checkout) and
- * `delete` (cancellation) check the owner role itself rather than a
- * Permission (admins hold every org-wide permission an owner does).
- * Reading the status is open to any active member, since every member
- * sees the read-only restriction it drives. Every check goes through currentMembership(), which is already scoped to
- * the current organization.
+ * Billing checks the owner role, not a Permission (admins hold every org-wide one); any member reads the status, since
+ * every member sees the read-only restriction it drives.
  */
 class SubscriptionPolicy
 {

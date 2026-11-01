@@ -7,12 +7,7 @@ namespace App\Support;
 use App\Enums\SubscriptionBilling;
 
 /**
- * Practice's price (`config/plans.php`): the base amount covers the
- * included professionals and each active one past them adds the extra
- * amount, per month. Annual billing charges twelve months of that price
- * with the annual discount off, the discounted month rounded to whole
- * pesos first — the landing's «$9.000 por mes, en un pago de $108.000»
- * (#240). Changes apply from the next charge, never prorated (ADR 0014).
+ * Annual rounds the discounted month to whole pesos first, matching the landing's «$9.000 por mes, en un pago de $108.000».
  */
 final class PracticePricing
 {
@@ -23,9 +18,6 @@ final class PracticePricing
         return $this->baseAmount() + $extra * $this->extraProfessionalAmount();
     }
 
-    /**
-     * What each charge of `$billing` costs: a month, or the whole year.
-     */
     public function amount(int $activeProfessionals, SubscriptionBilling $billing): int
     {
         $monthly = $this->monthlyAmount($activeProfessionals);
@@ -36,9 +28,6 @@ final class PracticePricing
         };
     }
 
-    /**
-     * A charge's amount spread per month, for the monthly recurring revenue.
-     */
     public function monthlyEquivalent(int $amount, SubscriptionBilling $billing): int
     {
         return intdiv($amount, $billing->months());
@@ -60,8 +49,7 @@ final class PracticePricing
     }
 
     /**
-     * Clamped to 0–100, so a mistyped value can never make the year cost
-     * more than twelve months, or less than nothing.
+     * Clamped so a mistyped value can't make the year cost more than twelve months, or less than nothing.
      */
     public function annualDiscountPercent(): int
     {

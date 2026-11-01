@@ -13,10 +13,7 @@ use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
 
 /**
- * Support's way back in for a clinic user who lost both the authenticator
- * and the recovery codes (#357): turns their second factor off so the
- * password alone logs in again. Confirming who is asking is support's job,
- * before running it.
+ * Confirming the requester's identity is support's job, before running it.
  */
 #[Signature('user:reset-two-factor {email : The clinic user\'s login email}')]
 #[Description('Turns off a clinic user\'s two-factor authentication')]
@@ -26,9 +23,7 @@ class ResetUserTwoFactorCommand extends Command
     {
         $argument = $this->argument('email');
         $email = is_string($argument) ? trim($argument) : '';
-        // Clinic emails are stored as typed and unique only as typed: an exact
-        // match wins, and otherwise one ignoring case, only when it is the
-        // only one, so the reset never lands on the wrong account.
+        // Emails are unique only as typed: fall back to a case-insensitive match only when it is unambiguous.
         $user = User::query()->where('email', $email)->first();
         $matches = $user !== null
             ? collect([$user])

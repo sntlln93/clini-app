@@ -12,11 +12,7 @@ use App\Models\User;
 class AppointmentPolicy extends OrganizationScopedPolicy
 {
     /**
-     * There is no single resource to scope an index over, and allows() with
-     * a null resource can never satisfy layer 3 (own-scoped) — so this only
-     * checks that the acting membership has either the org-wide or the
-     * own-scoped view permission. Narrowing to "own" happens in the query,
-     * via Appointment::scopeVisibleTo().
+     * allows() without a resource can't satisfy layer 3, so "own" is narrowed in Appointment::scopeVisibleTo().
      */
     public function viewAny(User $user): bool
     {
@@ -33,10 +29,7 @@ class AppointmentPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * There is no persisted resource yet at create time, so an unsaved
-     * Appointment carrying the target membership's organization_id/
-     * membership_id is passed to allows() so layer 3 (own-scoped) still
-     * resolves correctly.
+     * An unsaved Appointment carries the target membership so layer 3 (own-scoped) can resolve.
      */
     public function create(User $user, Membership $membership): bool
     {

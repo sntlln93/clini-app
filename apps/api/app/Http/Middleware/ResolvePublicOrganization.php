@@ -16,23 +16,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Resolves the organization for a public booking request from the {slug}
- * route parameter and populates App\Support\CurrentOrganization for the
- * rest of the request lifecycle — the public counterpart of
- * ResolveCurrentOrganization, which resolves from the authenticated user's
- * own active membership instead.
- *
- * Two-step resolution: {slug} is tried first against organizations.slug,
- * then against an active professional membership's own public slug (#32).
- * On a membership hit, the membership's organization becomes current and
- * the membership itself is recorded on the request for the controller to
- * use for preselection. No session, no header: the slug is the only
- * signal. A slug that matches neither is rejected with 404
- * `booking.link_not_found` before it ever reaches a controller.
- *
- * A slug resolving (either way) to an organization suspended by a platform
- * operator is rejected with 403 `booking.organization_unavailable`, before
- * any booking controller runs.
+ * {slug} is the only signal: an organization's slug first, then an active
+ * professional's own, whose membership the controller preselects.
  */
 class ResolvePublicOrganization
 {
@@ -52,10 +37,7 @@ class ResolvePublicOrganization
             return $next($request);
         }
 
-        // `roles` is an EnumArrayCast column, so it can't be filtered with a
-        // plain SQL `where` — resolve the slug/status candidate(s) and
-        // filter for the professional role in PHP, the same way
-        // PublicBookingController::show() already does.
+        // `roles` is an EnumArrayCast column, not filterable in SQL.
         $membership = Membership::withoutGlobalScope('organization')
             ->where('slug', $slug)
             ->where('status', MembershipStatus::Active)

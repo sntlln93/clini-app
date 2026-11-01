@@ -18,30 +18,17 @@ use App\Models\VitalSign;
 use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\DB;
 
-/**
- * Who opens a patient's clinical history, and when it takes a reason (#325, ADR 0022).
- *
- * The relationship (`attends`) decides who may: a professional who has or had an appointment with the patient in the
- * organization, or wrote a note for them (#217), never a role. The time decides whether it takes a reason: without an
- * own appointment with the patient within `WINDOW_DAYS` of now, the history opens only after an exceptional access,
- * which keeps it open for `EXCEPTIONAL_ACCESS_MINUTES`. What it opens is the reader's own records; another
- * professional's take the code the patient shares with them (#364, ADR 0029).
- */
+/** Who opens a patient's clinical history, and when it takes a reason (ADR 0022, ADR 0029). */
 class ClinicalAccess
 {
     public const int WINDOW_DAYS = 7;
 
     public const int EXCEPTIONAL_ACCESS_MINUTES = 60;
 
-    /**
-     * A read the same professional already made of the same records this recently adds nothing to the trail: reloading
-     * the patient page, or coming back to it during a consultation, would otherwise repeat the row.
-     */
+    /** A repeat read this recent (a reload during a consultation) adds no row to the trail. */
     public const int READ_REPEAT_MINUTES = 15;
 
-    /**
-     * A cancelled or rescheduled appointment brings no consultation, so it opens nothing.
-     */
+    /** A cancelled or rescheduled appointment brings no consultation, so it opens nothing. */
     public const array CLOSED_STATUSES = [AppointmentStatus::Cancelled, AppointmentStatus::Rescheduled];
 
     public static function attends(User $user, Patient $patient): bool
@@ -100,9 +87,6 @@ class ClinicalAccess
             ->exists();
     }
 
-    /**
-     * Whether the membership holds a redeemed, still valid code of the patient (#364, ADR 0029).
-     */
     public static function holdsCode(int $membershipId, int $patientId): bool
     {
         return self::redeemedCodes(DB::query(), $membershipId)
@@ -110,10 +94,7 @@ class ClinicalAccess
             ->exists();
     }
 
-    /**
-     * Whether another professional of the organization wrote anything in the patient's history: what the code would
-     * open, so the panel asks for it, and booking mails it, only when there is something to open.
-     */
+    /** What the code would open: the panel asks for it, and booking mails it, only when there is something. */
     public static function hasRecordsByOthers(int $organizationId, int $membershipId, int $patientId): bool
     {
         foreach ([ClinicalNote::class, Prescription::class, VitalSign::class, BloodTypeRecord::class, MedicalHistoryEntry::class] as $model) {
@@ -132,9 +113,7 @@ class ClinicalAccess
         return false;
     }
 
-    /**
-     * The membership's redeemed codes that still open something, as a subquery the caller narrows to its patients.
-     */
+    /** Redeemed codes that still open something, as a subquery the caller narrows to its patients. */
     public static function redeemedCodes(QueryBuilder $query, int $membershipId): QueryBuilder
     {
         return $query->selectRaw('1')

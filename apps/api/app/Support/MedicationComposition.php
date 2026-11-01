@@ -7,21 +7,10 @@ namespace App\Support;
 use App\Data\Medications\MedicationCompositionData;
 use App\Data\Medications\MedicationIngredientData;
 
-/**
- * The substances a product's drug text names (#377, ADR 0031). The national medication search joins them with «+»,
- * abbreviates some («pseudoef.», «vit.b1 b6 b12»), writes acids and salts inverted («clavulánico,ác.»,
- * «metformina,clorh.») and closes long associations with «asoc.», dropping the rest («ergotamina+cafeína+asoc.» is
- * Migral, whose dipyrone is lost). Each substance is written out in lowercase, with the accents the source gives it,
- * and without its salt or hydrate: an allergy to dipyrone is to «dipirona sódica» too. The allergy warning folds it
- * (`FoldedText`) to compare it; the panel shows it as is. Only the abbreviations listed here are expanded; an unknown
- * one stays as written, and a cut list is marked incomplete, never completed by guessing. Full resolution by SNOMED
- * is #376.
- */
+/** Salts are dropped because an allergy to «dipirona» is to «dipirona sódica» too (ADR 0031). */
 class MedicationComposition
 {
-    /**
-     * The source's own abbreviations of a whole substance, folded, and what they stand for.
-     */
+    /** The source's abbreviations of a whole substance, keyed folded. */
     public const array ABBREVIATIONS = [
         'amlodip.' => 'amlodipina',
         'betamet.' => 'betametasona',
@@ -35,22 +24,15 @@ class MedicationComposition
         'serenoa rep.' => 'serenoa repens',
     ];
 
-    /**
-     * What closes a list the source cut short: «and associated substances».
-     */
+    /** What closes a list the source cut short. */
     private const array ASSOCIATION = ['asoc.', 'asoc'];
 
-    /**
-     * Elements the source writes first in an inverted salt, folded: «sodio,bicarbonato» is «bicarbonato de sodio», a
-     * substance of its own, unlike «metformina,clorh.», which is metformin.
-     */
+    /** Folded: «sodio,bicarbonato» is a substance of its own, unlike «metformina,clorh.», which is metformin. */
     private const array CATIONS = [
         'aluminio', 'bismuto', 'calcio', 'hierro', 'litio', 'magnesio', 'metilo', 'potasio', 'sodio', 'titanio', 'zinc',
     ];
 
-    /**
-     * Salts, hydrates and the like, folded and abbreviated as the source writes them, before or after the substance.
-     */
+    /** Folded and abbreviated as the source writes them, before or after the substance. */
     private const array FORMS = [
         'acetato', 'anhidra', 'anhidro', 'base', 'benzoato', 'besilato', 'bitartrato', 'bromhidrato', 'butirato',
         'calcica', 'calcico', 'citrato', 'clor.', 'clorh.', 'clorhidrato', 'dihidrato', 'dipropionato', 'disod.',
@@ -88,8 +70,6 @@ class MedicationComposition
     }
 
     /**
-     * The substances one piece of the drug text names: one, except for a list of vitamins («vit.b1 b6 b12»).
-     *
      * @return list<string>
      */
     public static function substances(string $name): array
@@ -126,9 +106,7 @@ class MedicationComposition
         return [self::withoutForm($text)];
     }
 
-    /**
-     * Lowercase, accents kept, with every run of whitespace as one space.
-     */
+    /** Unlike `FoldedText::fold()`, accents are kept. */
     private static function lowercase(string $text): string
     {
         return trim((string) preg_replace('/\s+/u', ' ', mb_strtolower($text)));

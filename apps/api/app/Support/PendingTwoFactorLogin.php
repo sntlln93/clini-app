@@ -8,16 +8,13 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 /**
- * The login of a user with two-factor authentication on (#357), between the
- * password and the code: kept in the session, never as an authenticated
- * guard, so nothing behind `auth:sanctum` answers until the code is in.
+ * Kept in the session, never as an authenticated guard, so nothing behind `auth:sanctum` answers until the code is in.
  */
 final class PendingTwoFactorLogin
 {
     private const SESSION_KEY = 'login.two_factor';
 
-    // Long enough to open the authenticator app, short enough that a
-    // forgotten tab doesn't keep a verified password around.
+    // Short enough that a forgotten tab doesn't keep a verified password around.
     private const TTL_MINUTES = 10;
 
     public static function start(Request $request, User $user): void
@@ -29,8 +26,7 @@ final class PendingTwoFactorLogin
     }
 
     /**
-     * The pending user's id, or `null` when there is none or it expired. A
-     * stateless request (no SPA origin, so no session) has none either.
+     * A stateless request (no SPA origin, so no session) has none.
      */
     public static function userId(Request $request): ?int
     {
