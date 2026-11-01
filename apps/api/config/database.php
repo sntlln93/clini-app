@@ -101,6 +101,8 @@ return [
             // Laravel binds dates without an offset, and timestamptz columns read those in the session zone: pin it to the app's (#265).
             'timezone' => 'UTC',
             'sslmode' => env('DB_SSLMODE', 'prefer'),
+            // The CA that signs the server's certificate, for DB_SSLMODE=verify-full (docs/architecture/security.md).
+            'sslrootcert' => env('DB_SSLROOTCERT'),
         ],
 
         'sqlsrv' => [

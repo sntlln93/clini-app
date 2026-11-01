@@ -58,6 +58,41 @@ Los límites por hora se cuentan después de la respuesta (solo así puede saber
 
 Mientras `TRUSTED_PROXIES` no tenga la red del proxy (arriba), todos los pacientes comparten la IP del proxy: los límites por consultorio pasan a valer para todos sus pacientes juntos (5 reservas por hora, 60 búsquedas de horarios por minuto) y los de solo IP para toda la plataforma (20 reservas por hora, 10 pedidos por minuto). Como un pedido rechazado también cuenta para los límites por minuto y para los de `register` y `contact`, cualquiera podría llenarlos a propósito y dejar sin reserva online o sin registro a todos. **Antes de abrir la plataforma a tráfico real hay que cargar `TRUSTED_PROXIES`** (o, mientras tanto, poner en `0` los límites de la reserva).
 
+## Seguridad del despliegue
+
+El checklist de la Res. AAIP 47/2018 contra el estado del proyecto está en [Seguridad](security.md), y el protocolo de incidentes en [incident-response.md](incident-response.md). Esta sección junta lo que esas medidas le piden al despliegue.
+
+### HTTPS y cookies
+
+- **HTTPS en cada dominio** (API, panel, dashboard, landing): en Dokploy, cada dominio con HTTPS y el proveedor de certificados `letsencrypt`. Traefik emite y renueva el certificado. Con la redirección de HTTP a HTTPS activada.
+- **HSTS en Traefik**: un middleware de cabeceras con `Strict-Transport-Security: max-age=31536000`. `includeSubDomains` solo cuando todos los subdominios del dominio tengan HTTPS: una vez que el navegador lo aprende, no se puede deshacer hasta que vence. Las demás cabeceras de seguridad (CSP, Referrer-Policy) van en #393.
+- **URLs en `https`**: `APP_URL`, `FRONTEND_URL`, `ADMIN_ALLOWED_ORIGINS` y los build args `VITE_*_URL`.
+- `SESSION_SECURE_COOKIE=true`: la cookie de sesión solo viaja por HTTPS. Sin la variable, Laravel la marca `Secure` solo si ve el pedido como HTTPS, y detrás del proxy eso depende de `TRUSTED_PROXIES` (arriba). Con la variable no depende de eso.
+- `SESSION_ENCRYPT=true` (el default desde #358): el payload de la sesión se guarda cifrado con `APP_KEY` en la tabla `sessions`. **La primera vez que se despliega con el cifrado activado, todas las sesiones abiertas se descartan**: Laravel no puede descifrar el payload viejo, arranca una sesión vacía y todos los usuarios y operadores vuelven a iniciar sesión (sin errores). Conviene hacerlo en un horario de poco uso. Lo mismo pasa al rotar `APP_KEY` sin `APP_PREVIOUS_KEYS`.
+
+### Postgres
+
+- En el mismo servidor que la API, conectado solo a la red de Dokploy y **sin puerto externo publicado** (en Dokploy, sin «External Port»). Así el tráfico entre la API y la base no sale del host.
+- Si la base pasa a otro servidor o a un servicio gestionado: `DB_SSLMODE=require`, y `verify-full` con `DB_SSLROOTCERT` (la ruta al certificado de la CA, montado en el contenedor) cuando la conexión cruza una red que no es privada. El default de Laravel, `prefer`, usa TLS solo si el servidor lo ofrece, y si no, conecta en claro sin avisar.
+- Backups: pendientes (#390).
+
+### Logs y modo debug
+
+- `APP_ENV=production` y `APP_DEBUG=false`: con debug, un error inesperado devuelve la traza (ADR 0024).
+- `LOG_STACK=stderr`: el log de la aplicación va a la salida del contenedor, que Dokploy muestra. El default (`single`) escribe `storage/logs/laravel.log` dentro del contenedor, sin rotar, y se pierde en cada redeploy. Conservarlo fuera del contenedor va en #393.
+
+### Checklist de despliegue
+
+Antes de abrir producción a consultorios reales:
+
+- [ ] HTTPS y redirección en los cuatro dominios, HSTS en Traefik.
+- [ ] `APP_ENV=production`, `APP_DEBUG=false`, `LOG_STACK=stderr`.
+- [ ] `SESSION_SECURE_COOKIE=true`, `SESSION_ENCRYPT=true` (o sin definir), `SESSION_DOMAIN` y `TRUSTED_PROXIES` cargados.
+- [ ] Postgres sin puerto publicado.
+- [ ] El access log de Traefik apagado (abajo, Observabilidad).
+- [ ] Backups funcionando y una restauración probada (#390).
+- [ ] La demo sin la base, el bucket ni la `APP_KEY` de producción.
+
 ## Colas
 
 `QUEUE_CONNECTION=database` para arrancar. Redis solo si aparece una necesidad real de throughput/latencia que la cola en base de datos no pueda cubrir — no antes.
@@ -82,7 +117,7 @@ Los archivos que suben los usuarios (hoy, el logo de la organización, #239) van
 | `AWS_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `AWS_USE_PATH_STYLE_ENDPOINT` | `false` |
 
-Sin ellas, la API arranca igual, pero subir un logo responde 500. Los backups de los archivos se hacen sobre el bucket, por separado de Postgres.
+Sin ellas, la API arranca igual, pero subir un logo responde 500. El bucket todavía no tiene backup ni versionado: un logo borrado no se recupera. Lo resuelve #390, por separado de los de Postgres.
 
 En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3-v5` (s3mock 5 no lee lo que guardó la 4.x, así que el volumen `clini-s3` anterior puede borrarse con `docker volume rm clini-app_clini-s3`).
 
@@ -95,6 +130,7 @@ Los logs no tienen la protección ni la retención de la base, así que no lleva
 - La imagen de la API corre con `zend.exception_ignore_args=On` (`apps/api/Dockerfile`): sin eso, cada frame de una traza en `laravel.log` o en `failed_jobs` lleva sus argumentos, como un DNI, un email o un nombre que se le pasó a una Action.
 - Los nginx de la API, del panel y del dashboard no escriben access log, y el error log de la API va a stderr solo en `crit`. Una URL lleva el estado de búsqueda (`?q=` con un nombre o un DNI) y tokens en el path (`/turno/<token>`), y el `Referer` también. La búsqueda de un paciente por documento (`POST /api/v1/patients/lookup`) es un POST para que el DNI no viaje en la URL. Además tiene un límite de 30 búsquedas cada 5 minutos por usuario, y cada búsqueda deja una fila en `patient_lookups` sin el documento buscado (ADR 0028).
 - **Dokploy/Traefik**: el monitoreo de **Requests** de Dokploy activa el access log de Traefik, y ese log guarda la URL completa, con el query string. Mantenerlo apagado. Si se activa, las búsquedas `?q=` del panel y del dashboard (nombres, DNI, emails) quedan ahí, con la retención que tenga el host.
+- La sesión de la API (tabla `sessions`) va cifrada (`SESSION_ENCRYPT`) y no guarda la URL de cada GET, que llevaría las búsquedas `?q=` (#358, `StartSessionWithoutPreviousUrl`).
 - `MAIL_MAILER` nunca es `log` en producción, porque el mailer `log` escribe cada mail entero (destinatario, paciente, turno) en `laravel.log`. Producción usa `resend`, y el server de demo puede usar `array`.
 
 Herramientas evaluadas (no instaladas todavía): Laravel Pulse, Laravel Nightwatch, Uptime Kuma. El objetivo cuando se necesite: logs, métricas, monitoreo, uptime — con preferencia por soluciones gratuitas o de muy bajo costo dado el estadio del proyecto. Sin decisión tomada sobre cuál(es) usar.
