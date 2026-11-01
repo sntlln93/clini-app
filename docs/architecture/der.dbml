@@ -91,11 +91,12 @@ Table organizations {
   suspended_at timestamp [null, note: 'Set by a platform operator: members get 403 organizations.suspended, public booking 403 booking.organization_unavailable']
   suspension_reason varchar(500) [null, note: 'Operator note; hidden from clinic users (/me)']
   assigned_plan varchar [null, note: 'Plan assigned by a platform operator outside self-service billing: center, or null to derive it from the subscription (ADR 0014)']
+  province varchar [null, note: 'Where the practice attends, declared by its owner (#380, ADR 0032): a Province enum slug. Decides which license of each professional counts here and its provincial holidays']
   created_at timestamp [not null]
   updated_at timestamp [not null]
   deleted_at timestamp [null]
 
-  Note: 'Address lives in the polymorphic addresses table (addressable = organization). The primary address is the oldest one; the organization province (for holidays) is resolved address -> city -> province, never stored here. No address or no city = only national holidays apply.'
+  Note: 'Address lives in the polymorphic addresses table (addressable = organization). The primary address is the oldest one. The organization province (for holidays) is the declared `province`, else resolved address -> city -> province (Organization::resolveProvince). Neither = only national holidays apply.'
 }
 
 Table users {
@@ -109,6 +110,7 @@ Table users {
   two_factor_recovery_codes text [null, note: 'Encrypted JSON list of one-time recovery codes; a spent one is removed']
   two_factor_confirmed_at timestamp [null, note: 'Set when the first code confirmed the setup: the factor is on']
   two_factor_last_used_step bigint [null, note: 'Last accepted TOTP time step, so a code is never accepted twice']
+  document_number text [null, note: 'The professional DNI, encrypted (#380); only to look their licenses up in the national registry, never searched by, hidden from /me']
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
@@ -152,6 +154,36 @@ Table specialties {
     Global, read-only catalog (CU-15/43), owned by an external management
     app — not editable from Clini. No organization_id: unlike most tables
     in this file, this one is NOT tenant-scoped. Seeded for dev/test only.
+  '''
+}
+
+Table professional_licenses {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  number varchar(40) [not null, note: 'As declared: uppercase, spaces collapsed']
+  province varchar [not null, note: 'Province enum slug']
+  profession varchar [not null, note: 'HealthProfession enum: each label is the REFEPS profesionReferencia']
+  status varchar [not null, default: 'unverified', note: 'unverified | verified | mismatch']
+  mismatch_reason varchar [null, note: 'not_found | inactive | sanctioned | not_enabled']
+  refeps_code varchar(20) [null, note: 'REFEPS codigo of the professional']
+  issuer varchar [null, note: 'origenEmite']
+  specialty varchar [null, note: 'refepsEspecialidad']
+  situation varchar [null, note: 'situacionMatricula']
+  checked_at timestamp [null, note: 'Last time the registry answered about it']
+  attempted_at timestamp [null, note: 'Last time Clini asked, answered or not: the daily reverification goes oldest attempt first']
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    (user_id, province, profession, number) [unique]
+    checked_at
+  }
+
+  Note: '''
+    A professional's licenses (#380, ADR 0032): the user's own, like their specialties, read and changed only by
+    them. Checked against the Buscador Nacional de Profesionales de la Salud (one lookup of the DNI) when declared,
+    when the DNI changes, on demand and daily (professionals:reverify-licenses, after 7 days). Only the minimum of
+    the answer is kept: never the CUIL, sex or name.
   '''
 }
 
@@ -539,6 +571,7 @@ Table contact_requests {
 Ref: memberships.organization_id > organizations.id [delete: restrict]
 Ref: memberships.user_id > users.id [delete: restrict]
 
+Ref: professional_licenses.user_id > users.id [delete: cascade]
 Ref: user_specialties.user_id > users.id [delete: cascade]
 Ref: user_specialties.specialty_id > specialties.id [delete: restrict]
 

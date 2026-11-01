@@ -504,6 +504,23 @@ Convenciones:
     un error (422), no un estado válido.
   - El catálogo de especialidades es **global** (ver CU-15): no crece por organización.
 
+### CU-57 · Matrícula del profesional y provincia del consultorio *(issue #380)*
+
+- **Actores**: profesional que carga su DNI y sus matrículas; dueño que declara la provincia del
+  consultorio.
+- **Invariantes**:
+  - El DNI y las matrículas son del `User`, como la credencial de CU-43: viajan con la persona y
+    solo ella los ve y los cambia. Cada matrícula lleva número, provincia y profesión.
+  - La provincia del consultorio la declara quien lo administra; la matrícula que vale en un
+    consultorio es la de su provincia. La provincia declarada también decide los feriados
+    provinciales (si no hay, sigue la de la dirección, CU-50).
+  - Cada matrícula se valida con el Buscador Nacional de Profesionales de la Salud al cargarla, al
+    cambiar el DNI, cuando el profesional lo pide y todos los días (cada 7 días por matrícula):
+    **verificada**, **no coincide** (con el motivo) o **sin verificar** (sin DNI, o el buscador
+    apagado o caído). Ningún estado bloquea el panel ni la medicación indicada (ADR 0032).
+  - De la respuesta se guarda lo mínimo (código REFEPS, entidad emisora, especialidad, situación y
+    fecha); nunca el CUIL, el sexo ni el nombre.
+
 ### CU-44 · Marca y URL pública de la organización
 
 - **Actor**: paciente que entra a `clini.ar/consultorio-belgrano`.
