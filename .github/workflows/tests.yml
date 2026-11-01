@@ -49,7 +49,11 @@ jobs:
         working-directory: apps/api
         run: php artisan test --testsuite=Arch
 
-      - name: 🧪 Pest
+      # The suite runs twice: with the national medication search off (the
+      # default) and on (#377), so neither setting hides a regression. The job
+      # env wins over phpunit.xml's default; tests/TestCase.php fails any HTTP
+      # call without a fake, so the run with it on never reaches the source.
+      - name: 🧪 Pest (buscador de medicamentos apagado)
         working-directory: apps/api
         env:
           DB_CONNECTION: pgsql
@@ -57,6 +61,18 @@ jobs:
           DB_PORT: 5432
           DB_USERNAME: sail
           DB_PASSWORD: password
+          NATIONAL_MEDICATION_SEARCH_ENABLED: 'false'
+        run: php artisan test
+
+      - name: 🧪 Pest (buscador de medicamentos encendido)
+        working-directory: apps/api
+        env:
+          DB_CONNECTION: pgsql
+          DB_HOST: 127.0.0.1
+          DB_PORT: 5432
+          DB_USERNAME: sail
+          DB_PASSWORD: password
+          NATIONAL_MEDICATION_SEARCH_ENABLED: 'true'
         run: php artisan test
 
   tests_frontend:
@@ -120,6 +136,9 @@ jobs:
       FRONTEND_URL: http://localhost:5174,http://localhost:5175,http://localhost:5176
       SANCTUM_STATEFUL_DOMAINS: localhost:5174,localhost:5175
       ADMIN_ALLOWED_ORIGINS: http://localhost:5175
+      # A real server can't fake HTTP, so the e2e run keeps the national
+      # medication search off and never reaches the source (#377).
+      NATIONAL_MEDICATION_SEARCH_ENABLED: 'false'
 
     steps:
       - name: 📥 Clone repo
