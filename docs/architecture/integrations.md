@@ -10,7 +10,7 @@ Diseño previsto: sistema desacoplado basado en eventos, no lógica de negocio h
 AppointmentBooked → Notification → Email → Push → WhatsApp → SMS
 ```
 
-La idea es poder agregar canales nuevos sin tocar la lógica de negocio que dispara la notificación. Todavía no implementado — ningún canal está construido.
+La idea es poder agregar canales nuevos sin tocar la lógica de negocio que dispara la notificación. Hoy el único canal construido es el mail (Resend en producción). Entre otros: recordatorios con su `.ics` (ADR 0018), el código de acceso a la historia (ADR 0029), invitaciones, verificación de correo, avisos de plan y suscripción a los dueños, y el aviso de cada consulta del formulario de contacto. Qué datos salen hacia cada tercero está en [Seguridad](security.md#flujo-de-datos).
 
 ## Web Push
 

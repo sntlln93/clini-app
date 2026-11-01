@@ -112,6 +112,8 @@ Todas las imágenes se fijan con patch (`php:8.5.12-fpm-alpine`, `node:26.12.1-b
 
 ## Datos de prueba (seeders)
 
+Fuera de producción no hay datos personales reales, nunca: ni copias de producción, ni datos de pacientes reales cargados a mano en la demo. La regla completa está en [Seguridad](security.md#datos-sintéticos-en-dev-y-demo).
+
 `database/seeders/DatabaseSeeder.php` es el único punto de entrada — no hay comandos artisan alternativos ni perfiles/subconjuntos. Es literal y determinístico (sin factories, sin faker, `Model::create`/`firstOrCreate` únicamente), así que corre también sobre la imagen de producción (`composer install --no-dev`) y es re-ejecutable: un `php artisan db:seed` repetido no duplica filas.
 
 Crea dos organizaciones fijas — `Clínica Modelo` (slug `clinica-modelo`, con dirección en CABA) y `Consultorio Dos` (slug `consultorio-dos`, con dirección en Córdoba; la dirección es lo que resuelve la provincia para los feriados) — con estos usuarios. Clínica Modelo está en el plan Centro (asignado como lo haría un operador) y Consultorio Dos en Consultorio, con una suscripción activa sin preapproval de Mercado Pago detrás, así nunca se llama al proveedor; una cuenta nueva registrada desde el panel queda en Gratis (ADR 0014). **Contraseña única para todos: `password`** (sin override por variable de entorno).
