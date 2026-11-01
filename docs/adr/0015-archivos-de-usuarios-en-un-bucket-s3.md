@@ -51,7 +51,7 @@ Un archivo en el disco del contenedor se pierde en cada redeploy. Guardar la ima
 
 **El mail de recordatorio** muestra el logo por URL absoluta, solo cuando el plan lo incluye y la organización no está suspendida (su ruta pública respondería 403). No muestra «Hecho con Clini»: el issue lo pide solo para la página de reservas.
 
-**«Hecho con Clini» enlaza a la landing** si el panel tiene `VITE_LANDING_URL`. La variable es opcional porque la landing todavía no está publicada (#249); sin ella, la marca se muestra como texto.
+**«Hecho con Clini» enlaza a la landing** si el panel tiene `VITE_LANDING_URL`. La variable es opcional porque un despliegue puede no tener la landing publicada; sin ella, la marca se muestra como texto.
 
 ## Alternativas descartadas
 

@@ -58,7 +58,7 @@ SPA de los **operadores de la plataforma** (el equipo de Clini, no las clínicas
 Sitio público de Clini en `apps/landing`. Cuenta el producto, muestra los planes y enlaza al registro y al login del panel. Su única llamada a la API es el formulario de contacto comercial de `/contacto` (#248): un `POST /api/v1/contact` anónimo y sin sesión, cuyos mensajes se leen en el módulo Contactos del dashboard.
 
 - Mismo stack y convenciones que panel y dashboard, pero **con SSR**: TanStack Start sobre Vite, servido por Nitro como servidor Node. Ver [ADR 0011](../adr/0011-landing-con-ssr-en-tanstack-start.md).
-- `VITE_PANEL_URL` (build arg) es el origen del panel y `VITE_API_URL` (build arg), el de la API a la que envía el formulario de contacto.
+- `VITE_PANEL_URL` (build arg) es el origen del panel y `VITE_API_URL` (build arg), el de la API a la que envía el formulario de contacto. `VITE_SITE_URL` (build arg, opcional) es su propio origen: de él salen el canonical, `og:url`, `og:image`, `/sitemap.xml` y la línea `Sitemap:` de `/robots.txt` (#249), y sin él se omiten. Ningún dominio está escrito en el código.
 - Su texto solo describe funciones que existen en el código desplegado. Los planes existen desde #237 (ADR 0014); las excepciones conocidas son las funciones de plan que siguen en sus propios issues: las funciones exclusivas de Centro (#243 a #245). El pago anual existe desde #240.
 
 ## Infraestructura
