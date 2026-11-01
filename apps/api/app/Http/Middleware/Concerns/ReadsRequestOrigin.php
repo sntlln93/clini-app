@@ -7,15 +7,11 @@ namespace App\Http\Middleware\Concerns;
 use Illuminate\Http\Request;
 
 /**
- * Origin helpers shared by the two SPA pins (EnsureDashboardOrigin,
- * EnsureNotDashboardOrigin). Origins are compared as `scheme://host[:port]`,
- * the shape of `config('admin.allowed_origins')`.
+ * Origins compare as `scheme://host[:port]`, the shape of
+ * `config('admin.allowed_origins')`.
  */
 trait ReadsRequestOrigin
 {
-    /**
-     * `Origin`, else the scheme+host+port of `Referer`.
-     */
     protected function requestOrigin(Request $request): ?string
     {
         $origin = $this->originHeader($request);

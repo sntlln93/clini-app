@@ -14,13 +14,8 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * The single enforcement point of the read-only restriction: applied to the
- * write routes of appointments, clinical notes, prescriptions, availability
- * and public booking, it rejects the request with a 409 when the current
- * organization's subscription expired (#28), or when it has more active
- * professionals than its plan allows (#237). Reads are never wrapped by it.
- *
- * Runs after `organization`/`public-organization`, which populate
+ * The single enforcement point of the read-only restriction, on write routes
+ * only; runs after `organization`/`public-organization`, which populate
  * CurrentOrganization.
  */
 class EnsureSubscriptionActive

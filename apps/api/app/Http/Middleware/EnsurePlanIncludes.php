@@ -12,9 +12,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * `plan.feature:<feature>`: rejects the route with 409
- * `plans.feature_unavailable` when the current organization's plan leaves
- * the PlanFeature out (#237). Runs after `organization`.
+ * `plan.feature:<feature>`; runs after `organization`.
  */
 class EnsurePlanIncludes
 {

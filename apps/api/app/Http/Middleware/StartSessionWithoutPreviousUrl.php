@@ -9,15 +9,13 @@ use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 
 /**
- * Laravel's StartSession, minus the "previous URL" it keeps for a web app's
- * `back()`: it stores every non-ajax GET's full URL in the session, and the
- * SPAs' axios sends no `X-Requested-With`, so the payload kept a search like
- * `/patients?q=<name or DNI>` (#358). A JSON API never redirects back.
+ * The SPAs' axios sends no `X-Requested-With`, so every GET's full URL (a
+ * `/patients?q=<DNI>` search) landed in the session for a `back()` never used.
  */
 class StartSessionWithoutPreviousUrl extends StartSession
 {
     protected function storeCurrentUrl(Request $request, $session): void
     {
-        // Intentionally empty: see the class docblock.
+        // Intentionally empty.
     }
 }
