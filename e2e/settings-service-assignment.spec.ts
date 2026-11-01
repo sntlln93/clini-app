@@ -26,7 +26,7 @@ test('assigning a service waits for its data and keeps the scroll position', asy
         }
     });
 
-    await page.goto('/ajustes');
+    await page.goto('/ajustes/profesionales');
     // Seeded as unassigned for the first professional listed.
     const item = page
         .locator('section', {

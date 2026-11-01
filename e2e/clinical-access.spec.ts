@@ -63,7 +63,7 @@ test('an exceptional access takes a reason and reaches the owner list', async ({
     await page.getByRole('button', { name: 'Ingresar' }).click();
     await expect(page).not.toHaveURL(/\/login$/);
 
-    await page.goto('/ajustes');
+    await page.goto('/ajustes/proteccion-de-datos');
     await page.getByRole('link', { name: 'Ver accesos' }).click();
     await expect(
         page.getByRole('heading', {

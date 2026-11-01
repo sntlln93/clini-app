@@ -57,7 +57,7 @@ test('a new owner is the professional and completes the first steps until the ch
     ).toBeVisible();
 
     await checklist(page).getByRole('button', { name: 'Ir a Ajustes' }).click();
-    await expect(page).toHaveURL(/\/ajustes/);
+    await expect(page).toHaveURL(/\/ajustes\/profesionales$/);
     const service = page
         .locator('section', {
             has: page.getByRole('heading', {
@@ -105,7 +105,7 @@ test('an owner who only manages steps out from Ajustes and back in from the chec
 }) => {
     await register(page);
 
-    await page.goto('/ajustes');
+    await page.goto('/ajustes/especialidades');
     const attends = page.getByRole('switch', {
         name: 'Atiendo pacientes en este consultorio',
     });

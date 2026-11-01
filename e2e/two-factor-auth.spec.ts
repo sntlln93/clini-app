@@ -84,11 +84,11 @@ test('a user turns two-factor authentication on from Ajustes and off again', asy
         await codeStep.fill(totp(leftOver, testInfo.retry));
         await page.getByRole('button', { name: 'Verificar' }).click();
         await expect(agendaLink).toBeVisible();
-        await page.goto('/ajustes');
+        await page.goto('/ajustes/seguridad');
         await turnOff(page);
     }
 
-    await page.goto('/ajustes');
+    await page.goto('/ajustes/seguridad');
     const section = twoFactorSection(page);
     await expect(section.getByText('Desactivada')).toBeVisible();
     await section.getByRole('button', { name: 'Activar' }).click();
