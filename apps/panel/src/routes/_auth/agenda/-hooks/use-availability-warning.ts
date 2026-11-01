@@ -3,7 +3,7 @@ import { type DateTime, fromInstant } from '@/lib/datetime';
 import type { Availability, AvailabilityException } from '@/types/availability';
 import { useQuery } from '@tanstack/react-query';
 
-// blocked exceptions remove availability, extra add it; day_of_week is 0=Sunday, like disponibilidad's WeeklyAvailabilitySection (Luxon's weekday is 1=Monday…7=Sunday).
+// blocked exceptions remove availability, extra add it; day_of_week is 0=Sunday, like disponibilidad's week draft (Luxon's weekday is 1=Monday…7=Sunday).
 export function isOutsideAvailability(
     dateTime: DateTime,
     availabilities: Availability[],

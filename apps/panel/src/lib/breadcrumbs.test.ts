@@ -73,6 +73,19 @@ describe('buildBreadcrumbs', () => {
         ]);
     });
 
+    it('names both sub-pages of Disponibilidad, its index included', () => {
+        expect(buildBreadcrumbs('/disponibilidad')).toEqual([
+            { label: 'Agenda', href: '/agenda' },
+            { label: 'Disponibilidad', href: '/disponibilidad' },
+            { label: 'Semana habitual' },
+        ]);
+        expect(buildBreadcrumbs('/disponibilidad/excepciones')).toEqual([
+            { label: 'Agenda', href: '/agenda' },
+            { label: 'Disponibilidad', href: '/disponibilidad' },
+            { label: 'Excepciones' },
+        ]);
+    });
+
     it('treats a trailing slash the same as no trailing slash', () => {
         const crumbs = buildBreadcrumbs('/ajustes/');
 

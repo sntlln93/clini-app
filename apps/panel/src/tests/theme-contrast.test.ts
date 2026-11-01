@@ -134,6 +134,18 @@ const PAIRS: Pair[] = [
         })
         .flat(),
 
+    // Disponibilidad's weekly blocks: foreground text on the primary wash
+    // (rest and hover), over the card and over the selected day's muted column,
+    // and the primary edge that outlines them.
+    ...['card', 'muted'].flatMap((surface) =>
+        ['12', '20'].map((opacity) => ({
+            fg: 'foreground',
+            bg: `primary/${opacity} over ${surface}`,
+            min: TEXT,
+        })),
+    ),
+    ...['card', 'muted'].map((bg) => ({ fg: 'primary', bg, min: GRAPHIC })),
+
     // Appointment status chips: on their wash (pill) and on the card.
     ...[...STATUSES, 'online'].flatMap((status) => [
         { fg: `status-${status}`, bg: `status-${status}-wash`, min: TEXT },

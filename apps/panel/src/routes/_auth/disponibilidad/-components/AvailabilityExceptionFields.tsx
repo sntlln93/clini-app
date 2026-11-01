@@ -1,4 +1,4 @@
-import type { Control } from 'react-hook-form';
+import { useWatch, type UseFormReturn } from 'react-hook-form';
 
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -9,138 +9,89 @@ import {
     FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import {
-    TYPE_OPTIONS,
-    type AvailabilityExceptionFormValues,
-} from './availability-schemas';
+import type { ExceptionFormValues } from './exception-form';
+import { ExceptionTypeField } from './ExceptionTypeField';
+import { ExceptionWhenFields } from './ExceptionWhenFields';
+
+const REASON_PLACEHOLDERS: Record<ExceptionFormValues['type'], string> = {
+    blocked: 'Vacaciones, congreso…',
+    extra: 'Atención un sábado…',
+};
 
 type AvailabilityExceptionFieldsProps = {
-    control: Control<AvailabilityExceptionFormValues>;
+    form: UseFormReturn<ExceptionFormValues>;
     canManageOrgWide: boolean;
+    /** An existing exception keeps its scope: the API doesn't move it between a professional and the practice. */
+    isEditing: boolean;
 };
 
 export function AvailabilityExceptionFields({
-    control,
+    form,
     canManageOrgWide,
+    isEditing,
 }: AvailabilityExceptionFieldsProps) {
+    const [type, isOrgWide] = useWatch({
+        control: form.control,
+        name: ['type', 'isOrgWide'],
+    });
+
     return (
-        <>
-            <div className="flex flex-wrap items-start gap-3">
-                <FormField
-                    control={control}
-                    name="type"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">
-                                Tipo
-                            </FormLabel>
-                            <FormControl
-                                render={
-                                    <RadioGroup
-                                        value={field.value}
-                                        onValueChange={field.onChange}
-                                        className="flex gap-4"
-                                    />
-                                }
-                            >
-                                {TYPE_OPTIONS.map((option) => (
-                                    <label
-                                        key={option.value}
-                                        className="flex items-center gap-1.5 text-sm"
-                                    >
-                                        <RadioGroupItem value={option.value} />
-                                        {option.label}
-                                    </label>
-                                ))}
-                            </FormControl>
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
+        <div className="space-y-4">
+            <ExceptionTypeField
+                control={form.control}
+                extraDisabled={isOrgWide}
+            />
 
-                <FormField
-                    control={control}
-                    name="startAt"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">
-                                Desde
-                            </FormLabel>
-                            <FormControl
-                                render={
-                                    <Input
-                                        type="datetime-local"
-                                        className="w-52"
-                                        {...field}
-                                    />
-                                }
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-
-                <FormField
-                    control={control}
-                    name="endAt"
-                    render={({ field }) => (
-                        <FormItem>
-                            <FormLabel className="text-xs text-muted-foreground">
-                                Hasta
-                            </FormLabel>
-                            <FormControl
-                                render={
-                                    <Input
-                                        type="datetime-local"
-                                        className="w-52"
-                                        {...field}
-                                    />
-                                }
-                            />
-                            <FormMessage />
-                        </FormItem>
-                    )}
-                />
-            </div>
+            <ExceptionWhenFields form={form} />
 
             <FormField
-                control={control}
+                control={form.control}
                 name="reason"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel className="text-xs text-muted-foreground">
-                            Motivo
+                        <FormLabel>
+                            Motivo{' '}
+                            <span className="font-normal text-muted-foreground">
+                                (opcional)
+                            </span>
                         </FormLabel>
-                        <FormControl render={<Input {...field} />} />
+                        <FormControl
+                            render={
+                                <Input
+                                    placeholder={REASON_PLACEHOLDERS[type]}
+                                    {...field}
+                                />
+                            }
+                        />
                         <FormMessage />
                     </FormItem>
                 )}
             />
 
-            {canManageOrgWide && (
+            {type === 'blocked' && canManageOrgWide && (
                 <FormField
-                    control={control}
+                    control={form.control}
                     name="isOrgWide"
                     render={({ field }) => (
-                        <FormItem className="flex flex-row items-center gap-2 space-y-0">
+                        <FormItem className="flex flex-row items-center gap-2">
                             <FormControl
                                 render={
                                     <Checkbox
                                         checked={field.value}
+                                        disabled={isEditing}
                                         onCheckedChange={(checked) =>
                                             field.onChange(checked === true)
                                         }
                                     />
                                 }
                             />
-                            <FormLabel className="text-sm">
-                                Aplicar a toda la organización
+                            <FormLabel className="font-normal">
+                                Todo el consultorio (feriado o cierre)
                             </FormLabel>
                         </FormItem>
                     )}
                 />
             )}
-        </>
+        </div>
     );
 }

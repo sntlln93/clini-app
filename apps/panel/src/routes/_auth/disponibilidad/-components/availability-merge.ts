@@ -50,23 +50,6 @@ export function readMergeProposal(
     return { merged, absorbed };
 }
 
-function formatRange(range: Range): string {
-    return `${range.start} a ${range.end}`;
-}
-
-export function mergeSlotDescription(proposal: MergeProposal): string {
-    const { merged, absorbed } = proposal;
-    const mergedRange = formatRange(merged);
-
-    if (absorbed.length === 1) {
-        const [existing] = absorbed;
-        return `Ya tenés un horario de ${existing.start} a ${existing.end} ese día. Si continuás, queda un solo horario de ${mergedRange}.`;
-    }
-
-    const lista = absorbed.map(formatRange).join(', ');
-    return `Ya tenés ${absorbed.length} horarios ese día (${lista}). Si continuás, quedan combinados en un solo horario de ${mergedRange}.`;
-}
-
 // An exception's ranges are API instants, unlike a weekly slot's clock times, so they're shown in the practice's zone (#265).
 export function mergeExceptionDescription(proposal: MergeProposal): string {
     const { merged, absorbed } = proposal;

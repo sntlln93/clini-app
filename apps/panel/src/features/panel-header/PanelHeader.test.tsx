@@ -92,6 +92,22 @@ describe('isNavItemActive', () => {
     it('does not match a different sibling path', () => {
         expect(isNavItemActive('/pacientes', '/agenda')).toBe(false);
     });
+
+    it('matches only the path itself for an exact item, like a section index', () => {
+        expect(
+            isNavItemActive('/disponibilidad', '/disponibilidad', true),
+        ).toBe(true);
+        expect(
+            isNavItemActive('/disponibilidad/', '/disponibilidad', true),
+        ).toBe(true);
+        expect(
+            isNavItemActive(
+                '/disponibilidad/excepciones',
+                '/disponibilidad',
+                true,
+            ),
+        ).toBe(false);
+    });
 });
 
 describe('PanelHeader', () => {

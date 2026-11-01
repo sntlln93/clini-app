@@ -1,8 +1,14 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+    formatDayMonth,
+    formatDayMonthYear,
+    formatWeekdayDay,
+    formatWeekdayDayMonth,
+    fromCalendarDate,
     fromDateAndTime,
     fromDateTimeInputValue,
     fromInstant,
+    isStartOfDay,
     setPracticeTimeZone,
     toDateTimeInputValue,
     toInstant,
@@ -70,5 +76,30 @@ describe('setPracticeTimeZone', () => {
         setPracticeTimeZone('Not/A_Zone');
 
         expect(fromInstant('2026-10-12T12:00:00Z').hour).toBe(9);
+    });
+});
+
+describe('short date labels', () => {
+    const day = fromCalendarDate('2027-01-04');
+
+    it('read in es-AR without dots or commas', () => {
+        expect(formatDayMonth(day)).toBe('4 ene');
+        expect(formatDayMonthYear(day)).toBe('4 ene 2027');
+        expect(formatWeekdayDay(day)).toBe('lun 4');
+        expect(formatWeekdayDayMonth(day)).toBe('lun 4 de enero');
+    });
+});
+
+describe('isStartOfDay', () => {
+    it("holds only at midnight of the practice's zone", () => {
+        setPracticeTimeZone('Etc/UTC');
+
+        expect(isStartOfDay(fromInstant('2026-11-12T00:00:00Z'))).toBe(true);
+        expect(isStartOfDay(fromInstant('2026-11-12T03:00:00Z'))).toBe(false);
+
+        setPracticeTimeZone('America/Argentina/Buenos_Aires');
+
+        expect(isStartOfDay(fromInstant('2026-11-12T03:00:00Z'))).toBe(true);
+        expect(isStartOfDay(fromInstant('2026-11-12T00:00:00Z'))).toBe(false);
     });
 });

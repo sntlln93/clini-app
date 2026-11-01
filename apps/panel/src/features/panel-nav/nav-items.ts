@@ -23,6 +23,8 @@ export type NavItem = {
     feature?: PlanFeature;
     /** When true, the item renders only with an active membership (an organization to act on). */
     requiresMembership?: boolean;
+    /** When true, the item is active only on `to` itself, not on the routes below it (a section's index sub-page). */
+    exact?: boolean;
 };
 
 export const navItems: NavItem[] = [
@@ -50,7 +52,16 @@ export const navItems: NavItem[] = [
     },
 ];
 
-/** True when `to` is the active route (exact match or a nested child). */
-export function isNavItemActive(pathname: string, to: string): boolean {
-    return pathname === to || pathname.startsWith(`${to}/`);
+/** True when `to` is the active route (exact match or, unless `exact`, a nested child). */
+export function isNavItemActive(
+    pathname: string,
+    to: string,
+    exact = false,
+): boolean {
+    const path =
+        pathname.length > 1 && pathname.endsWith('/')
+            ? pathname.slice(0, -1)
+            : pathname;
+
+    return path === to || (!exact && path.startsWith(`${to}/`));
 }

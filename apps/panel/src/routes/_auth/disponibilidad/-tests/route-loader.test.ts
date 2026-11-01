@@ -3,7 +3,7 @@ import type { Membership } from '@/types/membership';
 import type { Professional } from '@/types/professional';
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Route } from '../index';
+import { Route } from '../route';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },

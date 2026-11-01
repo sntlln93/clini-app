@@ -18,6 +18,9 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 const SECTION_SEGMENT_LABELS: Record<string, Record<string, string>> = {
+    disponibilidad: {
+        excepciones: 'Excepciones',
+    },
     ajustes: {
         apariencia: 'Apariencia',
         seguridad: 'Seguridad',
@@ -35,6 +38,12 @@ const SECTION_SEGMENT_LABELS: Record<string, Record<string, string>> = {
         nuevo: 'Invitar miembro',
         editar: 'Editar miembro',
     },
+};
+
+// Sections whose index is one sub-page of several in the secondary
+// navigation: the trail names it, like the sibling sub-pages.
+const SECTION_INDEX_LABELS: Record<string, string> = {
+    disponibilidad: 'Semana habitual',
 };
 
 // Sections whose numeric id segment has a detail route of its own; elsewhere
@@ -86,6 +95,11 @@ export function buildBreadcrumbs(pathname: string): Breadcrumb[] {
         }
 
         crumbs.push({ label: labelFor(segment, section), href });
+    }
+
+    const indexLabel = SECTION_INDEX_LABELS[section];
+    if (segments.length === 1 && indexLabel) {
+        crumbs.push({ label: indexLabel });
     }
 
     const last = crumbs[crumbs.length - 1];
