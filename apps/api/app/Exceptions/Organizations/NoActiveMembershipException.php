@@ -7,10 +7,6 @@ namespace App\Exceptions\Organizations;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
-/**
- * Thrown when an authenticated user has no active membership in any
- * organization (`ResolveCurrentOrganization`).
- */
 final class NoActiveMembershipException extends DomainException
 {
     public function __construct(

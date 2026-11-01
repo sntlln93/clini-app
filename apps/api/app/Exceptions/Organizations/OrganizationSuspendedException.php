@@ -7,9 +7,6 @@ namespace App\Exceptions\Organizations;
 use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
-/**
- * Thrown by ResolveCurrentOrganization when the authenticated user's resolved organization was suspended by a platform operator.
- */
 final class OrganizationSuspendedException extends DomainException
 {
     public function __construct(
