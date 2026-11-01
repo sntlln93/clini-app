@@ -1,6 +1,7 @@
 import { api } from '@/lib/api';
 import { saveFile } from '@/lib/download';
 import { notifySuccess } from '@/lib/toast';
+import { stubElementFromPoint } from '@/tests/input-otp';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -59,6 +60,8 @@ async function confirmPassword(submitLabel: string) {
     });
     fireEvent.click(screen.getByRole('button', { name: submitLabel }));
 }
+
+stubElementFromPoint();
 
 describe('TwoFactorSection', () => {
     beforeEach(() => {
