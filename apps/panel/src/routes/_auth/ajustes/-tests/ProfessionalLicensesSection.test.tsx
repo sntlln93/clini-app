@@ -175,7 +175,7 @@ describe('ProfessionalLicensesSection', () => {
         expect(within(running).getByRole('status')).toBeDefined();
         expect(
             screen.getByText(
-                'Conectando con el Buscador Nacional de Profesionales de la Salud…',
+                'Conectando con el Buscador Nacional de Profesionales de la Salud',
             ),
         ).toBeDefined();
     });
@@ -199,7 +199,7 @@ describe('ProfessionalLicensesSection', () => {
         expect(within(running).getByRole('status')).toBeDefined();
         expect(
             screen.getByText(
-                'Conectando con el Buscador Nacional de Profesionales de la Salud…',
+                'Conectando con el Buscador Nacional de Profesionales de la Salud',
             ),
         ).toBeDefined();
     });

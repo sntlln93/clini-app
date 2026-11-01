@@ -1,8 +1,10 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
+import { withMinimumDuration } from '@/lib/minimum-duration';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { ProfessionalLicense } from '@/types/professional-license';
 import { queryOptions, useMutation } from '@tanstack/react-query';
+import { REGISTRY_PROGRESS_MIN_MS } from '../-components/RegistryProgress';
 
 const LICENSES_KEY = ['professional-licenses'];
 const DOCUMENT_KEY = ['professional-document'];
@@ -58,8 +60,12 @@ export function useAddProfessionalLicense() {
     const refresh = useRefreshLicenses();
 
     return useMutation({
+        // The lookup walks the user through its steps (RegistryProgress).
         mutationFn: (license: NewProfessionalLicense) =>
-            api.post('/me/licenses', license),
+            withMinimumDuration(
+                api.post('/me/licenses', license),
+                REGISTRY_PROGRESS_MIN_MS,
+            ),
         onSuccess: () =>
             refresh().then(() => notifySuccess('Matrícula agregada')),
         onError: (error) =>
@@ -84,7 +90,11 @@ export function useVerifyProfessionalLicenses() {
     const refresh = useRefreshLicenses();
 
     return useMutation({
-        mutationFn: () => api.post('/me/licenses/verification'),
+        mutationFn: () =>
+            withMinimumDuration(
+                api.post('/me/licenses/verification'),
+                REGISTRY_PROGRESS_MIN_MS,
+            ),
         onSuccess: () =>
             refresh().then(() => notifySuccess('Matrículas consultadas')),
         onError: (error) =>
