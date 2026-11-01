@@ -140,3 +140,25 @@ test('a day with no holiday returns exactly the slots it returned before (regres
 
     expect(slotsOn($fixture, '2026-08-03'))->toBe(allHolidayFixtureSlots());
 });
+
+test('a declared province brings its provincial holidays, with no address at all (#380)', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    $declared = holidayFixture();
+    $declared[0]->forceFill(['province' => Province::LaRioja])->save();
+    $undeclared = holidayFixture();
+    Holiday::factory()->inProvince(Province::LaRioja)->create(['date' => '2026-08-03']);
+
+    expect(slotsOn($declared, '2026-08-03'))->toBe([]);
+    expect(slotsOn($undeclared, '2026-08-03'))->toBe(allHolidayFixtureSlots());
+});
+
+test('the declared province, not the address\'s, decides the provincial holidays (#380)', function () {
+    $this->travelTo('2026-07-20 00:00:00');
+    $fixture = holidayFixture(City::factory()->inProvince(Province::Cordoba)->create());
+    $fixture[0]->forceFill(['province' => Province::LaRioja])->save();
+    Holiday::factory()->inProvince(Province::Cordoba)->create(['date' => '2026-08-03']);
+    Holiday::factory()->inProvince(Province::LaRioja)->create(['date' => '2026-08-10']);
+
+    expect(slotsOn($fixture, '2026-08-03'))->toBe(allHolidayFixtureSlots());
+    expect(slotsOn($fixture, '2026-08-10'))->toBe([]);
+});

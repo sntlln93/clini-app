@@ -26,7 +26,8 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * `suspended_at`/`suspension_reason` and `assigned_plan` are written only by
- * the operator Actions (forceFill), never mass-assigned; the reason stays
+ * the operator Actions (forceFill), never mass-assigned, and so is
+ * `province` (#380), by its own Action; the reason stays
  * hidden so the clinic `/me` payload — which serializes this model — never
  * exposes it.
  */
@@ -45,6 +46,7 @@ class Organization extends Model
         return [
             'suspended_at' => 'immutable_datetime',
             'assigned_plan' => Plan::class,
+            'province' => Province::class,
         ];
     }
 
@@ -123,13 +125,13 @@ class Organization extends Model
     }
 
     /**
-     * Resolved through address → city → province; null when the
-     * organization has no address or its address has no city, in which
-     * case only national holidays apply to it.
+     * The province the owner declared as where the practice attends (#380),
+     * else the one resolved through address → city → province; null when
+     * there is neither, in which case only national holidays apply to it.
      */
     public function resolveProvince(): ?Province
     {
-        return $this->address?->city?->province?->slug;
+        return $this->province ?? $this->address?->city?->province?->slug;
     }
 
     /**

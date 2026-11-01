@@ -13,6 +13,7 @@ use App\Models\AvailabilityException;
 use App\Models\Holiday;
 use App\Models\Organization;
 use App\Models\OrganizationHoliday;
+use App\Models\Province;
 use App\Support\Intervals;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
@@ -27,7 +28,8 @@ use Illuminate\Support\Carbon;
  * taken by busy appointments, which stays each caller's own concern. A
  * holiday publishes no intervals at all, regardless of availability: a
  * national catalog holiday, a catalog holiday of the organization's province
- * (address → city → province), or one of the organization's own
+ * (`Organization::resolveProvince()`: declared, else address → city →
+ * province), or one of the organization's own
  * `organization_holidays`. Loads the whole range in a fixed number of queries.
  *
  * @implements Action<PublishedScheduleData>
@@ -40,7 +42,7 @@ class ComputePublishedScheduleAction implements Action
      */
     public function handle(Data $dto): array
     {
-        $organization = Organization::query()->with('address.city')->findOrFail($dto->organizationId);
+        $organization = Organization::query()->with('address.city.province')->findOrFail($dto->organizationId);
         $timezone = $organization->timezone;
         $firstDay = CarbonImmutable::parse($dto->fromDate, $timezone)->startOfDay();
         $lastDay = CarbonImmutable::parse($dto->toDate, $timezone)->startOfDay();
@@ -146,7 +148,8 @@ class ComputePublishedScheduleAction implements Action
      */
     private function holidayDates(Organization $organization, string $fromDate, string $toDate): array
     {
-        $provinceId = $organization->address?->city?->province_id;
+        $province = $organization->resolveProvince();
+        $provinceId = $province === null ? null : Province::query()->where('slug', $province)->value('id');
 
         $catalog = Holiday::query()
             ->whereBetween('date', [$fromDate, $toDate])
