@@ -13,6 +13,7 @@ use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Jobs\Subscriptions\SyncSubscriptionAmountJob;
 use App\Models\Membership;
 use App\Models\Organization;
+use App\Support\OrganizationAdministrators;
 use App\Support\OrganizationPlan;
 use Illuminate\Support\Facades\DB;
 
@@ -37,13 +38,11 @@ class UpdateMembershipAction implements Action
         return DB::transaction(function () use ($dto): Membership {
             $membership = Membership::lockForUpdate()->findOrFail($dto->membershipId);
 
-            $newRolesKeepOwnerOrAdmin = collect($dto->roles)->contains(
-                fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-            );
+            $newRolesKeepOwnerOrAdmin = OrganizationAdministrators::includesOwnerOrAdmin($dto->roles);
 
             $organizationKeepsOwnerOrAdmin = $dto->status === MembershipStatus::Active && $newRolesKeepOwnerOrAdmin;
 
-            if (! $organizationKeepsOwnerOrAdmin && ! $this->anotherActiveOwnerOrAdminExists($membership)) {
+            if (! $organizationKeepsOwnerOrAdmin && ! OrganizationAdministrators::anotherActiveExists($membership)) {
                 throw new LastActiveAdminException($membership->id, $membership->organization_id);
             }
 
@@ -84,22 +83,5 @@ class UpdateMembershipAction implements Action
             $dto->roles,
             fn (MembershipRole $role): bool => ! in_array($role, $activeRoles, true),
         ));
-    }
-
-    private function anotherActiveOwnerOrAdminExists(Membership $membership): bool
-    {
-        return Membership::query()
-            ->where('id', '!=', $membership->id)
-            ->where('status', MembershipStatus::Active)
-            ->lockForUpdate()
-            ->get()
-            ->contains(function (Membership $other): bool {
-                /** @var array<int, MembershipRole> $roles */
-                $roles = $other->roles;
-
-                return collect($roles)->contains(
-                    fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-                );
-            });
     }
 }

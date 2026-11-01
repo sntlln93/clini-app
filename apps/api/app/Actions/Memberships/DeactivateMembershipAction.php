@@ -12,10 +12,12 @@ use App\Enums\MembershipStatus;
 use App\Exceptions\Memberships\LastActiveAdminException;
 use App\Jobs\Subscriptions\SyncSubscriptionAmountJob;
 use App\Models\Membership;
+use App\Support\OrganizationAdministrators;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Deactivation is a soft delete (never forceDelete) — appointments are left untouched.
+ * Deactivation is a soft delete (never forceDelete) — appointments are left untouched. Works with no current
+ * organization too: account deletion (#384) deactivates the user's memberships in every organization.
  *
  * The CU-04/CU-05 "keep at least one active owner/admin" invariant is checked and written inside a single row-locked transaction so two concurrent deactivations can't both pass and leave none.
  *
@@ -29,19 +31,17 @@ class DeactivateMembershipAction implements Action
     public function handle(Data $dto): Membership
     {
         return DB::transaction(function () use ($dto): Membership {
-            $membership = Membership::lockForUpdate()->findOrFail($dto->membershipId);
+            $membership = Membership::withoutGlobalScope('organization')->lockForUpdate()->findOrFail($dto->membershipId);
 
             /** @var array<int, MembershipRole> $roles */
             $roles = $membership->roles;
 
-            $isOwnerOrAdmin = collect($roles)->contains(
-                fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-            );
+            $isOwnerOrAdmin = OrganizationAdministrators::includesOwnerOrAdmin($roles);
 
             /** @var MembershipStatus $status */
             $status = $membership->status;
 
-            if ($status === MembershipStatus::Active && $isOwnerOrAdmin && ! $this->anotherActiveOwnerOrAdminExists($membership)) {
+            if ($status === MembershipStatus::Active && $isOwnerOrAdmin && ! OrganizationAdministrators::anotherActiveExists($membership)) {
                 throw new LastActiveAdminException($membership->id, $membership->organization_id);
             }
 
@@ -58,22 +58,5 @@ class DeactivateMembershipAction implements Action
 
             return $membership;
         });
-    }
-
-    private function anotherActiveOwnerOrAdminExists(Membership $membership): bool
-    {
-        return Membership::query()
-            ->where('id', '!=', $membership->id)
-            ->where('status', MembershipStatus::Active)
-            ->lockForUpdate()
-            ->get()
-            ->contains(function (Membership $other): bool {
-                /** @var array<int, MembershipRole> $roles */
-                $roles = $other->roles;
-
-                return collect($roles)->contains(
-                    fn (MembershipRole $role): bool => in_array($role, [MembershipRole::Owner, MembershipRole::Admin], true)
-                );
-            });
     }
 }
