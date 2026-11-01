@@ -14,10 +14,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Notification;
 
 /**
- * Runs from the scheduler once a day (routes/console.php). Moves every
- * subscription whose grace period has ended unpaid to `expired` — which
- * makes the organization's agenda read-only — and notifies its owners.
- * A successful charge arriving later still reactivates it (webhook).
+ * Expiring makes the agenda read-only; a later successful charge still reactivates it through the webhook.
  */
 #[Description('Expires subscriptions whose grace period has ended without a successful payment')]
 #[Signature('subscriptions:expire-grace')]
@@ -39,9 +36,7 @@ class ExpireSubscriptionGraceCommand extends Command
 
     private function expire(Subscription $subscription): void
     {
-        // Conditional update: a payment webhook reactivating it meanwhile wins,
-        // and so does a fresh grace period opened right after that (still
-        // `grace`, but with a later grace_ends_at).
+        // Conditional update: a webhook reactivation, or a fresh grace period opened after it, wins.
         $updated = Subscription::withoutGlobalScope('organization')
             ->whereKey($subscription->id)
             ->where('status', SubscriptionStatus::Grace)

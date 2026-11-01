@@ -12,13 +12,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Runs from the scheduler once a month (routes/console.php). Syncs the
- * shared holiday catalog for the given (or current) year: national first —
- * provincial entries on national dates are skipped — then every one of the
- * 24 provinces, not only those organizations reference today, so an
- * organization that moves to a new province is covered without waiting for
- * the next run. Each scope is fetched once; a provider failure for one is
- * logged and skipped, never aborting the whole run.
+ * National first (provincial entries on national dates are skipped), then every province, so a move needs no new run.
  */
 class SyncHolidaysCommand extends Command
 {

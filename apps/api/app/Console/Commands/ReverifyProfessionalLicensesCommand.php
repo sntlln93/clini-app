@@ -15,12 +15,7 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Sleep;
 
 /**
- * Runs from the scheduler once a day (routes/console.php). A license can be suspended or withdrawn at any time, so
- * every professional with a license the registry hasn't answered about in `ProfessionalLicense::REVERIFY_AFTER_DAYS`
- * is looked up again (#380, ADR 0032), oldest attempt first, so a DNI whose lookup keeps failing goes to the back
- * instead of holding everyone else. A license that stops being backed turns «no coincide» and the professional sees it;
- * nothing is blocked. The registry isn't ours to load: at most `services.national_professional_search.per_run` lookups
- * a run, a pause between them, and the run stops as soon as the registry is off or failing.
+ * Oldest attempt first, so a DNI whose lookup keeps failing doesn't hold everyone else; capped and paced so as not to load the registry.
  */
 #[Description('Checks professionals\' licenses again against the national registry')]
 #[Signature('professionals:reverify-licenses')]
