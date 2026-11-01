@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { PROVINCES } from '@/lib/provinces';
 import { useState } from 'react';
 import { useUpdateOrganizationProvince } from '../-hooks/use-organization-province';
@@ -51,7 +52,8 @@ export function OrganizationProvinceSection({
                     }
                     onClick={() => selected !== null && mutate(selected)}
                 >
-                    Guardar
+                    {isPending && <Spinner data-icon="inline-start" />}
+                    {isPending ? 'Guardando…' : 'Guardar'}
                 </Button>
             </div>
         </section>

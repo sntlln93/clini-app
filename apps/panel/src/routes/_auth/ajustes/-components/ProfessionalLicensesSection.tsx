@@ -1,9 +1,11 @@
 import { Button } from '@/components/ui/button';
+import { Spinner } from '@/components/ui/spinner';
 import { provinceLabel } from '@/lib/provinces';
 import type { ProfessionalLicense } from '@/types/professional-license';
 import { useVerifyProfessionalLicenses } from '../-hooks/use-professional-licenses';
 import { AddProfessionalLicenseForm } from './AddProfessionalLicenseForm';
 import { ProfessionalLicenseItem } from './ProfessionalLicenseItem';
+import { RegistryProgress } from './RegistryProgress';
 
 type ProfessionalLicensesSectionProps = {
     licenses: ProfessionalLicense[];
@@ -63,9 +65,11 @@ export function ProfessionalLicensesSection({
                     disabled={verify.isPending}
                     onClick={() => verify.mutate()}
                 >
-                    Volver a consultar
+                    {verify.isPending && <Spinner data-icon="inline-start" />}
+                    {verify.isPending ? 'Consultando…' : 'Volver a consultar'}
                 </Button>
             )}
+            {verify.isPending && <RegistryProgress />}
 
             <AddProfessionalLicenseForm
                 defaultProvince={organizationProvince}

@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { useId, useState } from 'react';
 import { useUpdateProfessionalDocument } from '../-hooks/use-professional-licenses';
 
@@ -60,7 +61,8 @@ export function ProfessionalDocumentSection({
                     disabled={isPending || !isDirty}
                     onClick={() => mutate(typed === '' ? null : typed)}
                 >
-                    Guardar
+                    {isPending && <Spinner data-icon="inline-start" />}
+                    {isPending ? 'Guardando…' : 'Guardar'}
                 </Button>
             </div>
         </section>

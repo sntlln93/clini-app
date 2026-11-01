@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { HEALTH_PROFESSIONS } from '@/lib/health-professions';
 import { PROVINCES } from '@/lib/provinces';
 import { useId, useState } from 'react';
 import { useAddProfessionalLicense } from '../-hooks/use-professional-licenses';
 import { OptionPicker } from './OptionPicker';
+import { RegistryProgress } from './RegistryProgress';
 
 type AddProfessionalLicenseFormProps = {
     /** The practice's province, offered first since it's the one that counts here. */
@@ -76,8 +78,10 @@ export function AddProfessionalLicenseForm({
                 disabled={isPending || !canAdd}
                 onClick={handleAdd}
             >
-                Agregar matrícula
+                {isPending && <Spinner data-icon="inline-start" />}
+                {isPending ? 'Agregando…' : 'Agregar matrícula'}
             </Button>
+            {isPending && <RegistryProgress />}
         </div>
     );
 }

@@ -157,6 +157,50 @@ describe('ProfessionalLicensesSection', () => {
         );
     });
 
+    it('shows the check is running while the registry answers', async () => {
+        vi.mocked(api.post).mockReturnValue(new Promise(() => {}));
+        renderSection({ licenses: [license({})] });
+
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Volver a consultar' }),
+        );
+
+        const running = await screen.findByRole('button', {
+            name: /Consultando…/,
+        });
+        expect(running.hasAttribute('disabled')).toBe(true);
+        expect(within(running).getByRole('status')).toBeDefined();
+        expect(
+            screen.getByText(
+                'Conectando con el Buscador Nacional de Profesionales de la Salud…',
+            ),
+        ).toBeDefined();
+    });
+
+    it('shows a new license is being added and checked', async () => {
+        vi.mocked(api.post).mockReturnValue(new Promise(() => {}));
+        renderSection({ licenses: [], organizationProvince: 'cordoba' });
+
+        fireEvent.change(screen.getByLabelText('Número'), {
+            target: { value: '6789' },
+        });
+        await pickOption('Profesión', 'Médico');
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Agregar matrícula' }),
+        );
+
+        const running = await screen.findByRole('button', {
+            name: /Agregando…/,
+        });
+        expect(running.hasAttribute('disabled')).toBe(true);
+        expect(within(running).getByRole('status')).toBeDefined();
+        expect(
+            screen.getByText(
+                'Conectando con el Buscador Nacional de Profesionales de la Salud…',
+            ),
+        ).toBeDefined();
+    });
+
     it('removes a license after confirming', async () => {
         renderSection({ licenses: [VERIFIED] });
 

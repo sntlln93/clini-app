@@ -47,6 +47,22 @@ describe('ProfessionalDocumentSection', () => {
         );
     });
 
+    it('shows the DNI is being saved', async () => {
+        vi.mocked(api.put).mockReturnValue(new Promise(() => {}));
+        renderSection(null);
+
+        fireEvent.change(screen.getByLabelText('DNI'), {
+            target: { value: '30123456' },
+        });
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+        expect(
+            (
+                await screen.findByRole('button', { name: /Guardando…/ })
+            ).hasAttribute('disabled'),
+        ).toBe(true);
+    });
+
     it('saves an emptied field as no DNI', async () => {
         renderSection('30123456');
 
