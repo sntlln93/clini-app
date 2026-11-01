@@ -1,5 +1,6 @@
 import type { Control } from 'react-hook-form';
 
+import { TimeInput } from '@/components/TimeInput';
 import {
     FormControl,
     FormField,
@@ -73,7 +74,9 @@ export function AppointmentFormFields({
                         <FormItem>
                             <FormLabel>Hora</FormLabel>
                             <FormControl
-                                render={<Input type="time" {...field} />}
+                                render={
+                                    <TimeInput stepMinutes={5} {...field} />
+                                }
                             />
                             <FormMessage />
                         </FormItem>

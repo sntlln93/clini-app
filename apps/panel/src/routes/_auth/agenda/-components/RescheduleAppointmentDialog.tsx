@@ -2,6 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 
+import { TimeInput } from '@/components/TimeInput';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -121,8 +122,8 @@ export function RescheduleAppointmentDialog({
                                             <FormLabel>Hora</FormLabel>
                                             <FormControl
                                                 render={
-                                                    <Input
-                                                        type="time"
+                                                    <TimeInput
+                                                        stepMinutes={5}
                                                         {...field}
                                                     />
                                                 }
