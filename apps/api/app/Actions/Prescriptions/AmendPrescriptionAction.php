@@ -42,9 +42,8 @@ class AmendPrescriptionAction implements Action
     public function handle(Data $dto): Prescription
     {
         // An amendment that can't succeed says so before any allergy warning (#362); the lock below checks it again.
-        $items = MedicationSnapshot::of($dto->items);
         $prescription = Prescription::query()->findOrFail($dto->prescriptionId);
-        $this->currentVersionToAmend($prescription, $items);
+        $items = $this->changedItems($prescription, $this->currentVersion($prescription), $dto->items);
 
         // It indicates its whole item list again, so it is checked like a new record.
         $allergyMatches = $this->screen->handle(new MedicationAllergyScreeningData(
@@ -56,9 +55,10 @@ class AmendPrescriptionAction implements Action
             confirmedAllergies: $dto->confirmedAllergies,
         ));
 
-        return DB::transaction(function () use ($dto, $items, $allergyMatches): Prescription {
+        return DB::transaction(function () use ($dto, $allergyMatches): Prescription {
             $prescription = Prescription::query()->lockForUpdate()->findOrFail($dto->prescriptionId);
-            $current = $this->currentVersionToAmend($prescription, $items);
+            $current = $this->currentVersion($prescription);
+            $items = $this->changedItems($prescription, $current, $dto->items);
 
             $version = $prescription->versions()->create([
                 'version' => $current->version + 1,
@@ -94,12 +94,9 @@ class AmendPrescriptionAction implements Action
     }
 
     /**
-     * The version the amendment follows, unless the record is annulled or the amendment repeats its items.
+     * The version the amendment follows, unless the record is annulled.
      */
-    /**
-     * @param  list<PrescriptionItemData>  $items
-     */
-    private function currentVersionToAmend(Prescription $prescription, array $items): PrescriptionVersion
+    private function currentVersion(Prescription $prescription): PrescriptionVersion
     {
         if ($prescription->annulment()->exists()) {
             throw new PrescriptionAnnulledException($prescription->id);
@@ -108,6 +105,21 @@ class AmendPrescriptionAction implements Action
         /** @var PrescriptionVersion $current */
         $current = $prescription->versions()->reorder('version', 'desc')->with('items')->firstOrFail();
 
+        return $current;
+    }
+
+    /**
+     * The amendment's items with what they keep of their catalog products, unless they repeat the version's. A product
+     * the version already names keeps the version's copy of it, so a later catalog change neither turns a repeat into
+     * an amendment nor slips into one.
+     *
+     * @param  list<PrescriptionItemData>  $requested
+     * @return list<PrescriptionItemData>
+     */
+    private function changedItems(Prescription $prescription, PrescriptionVersion $current, array $requested): array
+    {
+        $items = MedicationSnapshot::of($requested, $current->items);
+
         $currentItems = $current->items
             ->map(fn (PrescriptionItem $item): array => (new PrescriptionItemData(
                 medication: $item->medication,
@@ -115,7 +127,11 @@ class AmendPrescriptionAction implements Action
                 dosage: $item->dosage,
                 quantity: $item->quantity,
                 gtin: $item->gtin,
+                snomed: $item->snomed,
                 substances: $item->substances,
+                dispensingCondition: $item->dispensing_condition,
+                controlMark: $item->control_mark,
+                compositionIncomplete: $item->composition_incomplete,
             ))->toArray())
             ->all();
         $newItems = array_map(fn (PrescriptionItemData $item): array => $item->toArray(), $items);
@@ -124,6 +140,6 @@ class AmendPrescriptionAction implements Action
             throw new PrescriptionAmendmentUnchangedException($prescription->id, $current->version);
         }
 
-        return $current;
+        return $items;
     }
 }

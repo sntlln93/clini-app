@@ -7,18 +7,15 @@ namespace App\Data\Medications;
 use App\Contracts\Data;
 
 /**
- * One active pharmaceutical ingredient (IFA) of a product, as ANMAT lists it, and, when ANMAT says so, the form it
- * comes as (a salt, a hydrate). ANMAT doesn't separate them consistently: the salt often stays in the name.
+ * One active substance of a catalog product (#377): its name as the source writes it («pseudoef.», «clavulánico,ác.»)
+ * and the substance it names, in lowercase, without abbreviations or salts and with its accents («ácido
+ * clavulánico»): what the panel shows and the allergy warning compares, folded.
  */
 final readonly class MedicationIngredientData implements Data
 {
     public function __construct(
         public string $name,
-        public ?string $quantity,
-        public ?string $unit,
-        public ?string $asName,
-        public ?string $asQuantity,
-        public ?string $asUnit,
+        public string $substance,
     ) {}
 
     /**
@@ -28,11 +25,7 @@ final readonly class MedicationIngredientData implements Data
     {
         return [
             'name' => $this->name,
-            'quantity' => $this->quantity,
-            'unit' => $this->unit,
-            'asName' => $this->asName,
-            'asQuantity' => $this->asQuantity,
-            'asUnit' => $this->asUnit,
+            'substance' => $this->substance,
         ];
     }
 }

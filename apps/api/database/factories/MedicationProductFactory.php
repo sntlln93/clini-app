@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Database\Factories;
 
-use App\Enums\MedicationSearchField;
 use App\Models\MedicationProduct;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -20,25 +19,34 @@ class MedicationProductFactory extends Factory
     {
         return [
             'gtin' => fake()->unique()->numerify('0779##########'),
-            'certificate_number' => fake()->numerify('#####'),
-            'laboratory' => 'LABORATORIO DE PRUEBA S A',
-            'commercial_name' => 'IBUPIRAC 400',
-            'pharmaceutical_form' => 'COMPRIMIDO RECUBIERTO',
-            'presentation' => 'BLISTER por 20 UNIDADES',
-            'generic_name' => 'IBUPROFENO 400 MG',
-            'listed_by_field' => MedicationSearchField::Commercial,
-            'listed_by_term' => 'ibupirac',
+            'name' => 'IBUPIRAC 400',
+            'presentation' => 'comp.x 20',
+            'pharmaceutical_form' => 'Comprimidos/Pastillas/Tabletas/Grageas',
+            'administration_route' => 'oral',
+            'laboratory' => 'Laboratorio de prueba',
+            'troquel' => fake()->numerify('#######'),
+            'snomed' => fake()->numerify('###############'),
+            'drug' => 'ibuprofeno',
+            'drug_code' => '00123',
+            'therapeutic_action' => 'Analgésico Antiinflam.',
+            'therapeutic_action_code' => '00010',
+            'dispensing_condition' => 'Venta Libre',
+            'control_mark' => null,
+            'withdrawn' => false,
+            'in_force' => true,
+            'source_updated_on' => '2026-10-27',
+            'composition_incomplete' => false,
         ];
     }
 
     /**
-     * Its detail already fetched, with these ingredients (name => substance).
+     * With these substances (name as the source writes it => substance written out).
      *
      * @param  array<string, string>  $ingredients
      */
     public function withIngredients(array $ingredients): static
     {
-        return $this->state(['detail_fetched_at' => now()])->afterCreating(function (MedicationProduct $product) use ($ingredients): void {
+        return $this->afterCreating(function (MedicationProduct $product) use ($ingredients): void {
             $position = 0;
 
             foreach ($ingredients as $name => $substance) {

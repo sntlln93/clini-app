@@ -10,7 +10,7 @@ class SearchMedicationsRequest extends FormRequest
 {
     /**
      * The panel asks from five characters on: a shorter term would list too much to suggest, and ask the national
-     * vademecum for nothing useful.
+     * medication search for hundreds of products nobody looks at.
      */
     public const int MIN_TERM_LENGTH = 5;
 
@@ -35,12 +35,13 @@ class SearchMedicationsRequest extends FormRequest
     }
 
     /**
-     * The length counts without the spaces around it.
+     * The length counts the term as it is asked and recorded: without the spaces around it, and every run of spaces
+     * inside it as one.
      */
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('q'))) {
-            $this->merge(['q' => trim($this->input('q'))]);
+            $this->merge(['q' => trim((string) preg_replace('/\s+/u', ' ', $this->input('q')))]);
         }
     }
 }

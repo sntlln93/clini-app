@@ -11,7 +11,7 @@ use App\Contracts\TwoFactorAuthenticator;
 use App\Models\User;
 use App\Services\Auth\Google2FaService;
 use App\Services\Holidays\CalendariosNacionalesService;
-use App\Services\Medications\AnmatVademecumService;
+use App\Services\Medications\NationalMedicationSearchService;
 use App\Services\Payments\MercadoPagoService;
 use App\Support\CurrentOrganization;
 use App\Support\PendingTwoFactorLogin;
@@ -30,7 +30,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         HolidayProvider::class => CalendariosNacionalesService::class,
-        MedicationSource::class => AnmatVademecumService::class,
+        MedicationSource::class => NationalMedicationSearchService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
         TwoFactorAuthenticator::class => Google2FaService::class,
     ];
@@ -118,7 +118,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Searching the medication catalog (#377): a professional typing
         // asks once per pause, and a term the catalog doesn't hold reaches
-        // the national vademecum, whose public lookup isn't ours to load.
+        // the national medication search, whose endpoint isn't ours to load.
         // Keyed by user, never `currentMembership()` (see `patient-lookup`).
         RateLimiter::for('medication-search', function (Request $request): Limit {
             $user = $request->user();

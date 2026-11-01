@@ -4,14 +4,12 @@ declare(strict_types=1);
 
 namespace App\Contracts;
 
-use App\Data\Medications\MedicationDetailData;
-use App\Data\Medications\MedicationListingData;
-use App\Enums\MedicationSearchField;
+use App\Data\Medications\MedicationProductData;
 use App\Exceptions\Medications\MedicationSourceUnavailableException;
 
 /**
  * Where the medication catalog learns about products it doesn't hold yet (#377, ADR 0031). Swapping the national
- * vademecum for another source (the catalog app, a prescription platform's vademecum, #314) is another adapter.
+ * medication search for a documented API (#379) or another source is another adapter and another binding.
  */
 interface MedicationSource
 {
@@ -21,18 +19,12 @@ interface MedicationSource
     public function available(): bool;
 
     /**
-     * The first page of products whose name in that field contains the term.
+     * Every product the source finds for the term, whole: the catalog's coverage rule counts on a longer term never
+     * finding anything a shorter one inside it didn't.
      *
-     * @return list<MedicationListingData>
-     *
-     * @throws MedicationSourceUnavailableException
-     */
-    public function search(MedicationSearchField $field, string $term): array;
-
-    /**
-     * The detail of the product the search for that term listed with that GTIN, if it still lists it.
+     * @return list<MedicationProductData>
      *
      * @throws MedicationSourceUnavailableException
      */
-    public function detail(MedicationSearchField $field, string $term, string $gtin): ?MedicationDetailData;
+    public function search(string $term): array;
 }

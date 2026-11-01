@@ -10,20 +10,11 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * One active pharmaceutical ingredient of a catalog product, as ANMAT lists it, with the substance it is (#377).
+ * One substance a catalog product's drug text names, as the source writes it and written out, as the panel shows it
+ * and the allergy warning compares it (#377, `MedicationComposition`). A piece naming several vitamins is one row each.
  */
 #[WithoutTimestamps]
-#[Fillable([
-    'medication_product_id',
-    'position',
-    'name',
-    'substance',
-    'quantity',
-    'unit',
-    'as_name',
-    'as_quantity',
-    'as_unit',
-])]
+#[Fillable(['medication_product_id', 'position', 'name', 'substance'])]
 class MedicationIngredient extends Model
 {
     /**

@@ -3,37 +3,36 @@
 declare(strict_types=1);
 
 use App\Contracts\MedicationSource;
-use App\Data\Medications\MedicationDetailData;
-use App\Data\Medications\MedicationIngredientData;
-use App\Data\Medications\MedicationListingData;
-use App\Enums\MedicationSearchField;
+use App\Data\Medications\MedicationProductData;
 use App\Exceptions\Medications\MedicationSourceUnavailableException;
+use App\Models\MedicationIngredient;
 use App\Models\MedicationProduct;
 use App\Models\MedicationSearch;
 use App\Models\Membership;
 use App\Support\CurrentOrganization;
+use App\Support\MedicationComposition;
+use Illuminate\Support\Facades\Http;
 
 afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
 /**
- * A source that answers what it is given and records what it was asked.
+ * A source that answers what it is given and records the terms it was asked.
  *
- * @param  array<string, list<MedicationListingData>>  $listings  by "field:term"
+ * @param  array<string, list<MedicationProductData>>  $answers  by term, as sent
  */
-function fakeMedicationSource(array $listings = [], ?MedicationDetailData $detail = null, bool $available = true, bool $failing = false): ArrayObject
+function fakeMedicationSource(array $answers = [], bool $available = true, bool $failing = false): ArrayObject
 {
     $calls = new ArrayObject;
 
-    app()->instance(MedicationSource::class, new class($listings, $detail, $available, $failing, $calls) implements MedicationSource
+    app()->instance(MedicationSource::class, new class($answers, $available, $failing, $calls) implements MedicationSource
     {
         /**
-         * @param  array<string, list<MedicationListingData>>  $listings
+         * @param  array<string, list<MedicationProductData>>  $answers
          */
         public function __construct(
-            private array $listings,
-            private ?MedicationDetailData $detail,
+            private array $answers,
             private bool $available,
             private bool $failing,
             private ArrayObject $calls,
@@ -44,35 +43,45 @@ function fakeMedicationSource(array $listings = [], ?MedicationDetailData $detai
             return $this->available;
         }
 
-        public function search(MedicationSearchField $field, string $term): array
+        public function search(string $term): array
         {
-            $this->calls[] = "search:{$field->value}:{$term}";
+            $this->calls[] = $term;
 
             if ($this->failing) {
-                throw new MedicationSourceUnavailableException('search');
+                throw new MedicationSourceUnavailableException('status');
             }
 
-            return $this->listings["{$field->value}:{$term}"] ?? [];
-        }
-
-        public function detail(MedicationSearchField $field, string $term, string $gtin): ?MedicationDetailData
-        {
-            $this->calls[] = "detail:{$field->value}:{$term}:{$gtin}";
-
-            if ($this->failing) {
-                throw new MedicationSourceUnavailableException('detail');
-            }
-
-            return $this->detail;
+            return $this->answers[$term] ?? [];
         }
     });
 
     return $calls;
 }
 
-function listedMedication(string $gtin, string $commercialName, string $genericName = 'DIPIRONA 500 MG'): MedicationListingData
+function sourceProduct(string $gtin, string $name, string $drug = 'ibuprofeno', array $overrides = []): MedicationProductData
 {
-    return new MedicationListingData($gtin, '19504', 'QUIMICA MONTPELLIER S A', $commercialName, 'COMPRIMIDO', 'BLISTER por 20 UNIDADES', $genericName);
+    $fields = [
+        'gtin' => $gtin,
+        'name' => $name,
+        'presentation' => 'comp.x 20',
+        'pharmaceuticalForm' => 'Comprimidos/Pastillas/Tabletas/Grageas',
+        'administrationRoute' => 'oral',
+        'laboratory' => 'Montpellier',
+        'troquel' => '730152',
+        'snomed' => '239671000221103',
+        'drug' => $drug,
+        'drugCode' => '00378',
+        'therapeuticAction' => 'Analgésico Antiinflam.',
+        'therapeuticActionCode' => '00056',
+        'dispensingCondition' => 'Venta Bajo Receta',
+        'controlMark' => null,
+        'withdrawn' => false,
+        'inForce' => true,
+        'updatedOn' => '2026-10-27',
+        ...$overrides,
+    ];
+
+    return new MedicationProductData(...$fields, composition: MedicationComposition::of($fields['drug']));
 }
 
 function searchMedications(Membership $membership, string $q): array
@@ -83,71 +92,152 @@ function searchMedications(Membership $membership, string $q): array
         ->json('data');
 }
 
-test('a term the catalog doesn\'t hold is asked by commercial and generic name, and everything listed is kept', function () {
+test('a term the catalog doesn\'t hold is asked once, and everything answered is kept', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $calls = fakeMedicationSource([
-        'commercial:migral' => [listedMedication('07795378001096', 'MIGRAL 500'), listedMedication('07795378001058', 'MIGRAL COMPOSITUM')],
-    ]);
+    $calls = fakeMedicationSource(['migral' => [
+        sourceProduct('07795378001089', 'MIGRAL', 'ergotamina+cafeína+asoc.'),
+        sourceProduct('07795378001454', 'MIGRAL II', 'ibuprofeno+ergotamina+cafeína'),
+        sourceProduct('07795378009999', 'MIGRAL VIEJO', 'ibuprofeno', ['withdrawn' => true]),
+    ]]);
 
     $found = searchMedications($membership, '  Migral ');
 
-    expect(array_column($found, 'commercial_name'))->toBe(['MIGRAL 500', 'MIGRAL COMPOSITUM'])
-        ->and($found[0]['ingredients'])->toBeNull()
-        ->and($calls->getArrayCopy())->toBe(['search:commercial:migral', 'search:generic:migral'])
-        ->and(MedicationProduct::query()->count())->toBe(2)
-        ->and(MedicationSearch::query()->sole()->only(['term', 'complete']))->toBe(['term' => 'migral', 'complete' => true]);
+    expect(array_column($found, 'name'))->toBe(['MIGRAL', 'MIGRAL II'])
+        ->and($calls->getArrayCopy())->toBe(['migral'])
+        ->and(MedicationProduct::query()->count())->toBe(3)
+        ->and(MedicationSearch::query()->sole()->term)->toBe('migral');
 });
 
-test('a term searched recently, or inside a term that came back whole, is answered by the catalog alone', function () {
+test('a product is answered with everything the form fills an item from', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    MedicationProduct::factory()->create(['commercial_name' => 'MIGRAL 500', 'generic_name' => 'DIPIRONA 500 MG']);
-    MedicationSearch::query()->create(['term' => 'migral', 'complete' => true, 'searched_at' => now()->subDays(2)]);
+    fakeMedicationSource(['mensalgin' => [sourceProduct('07795375000702', 'MENSALGIN', 'ibuprofeno+codeína', [
+        'presentation' => 'comp.x 10',
+        'dispensingCondition' => 'Venta Bajo Receta Archivada',
+        'controlMark' => 'ESTUPEFACIENTE III',
+    ])]]);
+
+    expect(searchMedications($membership, 'mensalgin'))->toBe([[
+        'gtin' => '07795375000702',
+        'name' => 'MENSALGIN',
+        'presentation' => 'comp.x 10',
+        'pharmaceutical_form' => 'Comprimidos/Pastillas/Tabletas/Grageas',
+        'administration_route' => 'oral',
+        'laboratory' => 'Montpellier',
+        'drug' => 'ibuprofeno+codeína',
+        'therapeutic_action' => 'Analgésico Antiinflam.',
+        'dispensing_condition' => 'Venta Bajo Receta Archivada',
+        'control_mark' => 'ESTUPEFACIENTE III',
+        'substances' => ['ibuprofeno', 'codeína'],
+        'composition_incomplete' => false,
+    ]]);
+});
+
+test('a term searched recently, or a longer one containing it, is answered by the catalog alone', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    MedicationProduct::factory()->create(['name' => 'MIGRAL II', 'drug' => 'ibuprofeno+ergotamina+cafeína']);
+    MedicationSearch::query()->create(['term' => 'migral', 'searched_at' => now()->subDays(MedicationSearch::COVERAGE_DAYS - 1)]);
     $calls = fakeMedicationSource();
 
-    expect(array_column(searchMedications($membership, 'MIGRAL'), 'commercial_name'))->toBe(['MIGRAL 500'])
-        ->and(array_column(searchMedications($membership, 'migral 500'), 'commercial_name'))->toBe(['MIGRAL 500'])
+    expect(array_column(searchMedications($membership, 'MIGRAL'), 'name'))->toBe(['MIGRAL II'])
+        ->and(array_column(searchMedications($membership, 'migral ii'), 'name'))->toBe(['MIGRAL II'])
         ->and($calls->getArrayCopy())->toBe([]);
 });
 
-test('a broader term that came back with a full page doesn\'t cover longer ones, and an old search covers nothing', function () {
+test('a shorter term, or one last searched over thirty days ago, is asked again', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    MedicationSearch::query()->create(['term' => 'ibupro', 'complete' => false, 'searched_at' => now()]);
-    MedicationSearch::query()->create(['term' => 'migral', 'complete' => true, 'searched_at' => now()->subDays(MedicationSearch::COVERAGE_DAYS + 1)]);
+    MedicationSearch::query()->create(['term' => 'ibuprofeno', 'searched_at' => now()]);
+    MedicationSearch::query()->create(['term' => 'migral', 'searched_at' => now()->subDays(MedicationSearch::COVERAGE_DAYS + 1)]);
     $calls = fakeMedicationSource();
 
-    searchMedications($membership, 'ibuprofeno');
+    searchMedications($membership, 'ibupro');
     searchMedications($membership, 'migral');
 
-    expect($calls->getArrayCopy())->toBe([
-        'search:commercial:ibuprofeno', 'search:generic:ibuprofeno',
-        'search:commercial:migral', 'search:generic:migral',
-    ]);
+    expect($calls->getArrayCopy())->toBe(['ibupro', 'migral'])
+        ->and(MedicationSearch::query()->where('term', 'migral')->sole()->searched_at->isToday())->toBeTrue()
+        ->and(MedicationSearch::query()->count())->toBe(3);
 });
 
-test('a full page of commercial names skips the generic search and leaves the term incomplete', function () {
+test('a term is asked and recorded without case, accented vowels or extra spaces', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $page = array_map(fn (int $n) => listedMedication("0779000000000{$n}", "IBUPROFENO GENERICO {$n}", 'IBUPROFENO 400 MG'), range(0, 9));
-    $calls = fakeMedicationSource(['commercial:ibuprofeno' => $page]);
+    $calls = fakeMedicationSource();
 
-    expect(searchMedications($membership, 'ibuprofeno'))->toHaveCount(10)
-        ->and($calls->getArrayCopy())->toBe(['search:commercial:ibuprofeno'])
-        ->and(MedicationSearch::query()->sole()->complete)->toBeFalse();
+    searchMedications($membership, ' Cafeína   Plus ');
+
+    expect($calls->getArrayCopy())->toBe(['cafeina plus'])
+        ->and(MedicationSearch::query()->sole()->term)->toBe('cafeina plus');
 });
 
-test('the catalog finds a product by its generic name too, ignoring accents', function () {
+test('«ñ» and «n» never cover each other', function (string $first, string $second) {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    MedicationProduct::factory()->create(['commercial_name' => 'NOVALGINA', 'generic_name' => 'DIPIRONA 500 MG']);
+    $calls = fakeMedicationSource();
+
+    searchMedications($membership, $first);
+    searchMedications($membership, $second);
+    searchMedications($membership, $first);
+
+    expect($calls->getArrayCopy())->toBe([mb_strtolower($first), mb_strtolower($second)])
+        ->and(MedicationSearch::query()->pluck('term')->sort()->values()->all())->toBe(['compan', 'compañ']);
+})->with([
+    'ñ first' => ['COMPAÑ', 'compan'],
+    'n first' => ['compan', 'COMPAÑ'],
+]);
+
+test('a product listed again is updated, and its substances replaced', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    $product = MedicationProduct::factory()->withIngredients(['dipirona' => 'dipirona'])->create(['gtin' => '07795378001089', 'name' => 'MIGRAL']);
+    fakeMedicationSource(['migral' => [sourceProduct('07795378001089', 'MIGRAL', 'ergotamina+cafeína+asoc.', ['dispensingCondition' => 'Venta Libre'])]]);
+
+    searchMedications($membership, 'migral');
+
+    expect($product->fresh()?->only(['name', 'dispensing_condition', 'composition_incomplete']))
+        ->toBe(['name' => 'MIGRAL', 'dispensing_condition' => 'Venta Libre', 'composition_incomplete' => true])
+        ->and($product->ingredients()->pluck('substance')->all())->toBe(['ergotamina', 'cafeína'])
+        ->and(MedicationIngredient::query()->count())->toBe(2);
+});
+
+test('the catalog finds a product by its drug text too, ignoring accents', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    MedicationProduct::factory()->create(['name' => 'NOVALGINA', 'drug' => 'dipirona']);
+    MedicationProduct::factory()->create(['name' => 'BIO CAFEINA FORTE', 'drug' => 'cafeína']);
     fakeMedicationSource(available: false);
 
-    expect(array_column(searchMedications($membership, 'dipíroná'), 'commercial_name'))->toBe(['NOVALGINA']);
+    expect(array_column(searchMedications($membership, 'dipíroná'), 'name'))->toBe(['NOVALGINA'])
+        ->and(array_column(searchMedications($membership, 'CAFEÍNA'), 'name'))->toBe(['BIO CAFEINA FORTE']);
+});
+
+test('suggestions leave out non-drugs and withdrawn products', function (array $attributes) {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    MedicationProduct::factory()->create(['name' => 'PLUS DROGA']);
+    MedicationProduct::factory()->create(['name' => 'PLUS OTRO', ...$attributes]);
+    fakeMedicationSource(available: false);
+
+    expect(array_column(searchMedications($membership, 'plus d'), 'name'))->toBe(['PLUS DROGA'])
+        ->and(array_column(searchMedications($membership, 'plus o'), 'name'))->toBe([]);
+})->with([
+    'accessory' => [['drug' => 'accesorio', 'therapeutic_action' => 'Accesorios']],
+    'supplement' => [['drug' => 'cafeína', 'therapeutic_action' => 'Suplemento dietario']],
+    'dental product' => [['drug' => 'accesorio', 'therapeutic_action' => 'Productos odontológicos']],
+    'cosmetic' => [['drug' => 'producto cosmético', 'therapeutic_action' => 'Hidratante dérmico']],
+    'withdrawn' => [['withdrawn' => true]],
+]);
+
+test('up to ten suggestions, the ones whose name starts with the term first', function () {
+    $membership = Membership::factory()->onPaidPlan()->professional()->create();
+    MedicationProduct::factory()->create(['name' => 'ACTRON', 'drug' => 'ibuprofeno']);
+    MedicationProduct::factory()->count(11)->sequence(fn ($sequence) => ['name' => 'GENÉRICO '.chr(65 + $sequence->index)])->create(['drug' => 'actronol']);
+    fakeMedicationSource(available: false);
+
+    $found = array_column(searchMedications($membership, 'actron'), 'name');
+
+    expect($found)->toHaveCount(10)->and($found[0])->toBe('ACTRON')->and($found[1])->toBe('GENÉRICO A');
 });
 
 test('when the source fails or is off, the catalog answers with what it holds and remembers no search', function () {
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    MedicationProduct::factory()->create(['commercial_name' => 'MIGRAL 500']);
+    MedicationProduct::factory()->create(['name' => 'MIGRAL II']);
     fakeMedicationSource(failing: true);
 
-    expect(array_column(searchMedications($membership, 'migral'), 'commercial_name'))->toBe(['MIGRAL 500'])
+    expect(array_column(searchMedications($membership, 'migral'), 'name'))->toBe(['MIGRAL II'])
         ->and(MedicationSearch::query()->count())->toBe(0);
 
     $calls = fakeMedicationSource(available: false);
@@ -156,36 +246,30 @@ test('when the source fails or is off, the catalog answers with what it holds an
     expect($calls->getArrayCopy())->toBe([]);
 });
 
-test('a picked product\'s detail is asked once by replaying the search that listed it, and kept with its substances', function () {
+test('through the national medication search, a search keeps its answer and a failure pauses it', function () {
+    config([
+        'services.national_medication_search.enabled' => true,
+        'services.national_medication_search.url' => 'https://cnpm.msal.gov.ar',
+    ]);
+    Http::preventStrayRequests();
+    Http::fake(['cnpm.msal.gov.ar/api/vademecum' => Http::sequence()
+        ->push(nationalMedicationSearchFixture('migral.json'))
+        ->push('Error', 500)]);
     $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $product = MedicationProduct::factory()->create(['gtin' => '07795378001096', 'listed_by_field' => MedicationSearchField::Commercial, 'listed_by_term' => 'migral']);
-    $calls = fakeMedicationSource(detail: new MedicationDetailData('07795378001096', [
-        new MedicationIngredientData('CAFEINA', '100', 'MG', null, null, null),
-        new MedicationIngredientData('DIPIRONA SODICA', '500', 'MG', null, null, null),
-    ], 'ORAL', 'BAJO RECETA', '303248'));
 
-    $this->actingAs($membership->user)
-        ->getJson("/api/v1/medications/{$product->gtin}")
-        ->assertOk()
-        ->assertJsonPath('data.ingredients', [
-            ['name' => 'CAFEINA', 'substance' => 'cafeina', 'quantity' => '100', 'unit' => 'MG'],
-            ['name' => 'DIPIRONA SODICA', 'substance' => 'dipirona', 'quantity' => '500', 'unit' => 'MG'],
-        ]);
-    $this->actingAs($membership->user)->getJson("/api/v1/medications/{$product->gtin}")->assertOk();
+    $migral = searchMedications($membership, 'migral');
+    searchMedications($membership, 'migral compositum');
 
-    expect($calls->getArrayCopy())->toBe(['detail:commercial:migral:07795378001096'])
-        ->and($product->fresh()?->dispensing_condition)->toBe('BAJO RECETA');
-});
+    expect(array_values(array_unique(array_column($migral, 'name'))))->toBe(['MIGRAL', 'MIGRAL COMPOSITUM', 'MIGRAL II'])
+        ->and($migral[0]['substances'])->toBe(['ergotamina', 'cafeína'])
+        ->and($migral[0]['composition_incomplete'])->toBeTrue();
+    Http::assertSentCount(1);
 
-test('without an answer the product stays without ingredients, and the next pick asks again', function () {
-    $membership = Membership::factory()->onPaidPlan()->professional()->create();
-    $product = MedicationProduct::factory()->create();
-    $calls = fakeMedicationSource(failing: true);
+    // Down: the catalog answers with what it holds, and the next searches don't ask until the pause ends.
+    expect(array_column(searchMedications($membership, 'compositum'), 'name'))->toHaveCount(3);
+    searchMedications($membership, 'compositum');
 
-    $this->actingAs($membership->user)->getJson("/api/v1/medications/{$product->gtin}")->assertOk()->assertJsonPath('data.ingredients', null);
-    $this->actingAs($membership->user)->getJson("/api/v1/medications/{$product->gtin}")->assertOk();
-
-    expect($calls->getArrayCopy())->toHaveCount(2);
+    Http::assertSentCount(2);
 });
 
 test('a search needs five characters and the plan that indicates medication', function () {
@@ -194,6 +278,8 @@ test('a search needs five characters and the plan that indicates medication', fu
     fakeMedicationSource(available: false);
 
     $this->actingAs($paid->user)->getJson('/api/v1/medications?q='.urlencode(' ibu '))->assertUnprocessable()->assertJsonValidationErrors('q');
+    // Counted as it would be asked: «a e».
+    $this->actingAs($paid->user)->getJson('/api/v1/medications?q='.urlencode('a   e'))->assertUnprocessable()->assertJsonValidationErrors('q');
     app(CurrentOrganization::class)->set(null);
     $this->actingAs($free->user)->getJson('/api/v1/medications?q=ibuprofeno')->assertConflict()->assertJsonPath('error.code', 'plans.feature_unavailable');
 });
@@ -204,6 +290,5 @@ test('the catalog is read-only and needs a session', function () {
 
     $this->getJson('/api/v1/medications?q=ibuprofeno')->assertUnauthorized();
     $this->actingAs($membership->user)->postJson('/api/v1/medications', [])->assertMethodNotAllowed();
-    $this->actingAs($membership->user)->deleteJson("/api/v1/medications/{$product->gtin}")->assertMethodNotAllowed();
-    $this->actingAs($membership->user)->getJson('/api/v1/medications/07790000000000')->assertNotFound();
+    $this->actingAs($membership->user)->getJson("/api/v1/medications/{$product->gtin}")->assertNotFound();
 });

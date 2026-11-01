@@ -9,9 +9,22 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * @property list<string>|null $substances the active substances of the catalog product it was picked from (#377)
+ * @property list<string>|null $substances the substances of the catalog product it was picked from (#377)
  */
-#[Fillable(['prescription_version_id', 'position', 'medication', 'presentation', 'dosage', 'quantity', 'gtin', 'substances'])]
+#[Fillable([
+    'prescription_version_id',
+    'position',
+    'medication',
+    'presentation',
+    'dosage',
+    'quantity',
+    'gtin',
+    'snomed',
+    'substances',
+    'dispensing_condition',
+    'control_mark',
+    'composition_incomplete',
+])]
 class PrescriptionItem extends Model
 {
     public const null UPDATED_AT = null;
@@ -25,6 +38,7 @@ class PrescriptionItem extends Model
             'position' => 'integer',
             'quantity' => 'integer',
             'substances' => 'array',
+            'composition_incomplete' => 'boolean',
         ];
     }
 

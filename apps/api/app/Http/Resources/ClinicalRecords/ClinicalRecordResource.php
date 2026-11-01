@@ -146,7 +146,11 @@ class ClinicalRecordResource extends JsonResource
                     'dosage' => $item->dosage,
                     'quantity' => $item->quantity,
                     'gtin' => $item->gtin,
+                    'snomed' => $item->snomed,
                     'substances' => $item->substances,
+                    'dispensing_condition' => $item->dispensing_condition,
+                    'control_mark' => $item->control_mark,
+                    'composition_incomplete' => $item->composition_incomplete,
                 ])->values()->all(),
                 // Whether it was indicated despite an allergy warning (#362), never which allergy.
                 'allergy_warning_overridden' => $version->allergyWarnings->isNotEmpty(),

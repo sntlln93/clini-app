@@ -7,32 +7,28 @@ namespace App\Actions\Medications;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Contracts\MedicationSource;
-use App\Data\Medications\MedicationListingData;
+use App\Data\Medications\MedicationIngredientData;
+use App\Data\Medications\MedicationProductData;
 use App\Data\Medications\MedicationSearchData;
-use App\Enums\MedicationSearchField;
 use App\Exceptions\Medications\MedicationSourceUnavailableException;
+use App\Models\MedicationIngredient;
 use App\Models\MedicationProduct;
 use App\Models\MedicationSearch;
-use App\Support\FoldedText;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
  * The medication catalog answers from what it holds (#377, ADR 0031). A term no recent search covers is asked to the
- * national vademecum first, by commercial name and, when that page isn't full, by generic name, and everything it
- * lists is kept: keeping only what someone picked would answer later searches with a partial list. If the source fails
- * the catalog answers with what it holds, and the field stays free text.
+ * medication source first, and everything it answers is kept, non-drugs and withdrawn products too: keeping only part
+ * of an answer would make the coverage rule answer later searches with less. If the source fails the catalog answers
+ * with what it holds, and the field stays free text.
  *
  * @implements Action<MedicationSearchData>
  */
 class SearchMedicationsAction implements Action
 {
     public const int RESULTS_LIMIT = 10;
-
-    /**
-     * ANMAT's page: fewer results than this mean the search came back whole.
-     */
-    private const int SOURCE_PAGE_SIZE = 10;
 
     public function __construct(
         private readonly MedicationSource $source,
@@ -44,50 +40,113 @@ class SearchMedicationsAction implements Action
      */
     public function handle(Data $dto): Collection
     {
-        $term = FoldedText::fold($dto->term);
+        $key = MedicationSearch::key($dto->term);
 
-        if (! MedicationSearch::query()->covering($term)->exists() && $this->source->available()) {
-            $this->askSource($term);
+        if (! MedicationSearch::query()->covering($key)->exists() && $this->source->available()) {
+            $this->askSource($key);
         }
 
-        return MedicationProduct::query()->search($term)->limit(self::RESULTS_LIMIT)->get();
+        return MedicationProduct::query()
+            ->suggestible()
+            ->search($dto->term)
+            ->with('ingredients')
+            ->limit(self::RESULTS_LIMIT)
+            ->get();
     }
 
-    private function askSource(string $term): void
+    /**
+     * The source is asked for the very key its answer is recorded under, so what the record covers is what was asked.
+     */
+    private function askSource(string $key): void
     {
         try {
-            $commercial = $this->source->search(MedicationSearchField::Commercial, $term);
-            $this->keep($commercial, MedicationSearchField::Commercial, $term);
-            $complete = false;
-
-            if (count($commercial) < self::SOURCE_PAGE_SIZE) {
-                $generic = $this->source->search(MedicationSearchField::Generic, $term);
-                $this->keep($generic, MedicationSearchField::Generic, $term);
-                $complete = count($generic) < self::SOURCE_PAGE_SIZE;
-            }
-
-            MedicationSearch::query()->create(['term' => $term, 'complete' => $complete, 'searched_at' => now()]);
+            $products = $this->source->search($key);
         } catch (MedicationSourceUnavailableException $exception) {
             Log::warning($exception->getMessage(), $exception->logContext());
+
+            return;
+        }
+
+        DB::transaction(function () use ($products, $key): void {
+            $this->keep($products);
+
+            MedicationSearch::query()->upsert([['term' => $key, 'searched_at' => now()->utc()]], ['term'], ['searched_at']);
+        });
+    }
+
+    /**
+     * Upserted in GTIN order, so two searches keeping the same products lock them in the same order and the second
+     * waits for the first instead of interleaving their substances.
+     *
+     * @param  list<MedicationProductData>  $products
+     */
+    private function keep(array $products): void
+    {
+        $byGtin = [];
+
+        foreach ($products as $product) {
+            $byGtin[$product->gtin] = $product;
+        }
+
+        ksort($byGtin, SORT_STRING);
+
+        foreach (array_chunk($byGtin, 500, true) as $chunk) {
+            MedicationProduct::query()->upsert(
+                array_values(array_map(fn (MedicationProductData $product): array => self::columns($product), $chunk)),
+                ['gtin'],
+                array_keys(self::columns(reset($chunk))),
+            );
+
+            // A GTIN-14 that doesn't start with 0 becomes an integer key.
+            $ids = MedicationProduct::query()->whereIn('gtin', array_map(strval(...), array_keys($chunk)))->pluck('id', 'gtin');
+            MedicationIngredient::query()->whereIn('medication_product_id', $ids->values())->delete();
+
+            $ingredients = [];
+
+            foreach ($chunk as $gtin => $product) {
+                foreach ($product->composition->ingredients as $position => $ingredient) {
+                    $ingredients[] = ['medication_product_id' => $ids[$gtin], 'position' => $position, ...self::ingredient($ingredient)];
+                }
+            }
+
+            foreach (array_chunk($ingredients, 1000) as $rows) {
+                MedicationIngredient::query()->insert($rows);
+            }
         }
     }
 
     /**
-     * @param  list<MedicationListingData>  $listed
+     * @return array<string, string|bool|null>
      */
-    private function keep(array $listed, MedicationSearchField $field, string $term): void
+    private static function columns(MedicationProductData $product): array
     {
-        foreach ($listed as $listing) {
-            MedicationProduct::query()->updateOrCreate(['gtin' => $listing->gtin], [
-                'certificate_number' => $listing->certificateNumber,
-                'laboratory' => $listing->laboratory,
-                'commercial_name' => $listing->commercialName,
-                'pharmaceutical_form' => $listing->pharmaceuticalForm,
-                'presentation' => $listing->presentation,
-                'generic_name' => $listing->genericName,
-                'listed_by_field' => $field,
-                'listed_by_term' => $term,
-            ]);
-        }
+        return [
+            'gtin' => $product->gtin,
+            'name' => $product->name,
+            'presentation' => $product->presentation,
+            'pharmaceutical_form' => $product->pharmaceuticalForm,
+            'administration_route' => $product->administrationRoute,
+            'laboratory' => $product->laboratory,
+            'troquel' => $product->troquel,
+            'snomed' => $product->snomed,
+            'drug' => $product->drug,
+            'drug_code' => $product->drugCode,
+            'therapeutic_action' => $product->therapeuticAction,
+            'therapeutic_action_code' => $product->therapeuticActionCode,
+            'dispensing_condition' => $product->dispensingCondition,
+            'control_mark' => $product->controlMark,
+            'withdrawn' => $product->withdrawn,
+            'in_force' => $product->inForce,
+            'source_updated_on' => $product->updatedOn,
+            'composition_incomplete' => $product->composition->incomplete,
+        ];
+    }
+
+    /**
+     * @return array{name: string, substance: string}
+     */
+    private static function ingredient(MedicationIngredientData $ingredient): array
+    {
+        return ['name' => $ingredient->name, 'substance' => $ingredient->substance];
     }
 }

@@ -41,12 +41,12 @@ return [
         'url' => env('HOLIDAYS_API_URL', 'https://calendariosnacionales.com'),
     ],
 
-    // ANMAT's public vademecum lookup, which fills the medication catalog on demand (#377, ADR 0031). Off unless
-    // turned on, so tests, CI and e2e never reach it.
-    'anmat_vademecum' => [
-        'enabled' => (bool) env('ANMAT_VADEMECUM_ENABLED', false),
-        'url' => env('ANMAT_VADEMECUM_URL', 'https://servicios.pami.org.ar/vademecum'),
-        'user_agent' => env('ANMAT_VADEMECUM_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
+    // The Ministry of Health's Buscador Nacional de Medicamentos, which fills the medication catalog on demand (#377,
+    // ADR 0031). Off unless turned on, so tests, CI and e2e never reach it.
+    'national_medication_search' => [
+        'enabled' => (bool) env('NATIONAL_MEDICATION_SEARCH_ENABLED', false),
+        'url' => env('NATIONAL_MEDICATION_SEARCH_URL', 'https://cnpm.msal.gov.ar'),
+        'user_agent' => env('NATIONAL_MEDICATION_SEARCH_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
     ],
 
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.

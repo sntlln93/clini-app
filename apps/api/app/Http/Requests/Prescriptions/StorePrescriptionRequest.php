@@ -29,7 +29,7 @@ class StorePrescriptionRequest extends FormRequest
             'items.*.presentation' => ['nullable', 'string', 'max:255'],
             'items.*.dosage' => ['required', 'string', 'max:500'],
             'items.*.quantity' => ['required', 'integer', 'min:1', 'max:999'],
-            // Picked from the medication catalog (#377): its substances are copied by the server.
+            // Picked from the medication catalog (#377): the server copies the rest of the product from the catalog.
             'items.*.gtin' => ['nullable', 'string', 'exists:medication_products,gtin'],
             // The allergies a warning listed, sent back with «Indicar igual» (#362): each version as it was shown.
             'confirmed_allergies' => ['sometimes', 'array', 'max:100'],

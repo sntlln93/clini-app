@@ -217,9 +217,9 @@ function shareAccessCode(Membership $membership, int $patientId, ?Appointment $a
 }
 
 /**
- * A response recorded from ANMAT's public vademecum lookup (#377), under tests/Fixtures/Vademecum.
+ * A response recorded from the national medication search (#377), under tests/Fixtures/NationalMedicationSearch.
  */
-function vademecumFixture(string $name): string
+function nationalMedicationSearchFixture(string $name): string
 {
-    return (string) file_get_contents(__DIR__."/Fixtures/Vademecum/{$name}");
+    return (string) file_get_contents(__DIR__."/Fixtures/NationalMedicationSearch/{$name}");
 }
