@@ -31,6 +31,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         '/ajustes/apariencia',
         '/ajustes/seguridad',
         '/ajustes/suscripcion',
+        '/ajustes/consultorio',
         '/ajustes/reservas',
         '/ajustes/especialidades',
         '/ajustes/profesionales',
