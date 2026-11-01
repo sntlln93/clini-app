@@ -115,6 +115,11 @@ services:
             # Vite prefers an exported variable over .env, so a landing .env
             # copied before the contact form (#248) still reaches the API.
             VITE_API_URL: 'http://localhost:8080'
+            # Same for the origins e2e/landing/seo.spec.ts expects (#249): a
+            # landing .env from before them, or pointing elsewhere, still wins
+            # over .env.example otherwise.
+            VITE_SITE_URL: 'http://localhost:5176'
+            VITE_PANEL_URL: 'http://localhost:5174'
         volumes:
             - '.:/workspace'
         networks:
