@@ -115,7 +115,9 @@ function FormControl({ render, ...props }: useRender.ComponentProps<'div'>) {
             props,
         ),
         render,
-        state: { slot: 'form-control' },
+        // No `data-slot` of its own: the control it renders keeps its slot
+        // (`checkbox`, `radio-group-item`, `select-trigger`…), which the
+        // theme's coarse-pointer hit areas and the e2e checks select by.
     });
 }
 
