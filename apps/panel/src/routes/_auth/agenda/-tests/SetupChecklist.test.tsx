@@ -84,7 +84,7 @@ describe('SetupChecklist', () => {
             screen
                 .getByRole('button', { name: 'Ir a Ajustes' })
                 .getAttribute('href'),
-        ).toBe('/ajustes');
+        ).toBe('/ajustes/profesionales');
         expect(
             screen
                 .getByRole('button', { name: 'Ir a Disponibilidad' })
@@ -94,7 +94,12 @@ describe('SetupChecklist', () => {
             screen
                 .getByRole('button', { name: 'Ver planes' })
                 .getAttribute('href'),
-        ).toBe('/ajustes#suscripcion');
+        ).toBe('/ajustes/suscripcion');
+        expect(
+            screen
+                .getByRole('button', { name: 'Ver el link' })
+                .getAttribute('href'),
+        ).toBe('/ajustes/reservas');
     });
 
     it('marks done steps and drops their actions', async () => {

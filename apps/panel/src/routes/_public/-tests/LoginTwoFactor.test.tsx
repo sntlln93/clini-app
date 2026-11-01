@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { sessionQueryOptions } from '@/lib/session';
+import { stubElementFromPoint } from '@/tests/input-otp';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -85,6 +86,8 @@ async function passPasswordStep() {
     return screen.findByLabelText('Código de verificación');
 }
 
+stubElementFromPoint();
+
 describe('LoginForm with two-factor authentication', () => {
     beforeEach(() => {
         vi.mocked(api.post).mockReset();
@@ -107,12 +110,12 @@ describe('LoginForm with two-factor authentication', () => {
         const codeInput = await passPasswordStep();
 
         vi.mocked(api.post).mockResolvedValueOnce({ data: SESSION_USER });
-        fireEvent.change(codeInput, { target: { value: '123 456' } });
+        fireEvent.change(codeInput, { target: { value: '123456' } });
         fireEvent.click(screen.getByRole('button', { name: 'Verificar' }));
 
         await screen.findByText('Agenda');
         expect(api.post).toHaveBeenLastCalledWith('/login/two-factor', {
-            code: '123 456',
+            code: '123456',
         });
         expect(queryClient.getQueryData(sessionQueryOptions.queryKey)).toEqual(
             SESSION_USER,

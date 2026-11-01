@@ -1,11 +1,7 @@
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { buttonVariants } from '@/components/ui/button';
 import { DateTime, fromInstant } from '@/lib/datetime';
-import {
-    SUBSCRIPTION_SECTION_ID,
-    formatSubscriptionDate,
-    scrollToSubscriptionSection,
-} from '@/lib/subscription';
+import { formatSubscriptionDate } from '@/lib/subscription';
 import { cn } from '@/lib/utils';
 import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
@@ -142,9 +138,7 @@ export function SubscriptionBanner({
             <AlertDescription className="flex flex-wrap items-center gap-x-3 gap-y-1">
                 <span>{copy.description}</span>
                 <Link
-                    to="/ajustes"
-                    hash={SUBSCRIPTION_SECTION_ID}
-                    onClick={scrollToSubscriptionSection}
+                    to="/ajustes/suscripcion"
                     className={cn(
                         buttonVariants({ size: 'sm', variant: 'link' }),
                     )}

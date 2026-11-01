@@ -65,7 +65,7 @@ function renderRegisterForm(
     });
     const ajustesRoute = createRoute({
         getParentRoute: () => rootRoute,
-        path: '/ajustes',
+        path: '/ajustes/suscripcion',
         component: () => <div>Ajustes</div>,
     });
     const routeTree = rootRoute.addChildren([

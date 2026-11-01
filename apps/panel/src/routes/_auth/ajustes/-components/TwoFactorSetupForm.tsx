@@ -12,8 +12,8 @@ import {
     FormLabel,
     FormMessage,
 } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { TwoFactorCodeInput } from '@/features/two-factor-code/TwoFactorCodeInput';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import type { TwoFactorSetup } from '../-hooks/use-two-factor';
 
@@ -21,7 +21,7 @@ const codeSchema = z.object({
     code: z
         .string()
         .trim()
-        .regex(/^\d{3} ?\d{3}$/, 'El código tiene 6 números.'),
+        .regex(/^\d{6}$/, 'El código tiene 6 números.'),
 });
 
 type CodeValues = z.infer<typeof codeSchema>;
@@ -92,14 +92,7 @@ export function TwoFactorSetupForm({
                         <FormItem>
                             <FormLabel>Código de verificación</FormLabel>
                             <FormControl
-                                render={
-                                    <Input
-                                        inputMode="numeric"
-                                        autoComplete="one-time-code"
-                                        maxLength={7}
-                                        {...field}
-                                    />
-                                }
+                                render={<TwoFactorCodeInput {...field} />}
                             />
                             <FormMessage />
                         </FormItem>

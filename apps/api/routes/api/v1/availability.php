@@ -12,9 +12,7 @@ Route::get('availability-exceptions', [AvailabilityExceptionController::class, '
 // Writes are read-only while the subscription is expired (#28) or the
 // organization exceeds its plan's professional limit (#237).
 Route::middleware('subscription.active')->group(function (): void {
-    Route::post('memberships/{membership}/availabilities', [AvailabilityController::class, 'store']);
-    Route::patch('availabilities/{availability}', [AvailabilityController::class, 'update']);
-    Route::delete('availabilities/{availability}', [AvailabilityController::class, 'destroy']);
+    Route::put('memberships/{membership}/availabilities', [AvailabilityController::class, 'replace']);
 
     Route::post('availability-exceptions', [AvailabilityExceptionController::class, 'store']);
     Route::patch('availability-exceptions/{availabilityException}', [AvailabilityExceptionController::class, 'update']);

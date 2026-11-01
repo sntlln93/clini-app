@@ -1,11 +1,15 @@
 import { api } from '@/lib/api';
 import { buildPlan } from '@/tests/fixtures/plan';
 import type { Membership } from '@/types/membership';
-import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
 import { QueryClient } from '@tanstack/react-query';
+import { isRedirect } from '@tanstack/react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Route } from '../index';
+import { Route as EspecialidadesRoute } from '../especialidades';
+import { Route as ProfesionalesRoute } from '../profesionales';
+import { Route as ProteccionDeDatosRoute } from '../proteccion-de-datos';
+import { Route as ReservasRoute } from '../reservas';
+import { Route as SuscripcionRoute } from '../suscripcion';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn() },
@@ -27,27 +31,54 @@ function membership(id: number, userId: number): Membership {
 const OWN_MEMBERSHIP = membership(1, 10);
 const PROFESSIONALS = [OWN_MEMBERSHIP, membership(2, 20)];
 
-// Narrowed from the loader union to a plain callable, since this route always passes a plain async function.
-const loader = Route.options.loader as (opts: {
-    context: { queryClient: QueryClient };
-}) => Promise<{
-    canManageProfessionals: boolean;
-    professionals: Membership[];
-    ownProfessionalMembership: Membership | null;
-    managedOwnMembership: Membership | null;
-    organizationSlug: string | null;
-    hasOrganization: boolean;
+// Each tab's loader, narrowed from the loader union to the plain async
+// function every one of them passes.
+function loaderOf<T>(route: { options: { loader?: unknown } }) {
+    const loader = route.options.loader as (opts: {
+        context: { queryClient: QueryClient };
+    }) => Promise<T>;
+
+    return () => loader({ context: { queryClient: new QueryClient() } });
+}
+
+const loadSubscription = loaderOf<{
     subscription: Subscription | null;
-    plan: Plan | undefined;
     isOwner: boolean;
-    organizationSettings: {
-        organizationLogo: { logo_url: string | null };
-        insuranceProviders: {
-            catalog: { id: number; name: string }[];
-            accepted: { id: number; name: string }[];
-        };
-    } | null;
-}>;
+}>(SuscripcionRoute);
+const loadBookings = loaderOf<{
+    organizationSlug: string | null;
+    ownProfessionalMembership: Membership | null;
+    organizationSettings: unknown;
+}>(ReservasRoute);
+const loadSpecialties = loaderOf<{
+    isProfessional: boolean;
+    managedOwnMembership: Membership | null;
+}>(EspecialidadesRoute);
+const loadProfessionals = loaderOf<{ professionals: Membership[] }>(
+    ProfesionalesRoute,
+);
+const loadDataProtection = loaderOf<{
+    isProfessional: boolean;
+    isOwner: boolean;
+}>(ProteccionDeDatosRoute);
+
+async function expectRedirectToSettings(load: () => Promise<unknown>) {
+    const thrown = await load().then(
+        () => null,
+        (error: unknown) => error,
+    );
+
+    expect(isRedirect(thrown)).toBe(true);
+    expect((thrown as { options: { to: string } }).options.to).toBe('/ajustes');
+}
+
+const ANA = {
+    id: 10,
+    name: 'Ana Ejemplo',
+    email: 'ana@clini.app',
+    permissions: [] as string[],
+    membership: OWN_MEMBERSHIP as Membership | null,
+};
 
 const LOGO = { logo_url: 'http://localhost:8080/api/v1/booking/x/logo?v=1' };
 
@@ -125,131 +156,61 @@ function mockApiGet(
     });
 }
 
-describe('/ajustes loader without memberships.view', () => {
+describe('Profesionales tab', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: [],
-            membership: OWN_MEMBERSHIP,
-        });
     });
 
-    it("resolves instead of falling to the error component, never requests /memberships, and degrades to the caller's own membership", async () => {
-        const queryClient = new QueryClient();
+    it('sends a caller without memberships.view back to Ajustes, never requesting /memberships', async () => {
+        mockApiGet(ANA);
 
-        const result = await loader({ context: { queryClient } });
-
-        expect(
-            vi
-                .mocked(api.get)
-                .mock.calls.some(([url]) => url === '/memberships'),
-        ).toBe(false);
-        expect(result).toMatchObject({
-            canManageProfessionals: false,
-            professionals: [],
-            ownProfessionalMembership: OWN_MEMBERSHIP,
-        });
-    });
-});
-
-describe('/ajustes loader with memberships.view', () => {
-    beforeEach(() => {
-        vi.mocked(api.get).mockReset();
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: ['memberships.view'],
-            membership: OWN_MEMBERSHIP,
-        });
+        await expectRedirectToSettings(loadProfessionals);
+        expect(api.get).not.toHaveBeenCalledWith('/memberships');
     });
 
-    it('requests /memberships and returns the full professionals list', async () => {
-        const queryClient = new QueryClient();
+    it('requests /memberships with memberships.view and returns the full professionals list', async () => {
+        mockApiGet({ ...ANA, permissions: ['memberships.view'] });
 
-        const result = await loader({ context: { queryClient } });
+        const result = await loadProfessionals();
 
         expect(api.get).toHaveBeenCalledWith('/memberships');
-        expect(result).toMatchObject({
-            canManageProfessionals: true,
-            professionals: PROFESSIONALS,
-        });
+        expect(result.professionals).toEqual(PROFESSIONALS);
     });
 });
 
-describe('/ajustes loader subscription', () => {
+describe('Plan y suscripción tab', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
     });
 
     it('returns the subscription, the plan and whether the caller is the owner', async () => {
-        mockApiGet(
-            {
-                id: 10,
-                name: 'Ana Ejemplo',
-                email: 'ana@clini.app',
-                permissions: [],
-                roles: ['owner'],
-                membership: OWN_MEMBERSHIP,
-            },
-            GRACE_SUBSCRIPTION,
-        );
+        mockApiGet({ ...ANA, roles: ['owner'] }, GRACE_SUBSCRIPTION);
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
-        expect(result).toMatchObject({
-            hasOrganization: true,
+        expect(await loadSubscription()).toMatchObject({
             subscription: GRACE_SUBSCRIPTION,
             plan: PLAN,
             isOwner: true,
         });
     });
 
-    it('never requests /subscription without an active membership', async () => {
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: [],
-            membership: null,
-        });
+    it('sends a caller without an active membership back to Ajustes, never requesting /subscription', async () => {
+        mockApiGet({ ...ANA, membership: null });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
+        await expectRedirectToSettings(loadSubscription);
         expect(api.get).not.toHaveBeenCalledWith('/subscription');
         expect(api.get).not.toHaveBeenCalledWith('/plan');
-        expect(result).toMatchObject({
-            hasOrganization: false,
-            subscription: null,
-            isOwner: false,
-        });
     });
 });
 
-describe('/ajustes loader organization settings (#239, #291)', () => {
+describe('Reservas tab (#239, #283, #291)', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
     });
 
     it('loads the logo and the insurance providers with organization.manage', async () => {
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: ['organization.manage'],
-            membership: OWN_MEMBERSHIP,
-        });
+        mockApiGet({ ...ANA, permissions: ['organization.manage'] });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
+        const result = await loadBookings();
 
         expect(api.get).toHaveBeenCalledWith('/organization/logo');
         expect(result.organizationSettings).toEqual({
@@ -259,17 +220,9 @@ describe('/ajustes loader organization settings (#239, #291)', () => {
     });
 
     it('never requests the logo or the accepted insurance providers without organization.manage', async () => {
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: [],
-            membership: OWN_MEMBERSHIP,
-        });
+        mockApiGet(ANA);
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
+        const result = await loadBookings();
 
         expect(api.get).not.toHaveBeenCalledWith('/organization/logo');
         expect(api.get).not.toHaveBeenCalledWith(
@@ -277,19 +230,10 @@ describe('/ajustes loader organization settings (#239, #291)', () => {
         );
         expect(result.organizationSettings).toBeNull();
     });
-});
-
-describe('/ajustes loader booking links (#283)', () => {
-    beforeEach(() => {
-        vi.mocked(api.get).mockReset();
-    });
 
     it("never offers a public link of their own to an owner who doesn't attend patients, and always returns the practice's slug", async () => {
         mockApiGet({
-            id: 10,
-            name: 'Ana Dueña',
-            email: 'ana.duena@test.com',
-            permissions: [],
+            ...ANA,
             roles: ['owner'],
             organization: {
                 id: 1,
@@ -299,11 +243,7 @@ describe('/ajustes loader booking links (#283)', () => {
             membership: { ...OWN_MEMBERSHIP, roles: ['owner'] },
         });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
-        expect(result).toMatchObject({
+        expect(await loadBookings()).toMatchObject({
             ownProfessionalMembership: null,
             organizationSlug: 'clinica-modelo',
         });
@@ -311,10 +251,7 @@ describe('/ajustes loader booking links (#283)', () => {
 
     it('offers it to a professional', async () => {
         mockApiGet({
-            id: 10,
-            name: 'Ana Dueña',
-            email: 'ana.duena@test.com',
-            permissions: [],
+            ...ANA,
             roles: ['owner', 'professional'],
             organization: {
                 id: 1,
@@ -324,35 +261,42 @@ describe('/ajustes loader booking links (#283)', () => {
             membership: { ...OWN_MEMBERSHIP, roles: ['owner', 'professional'] },
         });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
-        expect(result.ownProfessionalMembership?.id).toBe(OWN_MEMBERSHIP.id);
+        expect((await loadBookings()).ownProfessionalMembership?.id).toBe(
+            OWN_MEMBERSHIP.id,
+        );
     });
 
-    it('has no practice link without an active membership', async () => {
-        mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: [],
-            organization: null,
-            membership: null,
-        });
+    it('sends a caller without an active membership back to Ajustes', async () => {
+        mockApiGet({ ...ANA, organization: null, membership: null });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
-        expect(result).toMatchObject({
-            ownProfessionalMembership: null,
-            organizationSlug: null,
-        });
+        await expectRedirectToSettings(loadBookings);
     });
 });
 
-describe('/ajustes loader attend-patients switch (#286)', () => {
+describe('Mis especialidades tab: attend-patients switch (#286)', () => {
+    it('shows the specialties only to a professional of the practice', async () => {
+        vi.mocked(api.get).mockReset();
+        mockApiGet({
+            ...ANA,
+            permissions: ['memberships.manage'],
+            roles: ['owner'],
+            membership: { ...OWN_MEMBERSHIP, roles: ['owner'] },
+        });
+
+        expect((await loadSpecialties()).isProfessional).toBe(false);
+    });
+
+    it('sends a member who neither attends nor can turn it on back to Ajustes', async () => {
+        vi.mocked(api.get).mockReset();
+        mockApiGet({
+            ...ANA,
+            roles: ['staff'],
+            membership: { ...OWN_MEMBERSHIP, roles: ['staff'] },
+        });
+
+        await expectRedirectToSettings(loadSpecialties);
+    });
+
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
     });
@@ -360,35 +304,48 @@ describe('/ajustes loader attend-patients switch (#286)', () => {
     it('hands the caller their own membership when they manage the team, professional or not', async () => {
         const ownerOnly = { ...OWN_MEMBERSHIP, roles: ['owner' as const] };
         mockApiGet({
-            id: 10,
-            name: 'Ana Dueña',
-            email: 'ana.duena@test.com',
+            ...ANA,
             permissions: ['memberships.manage'],
             roles: ['owner'],
             membership: ownerOnly,
         });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
-        });
-
-        expect(result.managedOwnMembership).toEqual(ownerOnly);
+        expect((await loadSpecialties()).managedOwnMembership).toEqual(
+            ownerOnly,
+        );
     });
 
     it('leaves it out for anyone who cannot edit memberships', async () => {
+        mockApiGet({ ...ANA, roles: ['professional'] });
+
+        expect((await loadSpecialties()).managedOwnMembership).toBeNull();
+    });
+});
+
+describe('Protección de datos tab', () => {
+    beforeEach(() => {
+        vi.mocked(api.get).mockReset();
+    });
+
+    it('shows the export to a professional and the exceptional accesses to the owner', async () => {
+        mockApiGet({ ...ANA, roles: ['owner', 'professional'] });
+
+        expect(await loadDataProtection()).toEqual({
+            isProfessional: true,
+            isOwner: true,
+        });
+    });
+
+    it('shows neither to a member who is neither', async () => {
         mockApiGet({
-            id: 10,
-            name: 'Ana Ejemplo',
-            email: 'ana@clini.app',
-            permissions: [],
-            roles: ['professional'],
-            membership: OWN_MEMBERSHIP,
+            ...ANA,
+            roles: ['staff'],
+            membership: { ...OWN_MEMBERSHIP, roles: ['staff'] },
         });
 
-        const result = await loader({
-            context: { queryClient: new QueryClient() },
+        expect(await loadDataProtection()).toEqual({
+            isProfessional: false,
+            isOwner: false,
         });
-
-        expect(result.managedOwnMembership).toBeNull();
     });
 });

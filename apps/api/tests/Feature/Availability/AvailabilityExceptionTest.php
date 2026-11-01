@@ -395,7 +395,7 @@ test('an owner updating an org-wide exception fields succeeds and it stays org-w
     ]);
 
     $response = $this->actingAs($membership->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
-        'type' => 'extra',
+        'type' => 'blocked',
         'start_at' => '2026-08-10T09:30:00Z',
         'end_at' => '2026-08-10T11:30:00Z',
         'reason' => 'Actualizado',
@@ -404,7 +404,8 @@ test('an owner updating an org-wide exception fields succeeds and it stays org-w
     $response->assertOk();
     $row = DB::table('availability_exceptions')->where('id', $exception->id)->first();
     expect($row->membership_id)->toBeNull();
-    expect($row->type)->toBe('extra');
+    expect($row->type)->toBe('blocked');
+    expect($row->start_at)->toStartWith('2026-08-10 09:30:00');
     expect($row->reason)->toBe('Actualizado');
 });
 
@@ -768,4 +769,49 @@ test('an exception sent with an offset is compared against the stored ones as an
         'start_at' => '2026-10-12T10:00:00-03:00',
         'end_at' => '2026-10-12T11:00:00-03:00',
     ])->assertStatus(409)->assertJsonPath('error.code', 'availability.exception_type_conflict');
+});
+
+test('store of an org-wide extra exception returns 422 on type and saves nothing', function () {
+    $owner = Membership::factory()->owner()->create();
+
+    $response = $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'membership_id' => null,
+        'type' => 'extra',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
+    ]);
+
+    $response->assertStatus(422)->assertJsonValidationErrors([
+        'type' => 'Las horas adicionales son de un profesional. Una excepción para todo el consultorio solo puede ser «Sin atención».',
+    ]);
+    expect(DB::table('availability_exceptions')->count())->toBe(0);
+});
+
+test('store without membership_id is org-wide too, so extra returns 422 on type', function () {
+    $owner = Membership::factory()->owner()->create();
+
+    $this->actingAs($owner->user)->postJson('/api/v1/availability-exceptions', [
+        'type' => 'extra',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
+    ])->assertStatus(422)->assertJsonValidationErrors('type');
+});
+
+test('update of an org-wide exception to extra returns 422 on type and changes nothing', function () {
+    $organization = Organization::factory()->create();
+    $owner = Membership::factory()->owner()->create(['organization_id' => $organization->id]);
+    $exception = AvailabilityException::factory()->organizationWide()->create([
+        'organization_id' => $organization->id,
+        'type' => 'blocked',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
+    ]);
+
+    $this->actingAs($owner->user)->patchJson("/api/v1/availability-exceptions/{$exception->id}", [
+        'type' => 'extra',
+        'start_at' => '2026-08-10T09:00:00Z',
+        'end_at' => '2026-08-10T11:00:00Z',
+    ])->assertStatus(422)->assertJsonValidationErrors('type');
+
+    expect(DB::table('availability_exceptions')->where('id', $exception->id)->value('type'))->toBe('blocked');
 });

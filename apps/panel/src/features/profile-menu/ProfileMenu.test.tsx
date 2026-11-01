@@ -1,7 +1,5 @@
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { api } from '@/lib/api';
-import { sessionQueryOptions } from '@/lib/session';
+import { sessionQueryOptions, type SessionUser } from '@/lib/session';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -11,7 +9,13 @@ import {
     Outlet,
     RouterProvider,
 } from '@tanstack/react-router';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+    fireEvent,
+    render,
+    screen,
+    waitFor,
+    within,
+} from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ProfileMenu } from './ProfileMenu';
 
@@ -19,26 +23,28 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
 }));
 
-const user = {
+const user: SessionUser = {
     id: 1,
     name: 'Ana Ejemplo',
     email: 'ana@clini.app',
     two_factor_enabled: false,
+    organization: {
+        id: 1,
+        name: 'Consultorio Norte',
+        timezone: 'America/Argentina/Buenos_Aires',
+        slug: 'consultorio-norte',
+    },
 };
 
-function renderProfileMenu() {
+function renderProfileMenu(session: SessionUser = user) {
     const queryClient = new QueryClient();
-    queryClient.setQueryData(sessionQueryOptions.queryKey, user);
+    queryClient.setQueryData(sessionQueryOptions.queryKey, session);
 
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                    <SidebarProvider>
-                        <ProfileMenu />
-                        <Outlet />
-                    </SidebarProvider>
-                </TooltipProvider>
+                <ProfileMenu />
+                <Outlet />
             </QueryClientProvider>
         ),
     });
@@ -61,11 +67,30 @@ function renderProfileMenu() {
 }
 
 describe('ProfileMenu', () => {
-    it("shows the session user's real name and email", async () => {
+    it('names the session user and the active organization on its button, and adds the email inside', async () => {
         renderProfileMenu();
 
-        await screen.findByText(user.name);
-        screen.getByText(user.email);
+        const trigger = await screen.findByRole('button', {
+            name: 'Ana Ejemplo, Consultorio Norte',
+        });
+        expect(
+            within(trigger)
+                .getByText('Consultorio Norte')
+                .getAttribute('title'),
+        ).toBe('Consultorio Norte');
+
+        fireEvent.click(trigger);
+        expect(await screen.findByText(user.email)).toBeTruthy();
+    });
+
+    it('says "Sin consultorio" when the session has no organization', async () => {
+        renderProfileMenu({ ...user, organization: null });
+
+        expect(
+            await screen.findByRole('button', {
+                name: 'Ana Ejemplo, Sin consultorio',
+            }),
+        ).toBeTruthy();
     });
 
     it('logs out via POST /logout and navigates to /login when "Cerrar sesión" is clicked', async () => {

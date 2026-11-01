@@ -18,7 +18,7 @@ vi.mock('@tanstack/react-router', () => ({
 }));
 
 const STRIP_FLAG = {
-    to: '/ajustes',
+    to: '/ajustes/suscripcion',
     search: {},
     replace: true,
     resetScroll: false,

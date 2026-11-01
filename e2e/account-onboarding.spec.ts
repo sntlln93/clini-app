@@ -57,7 +57,7 @@ test('a new owner is the professional and completes the first steps until the ch
     ).toBeVisible();
 
     await checklist(page).getByRole('button', { name: 'Ir a Ajustes' }).click();
-    await expect(page).toHaveURL(/\/ajustes/);
+    await expect(page).toHaveURL(/\/ajustes\/profesionales$/);
     const service = page
         .locator('section', {
             has: page.getByRole('heading', {
@@ -81,17 +81,24 @@ test('a new owner is the professional and completes the first steps until the ch
         .getByRole('button', { name: 'Ir a Disponibilidad' })
         .click();
     await expect(page).toHaveURL(/\/disponibilidad/);
-    await page.getByRole('button', { name: 'Agregar franja' }).first().click();
-    await page.getByLabel('Desde').fill('09:00');
-    await page.getByLabel('Hasta').fill('13:00');
-    // «Sin atención» already hides while the slot is being added: wait for the save itself.
+    // The day panel (desktop) edits the selected day, Monday by default: the
+    // new range lands in the draft, and the week is saved as a whole.
+    const dayPanel = page.getByRole('region', { name: 'Lunes' });
+    await dayPanel.getByRole('button', { name: 'Agregar franja' }).click();
+    await dayPanel.getByLabel('Desde').fill('09:00');
+    await dayPanel.getByLabel('Hasta').fill('13:00');
+    await dayPanel.getByLabel('Hasta').press('Enter');
+    await expect(
+        page.getByRole('button', { name: 'Lunes, 09:00 – 13:00' }),
+    ).toBeVisible();
     const saved = page.waitForResponse(
         (response) =>
             /\/memberships\/\d+\/availabilities$/.test(response.url()) &&
-            response.request().method() === 'POST',
+            response.request().method() === 'PUT',
     );
-    await page.getByRole('button', { name: 'Guardar' }).click();
-    expect((await saved).status()).toBe(201);
+    await page.getByRole('button', { name: 'Guardar cambios' }).click();
+    expect((await saved).status()).toBe(200);
+    await expect(page.getByText('Horarios guardados')).toBeVisible();
 
     await page.goto('/agenda');
     await expect(
@@ -105,7 +112,7 @@ test('an owner who only manages steps out from Ajustes and back in from the chec
 }) => {
     await register(page);
 
-    await page.goto('/ajustes');
+    await page.goto('/ajustes/especialidades');
     const attends = page.getByRole('switch', {
         name: 'Atiendo pacientes en este consultorio',
     });

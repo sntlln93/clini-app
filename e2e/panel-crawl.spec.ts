@@ -53,6 +53,21 @@ test('/disponibilidad renders for an authenticated user', async ({ page }) => {
     ).toBeVisible();
 });
 
+test('/disponibilidad/excepciones renders for an authenticated user', async ({
+    page,
+}) => {
+    await page.goto('/disponibilidad/excepciones');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).not.toHaveURL(/\/login$/);
+    await expect(
+        page.getByRole('heading', { name: 'Disponibilidad', level: 1 }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Agregar excepción' }),
+    ).toBeVisible();
+});
+
 // The setup session is the owner's (#325): the list of exceptional accesses is hers.
 test('/accesos-excepcionales renders for the owner', async ({ page }) => {
     await page.goto('/accesos-excepcionales');
@@ -67,14 +82,37 @@ test('/accesos-excepcionales renders for the owner', async ({ page }) => {
     ).toBeVisible();
 });
 
-test('/ajustes renders for an authenticated user', async ({ page }) => {
+test('/ajustes opens its first tab, and every tab renders under the secondary navigation', async ({
+    page,
+}) => {
     await page.goto('/ajustes');
-    await page.waitForLoadState('networkidle');
+    await expect(page).toHaveURL(/\/ajustes\/apariencia$/);
 
-    await expect(page).not.toHaveURL(/\/login$/);
-    await expect(
-        page.getByRole('heading', { name: 'Ajustes', level: 1 }),
-    ).toBeVisible();
+    const tabs = page.getByRole('navigation', { name: 'Secciones de Ajustes' });
+    const links = tabs.getByRole('link');
+    await expect(links).toHaveText([
+        'Apariencia',
+        'Seguridad',
+        'Plan y suscripción',
+        'Reservas',
+        'Mis especialidades',
+        'Profesionales',
+        'Protección de datos',
+    ]);
+
+    for (const name of await links.allTextContents()) {
+        await tabs.getByRole('link', { name }).click();
+        await expect(tabs.getByRole('link', { name })).toHaveAttribute(
+            'aria-current',
+            'page',
+        );
+        await expect(
+            page.getByRole('heading', { name: 'Ajustes', level: 1 }),
+        ).toBeVisible();
+        await expect(
+            page.getByRole('heading', { level: 2 }).first(),
+        ).toBeVisible();
+    }
 });
 
 test('/reportes renders for an authenticated user', async ({ page }) => {

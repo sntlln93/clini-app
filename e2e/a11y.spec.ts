@@ -26,6 +26,17 @@ async function waitForPage(page: Page, heading: string) {
 // Each view in both themes: the panel follows the system preference until the
 // user picks one in Ajustes, so the emulated color scheme switches it.
 for (const colorScheme of ['light', 'dark'] as const) {
+    // Every tab of Ajustes the seeded owner sees.
+    const SETTINGS_TABS = [
+        '/ajustes/apariencia',
+        '/ajustes/seguridad',
+        '/ajustes/suscripcion',
+        '/ajustes/reservas',
+        '/ajustes/especialidades',
+        '/ajustes/profesionales',
+        '/ajustes/proteccion-de-datos',
+    ];
+
     test.describe(`${colorScheme} theme`, () => {
         test.use({ colorScheme });
 
@@ -128,6 +139,16 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/disponibilidad');
             });
 
+            test('/disponibilidad/excepciones has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/disponibilidad/excepciones');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Disponibilidad');
+
+                await runA11yScan(page, '/disponibilidad/excepciones');
+            });
+
             test('/reportes has no unexpected accessibility violations', async ({
                 page,
             }) => {
@@ -138,15 +159,17 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/reportes');
             });
 
-            test('/ajustes has no unexpected accessibility violations', async ({
-                page,
-            }) => {
-                await page.goto('/ajustes');
-                await page.waitForLoadState('networkidle');
-                await waitForPage(page, 'Ajustes');
+            for (const tab of SETTINGS_TABS) {
+                test(`${tab} has no unexpected accessibility violations`, async ({
+                    page,
+                }) => {
+                    await page.goto(tab);
+                    await page.waitForLoadState('networkidle');
+                    await waitForPage(page, 'Ajustes');
 
-                await runA11yScan(page, '/ajustes');
-            });
+                    await runA11yScan(page, tab);
+                });
+            }
 
             test('the "Nuevo turno" appointment form dialog has no unexpected accessibility violations', async ({
                 page,

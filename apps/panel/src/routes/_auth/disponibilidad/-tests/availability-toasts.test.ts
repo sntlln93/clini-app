@@ -4,17 +4,20 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    useDeleteAvailability,
-    useSaveAvailability,
-} from '../-hooks/use-availabilities';
+import { useReplaceWeeklyAvailability } from '../-hooks/use-availabilities';
 import {
     useDeleteAvailabilityException,
     useSaveAvailabilityException,
 } from '../-hooks/use-availability-exceptions';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+    api: {
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn(),
+    },
 }));
 
 vi.mock('@/lib/toast', () => ({
@@ -43,52 +46,32 @@ function renderWithClient<T>(hook: () => T) {
 describe('availability mutation toasts', () => {
     beforeEach(() => {
         vi.mocked(api.post).mockReset();
+        vi.mocked(api.put).mockReset();
         vi.mocked(api.delete).mockReset();
         vi.mocked(notifySuccess).mockReset();
         vi.mocked(notifyError).mockReset();
     });
 
-    it('confirms a saved slot', async () => {
-        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
-        const result = renderWithClient(() => useSaveAvailability(3));
+    it('confirms a saved week', async () => {
+        vi.mocked(api.put).mockResolvedValueOnce({ data: {} });
+        const result = renderWithClient(() => useReplaceWeeklyAvailability(3));
 
-        await result.current.mutateAsync({
-            dayOfWeek: 1,
-            startTime: '09:00',
-            endTime: '13:00',
-        });
+        await result.current.mutateAsync([
+            { day_of_week: 1, start_time: '09:00', end_time: '13:00' },
+        ]);
 
-        expect(notifySuccess).toHaveBeenCalledWith('Horario guardado');
+        expect(notifySuccess).toHaveBeenCalledWith('Horarios guardados');
     });
 
-    it('keeps a failed slot save inline, without an error toast', async () => {
-        vi.mocked(api.post).mockRejectedValueOnce(CONFLICT);
-        const result = renderWithClient(() => useSaveAvailability(3));
+    it('leaves a failed week save to the page, without an error toast', async () => {
+        vi.mocked(api.put).mockRejectedValueOnce(CONFLICT);
+        const result = renderWithClient(() => useReplaceWeeklyAvailability(3));
 
-        await result.current
-            .mutateAsync({ dayOfWeek: 1, startTime: '09:00', endTime: '13:00' })
-            .catch(() => {});
+        await result.current.mutateAsync([]).catch(() => {});
 
         await waitFor(() => expect(result.current.isError).toBe(true));
         expect(notifyError).not.toHaveBeenCalled();
-    });
-
-    it('confirms a deleted slot and reports a failed one', async () => {
-        vi.mocked(api.delete)
-            .mockResolvedValueOnce({ data: {} })
-            .mockRejectedValueOnce(CONFLICT);
-        const result = renderWithClient(() => useDeleteAvailability(3));
-
-        await result.current.mutateAsync(7);
-        expect(notifySuccess).toHaveBeenCalledWith('Horario eliminado');
-
-        await result.current.mutateAsync(7).catch(() => {});
-        await waitFor(() =>
-            expect(notifyError).toHaveBeenCalledWith(
-                CONFLICT,
-                'No se pudo eliminar el horario',
-            ),
-        );
+        expect(notifySuccess).not.toHaveBeenCalled();
     });
 
     it('confirms a saved exception', async () => {

@@ -26,14 +26,22 @@ class Icd10CodeSeeder extends Seeder
             'I10' => 'Hipertensión esencial (primaria)',
             'J02.9' => 'Faringitis aguda, no especificada',
             'J06.9' => 'Infección aguda de las vías respiratorias superiores, no especificada',
+            'J30.4' => 'Rinitis alérgica, no especificada',
             'J45.9' => 'Asma, no especificada',
             'K02.9' => 'Caries dental, no especificada',
             'K29.7' => 'Gastritis, no especificada',
             'L20.9' => 'Dermatitis atópica, no especificada',
+            'L23.9' => 'Dermatitis alérgica de contacto, de causa no especificada',
+            'L50.0' => 'Urticaria alérgica',
             'M54.5' => 'Lumbago no especificado',
             'N39.0' => 'Infección de vías urinarias, sitio no especificado',
             'R51' => 'Cefalea',
+            'T78.2' => 'Choque anafiláctico, no especificado',
+            'T78.3' => 'Edema angioneurótico',
+            'T78.4' => 'Alergia no especificada',
             'Z00.0' => 'Examen médico general',
+            'Z88.0' => 'Historia personal de alergia a penicilina',
+            'Z91.0' => 'Historia personal de alergia, no debida a drogas ni a sustancias biológicas',
         ];
 
         foreach ($codes as $code => $description) {

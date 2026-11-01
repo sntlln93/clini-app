@@ -4,10 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-    useDeleteAvailability,
-    useSaveAvailability,
-} from '../-hooks/use-availabilities';
+import { useReplaceWeeklyAvailability } from '../-hooks/use-availabilities';
 import {
     useDeleteAvailabilityException,
     useSaveAvailabilityException,
@@ -15,7 +12,13 @@ import {
 import { reportQueryOptions } from '../../reportes/-hooks/use-report';
 
 vi.mock('@/lib/api', () => ({
-    api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
+    api: {
+        get: vi.fn(),
+        post: vi.fn(),
+        put: vi.fn(),
+        patch: vi.fn(),
+        delete: vi.fn(),
+    },
 }));
 
 vi.mock('@/lib/toast', () => ({
@@ -62,31 +65,20 @@ describe('availability changes refresh the reports', () => {
     beforeEach(() => {
         vi.mocked(api.get).mockReset();
         vi.mocked(api.post).mockReset().mockResolvedValue({ data: {} });
+        vi.mocked(api.put).mockReset().mockResolvedValue({ data: {} });
         vi.mocked(api.delete).mockReset().mockResolvedValue({ data: {} });
     });
 
     it.each([
         {
-            name: 'saving a slot',
+            name: 'saving the week',
             run: async () => {
                 const { result, queryClient } = await renderWithReportsVisited(
-                    () => useSaveAvailability(3),
+                    () => useReplaceWeeklyAvailability(3),
                 );
-                await result.current.mutateAsync({
-                    dayOfWeek: 1,
-                    startTime: '09:00',
-                    endTime: '13:00',
-                });
-                return queryClient;
-            },
-        },
-        {
-            name: 'deleting a slot',
-            run: async () => {
-                const { result, queryClient } = await renderWithReportsVisited(
-                    () => useDeleteAvailability(3),
-                );
-                await result.current.mutateAsync(5);
+                await result.current.mutateAsync([
+                    { day_of_week: 1, start_time: '09:00', end_time: '13:00' },
+                ]);
                 return queryClient;
             },
         },

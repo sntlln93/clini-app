@@ -361,7 +361,7 @@ test('a failed charge moves an active subscription to a 7-day grace period and n
         return $notification instanceof ShouldQueue
             && $mail->subject === 'No pudimos cobrar tu suscripción a Clini'
             && str_contains(implode(' ', $mail->introLines), '10/10/2026')
-            && str_ends_with((string) $mail->actionUrl, '/ajustes')
+            && str_ends_with((string) $mail->actionUrl, '/ajustes/suscripcion')
             && $notification->via($owner->user) === ['mail'];
     });
     Notification::assertNotSentTo($staff->user, SubscriptionGraceStartedNotification::class);

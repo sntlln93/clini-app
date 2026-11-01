@@ -3,7 +3,7 @@ import { buildPlan } from '@/tests/fixtures/plan';
 import { buildSubscription } from '@/tests/fixtures/subscription';
 import type { Plan } from '@/types/plan';
 import type { Subscription } from '@/types/subscription';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { MouseEventHandler, ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { SubscriptionBanner } from './SubscriptionBanner';
@@ -73,7 +73,7 @@ describe('SubscriptionBanner', () => {
         );
         expect(
             screen.getByRole('link', { name: 'Ver plan' }).getAttribute('href'),
-        ).toBe('/ajustes#suscripcion');
+        ).toBe('/ajustes/suscripcion');
     });
 
     it('uses the singular for the last day of grace', () => {
@@ -205,7 +205,7 @@ describe('SubscriptionBanner', () => {
         expect(banner.getAttribute('class')).not.toContain('destructive');
         expect(
             screen.getByRole('link', { name: 'Ver plan' }).getAttribute('href'),
-        ).toBe('/ajustes#suscripcion');
+        ).toBe('/ajustes/suscripcion');
     });
 
     it('says the month is full at the limit, without calling the agenda read-only', () => {
@@ -244,18 +244,5 @@ describe('SubscriptionBanner', () => {
         expect(screen.getByRole('alert').textContent).toContain(
             'un solo profesional activo',
         );
-    });
-
-    it('scrolls the section into view when it is already on screen', () => {
-        const section = document.createElement('section');
-        section.id = 'suscripcion';
-        section.scrollIntoView = vi.fn();
-        document.body.appendChild(section);
-
-        renderBanner(subscription({ status: 'expired' }));
-        fireEvent.click(screen.getByRole('link', { name: 'Ver plan' }));
-
-        expect(section.scrollIntoView).toHaveBeenCalled();
-        section.remove();
     });
 });

@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { TwoFactorCodeInput } from '@/features/two-factor-code/TwoFactorCodeInput';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     restartMessageFor,
@@ -24,7 +25,7 @@ const codeSchema = z.object({
     value: z
         .string()
         .trim()
-        .regex(/^\d{3} ?\d{3}$/, 'El código tiene 6 números.'),
+        .regex(/^\d{6}$/, 'El código tiene 6 números.'),
 });
 
 const recoverySchema = z.object({
@@ -32,12 +33,6 @@ const recoverySchema = z.object({
 });
 
 type ChallengeValues = { value: string };
-
-const CODE_INPUT = {
-    inputMode: 'numeric',
-    autoComplete: 'one-time-code',
-    maxLength: 7,
-} as const;
 
 const RECOVERY_INPUT = {
     autoComplete: 'off',
@@ -127,13 +122,19 @@ export function TwoFactorChallengeForm({
                             </FormLabel>
                             <FormControl
                                 render={
-                                    <Input
-                                        key={useRecovery ? 'recovery' : 'code'}
-                                        {...(useRecovery
-                                            ? RECOVERY_INPUT
-                                            : CODE_INPUT)}
-                                        {...field}
-                                    />
+                                    useRecovery ? (
+                                        <Input
+                                            key="recovery"
+                                            {...RECOVERY_INPUT}
+                                            {...field}
+                                        />
+                                    ) : (
+                                        <TwoFactorCodeInput
+                                            key="code"
+                                            containerClassName="justify-center"
+                                            {...field}
+                                        />
+                                    )
                                 }
                             />
                             <FormMessage />

@@ -85,6 +85,31 @@ export function formatShortDay(dateTime: DateTime): string {
         .replace(',', '');
 }
 
+/** e.g. "4 ene": day and short month. */
+export function formatDayMonth(dateTime: DateTime): string {
+    return dateTime.toFormat('d LLL');
+}
+
+/** e.g. "4 ene 2027": day, short month and year. */
+export function formatDayMonthYear(dateTime: DateTime): string {
+    return dateTime.toFormat('d LLL yyyy');
+}
+
+/** e.g. "lun 4": short weekday and day of the month. */
+export function formatWeekdayDay(dateTime: DateTime): string {
+    return dateTime.toFormat('ccc d');
+}
+
+/** e.g. "lun 4 de enero": short weekday, day and full month. */
+export function formatWeekdayDayMonth(dateTime: DateTime): string {
+    return dateTime.toFormat("ccc d 'de' LLLL");
+}
+
+/** Exactly midnight in the practice's zone, the edge of an all-day range. */
+export function isStartOfDay(dateTime: DateTime): boolean {
+    return dateTime.equals(dateTime.startOf('day'));
+}
+
 /** e.g. "09:00", 24-hour. */
 export function formatTime(dateTime: DateTime): string {
     return dateTime.toLocaleString({

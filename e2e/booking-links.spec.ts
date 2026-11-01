@@ -13,7 +13,7 @@ test.describe('booking links from Ajustes', () => {
     test("an owner who doesn't attend patients gets the practice's link, which opens the booking page", async ({
         page,
     }) => {
-        await page.goto('/ajustes');
+        await page.goto('/ajustes/reservas');
 
         await expect(
             page.getByRole('heading', {

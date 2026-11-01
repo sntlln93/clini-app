@@ -54,7 +54,7 @@ const SURFACES = ['card', 'background', 'popover'];
 const STATUSES = ['scheduled', 'confirmed', 'arrived', 'completed', 'no-show'];
 
 const PAIRS: Pair[] = [
-    // Brand: buttons, links, sidebar and menu highlights, selected day.
+    // Brand: buttons, links, header navigation and menu highlights, selected day.
     { fg: 'primary-foreground', bg: 'primary', min: TEXT },
     {
         fg: 'primary-foreground',
@@ -74,7 +74,8 @@ const PAIRS: Pair[] = [
         min: TEXT,
     })),
     { fg: 'secondary-foreground', bg: 'secondary', min: TEXT },
-    ...SURFACES.map((bg) => ({
+    // The panel's header and secondary navigation sit on `muted`.
+    ...[...SURFACES, 'muted'].map((bg) => ({
         fg: `ring/${focusHalo}`,
         bg,
         min: GRAPHIC,
@@ -132,6 +133,18 @@ const PAIRS: Pair[] = [
             }));
         })
         .flat(),
+
+    // Disponibilidad's weekly blocks: foreground text on the primary wash
+    // (rest and hover), over the card and over the selected day's muted column,
+    // and the primary edge that outlines them.
+    ...['card', 'muted'].flatMap((surface) =>
+        ['12', '20'].map((opacity) => ({
+            fg: 'foreground',
+            bg: `primary/${opacity} over ${surface}`,
+            min: TEXT,
+        })),
+    ),
+    ...['card', 'muted'].map((bg) => ({ fg: 'primary', bg, min: GRAPHIC })),
 
     // Appointment status chips: on their wash (pill) and on the card.
     ...[...STATUSES, 'online'].flatMap((status) => [

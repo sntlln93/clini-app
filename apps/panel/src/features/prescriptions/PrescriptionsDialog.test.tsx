@@ -410,7 +410,7 @@ describe('PrescriptionsDialog', () => {
             screen
                 .getByRole('link', { name: 'Ver planes' })
                 .getAttribute('href'),
-        ).toBe('/ajustes#suscripcion');
+        ).toBe('/ajustes/suscripcion');
     });
 
     // The patient page's «Enmendar»: straight on that record, no new one.

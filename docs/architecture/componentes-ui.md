@@ -1,6 +1,6 @@
 # Componentes UI (shadcn) — estado de la auditoría
 
-Este documento lleva el **estado actual** de los 22 componentes vendorizados en `apps/panel/src/components/ui/` respecto del registry de shadcn/ui. El *criterio* que decide qué divergencia se acepta y cuál se corrige vive en [ADR 0008](../adr/0008-criterio-de-divergencia-del-registry-de-shadcn.md) — este documento no lo repite, sólo aplica ese criterio y registra el resultado.
+Este documento lleva el **estado actual** de los 21 componentes vendorizados en `apps/panel/src/components/ui/` respecto del registry de shadcn/ui. El *criterio* que decide qué divergencia se acepta y cuál se corrige vive en [ADR 0008](../adr/0008-criterio-de-divergencia-del-registry-de-shadcn.md) — este documento no lo repite, sólo aplica ese criterio y registra el resultado.
 
 **Última auditoría**: 2026-07-29 (issue #110).
 
@@ -35,12 +35,11 @@ Nunca `--overwrite`: toda corrección de drift real se aplica a mano con un edit
 | `select` | Customización deliberada | Mismo patrón `focus-ring` que `button` |
 | `separator` | Sin divergencias | Sólo ruido de formato |
 | `sheet` | Customización deliberada | Mismo patrón `focus-ring` que `button` |
-| `sidebar` | Drift real corregido | `SidebarMenu` de `gap-1` a `gap-0.5`. Se descartó la directiva `"use client"` que agrega el registry: no tiene efecto en una SPA sin SSR y está prohibida en todo `src/**` (CLAUDE.md) |
 | `skeleton` | Sin divergencias | Sólo ruido de formato |
 | `sonner` | Customización deliberada + drift real corregido | Customización: `useTheme` propio (`@/hooks/use-theme`) en lugar de la dependencia `next-themes`, que el proyecto no usa. Drift corregido: faltaban los íconos por tipo de toast (`icons`), la variable `--border-radius` y `toastOptions.classNames` |
 | `switch` | Customización deliberada | Mismo patrón `focus-ring` que `button` |
 | `table` | Sin divergencias | Idéntico al registry (`--diff` no reporta cambios) |
-| `tooltip` | Sin divergencias | Sólo ruido de formato (orden de exports). Se descartó la misma directiva `"use client"` que en `sidebar` |
+| `tooltip` | Sin divergencias | Sólo ruido de formato (orden de exports). Se descartó la directiva `"use client"` que agrega el registry: no tiene efecto en una SPA sin SSR y está prohibida en todo `src/**` (CLAUDE.md) |
 
 ## Detalle de cada customización deliberada
 
@@ -55,6 +54,6 @@ Nunca `--overwrite`: toda corrección de drift real se aplica a mano con un edit
 
 ## Composiciones incompletas detectadas
 
-- **`sidebar` — `SidebarRail` no usado**: `sidebar.tsx` exporta `SidebarRail` (el handle de arrastre en el borde del sidebar en desktop) pero `PanelSidebar.tsx` (`src/features/panel-sidebar/`) no lo monta. La única forma de alternar el sidebar hoy es el botón `SidebarTrigger` en `PanelHeader`. Corrección contenida en `src/features/`, fuera del alcance de esta auditoría — queda para issue aparte.
-- El resto de los componentes multi-parte (`alert-dialog`, `dialog`, `sheet`, `dropdown-menu`, `select`, `table`, `tooltip`) tienen composición completa: todas las partes usadas en `src/` respetan el agrupamiento esperado (por ejemplo, `SelectItem` siempre dentro de `SelectContent`; `Tooltip`/`Sidebar` con sus `Provider` montados una sola vez en `PanelLayout.tsx`).
+- **`sidebar`**: el panel ya no lo usa. Su navegación vive en el header (`src/features/panel-header/`, `src/features/panel-nav/`), y `sidebar.tsx` se quitó del panel; el dashboard conserva su copia.
+- El resto de los componentes multi-parte (`alert-dialog`, `dialog`, `sheet`, `dropdown-menu`, `select`, `table`, `tooltip`) tienen composición completa: todas las partes usadas en `src/` respetan el agrupamiento esperado (por ejemplo, `SelectItem` siempre dentro de `SelectContent`; `TooltipProvider` montado una sola vez en `PanelLayout.tsx`).
 - `DataTablePagination` y la falta de paginación en profesionales quedan excluidos: son #90.

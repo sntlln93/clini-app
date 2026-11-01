@@ -57,19 +57,8 @@ export function chargingBilling(
         : 'monthly';
 }
 
-/** Anchor of Ajustes' subscription section, the target of the panel banner's link. */
+/** Id of Ajustes' subscription section, which labels it. */
 export const SUBSCRIPTION_SECTION_ID = 'suscripcion';
-
-/**
- * Brings the subscription section into view when it is already rendered
- * (the banner is clicked on Ajustes itself, where a same-URL navigation
- * wouldn't scroll again); a no-op anywhere else.
- */
-export function scrollToSubscriptionSection(): void {
-    document
-        .getElementById(SUBSCRIPTION_SECTION_ID)
-        ?.scrollIntoView({ block: 'start' });
-}
 
 /** e.g. «3 de noviembre de 2026». */
 export function formatSubscriptionDate(iso: string): string {

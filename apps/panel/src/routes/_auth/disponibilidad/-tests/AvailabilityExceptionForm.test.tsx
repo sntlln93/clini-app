@@ -11,7 +11,6 @@ import {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mergeExceptionDescription } from '../-components/availability-merge';
 import { AvailabilityExceptionForm } from '../-components/AvailabilityExceptionForm';
-import { useAvailabilityPermissions } from '../-hooks/use-availability-permissions';
 
 vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), delete: vi.fn() },
@@ -23,22 +22,34 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
 });
 
-function renderForm(props: {
-    membershipId: number;
-    canManageOrgWide: boolean;
-    exception?: AvailabilityException;
-}) {
-    const queryClient = new QueryClient();
+const ORG_WIDE = 'Todo el consultorio (feriado o cierre)';
+
+function renderForm(
+    props: {
+        canManageOrgWide?: boolean;
+        exception?: AvailabilityException;
+    } = {},
+) {
+    const onDone = vi.fn();
     render(
-        <QueryClientProvider client={queryClient}>
+        <QueryClientProvider client={new QueryClient()}>
             <AvailabilityExceptionForm
-                membershipId={props.membershipId}
-                canManageOrgWide={props.canManageOrgWide}
+                membershipId={3}
+                canManageOrgWide={props.canManageOrgWide ?? false}
                 exception={props.exception}
-                onDone={() => {}}
+                onDone={onDone}
             />
         </QueryClientProvider>,
     );
+    return { onDone };
+}
+
+function type(label: string, value: string) {
+    fireEvent.change(screen.getByLabelText(label), { target: { value } });
+}
+
+function save() {
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar excepción' }));
 }
 
 function businessAxiosError(code: string, context: Record<string, unknown>) {
@@ -65,32 +76,100 @@ const MERGE_PROPOSAL = {
     ],
 };
 
-function fillDates() {
-    fireEvent.change(screen.getByLabelText(/Desde/), {
-        target: { value: '2026-08-10T09:00' },
-    });
-    fireEvent.change(screen.getByLabelText(/Hasta/), {
-        target: { value: '2026-08-10T11:00' },
-    });
-}
-
+// Vitest runs in Buenos Aires (UTC-3): the practice's midnight is 03:00Z.
 describe('AvailabilityExceptionForm', () => {
     beforeEach(() => {
         vi.mocked(api.post).mockReset();
-        vi.mocked(api.get).mockReset();
+        vi.mocked(api.patch).mockReset();
     });
 
-    it('posts membership_id: null when the org-wide control is enabled', async () => {
+    it('sends a «Sin atención» range as whole days, «Hasta» following «Desde»', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
-        renderForm({ membershipId: 3, canManageOrgWide: true });
+        const { onDone } = renderForm();
 
-        fillDates();
-        fireEvent.click(
-            screen.getByRole('checkbox', {
-                name: 'Aplicar a toda la organización',
+        type('Desde', '2027-01-04');
+        expect(screen.getByLabelText<HTMLInputElement>('Hasta').value).toBe(
+            '2027-01-04',
+        );
+        type('Hasta', '2027-01-15');
+        screen.getByText('No atiende del lun 4 al vie 15 de enero (12 días).');
+        save();
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/availability-exceptions', {
+                membership_id: 3,
+                type: 'blocked',
+                start_at: '2027-01-04T03:00:00.000Z',
+                end_at: '2027-01-16T03:00:00.000Z',
+                reason: null,
             }),
         );
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+        await waitFor(() => expect(onDone).toHaveBeenCalled());
+    });
+
+    it('sends the hours of a «Sin atención» that is not all day', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderForm();
+
+        type('Desde', '2027-01-04');
+        type('Hasta', '2027-01-06');
+        fireEvent.click(screen.getByRole('checkbox', { name: 'Todo el día' }));
+        type('Desde la hora', '14:00');
+        type('Hasta la hora', '12:00');
+        save();
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/availability-exceptions',
+                expect.objectContaining({
+                    start_at: '2027-01-04T17:00:00.000Z',
+                    end_at: '2027-01-06T15:00:00.000Z',
+                }),
+            ),
+        );
+    });
+
+    it('sends «Horas adicionales» as one range on one date, for the professional', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderForm({ canManageOrgWide: true });
+
+        fireEvent.click(
+            screen.getByRole('radio', { name: 'Horas adicionales' }),
+        );
+        expect(screen.queryByRole('checkbox', { name: ORG_WIDE })).toBeNull();
+        type('Fecha', '2026-11-07');
+        type('Desde', '09:00');
+        type('Hasta', '13:00');
+        fireEvent.change(screen.getByLabelText(/Motivo/), {
+            target: { value: 'Atención un sábado' },
+        });
+        screen.getByText(
+            'Atiende además el sáb 7 de noviembre de 09:00 a 13:00.',
+        );
+        save();
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/availability-exceptions', {
+                membership_id: 3,
+                type: 'extra',
+                start_at: '2026-11-07T12:00:00.000Z',
+                end_at: '2026-11-07T16:00:00.000Z',
+                reason: 'Atención un sábado',
+            }),
+        );
+    });
+
+    it('sends membership_id: null for a «Sin atención» of the whole practice', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderForm({ canManageOrgWide: true });
+
+        type('Desde', '2026-11-23');
+        fireEvent.click(screen.getByRole('checkbox', { name: ORG_WIDE }));
+        screen.getByText('El consultorio no atiende el lun 23 de noviembre.');
+        expect(
+            screen.getByRole('radio', { name: 'Horas adicionales' }),
+        ).toHaveProperty('dataset.disabled', '');
+        save();
 
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(
@@ -100,78 +179,48 @@ describe('AvailabilityExceptionForm', () => {
         );
     });
 
-    it('posts the selected membership id when the org-wide control is off', async () => {
-        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
-        renderForm({ membershipId: 3, canManageOrgWide: true });
+    it('offers the whole practice only to whoever manages every professional', () => {
+        renderForm({ canManageOrgWide: false });
 
-        fillDates();
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-        await waitFor(() =>
-            expect(api.post).toHaveBeenCalledWith(
-                '/availability-exceptions',
-                expect.objectContaining({ membership_id: 3 }),
-            ),
-        );
+        expect(screen.queryByRole('checkbox', { name: ORG_WIDE })).toBeNull();
     });
 
-    it('does not render the org-wide control when the session only holds availability.manage.own', async () => {
-        vi.mocked(api.get).mockResolvedValueOnce({
-            data: {
-                id: 1,
-                name: 'Prof',
-                email: 'prof@example.com',
-                permissions: ['availability.manage.own'],
-            },
-        });
+    it('shows the client errors in Spanish and sends nothing', async () => {
+        renderForm();
 
-        const queryClient = new QueryClient();
-
-        function Wrapper() {
-            const { canManageOrgWide } = useAvailabilityPermissions();
-            return (
-                <AvailabilityExceptionForm
-                    membershipId={3}
-                    canManageOrgWide={canManageOrgWide}
-                    onDone={() => {}}
-                />
-            );
-        }
-
-        render(
-            <QueryClientProvider client={queryClient}>
-                <Wrapper />
-            </QueryClientProvider>,
+        fireEvent.click(
+            screen.getByRole('radio', { name: 'Horas adicionales' }),
         );
-
-        await waitFor(() => expect(api.get).toHaveBeenCalledWith('/me'));
-
-        expect(screen.queryByText('Aplicar a toda la organización')).toBeNull();
-        expect(
-            screen.queryByRole('checkbox', {
-                name: 'Aplicar a toda la organización',
-            }),
-        ).toBeNull();
-    });
-
-    it('shows an inline message when endAt is not after startAt, and does not call POST', async () => {
-        renderForm({ membershipId: 3, canManageOrgWide: true });
-
-        fireEvent.change(screen.getByLabelText(/Desde/), {
-            target: { value: '2026-08-10T11:00' },
-        });
-        fireEvent.change(screen.getByLabelText(/Hasta/), {
-            target: { value: '2026-08-10T09:00' },
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+        type('Fecha', '2026-11-07');
+        type('Desde', '13:00');
+        type('Hasta', '09:00');
+        save();
 
         await screen.findByText(
-            'La fecha de fin debe ser posterior a la de inicio.',
+            'La hora de fin tiene que ser posterior a la de inicio.',
         );
         expect(api.post).not.toHaveBeenCalled();
     });
 
-    it('opens the merge dialog on a 409 exception_merge_required and re-sends the same values with merge: true on confirm', async () => {
+    it("shows the API's rejection of the type on the type field", async () => {
+        const message =
+            'Las horas adicionales son de un profesional. Una excepción para todo el consultorio solo puede ser «Sin atención».';
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 422,
+                data: { message, errors: { type: [message] } },
+            },
+        });
+        renderForm();
+
+        type('Desde', '2026-11-23');
+        save();
+
+        await screen.findByText(message);
+    });
+
+    it('opens the merge dialog on a 409 and re-sends the same values with merge: true', async () => {
         vi.mocked(api.post)
             .mockRejectedValueOnce(
                 businessAxiosError(
@@ -180,98 +229,74 @@ describe('AvailabilityExceptionForm', () => {
                 ),
             )
             .mockResolvedValueOnce({ data: {} });
-        renderForm({ membershipId: 3, canManageOrgWide: true });
+        renderForm();
 
-        fillDates();
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+        type('Desde', '2026-08-10');
+        save();
 
         await screen.findByText(mergeExceptionDescription(MERGE_PROPOSAL));
-
-        const dialog = screen.getByRole('alertdialog');
         fireEvent.click(
-            within(dialog).getByRole('button', { name: 'Combinar' }),
+            within(screen.getByRole('alertdialog')).getByRole('button', {
+                name: 'Combinar',
+            }),
         );
 
         await waitFor(() => expect(api.post).toHaveBeenCalledTimes(2));
         expect(api.post).toHaveBeenNthCalledWith(
             2,
             '/availability-exceptions',
-            {
-                membership_id: 3,
-                type: 'blocked',
-                start_at: '2026-08-10T12:00:00.000Z',
-                end_at: '2026-08-10T14:00:00.000Z',
-                reason: null,
+            expect.objectContaining({
+                start_at: '2026-08-10T03:00:00.000Z',
+                end_at: '2026-08-11T03:00:00.000Z',
                 merge: true,
-            },
+            }),
         );
     });
 
-    it('closes the merge dialog and sends no further request when cancelled', async () => {
-        vi.mocked(api.post).mockRejectedValueOnce(
-            businessAxiosError(
-                'availability.exception_merge_required',
-                MERGE_PROPOSAL,
-            ),
-        );
-        renderForm({ membershipId: 3, canManageOrgWide: true });
-
-        fillDates();
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-        await screen.findByText(mergeExceptionDescription(MERGE_PROPOSAL));
-
-        const dialog = screen.getByRole('alertdialog');
-        fireEvent.click(
-            within(dialog).getByRole('button', { name: 'Cancelar' }),
-        );
-
-        await waitFor(() =>
-            expect(
-                screen.queryByText(mergeExceptionDescription(MERGE_PROPOSAL)),
-            ).toBeNull(),
-        );
-        expect(api.post).toHaveBeenCalledTimes(1);
-    });
-
-    // #265: the inputs hold the practice's wall clock (Buenos Aires here), the API instants in UTC.
-    it("sends the entered times as the practice's UTC instants", async () => {
-        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
-        renderForm({ membershipId: 3, canManageOrgWide: false });
-
-        fillDates();
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-        await waitFor(() =>
-            expect(api.post).toHaveBeenCalledWith(
-                '/availability-exceptions',
-                expect.objectContaining({
-                    start_at: '2026-08-10T12:00:00.000Z',
-                    end_at: '2026-08-10T14:00:00.000Z',
-                }),
-            ),
-        );
-    });
-
-    it("prefills an existing exception's times in the practice's wall clock", () => {
+    it('reads an existing whole-day exception back as all day and keeps its scope', async () => {
+        vi.mocked(api.patch).mockResolvedValueOnce({ data: {} });
         renderForm({
-            membershipId: 3,
-            canManageOrgWide: false,
+            canManageOrgWide: true,
             exception: {
                 id: 9,
-                membership_id: 3,
+                membership_id: null,
                 type: 'blocked',
-                start_at: '2026-10-12T12:00:00.000000Z',
-                end_at: '2026-10-12T16:00:00.000000Z',
-                reason: null,
+                start_at: '2026-12-24T03:00:00Z',
+                end_at: '2026-12-26T03:00:00Z',
+                reason: 'Navidad',
             },
         });
 
-        expect(screen.getByLabelText<HTMLInputElement>(/Desde/).value).toBe(
-            '2026-10-12T09:00',
+        expect(screen.getByLabelText<HTMLInputElement>('Desde').value).toBe(
+            '2026-12-24',
         );
-        expect(screen.getByLabelText<HTMLInputElement>(/Hasta/).value).toBe(
-            '2026-10-12T13:00',
+        expect(screen.getByLabelText<HTMLInputElement>('Hasta').value).toBe(
+            '2026-12-25',
+        );
+        expect(
+            screen
+                .getByRole('checkbox', { name: 'Todo el día' })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
+        expect(
+            screen
+                .getByRole('checkbox', { name: ORG_WIDE })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
+        expect(
+            screen.getByRole('radio', { name: 'Horas adicionales' }),
+        ).toHaveProperty('dataset.disabled', '');
+        save();
+
+        await waitFor(() =>
+            expect(api.patch).toHaveBeenCalledWith(
+                '/availability-exceptions/9',
+                expect.objectContaining({
+                    start_at: '2026-12-24T03:00:00.000Z',
+                    end_at: '2026-12-26T03:00:00.000Z',
+                    reason: 'Navidad',
+                }),
+            ),
         );
     });
 

@@ -19,7 +19,7 @@ import { amendmentReason } from '@/lib/clinical-note-schema';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import { BLOOD_TYPES, type BloodType } from '@/types/medical-history';
 import { useRecordBloodType } from '../-hooks/use-patient-medical-history';
-import { OptionSelectField } from './OptionSelectField';
+import { BloodTypePillsField } from './BloodTypePillsField';
 
 const schema = z.object({
     // A string while none is chosen, so the field stays controlled.
@@ -32,8 +32,6 @@ const schema = z.object({
 });
 
 type BloodTypeFormValues = z.infer<typeof schema>;
-
-const ITEMS = BLOOD_TYPES.map((type) => ({ value: type, label: type }));
 
 type BloodTypeDialogProps = {
     patientId: number;
@@ -114,12 +112,9 @@ export function BloodTypeDialog({
                                 {form.formState.errors.root.message}
                             </p>
                         )}
-                        <OptionSelectField
+                        <BloodTypePillsField
                             control={form.control}
                             name="blood_type"
-                            label="Grupo y factor"
-                            placeholder="Elegí uno"
-                            items={ITEMS}
                         />
                         {changing && (
                             <AmendmentReasonField

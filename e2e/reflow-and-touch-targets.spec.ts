@@ -380,7 +380,7 @@ test.describe('toggle hit areas never cover a neighboring option', () => {
     for (const { path, opener } of [
         { path: '/pacientes/nuevo' },
         { path: '/profesionales/nuevo' },
-        { path: '/disponibilidad', opener: 'Agregar excepción' },
+        { path: '/disponibilidad/excepciones', opener: 'Agregar excepción' },
     ]) {
         test(`labels on ${path} only reach their own control`, async ({
             page,

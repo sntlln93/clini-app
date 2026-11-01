@@ -1,24 +1,14 @@
-import { fromDateTimeInputValue, toDateTimeInputValue } from '@/lib/datetime';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useWatch } from 'react-hook-form';
 
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
+import { Spinner } from '@/components/ui/spinner';
 import type { AvailabilityException } from '@/types/availability';
-import { useSaveAvailabilityException } from '../-hooks/use-availability-exceptions';
-import {
-    mergeExceptionDescription,
-    readMergeProposal,
-    type MergeProposal,
-} from './availability-merge';
-import {
-    availabilityExceptionSchema,
-    type AvailabilityExceptionFormValues,
-} from './availability-schemas';
+import { useExceptionForm } from '../-hooks/use-exception-form';
+import { mergeExceptionDescription } from './availability-merge';
 import { AvailabilityExceptionFields } from './AvailabilityExceptionFields';
+import { exceptionSummary } from './exception-summary';
 
 type AvailabilityExceptionFormProps = {
     membershipId: number;
@@ -33,111 +23,62 @@ export function AvailabilityExceptionForm({
     exception,
     onDone,
 }: AvailabilityExceptionFormProps) {
-    const { mutateAsync, isPending } =
-        useSaveAvailabilityException(membershipId);
-
-    const form = useForm<AvailabilityExceptionFormValues>({
-        resolver: zodResolver(availabilityExceptionSchema),
-        defaultValues: {
-            type: exception?.type ?? 'blocked',
-            // The inputs hold the practice's wall clock; the API's instants are converted both ways (#265).
-            startAt: exception ? toDateTimeInputValue(exception.start_at) : '',
-            endAt: exception ? toDateTimeInputValue(exception.end_at) : '',
-            reason: exception?.reason ?? '',
-            isOrgWide: exception ? exception.membership_id === null : false,
-        },
-    });
-
-    const [pendingMerge, setPendingMerge] = useState<{
-        proposal: MergeProposal;
-        values: AvailabilityExceptionFormValues;
-    } | null>(null);
-
-    async function submit(
-        values: AvailabilityExceptionFormValues,
-        merge: boolean,
-    ) {
-        try {
-            await mutateAsync({
-                id: exception?.id,
-                membershipId: values.isOrgWide ? null : membershipId,
-                type: values.type,
-                startAt: fromDateTimeInputValue(values.startAt),
-                endAt: fromDateTimeInputValue(values.endAt),
-                reason: values.reason || null,
-                merge,
-            });
-            setPendingMerge(null);
-            onDone();
-        } catch (error) {
-            if (!merge) {
-                const proposal = readMergeProposal(
-                    error,
-                    'availability.exception_merge_required',
-                );
-                if (proposal) {
-                    setPendingMerge({ proposal, values });
-                    return;
-                }
-            }
-            setPendingMerge(null);
-            applyFormErrors(form, extractFormErrors(error), {
-                start_at: 'startAt',
-                end_at: 'endAt',
-            });
-        }
-    }
+    const {
+        form,
+        isPending,
+        onSubmit,
+        pendingMerge,
+        confirmMerge,
+        cancelMerge,
+    } = useExceptionForm(membershipId, exception, onDone);
+    // Subscribes to every field, so the summary follows what is typed.
+    useWatch({ control: form.control });
+    const summary = exceptionSummary(form.getValues());
 
     return (
         <Form {...form}>
-            <form
-                onSubmit={form.handleSubmit((values) => submit(values, false))}
-                className="space-y-2 rounded-md border p-3"
-            >
+            <form onSubmit={onSubmit} noValidate className="space-y-4">
                 <AvailabilityExceptionFields
-                    control={form.control}
+                    form={form}
                     canManageOrgWide={canManageOrgWide}
+                    isEditing={exception !== undefined}
                 />
 
+                <div aria-live="polite">
+                    {summary && (
+                        <p className="rounded-2xl bg-muted/60 px-3 py-2 text-sm">
+                            {summary}
+                        </p>
+                    )}
+                </div>
+
                 {form.formState.errors.root && (
-                    <p className="text-sm text-destructive">
+                    <p role="alert" className="text-sm text-destructive">
                         {form.formState.errors.root.message}
                     </p>
                 )}
 
-                <div className="flex gap-2">
-                    <Button
-                        type="submit"
-                        size="sm"
-                        disabled={isPending || form.formState.isSubmitting}
-                    >
-                        Guardar
-                    </Button>
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={onDone}
-                    >
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                    <Button type="button" variant="outline" onClick={onDone}>
                         Cancelar
+                    </Button>
+                    <Button type="submit" disabled={isPending}>
+                        {isPending && <Spinner data-icon="inline-start" />}
+                        Guardar excepción
                     </Button>
                 </div>
             </form>
 
             <ConfirmDialog
                 open={pendingMerge !== null}
-                onOpenChange={(open) => !open && setPendingMerge(null)}
+                onOpenChange={(open) => !open && cancelMerge()}
                 title="Combinar excepciones"
                 description={
-                    pendingMerge
-                        ? mergeExceptionDescription(pendingMerge.proposal)
-                        : ''
+                    pendingMerge ? mergeExceptionDescription(pendingMerge) : ''
                 }
                 confirmLabel="Combinar"
                 cancelLabel="Cancelar"
-                onConfirm={() =>
-                    pendingMerge && void submit(pendingMerge.values, true)
-                }
+                onConfirm={confirmMerge}
                 isPending={isPending}
             />
         </Form>

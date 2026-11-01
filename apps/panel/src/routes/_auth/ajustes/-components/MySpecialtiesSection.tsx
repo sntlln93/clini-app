@@ -1,8 +1,6 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { joinableMembership } from '@/features/JoinAsProfessionalButton';
-import { useSession } from '@/lib/session';
 import type { CatalogSpecialty, UserSpecialty } from '@/types/professional';
 import { useId, useState } from 'react';
 import { useToggleUserSpecialty } from '../-hooks/use-user-specialties';
@@ -21,12 +19,6 @@ export function MySpecialtiesSection({
     const checkboxIdPrefix = useId();
     const { assign, remove } = useToggleUserSpecialty(userId);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
-    const { data: session } = useSession();
-    // Specialties belong to the user; attending in this organization takes the role (#278).
-    const notAProfessionalHere =
-        session?.membership != null &&
-        !session.membership.roles.includes('professional');
-    const joinable = joinableMembership(session);
 
     function toggle(specialtyId: number, checked: boolean) {
         if (checked) {
@@ -50,19 +42,6 @@ export function MySpecialtiesSection({
                     Marcá las especialidades para las que estás habilitado.
                 </p>
             </div>
-
-            {notAProfessionalHere && (
-                <div className="rounded-md border border-dashed p-4">
-                    <p className="text-sm text-muted-foreground">
-                        Marcar especialidades no te suma a la agenda: para
-                        atender en este consultorio necesitás el rol
-                        Profesional.
-                        {joinable
-                            ? ' Activá «Atiendo pacientes en este consultorio» más arriba.'
-                            : ' Pedile a un administrador que te lo asigne.'}
-                    </p>
-                </div>
-            )}
 
             {specialties.length === 0 && (
                 <p className="text-sm text-muted-foreground">
