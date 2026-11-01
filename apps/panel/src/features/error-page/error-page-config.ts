@@ -14,7 +14,7 @@ export const HOME_ACTION = {
     icon: CalendarDays,
 } as const;
 
-/** The landing's contact form; without a landing (#249) there's nowhere to send the user. */
+/** The landing's contact form; without a landing there's nowhere to send the user. */
 export const HELP_URL: string | null = LANDING_URL
     ? `${LANDING_URL}/contacto`
     : null;
