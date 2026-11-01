@@ -27,12 +27,19 @@ export function NavLinks({ items, orientation, onNavigate }: NavLinksProps) {
             )}
         >
             {items.map((item) => {
-                const active = isNavItemActive(pathname, item.to);
+                const active = isNavItemActive(pathname, item.to, item.exact);
 
                 return (
                     <li key={item.to}>
                         <Link
                             to={item.to}
+                            // The Link marks itself `aria-current` on its own
+                            // (fuzzy by default, so a parent item would stay
+                            // current on its children's pages): same rule as ours.
+                            activeOptions={{
+                                exact: item.exact ?? false,
+                                includeSearch: false,
+                            }}
                             onClick={onNavigate}
                             aria-current={active ? 'page' : undefined}
                             className={cn(

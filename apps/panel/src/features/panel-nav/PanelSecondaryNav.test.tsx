@@ -22,6 +22,7 @@ vi.mock('@/lib/api', () => ({
 const SETTINGS_NAV: SecondaryNav = {
     label: 'Secciones de Ajustes',
     items: [
+        { label: 'Resumen', to: '/ajustes', exact: true },
         { label: 'Cuenta', to: '/ajustes/cuenta' },
         {
             label: 'Profesionales',
@@ -80,6 +81,7 @@ function renderLayoutAt(
         component: () => <Outlet />,
     });
     const settingsChildren = [
+        '/',
         '/cuenta',
         '/profesionales',
         '/especialidades',
@@ -128,6 +130,30 @@ describe('secondary navigation', () => {
                 .getAttribute('aria-current'),
         ).toBeNull();
     });
+
+    it.each([
+        ['/ajustes', 'Resumen', 'Cuenta'],
+        ['/ajustes/cuenta', 'Cuenta', 'Resumen'],
+    ])(
+        'on %s marks only %s as current, never an exact parent item on its children',
+        async (path, current, other) => {
+            renderLayoutAt(path);
+
+            const bar = await screen.findByRole('navigation', {
+                name: 'Secciones de Ajustes',
+            });
+            expect(
+                within(bar)
+                    .getByRole('link', { name: current })
+                    .getAttribute('aria-current'),
+            ).toBe('page');
+            expect(
+                within(bar)
+                    .getByRole('link', { name: other })
+                    .getAttribute('aria-current'),
+            ).toBeNull();
+        },
+    );
 
     it('applies the permission rules of the main navigation', async () => {
         renderLayoutAt('/ajustes/cuenta');
