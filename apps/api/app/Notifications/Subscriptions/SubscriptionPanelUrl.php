@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Notifications\Subscriptions;
 
 /**
- * The panel's settings page, where an owner regularizes the subscription.
+ * The «Plan y suscripción» tab of the panel's settings, where an owner
+ * regularizes the subscription or changes the plan.
  * Resolved from the first CORS origin (FRONTEND_URL), same as the
  * invitation link.
  */
@@ -17,12 +18,12 @@ final class SubscriptionPanelUrl
         $allowedOrigins = config('cors.allowed_origins', []);
         $frontendUrl = $allowedOrigins[0] ?? 'http://localhost:5174';
 
-        return rtrim($frontendUrl, '/').'/ajustes';
+        return rtrim($frontendUrl, '/').'/ajustes/suscripcion';
     }
 
     /**
-     * Where the browser lands after the provider's checkout: the settings
-     * page, flagged so it waits for the payment confirmation. Fixed — never
+     * Where the browser lands after the provider's checkout: the same tab,
+     * flagged so it waits for the payment confirmation. Fixed — never
      * built from request input — so the return route can't redirect
      * anywhere else.
      */

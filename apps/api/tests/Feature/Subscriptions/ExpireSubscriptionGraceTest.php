@@ -72,7 +72,7 @@ test('the expiry notification mail is in Spanish and links to the settings page'
 
         return $notification instanceof ShouldQueue
             && $mail->subject === 'Tu suscripción a Clini venció'
-            && str_ends_with((string) $mail->actionUrl, '/ajustes')
+            && str_ends_with((string) $mail->actionUrl, '/ajustes/suscripcion')
             && $notification->via($owner->user) === ['mail'];
     });
 });

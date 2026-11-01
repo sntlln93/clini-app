@@ -300,7 +300,7 @@ test('the warning mail names the month and offers moving to Practice', function 
     expect($mail->subject)->toBe('Ya cargaste 35 de los 40 turnos de noviembre de 2026');
     expect($mail->introLines[0])->toBe('Consultorio Norte ya tiene 35 turnos en noviembre de 2026. El plan Gratis incluye hasta 40 turnos por mes.');
     expect($mail->actionText)->toBe('Pasar a Consultorio');
-    expect($mail->actionUrl)->toEndWith('/ajustes');
+    expect($mail->actionUrl)->toEndWith('/ajustes/suscripcion');
 });
 
 test('GET /plan reports the current month\'s appointments in the organization\'s timezone', function () {
