@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace App\Support;
 
-/**
- * Small singleton holder for the tenant currently in scope.
- *
- * Null by default so that tenant scoping is a no-op until something
- * (auth/tenant middleware, a test, a console command) explicitly sets it.
- */
+/** Null by default, so tenant scoping is a no-op until middleware, a test or a command sets it. */
 class CurrentOrganization
 {
     private ?int $id = null;
@@ -29,7 +24,7 @@ class CurrentOrganization
         return $this->id !== null;
     }
 
-    // The `organization` middleware always sets an active organization before a request reaches a guarded route (it aborts 403 otherwise), so this narrows the nullable getter to a definite int.
+    // Unreachable abort: the `organization` middleware already 403s a guarded route without an active organization.
     public function getOrFail(): int
     {
         $id = $this->get();

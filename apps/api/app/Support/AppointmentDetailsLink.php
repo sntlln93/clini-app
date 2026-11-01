@@ -11,13 +11,7 @@ use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Crypt;
 
-/**
- * The panel page with an appointment's details, linked from the reminder in
- * place of the professional and service the mail no longer carries (#320).
- * The token is the appointment id encrypted with APP_KEY, so nothing is
- * stored and the id stays hidden; whether it still shows anything is decided
- * on each read, from the appointment itself.
- */
+/** The token is the appointment id encrypted with APP_KEY: nothing stored, id hidden, validity decided on each read. */
 final class AppointmentDetailsLink
 {
     private const string PURPOSE = 'appointment-details:';
@@ -39,12 +33,7 @@ final class AppointmentDetailsLink
         return rtrim(strtr(base64_encode($payload), '+/', '-_'), '=');
     }
 
-    /**
-     * Only while the appointment is still ahead, neither cancelled nor
-     * rescheduled, and its organization is not suspended (the rule every
-     * public booking route follows). A token that doesn't decrypt gets the
-     * same answer, so the page never tells a forged link from a stale one.
-     */
+    /** Same rule as the public booking routes; an undecryptable token gets the same answer, so a forged link reads as a stale one. */
     public function appointmentOf(string $token): Appointment
     {
         $id = $this->idOf($token);

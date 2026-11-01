@@ -10,12 +10,7 @@ use App\Models\ClinicalNoteVersion;
 use App\Models\Icd10Code;
 use Illuminate\Support\Collection;
 
-/**
- * Writes a note version's ICD-10 diagnoses (#324, ADR 0020). A diagnosis
- * the previous version already had keeps the code and description it was
- * written with; only a newly added one is copied from the catalog, and a
- * retired code can't be added.
- */
+/** Note-version diagnoses copied, never re-read from the catalog (ADR 0020). */
 final class ClinicalNoteDiagnoses
 {
     /**

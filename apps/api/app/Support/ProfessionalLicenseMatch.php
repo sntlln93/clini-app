@@ -12,12 +12,6 @@ use App\Enums\ProfessionalLicenseMismatch;
 use App\Enums\ProfessionalLicenseStatus;
 use App\Enums\Province;
 
-/**
- * Whether the registry's answer for a DNI backs a declared license (#380, ADR 0032): it must hold a license with that
- * number, in that province and for that profession, «Habilitado», without a running sanction, for a professional who
- * is active. Every candidate already belongs to the DNI looked up, so the number is compared leniently: «MP 6789»,
- * «M.P. 6789» and «6789» are one license, but two different letter prefixes are not.
- */
 final class ProfessionalLicenseMatch
 {
     private const string ENABLED = 'habilitado';
@@ -87,17 +81,12 @@ final class ProfessionalLicenseMatch
         };
     }
 
-    /**
-     * Uppercase letters and digits only.
-     */
     private static function key(string $number): string
     {
         return (string) preg_replace('/[^A-Z0-9]/', '', strtoupper($number));
     }
 
     /**
-     * A key made of a letter prefix (maybe empty) and digits, as [prefix, digits]; null for any other shape.
-     *
      * @return array{string, string}|null
      */
     private static function prefixed(string $key): ?array

@@ -12,7 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 /**
- * The `contacts` list the patient form and the online booking send (#365), validated the same way in both.
+ * Shared by the patient form and the online booking, so both validate contacts the same way.
  */
 final class PatientContactInput
 {

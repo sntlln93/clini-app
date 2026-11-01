@@ -11,8 +11,7 @@ use libphonenumber\PhoneNumberFormat;
 use libphonenumber\PhoneNumberUtil;
 
 /**
- * One form per contact (#365), so a number or an address typed two ways is the same contact: phones and WhatsApp in E.164,
- * read as Argentine unless they carry their own `+` country code, and emails in lowercase.
+ * One stored form per contact, so a value typed two ways is the same contact.
  */
 final class PatientContactValue
 {
@@ -20,9 +19,6 @@ final class PatientContactValue
 
     private const int ARGENTINA = 54;
 
-    /**
-     * The stored form of `$value`, or null when it isn't a valid contact of `$type`.
-     */
     public static function normalize(PatientContactType $type, string $value): ?string
     {
         $value = trim($value);
@@ -39,8 +35,7 @@ final class PatientContactValue
             return null;
         }
 
-        // WhatsApp only reaches an Argentine number as a mobile, which E.164 writes with a 9 after the country code;
-        // people rarely type it, so an Argentine WhatsApp number written without it gets it.
+        // WhatsApp only reaches an Argentine mobile, whose E.164 form carries a 9 people rarely type.
         $national = $number->getNationalNumber() ?? '';
 
         if ($type === PatientContactType::Whatsapp
@@ -53,9 +48,6 @@ final class PatientContactValue
         return PhoneNumberUtil::getInstance()->format($number, PhoneNumberFormat::E164);
     }
 
-    /**
-     * How a person reads a stored contact: an Argentine number in its national form, any other in its international one.
-     */
     public static function display(PatientContactType $type, string $value): string
     {
         if ($type === PatientContactType::Email) {

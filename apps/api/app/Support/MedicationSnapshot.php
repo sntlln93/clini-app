@@ -9,14 +9,7 @@ use App\Models\MedicationIngredient;
 use App\Models\MedicationProduct;
 use App\Models\PrescriptionItem;
 
-/**
- * What an item picked from the medication catalog keeps of its product (#377): its GTIN, its SNOMED code, the
- * substances its drug text names (and whether the source cut that text short), its dispensing condition and its
- * control mark, as the catalog holds them now, copied like an ICD-10 diagnosis (ADR 0020). The request only names the
- * product by GTIN; everything else comes from here. An amendment that keeps a product keeps the copy the amended
- * version holds, never the catalog's current one, like a kept diagnosis. Marked products are kept, not blocked: the circuit a controlled prescription needs belongs to the
- * prescription (#314).
- */
+/** The request names a product only by GTIN; the rest is copied from the catalog, or from the amended version when kept (ADR 0020). */
 class MedicationSnapshot
 {
     /**

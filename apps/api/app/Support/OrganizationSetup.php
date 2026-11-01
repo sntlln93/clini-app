@@ -9,9 +9,7 @@ use App\Models\Membership;
 use Illuminate\Database\Eloquent\Builder;
 
 /**
- * Derives a practice's setup progress from its data (#286), with no state of
- * its own: an organization that predates the checklist reads as done when it
- * already has what the steps ask for.
+ * Derived from data, with no state of its own, so an organization predating the checklist reads as done.
  */
 final class OrganizationSetup
 {

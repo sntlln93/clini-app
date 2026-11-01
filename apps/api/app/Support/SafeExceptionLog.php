@@ -9,16 +9,12 @@ use Symfony\Component\Mime\Exception\RfcComplianceException;
 use Throwable;
 
 /**
- * Log context for unexpected exceptions whose own message carries personal data, so
- * bootstrap/app.php can report them without it (#322). Never includes a raw getMessage() or
- * the previous exception, and the trace is rebuilt without its frames' arguments.
+ * Never a raw getMessage() or the previous exception; the trace is rebuilt without frame arguments.
  */
 final class SafeExceptionLog
 {
     /**
-     * The message inlines every binding and the previous PDOException carries Postgres' DETAIL
-     * (`Key (document_number)=(…)`, `Failing row contains (…)`); even its first line can echo a
-     * value (`invalid input syntax for type integer: "…"`). Only identifiers are kept.
+     * Bindings, Postgres' DETAIL and even the driver's first line can echo values, so only identifiers are kept.
      *
      * @return array<string, mixed>
      */
@@ -38,9 +34,7 @@ final class SafeExceptionLog
     }
 
     /**
-     * A rejected address is echoed by most transports' errors, so any bracketed or bare token
-     * holding an `@` is redacted. Symfony's RFC check quotes nothing but the address, so its
-     * message is dropped whole: the class says what failed.
+     * Transports echo the rejected address; Symfony's RFC error quotes only the address, so it's dropped whole and the class says what failed.
      *
      * @return array<string, mixed>
      */
