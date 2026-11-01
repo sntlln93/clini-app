@@ -13,7 +13,7 @@ class AvailabilityPolicy extends OrganizationScopedPolicy
 {
     /**
      * There is no persisted resource to check here either, so the same
-     * unsaved-resource trick as create() is used: without it, layer 1 (the
+     * unsaved-resource trick as replace() is used: without it, layer 1 (the
      * tenant check) never runs and any membership id from any organization
      * would authorize.
      */
@@ -26,26 +26,16 @@ class AvailabilityPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * There is no persisted resource yet at create time, so an unsaved
+     * There is no persisted resource for a whole week, so an unsaved
      * Availability carrying the target membership's organization_id/
-     * membership_id is passed to allows() so layer 3 (own-scoped) still
-     * resolves correctly.
+     * membership_id is passed to allows() so layer 1 (tenant) and layer 3
+     * (own-scoped) still resolve correctly.
      */
-    public function create(User $user, Membership $membership): bool
+    public function replace(User $user, Membership $membership): bool
     {
         return $this->allows($user, Permission::AvailabilityManage, new Availability([
             'organization_id' => $membership->organization_id,
             'membership_id' => $membership->id,
         ]));
-    }
-
-    public function update(User $user, Availability $availability): bool
-    {
-        return $this->allows($user, Permission::AvailabilityManage, $availability);
-    }
-
-    public function delete(User $user, Availability $availability): bool
-    {
-        return $this->allows($user, Permission::AvailabilityManage, $availability);
     }
 }

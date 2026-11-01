@@ -17,8 +17,6 @@ export type ErrorCode =
     | 'memberships.slug_invalid_format'
     | 'memberships.slug_taken'
     | 'memberships.slug_not_allowed_for_role'
-    | 'availability.slot_merge_required'
-    | 'availability.slot_already_covered'
     | 'availability.exception_merge_required'
     | 'availability.exception_already_covered'
     | 'availability.exception_type_conflict'
@@ -101,10 +99,6 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'memberships.slug_taken': 'Ese link ya está en uso. Probá con otro.',
     'memberships.slug_not_allowed_for_role':
         'Solo los profesionales pueden tener un link público.',
-    'availability.slot_merge_required':
-        'Ese horario se combina con otro ya cargado para ese día. Confirmá la combinación para continuar.',
-    'availability.slot_already_covered':
-        'Ese horario ya está incluido en otro que cargaste para ese día. No hace falta agregarlo.',
     'availability.exception_merge_required':
         'Esa excepción se combina con otra del mismo tipo. Confirmá la combinación para continuar.',
     'availability.exception_already_covered':

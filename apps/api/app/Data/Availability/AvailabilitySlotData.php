@@ -6,16 +6,16 @@ namespace App\Data\Availability;
 
 use App\Contracts\Data;
 
+/**
+ * One weekly franja: a day of the week (0 = Sunday … 6 = Saturday) and its
+ * clock times (`H:i`) in the practice's zone.
+ */
 final readonly class AvailabilitySlotData implements Data
 {
     public function __construct(
-        public ?int $availabilityId,
-        public int $organizationId,
-        public int $membershipId,
         public int $dayOfWeek,
         public string $startTime,
         public string $endTime,
-        public bool $merge,
     ) {}
 
     /**
@@ -24,13 +24,9 @@ final readonly class AvailabilitySlotData implements Data
     public function toArray(): array
     {
         return [
-            'availabilityId' => $this->availabilityId,
-            'organizationId' => $this->organizationId,
-            'membershipId' => $this->membershipId,
             'dayOfWeek' => $this->dayOfWeek,
             'startTime' => $this->startTime,
             'endTime' => $this->endTime,
-            'merge' => $this->merge,
         ];
     }
 }

@@ -68,8 +68,6 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `booking.organization_unavailable` | 403 | middleware `ResolvePublicOrganization` (organización suspendida) | |
 | `booking.appointment_unavailable` | 404 | `AppointmentDetailsLink` (el link `/turno/<token>` no se descifra o el turno ya no se muestra, ADR 0018) | |
 | `booking.link_not_found` | 404 | middleware `ResolvePublicOrganization` (el slug no es de ninguna organización ni del link de un profesional activo) | |
-| `availability.slot_merge_required` | 409 | `SaveAvailabilitySlotAction` | `merged` |
-| `availability.slot_already_covered` | 409 | `SaveAvailabilitySlotAction` | `covering` |
 | `availability.exception_merge_required` | 409 | `SaveAvailabilityExceptionAction` | `merged` |
 | `availability.exception_already_covered` | 409 | `SaveAvailabilityExceptionAction` | `covering` |
 | `availability.exception_type_conflict` | 409 | `SaveAvailabilityExceptionAction` | `existing_type` |
