@@ -7,10 +7,6 @@ namespace App\Contracts;
 use App\Data\Medications\MedicationProductData;
 use App\Exceptions\Medications\MedicationSourceUnavailableException;
 
-/**
- * Where the medication catalog learns about products it doesn't hold yet (#377, ADR 0031). Swapping the national
- * medication search for a documented API (#379) or another source is another adapter and another binding.
- */
 interface MedicationSource
 {
     /**
@@ -19,8 +15,7 @@ interface MedicationSource
     public function available(): bool;
 
     /**
-     * Every product the source finds for the term, whole: the catalog's coverage rule counts on a longer term never
-     * finding anything a shorter one inside it didn't.
+     * Unfiltered: the coverage rule counts on a longer term never finding anything a shorter one inside it didn't.
      *
      * @return list<MedicationProductData>
      *

@@ -8,17 +8,10 @@ use App\Data\Holidays\HolidayData;
 use App\Enums\Province;
 use App\Exceptions\Holidays\HolidayProviderUnavailableException;
 
-/**
- * Isolates the internal schema from the raw shape of whatever external
- * holiday source is wired in (see `App\Services\Holidays`), leaving room
- * for other sources later.
- */
 interface HolidayProvider
 {
     /**
-     * Returns only national holidays when `$province` is `null`, and only
-     * that province's own holidays when one is given — each scope is
-     * fetched (and stored in the catalog) on its own.
+     * Only national holidays when `$province` is `null`, otherwise only that province's own.
      *
      * @return array<int, HolidayData>
      *
