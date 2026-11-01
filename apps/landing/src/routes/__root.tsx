@@ -1,13 +1,10 @@
 import { THEME_STORAGE_KEY } from '@/hooks/use-theme';
 import { brandMeta } from '@/lib/brand-head';
+import { SITE_DESCRIPTION, SITE_TITLE } from '@/lib/page-head';
 import { brandHeadLinks } from '@clini/brand';
 import { createRootRoute, HeadContent, Scripts } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import appCss from '../index.css?url';
-
-const TITLE = 'Clini · Turnos online para tu consultorio';
-const DESCRIPTION =
-    'Turnos online para profesionales y consultorios: agenda, reserva online, recordatorios por mail y sala de espera en un solo lugar.';
 
 // Runs before first paint so a saved dark theme doesn't flash light. Light
 // is the default: the landing never follows the OS theme on its own.
@@ -22,12 +19,15 @@ export const Route = createRootRoute({
                 content:
                     'width=device-width, initial-scale=1, viewport-fit=cover',
             },
-            { title: TITLE },
-            { name: 'description', content: DESCRIPTION },
+            // Defaults for pages without their own head (404, errors). A
+            // public page declares its own through pageHead(), canonical
+            // included, which only a page has.
+            { title: SITE_TITLE },
+            { name: 'description', content: SITE_DESCRIPTION },
             { property: 'og:type', content: 'website' },
             { property: 'og:locale', content: 'es_AR' },
-            { property: 'og:title', content: TITLE },
-            { property: 'og:description', content: DESCRIPTION },
+            { property: 'og:title', content: SITE_TITLE },
+            { property: 'og:description', content: SITE_DESCRIPTION },
             ...brandMeta(),
         ],
         links: [{ rel: 'stylesheet', href: appCss }, ...brandHeadLinks()],

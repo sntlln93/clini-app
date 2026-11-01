@@ -1,7 +1,5 @@
+import { SITE_URL } from '@/lib/site';
 import { brand, brandAssetUrl } from '@clini/brand';
-
-// Baked at build time (Dockerfile build arg), like VITE_PANEL_URL.
-const SITE_URL = (import.meta.env.VITE_SITE_URL ?? '').replace(/\/+$/, '');
 
 /**
  * The brand's `<meta>` tags. og:image has to be an absolute URL, so without

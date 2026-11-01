@@ -1,4 +1,4 @@
-import { registerUrl } from '@/lib/links';
+import { panelHost, registerUrl } from '@/lib/links';
 import { AgendaMock } from './AgendaMock';
 import { CtaLink } from './CtaLink';
 
@@ -28,7 +28,7 @@ export function Hero() {
                 <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                     Tu link de reservas:
                     <code className="rounded-full border bg-card px-3 py-1 font-sans text-foreground">
-                        …/reservar/
+                        {panelHost() || '…'}/reservar/
                         <b className="font-medium text-primary">
                             consultorio-belgrano
                         </b>

@@ -177,7 +177,9 @@ docker build -f apps/dashboard/Dockerfile -t clini-dashboard \
 
 # landing (SSR, servidor Node en el puerto 3000)
 docker build -f apps/landing/Dockerfile -t clini-landing \
-  --build-arg VITE_PANEL_URL=https://panel.tu-dominio.com .
+  --build-arg VITE_PANEL_URL=https://panel.tu-dominio.com \
+  --build-arg VITE_API_URL=https://api.tu-dominio.com \
+  --build-arg VITE_SITE_URL=https://tu-dominio.com .
 docker run --rm -p 3000:3000 clini-landing
 ```
 

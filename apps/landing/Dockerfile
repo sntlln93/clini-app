@@ -36,8 +36,9 @@ RUN test -n "$VITE_API_URL" || { \
       echo "ERROR: falta VITE_API_URL. Es un build arg (--build-arg VITE_API_URL=https://api.ejemplo.com), no una variable de runtime: se hornea en el bundle y definirla al levantar el contenedor no tiene ningún efecto." >&2; \
       exit 1; \
     }
-# Optional: the landing's own public origin. Link previews need og:image as
-# an absolute URL, so without it the page declares none.
+# Optional: the landing's own public origin. Canonical, og:url, og:image,
+# /sitemap.xml and robots.txt's Sitemap line are absolute URLs built from it,
+# so without it they are left out and /sitemap.xml answers 404.
 ARG VITE_SITE_URL
 ENV VITE_SITE_URL=${VITE_SITE_URL}
 # Optional: `true` makes the error pages show the exact error (#304). Leave it

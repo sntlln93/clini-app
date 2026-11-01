@@ -1,5 +1,5 @@
 /// <reference types="node" />
-import { readdirSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -33,11 +33,14 @@ describe('brand paths', () => {
         expect(offenders).toEqual([]);
     });
 
-    it('keeps no brand or template file in public/', () => {
-        expect(
-            readdirSync(path.join(APP_ROOT, 'public')).filter(
-                (file) => !file.startsWith('.'),
-            ),
-        ).toEqual(['robots.txt']);
+    // robots.txt is a server route since #249, so public/ holds nothing
+    // (git doesn't keep it at all while it is empty).
+    it('keeps no file in public/', () => {
+        const publicDir = path.join(APP_ROOT, 'public');
+        const files = existsSync(publicDir)
+            ? readdirSync(publicDir).filter((file) => !file.startsWith('.'))
+            : [];
+
+        expect(files).toEqual([]);
     });
 });
