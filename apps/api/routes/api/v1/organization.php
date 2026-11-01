@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Organizations\AcceptedInsuranceProviderController;
 use App\Http\Controllers\Organizations\OrganizationLogoController;
+use App\Http\Controllers\Organizations\OrganizationProvinceController;
 use App\Http\Controllers\Organizations\OrganizationSetupController;
 use Illuminate\Support\Facades\Route;
 
@@ -16,3 +17,5 @@ Route::get('organization/insurance-providers', [AcceptedInsuranceProviderControl
 Route::put('organization/insurance-providers', [AcceptedInsuranceProviderController::class, 'update']);
 
 Route::get('organization/setup', [OrganizationSetupController::class, 'show']);
+
+Route::put('organization/province', [OrganizationProvinceController::class, 'update']);

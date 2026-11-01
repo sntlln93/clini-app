@@ -22,9 +22,11 @@ use Illuminate\Notifications\Notifiable;
  * Actions (forceFill), never mass-assigned, and hidden to keep the clinic
  * `/me` payload unchanged. The `two_factor_*` columns (#357) are written
  * only by the two-factor Actions, the same way, and never leave the API.
+ * `document_number` (#380), the professional's DNI, is written only by its
+ * Action, encrypted, and read only through its own endpoint.
  */
 #[Fillable(['name', 'email', 'password', 'email_verification_token', 'email_verification_token_expires_at'])]
-#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step'])]
+#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step', 'document_number'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -48,6 +50,7 @@ class User extends Authenticatable
             'two_factor_recovery_codes' => 'encrypted:array',
             'two_factor_confirmed_at' => 'immutable_datetime',
             'two_factor_last_used_step' => 'integer',
+            'document_number' => 'encrypted',
         ];
     }
 
@@ -71,6 +74,16 @@ class User extends Authenticatable
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
+    }
+
+    /**
+     * The user's licenses (#380): like their specialties, they travel with the person, not with an organization.
+     *
+     * @return HasMany<ProfessionalLicense, $this>
+     */
+    public function professionalLicenses(): HasMany
+    {
+        return $this->hasMany(ProfessionalLicense::class);
     }
 
     /**

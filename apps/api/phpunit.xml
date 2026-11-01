@@ -42,5 +42,6 @@
         <env name="PLAN_FREE_MONTHLY_APPOINTMENT_LIMIT" value="0"/>
         <env name="PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD" value="0"/>
         <env name="NATIONAL_MEDICATION_SEARCH_ENABLED" value="false"/>
+        <env name="NATIONAL_PROFESSIONAL_SEARCH_ENABLED" value="false"/>
     </php>
 </phpunit>

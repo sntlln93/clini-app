@@ -13,6 +13,12 @@ export const settingsNav: SecondaryNav = {
             requiresMembership: true,
         },
         {
+            label: 'Consultorio',
+            to: '/ajustes/consultorio',
+            requiresMembership: true,
+            permissions: ['organization.manage'],
+        },
+        {
             label: 'Reservas',
             to: '/ajustes/reservas',
             requiresMembership: true,
@@ -23,6 +29,12 @@ export const settingsNav: SecondaryNav = {
             // Whoever attends here, or can turn it on for themselves.
             roles: ['professional'],
             permissions: ['memberships.manage'],
+        },
+        {
+            label: 'Matrículas',
+            to: '/ajustes/matriculas',
+            // Only whoever attends patients here holds licenses (#380).
+            roles: ['professional'],
         },
         {
             label: 'Profesionales',

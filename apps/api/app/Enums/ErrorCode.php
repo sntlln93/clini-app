@@ -29,6 +29,7 @@ enum ErrorCode: string
     case AvailabilityExceptionTypeConflict = 'availability.exception_type_conflict';
     case HolidaysProviderUnavailable = 'holidays.provider_unavailable';
     case MedicationsSourceUnavailable = 'medications.source_unavailable';
+    case ProfessionalsRegistryUnavailable = 'professionals.registry_unavailable';
     case SubscriptionsInactive = 'subscriptions.inactive';
     case SubscriptionsAlreadyActive = 'subscriptions.already_active';
     case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';

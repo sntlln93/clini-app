@@ -15,6 +15,8 @@ export type SessionUser = {
         name: string;
         slug: string;
         timezone: string;
+        /** Where the practice attends (#380); null until its owner declares it. */
+        province: string | null;
     } | null;
     roles?: string[];
     permissions?: string[];

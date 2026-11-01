@@ -110,6 +110,8 @@ services:
             # Medicamentos from a test (#377), even with a local .env that
             # turns it on to try it.
             NATIONAL_MEDICATION_SEARCH_ENABLED: 'false'
+            # Nor the Buscador Nacional de Profesionales (#380).
+            NATIONAL_PROFESSIONAL_SEARCH_ENABLED: 'false'
             # Vite prefers an exported variable over .env, so a landing .env
             # copied before the contact form (#248) still reaches the API.
             VITE_API_URL: 'http://localhost:8080'

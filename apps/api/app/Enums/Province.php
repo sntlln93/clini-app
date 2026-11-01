@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Support\FoldedText;
+
 /**
  * The 23 Argentine provinces plus the City of Buenos Aires (CABA). Each
  * case's backing value is the kebab-case, tilde-free slug used by
@@ -64,6 +66,71 @@ enum Province: string
             self::SantiagoDelEstero => 'Santiago del Estero',
             self::TierraDelFuego => 'Tierra del Fuego',
             self::Tucuman => 'Tucumán',
+        };
+    }
+
+    /**
+     * The province's two-digit INDEC code, the jurisdiction the CUIR of a prescription carries (Res. MS 2214/2025,
+     * #380).
+     */
+    public function indecCode(): string
+    {
+        return match ($this) {
+            self::CiudadAutonomaDeBuenosAires => '02',
+            self::BuenosAires => '06',
+            self::Catamarca => '10',
+            self::Cordoba => '14',
+            self::Corrientes => '18',
+            self::Chaco => '22',
+            self::Chubut => '26',
+            self::EntreRios => '30',
+            self::Formosa => '34',
+            self::Jujuy => '38',
+            self::LaPampa => '42',
+            self::LaRioja => '46',
+            self::Mendoza => '50',
+            self::Misiones => '54',
+            self::Neuquen => '58',
+            self::RioNegro => '62',
+            self::Salta => '66',
+            self::SanJuan => '70',
+            self::SanLuis => '74',
+            self::SantaCruz => '78',
+            self::SantaFe => '82',
+            self::SantiagoDelEstero => '86',
+            self::Tucuman => '90',
+            self::TierraDelFuego => '94',
+        };
+    }
+
+    /**
+     * The province a national registry names (#380): the Buscador Nacional de Profesionales writes «CABA», «Córdoba»
+     * or «Tierra del Fuego», compared here without case or accents. Null for a name it doesn't know, never a guess.
+     */
+    public static function fromRegistryName(string $name): ?self
+    {
+        $folded = FoldedText::fold($name);
+
+        foreach (self::cases() as $province) {
+            if (in_array($folded, $province->registryNames(), true)) {
+                return $province;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<string> folded
+     */
+    private function registryNames(): array
+    {
+        $names = [FoldedText::fold($this->label())];
+
+        return match ($this) {
+            self::CiudadAutonomaDeBuenosAires => [...$names, 'caba', 'capital federal', 'ciudad de buenos aires'],
+            self::TierraDelFuego => [...$names, 'tierra del fuego, antartida e islas del atlantico sur'],
+            default => $names,
         };
     }
 }

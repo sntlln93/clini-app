@@ -18,6 +18,8 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
@@ -222,4 +224,79 @@ function shareAccessCode(Membership $membership, int $patientId, ?Appointment $a
 function nationalMedicationSearchFixture(string $name): string
 {
     return (string) file_get_contents(__DIR__."/Fixtures/NationalMedicationSearch/{$name}");
+}
+
+/**
+ * A page recorded from the national professional search (#380), under tests/Fixtures/NationalProfessionalSearch. The
+ * results page holds a made-up professional; the others are the registry's own pages.
+ */
+function nationalProfessionalSearchFixture(string $name): string
+{
+    return (string) file_get_contents(__DIR__."/Fixtures/NationalProfessionalSearch/{$name}");
+}
+
+/**
+ * The recorded results page answering with these items instead of its own, escaped the way the registry writes them.
+ *
+ * @param  list<array<string, mixed>>  $items
+ */
+function nationalProfessionalSearchResults(array $items): string
+{
+    $json = str_replace('/', '\/', (string) json_encode($items, JSON_THROW_ON_ERROR));
+
+    return (string) preg_replace_callback(
+        '/(refepsProfesionales\.allItems = ).*?;(\s*Drupal\.)/s',
+        fn (array $match): string => $match[1].$json.';'.$match[2],
+        nationalProfessionalSearchFixture('results.html'),
+    );
+}
+
+/**
+ * The recorded results' professional, DNI 30123456, with every field the registry answers; `$licenses` replaces
+ * their licenses as [profession, number, province, situation, sanction end] rows.
+ *
+ * @param  list<array{0: string, 1: string, 2: string, 3?: string, 4?: string|null}>|null  $licenses
+ * @return array<string, mixed>
+ */
+function nationalProfessionalSearchItem(?array $licenses = null, string $active = 'SI', string $documentNumber = '30123456'): array
+{
+    $item = json_decode((string) preg_replace('/^.*refepsProfesionales\.allItems = (\[.*?\]);\s*Drupal\..*$/s', '$1', nationalProfessionalSearchFixture('results.html')), true)[0];
+    $item['activo'] = $active;
+    $item['nroDoc'] = $documentNumber;
+
+    if ($licenses !== null) {
+        $item['profesiones'] = array_map(fn (array $license): array => [
+            'idProfesionReferencia' => 1,
+            'profesionReferencia' => $license[0],
+            'refepsEspecialidad' => null,
+            'matriculas' => [[
+                'matricula' => $license[1],
+                'origenEmite' => 'COLEGIO DE PRUEBA',
+                'provinciaMatricula' => $license[2],
+                'situacionMatricula' => $license[3] ?? 'Habilitado',
+                'tipoSancion' => ($license[4] ?? null) === null ? null : 'Suspensión',
+                'motivoSancion' => null,
+                'fechaFinSancion' => $license[4] ?? null,
+            ]],
+        ], $licenses);
+    }
+
+    return $item;
+}
+
+/**
+ * Turns the national professional search on and answers every lookup with `$results` (a page) or by running it (a
+ * failure). Each lookup is a GET of the form and a POST of the DNI.
+ */
+function fakeNationalProfessionalSearch(string|Closure $results): void
+{
+    config([
+        'services.national_professional_search.enabled' => true,
+        'services.national_professional_search.url' => 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud',
+        'services.national_professional_search.user_agent' => 'Clini/test',
+    ]);
+
+    Http::fake(['www.argentina.gob.ar/*' => fn (HttpRequest $request) => $request->method() === 'GET'
+        ? Http::response(nationalProfessionalSearchFixture('form.html'))
+        : (is_string($results) ? Http::response($results) : $results($request))]);
 }

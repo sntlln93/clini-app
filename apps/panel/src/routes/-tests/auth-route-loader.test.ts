@@ -130,6 +130,7 @@ describe('/_auth beforeLoad', () => {
                 name: 'Consultorio Norte',
                 slug: 'consultorio-norte',
                 timezone: 'America/Bogota',
+                province: null,
             },
         });
 
