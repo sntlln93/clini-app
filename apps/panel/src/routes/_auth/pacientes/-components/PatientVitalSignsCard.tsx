@@ -13,6 +13,7 @@ import { ReasonDialog } from '@/features/reason-dialog/ReasonDialog';
 import type { VitalSign } from '@/types/vital-sign';
 import { useClinicalWriteAccess } from '../-hooks/use-clinical-write-access';
 import { useAnnulVitalSign } from '../-hooks/use-patient-vital-signs';
+import type { GrowthPatient } from './growth-chart';
 import { LatestVitalSigns } from './LatestVitalSigns';
 import { RecordActions } from './RecordActions';
 import { VitalSignDialog } from './VitalSignDialog';
@@ -21,17 +22,20 @@ import { VitalSignsEvolution } from './VitalSignsEvolution';
 
 type PatientVitalSignsCardProps = {
     patientId: number;
+    patient: GrowthPatient;
     vitalSigns: VitalSign[];
     todaysAppointmentId: number | null;
 };
 
 // The measurements every professional of the practice took on this patient
 // (#361), part of the clinical history: each value's latest reading, the
-// evolution of the followed ones and every measurement with its versions.
+// evolution of the followed ones (against the WHO curves for a minor, #363)
+// and every measurement with its versions.
 // One is recorded on today's own appointment; only its author amends it or
 // annuls it with a reason.
 export function PatientVitalSignsCard({
     patientId,
+    patient,
     vitalSigns,
     todaysAppointmentId,
 }: PatientVitalSignsCardProps) {
@@ -80,7 +84,10 @@ export function PatientVitalSignsCard({
                 ) : (
                     <>
                         <LatestVitalSigns vitalSigns={vitalSigns} />
-                        <VitalSignsEvolution vitalSigns={vitalSigns} />
+                        <VitalSignsEvolution
+                            vitalSigns={vitalSigns}
+                            patient={patient}
+                        />
                         <section aria-label="Todas las mediciones">
                             <h3 className="mb-2 text-sm font-medium">
                                 Todas las mediciones

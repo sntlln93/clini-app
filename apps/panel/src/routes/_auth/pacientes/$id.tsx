@@ -133,6 +133,7 @@ function PacienteDetallePage() {
                         />
                         <PatientVitalSignsCard
                             patientId={id}
+                            patient={patient}
                             vitalSigns={history.vitalSigns}
                             todaysAppointmentId={todaysAppointmentId}
                         />

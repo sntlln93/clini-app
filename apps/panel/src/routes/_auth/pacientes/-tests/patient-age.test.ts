@@ -1,6 +1,11 @@
 import { DateTime } from '@/lib/datetime';
 import { describe, expect, it } from 'vitest';
-import { ageInYears, formatBirthDateWithAge } from '../-components/patient-age';
+import {
+    ageInDaysOn,
+    ageInYears,
+    formatAgeOn,
+    formatBirthDateWithAge,
+} from '../-components/patient-age';
 
 describe('ageInYears', () => {
     const today = DateTime.local(2026, 8, 13);
@@ -51,5 +56,37 @@ describe('formatBirthDateWithAge', () => {
 
     it('shows a dash when the birth date is unknown', () => {
         expect(formatBirthDateWithAge(null, today)).toBe('—');
+    });
+});
+
+describe('age at a measurement', () => {
+    it('counts calendar days, leap years included', () => {
+        expect(ageInDaysOn('2024-03-01', DateTime.local(2025, 3, 1, 18))).toBe(
+            365,
+        );
+        expect(ageInDaysOn('2024-02-01', DateTime.local(2025, 2, 1))).toBe(366);
+    });
+
+    it('counts a whole day from a birth date whose midnight DST skipped', () => {
+        // Buenos Aires moved its clocks at 00:00 on 2008-10-19.
+        expect(ageInDaysOn('2008-10-19', DateTime.local(2008, 10, 20))).toBe(1);
+        expect(formatAgeOn('2008-10-19', DateTime.local(2026, 10, 19))).toBe(
+            '18 años',
+        );
+    });
+
+    it('reads in days, then months, then years and months', () => {
+        const birth = '2024-03-01';
+
+        expect(formatAgeOn(birth, DateTime.local(2024, 3, 2))).toBe('1 día');
+        expect(formatAgeOn(birth, DateTime.local(2024, 3, 16))).toBe('15 días');
+        expect(formatAgeOn(birth, DateTime.local(2024, 4, 1))).toBe('1 mes');
+        expect(formatAgeOn(birth, DateTime.local(2026, 2, 28))).toBe(
+            '23 meses',
+        );
+        expect(formatAgeOn(birth, DateTime.local(2026, 3, 1))).toBe('2 años');
+        expect(formatAgeOn(birth, DateTime.local(2027, 4, 15))).toBe(
+            '3 años y 1 mes',
+        );
     });
 });

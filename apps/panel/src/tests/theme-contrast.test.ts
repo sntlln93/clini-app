@@ -166,6 +166,10 @@ const PAIRS: Pair[] = [
         bg: `chart-${series}`,
         min: NEIGHBOR_SERIES,
     })),
+    // The patient's line over the WHO growth curves (#363), drawn in
+    // `muted-foreground` on the card (a text pair above). `chart-1` reads
+    // too close to that gray.
+    { fg: 'chart-2', bg: 'muted-foreground', min: NEIGHBOR_SERIES },
 ];
 
 describe('@clini/theme palette contrast (WCAG AA)', () => {
