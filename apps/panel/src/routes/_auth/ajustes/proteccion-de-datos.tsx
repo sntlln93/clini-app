@@ -19,6 +19,7 @@ export const Route = createFileRoute('/_auth/ajustes/proteccion-de-datos')({
             isProfessional:
                 ownMemberships(session).ownProfessionalMembership !== null,
             isOwner: (session.roles ?? []).includes('owner'),
+            twoFactorEnabled: session.two_factor_enabled,
         };
     },
     pendingComponent: () => <ListSkeleton />,
@@ -29,7 +30,7 @@ export const Route = createFileRoute('/_auth/ajustes/proteccion-de-datos')({
 // The professional's export of the history, the owner's audit of exceptional
 // accesses, and the account's deletion.
 function ProteccionDeDatosPage() {
-    const { isProfessional, isOwner } = Route.useLoaderData();
+    const { isProfessional, isOwner, twoFactorEnabled } = Route.useLoaderData();
 
     return (
         <div className="space-y-8">
@@ -45,7 +46,7 @@ function ProteccionDeDatosPage() {
                     <Separator />
                 </>
             )}
-            <DeleteAccountSection />
+            <DeleteAccountSection twoFactorEnabled={twoFactorEnabled} />
         </div>
     );
 }
