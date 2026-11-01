@@ -49,6 +49,16 @@ return [
         'user_agent' => env('NATIONAL_MEDICATION_SEARCH_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
     ],
 
+    // The Ministry of Health's Buscador Nacional de Profesionales de la Salud, which checks professionals' licenses
+    // (#380, ADR 0032). Off unless turned on, so tests, CI and e2e never reach it.
+    'national_professional_search' => [
+        'enabled' => (bool) env('NATIONAL_PROFESSIONAL_SEARCH_ENABLED', false),
+        'url' => env('NATIONAL_PROFESSIONAL_SEARCH_URL', 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud'),
+        'user_agent' => env('NATIONAL_PROFESSIONAL_SEARCH_USER_AGENT', 'Clini/1.0 (validacion de matriculas; +'.env('APP_URL', 'http://localhost').')'),
+        // Professionals the daily reverification looks up at most in one run.
+        'per_run' => (int) env('NATIONAL_PROFESSIONAL_SEARCH_PER_RUN', 200),
+    ],
+
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.
     'mercadopago' => [
         'access_token' => env('MERCADOPAGO_ACCESS_TOKEN'),
