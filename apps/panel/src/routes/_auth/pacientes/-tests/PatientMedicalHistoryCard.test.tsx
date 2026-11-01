@@ -232,6 +232,38 @@ describe('PatientMedicalHistoryCard', () => {
         );
     });
 
+    it('shows every blood type as a pill and records the one picked', async () => {
+        renderCard(EMPTY);
+
+        fireEvent.click(
+            section('Grupo sanguíneo').getByRole('button', {
+                name: 'Registrar',
+            }),
+        );
+        const dialog = within(await screen.findByRole('dialog'));
+        const group = within(
+            dialog.getByRole('radiogroup', { name: 'Grupo y factor' }),
+        );
+
+        expect(
+            group.getAllByRole('radio').map((radio) => radio.textContent),
+        ).toEqual(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']);
+        fireEvent.click(group.getByRole('radio', { name: 'AB-' }));
+        expect(
+            group
+                .getByRole('radio', { name: 'AB-' })
+                .getAttribute('aria-checked'),
+        ).toBe('true');
+        fireEvent.click(dialog.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/appointments/7/blood-types',
+                { blood_type: 'AB-', reason: null },
+            ),
+        );
+    });
+
     it('asks to choose the blood type before recording it', async () => {
         renderCard(EMPTY);
 
