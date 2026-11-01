@@ -17,9 +17,7 @@ class MembershipPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * Backs the agenda/availability professional roster (`GET /professionals`),
-     * a different resource from membership administration, so it
-     * deliberately does not require `memberships.view`.
+     * The agenda's roster (`GET /professionals`) isn't membership administration, so it skips `memberships.view`.
      */
     public function viewProfessionalRoster(User $user): bool
     {
@@ -30,10 +28,7 @@ class MembershipPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * Reports (#242) have no model of their own. The whole organization's
-     * needs `reports.view`; one professional's also opens to that same
-     * professional through `reports.view.own`, via an unsaved Appointment
-     * carrying the target membership (layer 3 compares `membership_id`).
+     * Reports have no model, so an unsaved Appointment carries the target membership for `reports.view.own`.
      */
     public function viewReports(User $user, ?Membership $professional = null): bool
     {
@@ -48,18 +43,13 @@ class MembershipPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * The setup checklist (#286) walks through inviting professionals and
-     * assigning them, so it goes to whoever manages the team.
+     * The setup checklist walks through inviting and assigning professionals, so it goes to whoever manages the team.
      */
     public function viewSetup(User $user): bool
     {
         return $this->allows($user, Permission::MembershipsManage);
     }
 
-    /**
-     * Authorizes inviting a new member: there is no persisted Membership
-     * yet at invite time, so this only checks the org-wide permission.
-     */
     public function create(User $user): bool
     {
         return $this->allows($user, Permission::MembershipsManage);

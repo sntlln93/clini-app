@@ -12,10 +12,7 @@ use App\Support\CurrentOrganization;
 class AvailabilityExceptionPolicy extends OrganizationScopedPolicy
 {
     /**
-     * Exceptions aren't scoped to a single membership route param (the
-     * index lists the whole organization, optionally filtered), so the
-     * unsaved resource here only carries the current organization id —
-     * there is no membership_id to narrow layer 3 by.
+     * The index spans the whole organization, so there is no membership_id to narrow layer 3 by.
      */
     public function viewAny(User $user): bool
     {
@@ -25,9 +22,7 @@ class AvailabilityExceptionPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * The unsaved resource carries the given membership_id (null for an
-     * org-wide exception) so layer 3 (own-scoped) correctly denies an
-     * org-wide create to a holder of only availability.manage.own.
+     * A null membership_id (org-wide exception) makes layer 3 deny a holder of only availability.manage.own.
      */
     public function create(User $user, ?int $membershipId): bool
     {

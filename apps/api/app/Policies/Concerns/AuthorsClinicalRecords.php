@@ -8,10 +8,6 @@ use App\Models\Appointment;
 use App\Models\User;
 use App\Support\CurrentOrganization;
 
-/**
- * Who writes a clinical record (#361): it is recorded on one's own appointment, and only its author amends or
- * withdraws it, within the active organization — never by a role preset, as with notes and indicated medication.
- */
 trait AuthorsClinicalRecords
 {
     private function isAppointmentOwner(User $user, Appointment $appointment): bool

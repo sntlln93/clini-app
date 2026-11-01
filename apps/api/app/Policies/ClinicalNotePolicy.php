@@ -12,20 +12,7 @@ use App\Support\ClinicalAccess;
 use App\Support\CurrentOrganization;
 
 /**
- * Per-appointment access to clinical notes is authored-only (see handoff
- * #30): `viewAny`/`create`/`view`/`amend`/`annul` are decided exclusively
- * by membership authorship, never by a role preset. This does NOT extend
- * OrganizationScopedPolicy — that base's layer 2 (org-wide permission)
- * would let Owner/Admin/Staff read notes they didn't author, which is
- * explicitly out of scope for the MVP. A note is never edited or deleted
- * (#323, ADR 0019): its author amends or annuls it instead.
- *
- * `viewAnyForPatient` (handoff #217) is the one exception: it widens
- * visibility of a patient's full note history to any membership that
- * authored a note for that patient OR has/had an appointment with them,
- * within the active organization — still never by role preset. Without an
- * appointment near today, reading it also takes a reason (#325, ADR 0022),
- * which `ReadPatientHistoryAction` decides after this policy.
+ * Not an OrganizationScopedPolicy: its org-wide layer would let a role read notes it didn't author.
  */
 class ClinicalNotePolicy
 {

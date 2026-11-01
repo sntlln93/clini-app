@@ -10,15 +10,8 @@ use App\Models\User;
 use App\Support\CurrentOrganization;
 
 /**
- * Patient is a global model with no organization_id, so it can never be
- * passed as the $resource to OrganizationScopedPolicy::allows() — the base
- * policy's tenant check reads that attribute and would deny every call.
- * Every method here therefore calls allows() with no resource and adds its
- * own pivot-membership check (isLinked()) where visibility must be scoped
- * to the active organization.
- *
- * There is no delete method by design: patients are never deleted through
- * this API.
+ * Patient is global (no organization_id, which the tenant layer would deny on), so allows() takes no resource and
+ * isLinked() scopes to the organization. No delete by design: patients are never deleted through this API.
  */
 class PatientPolicy extends OrganizationScopedPolicy
 {

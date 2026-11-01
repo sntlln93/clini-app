@@ -12,10 +12,7 @@ use App\Models\User;
 class AvailabilityPolicy extends OrganizationScopedPolicy
 {
     /**
-     * There is no persisted resource to check here either, so the same
-     * unsaved-resource trick as replace() is used: without it, layer 1 (the
-     * tenant check) never runs and any membership id from any organization
-     * would authorize.
+     * Without the unsaved resource layer 1 (tenant) never runs, and any organization's membership id would authorize.
      */
     public function viewAny(User $user, Membership $membership): bool
     {
@@ -26,10 +23,7 @@ class AvailabilityPolicy extends OrganizationScopedPolicy
     }
 
     /**
-     * There is no persisted resource for a whole week, so an unsaved
-     * Availability carrying the target membership's organization_id/
-     * membership_id is passed to allows() so layer 1 (tenant) and layer 3
-     * (own-scoped) still resolve correctly.
+     * An unsaved resource carries the target membership so layers 1 and 3 can resolve.
      */
     public function replace(User $user, Membership $membership): bool
     {

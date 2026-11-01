@@ -11,11 +11,6 @@ use App\Models\VitalSign;
 use App\Policies\Concerns\AuthorsClinicalRecords;
 use App\Support\ClinicalAccess;
 
-/**
- * Measurements follow the indicated medication (see PrescriptionPolicy, #361): whoever reads the patient's history
- * reads every author's (`ClinicalAccess::attends`, plus a reason without an appointment near today), a measurement is
- * taken on one's own appointment, and only its author amends or annuls it.
- */
 class VitalSignPolicy
 {
     use AuthorsClinicalRecords;
