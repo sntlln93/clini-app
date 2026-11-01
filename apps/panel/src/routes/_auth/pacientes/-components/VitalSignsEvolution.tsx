@@ -16,13 +16,19 @@ import {
 } from '@/lib/vital-signs';
 import type { VitalSign } from '@/types/vital-sign';
 import { DateEvolutionChart } from './DateEvolutionChart';
+import { growthChartOf, type GrowthPatient } from './growth-chart';
+import { GrowthCurvesChart } from './GrowthCurvesChart';
 
 // The evolution of one followed value (#361): only the values some
-// measurement holds are offered; annulled ones are left out.
+// measurement holds are offered; annulled ones are left out. Weight, height,
+// BMI and head circumference go against the WHO curves when the patient's
+// age and sex allow it (#363), and say why when they don't.
 export function VitalSignsEvolution({
     vitalSigns,
+    patient,
 }: {
     vitalSigns: VitalSign[];
+    patient: GrowthPatient;
 }) {
     const available = TRACKED_FIELDS.filter(
         (field) => seriesOf(vitalSigns, field).length > 0,
@@ -36,6 +42,7 @@ export function VitalSignsEvolution({
     }
 
     const series = seriesOf(vitalSigns, field);
+    const growth = growthChartOf(series, field, patient);
     const items = available.map((key) => ({
         value: key,
         label: VITAL_SIGN_FIELDS[key].label,
@@ -69,7 +76,18 @@ export function VitalSignsEvolution({
                     </SelectContent>
                 </Select>
             </div>
-            <DateEvolutionChart field={field} series={series} />
+            {growth.status === 'curves' ? (
+                <GrowthCurvesChart field={field} chart={growth} />
+            ) : (
+                <>
+                    {growth.status === 'unavailable' && (
+                        <p className="text-sm text-muted-foreground">
+                            {growth.reason}
+                        </p>
+                    )}
+                    <DateEvolutionChart field={field} series={series} />
+                </>
+            )}
         </section>
     );
 }

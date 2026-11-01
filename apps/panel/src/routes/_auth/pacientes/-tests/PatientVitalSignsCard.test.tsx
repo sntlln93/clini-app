@@ -37,6 +37,7 @@ function renderCard(
         <QueryClientProvider client={new QueryClient()}>
             <PatientVitalSignsCard
                 patientId={10}
+                patient={{ birth_date: '1990-03-01', sex: 'f' }}
                 vitalSigns={vitalSigns}
                 todaysAppointmentId={todaysAppointmentId}
             />
