@@ -2,6 +2,10 @@
 
 declare(strict_types=1);
 
+use App\Enums\ErrorCode;
+use App\Mail\Account\AccountDeletedMail;
+use App\Mail\Account\AccountDeletionRequestedMail;
+use App\Mail\Account\AccountDeletionVoidedMail;
 use App\Mail\Appointments\AppointmentReminderMail;
 use App\Mail\Auth\EmailVerificationMail;
 use App\Mail\Contact\ContactRequestReceivedMail;
@@ -35,6 +39,9 @@ dataset('mailables', [
     'membership invitation' => fn (): Mailable => new MembershipInvitationMail(MembershipInvitation::factory()->create(), 'https://panel.test/invitaciones/token'),
     'email verification' => fn (): Mailable => new EmailVerificationMail(User::factory()->create(), 'https://panel.test/verificar-email/token'),
     'contact request' => fn (): Mailable => new ContactRequestReceivedMail(ContactRequest::factory()->create()),
+    'account deletion requested' => fn (): Mailable => new AccountDeletionRequestedMail('Ana', '9 de noviembre de 2026'),
+    'account deleted' => fn (): Mailable => new AccountDeletedMail('Ana'),
+    'account deletion voided' => fn (): Mailable => new AccountDeletionVoidedMail('Ana', ErrorCode::AccountDeletionFutureAppointments, ['Consultorio Oeste']),
 ]);
 
 dataset('notifications', [
