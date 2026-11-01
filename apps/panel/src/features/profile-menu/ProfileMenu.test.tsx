@@ -32,6 +32,7 @@ const user: SessionUser = {
         id: 1,
         name: 'Consultorio Norte',
         timezone: 'America/Argentina/Buenos_Aires',
+        province: null,
         slug: 'consultorio-norte',
     },
 };

@@ -70,6 +70,7 @@ function renderContent(
             name: 'Consultorio Norte',
             slug: 'consultorio-norte',
             timezone: 'Etc/UTC',
+            province: null,
         },
     };
     queryClient.setQueryData(sessionQueryOptions.queryKey, session);
