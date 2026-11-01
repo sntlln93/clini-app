@@ -9,13 +9,7 @@ use Illuminate\Contracts\Database\Eloquent\CastsAttributes;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * Casts a JSON array column to an array of backed enum cases and back.
- *
- * Parametrized with the enum class, e.g.:
- * `'roles' => EnumArrayCast::class.':'.MembershipRole::class`.
- *
- * Unknown strings (e.g. a case removed from the enum after the row was
- * written) are silently discarded on read instead of throwing.
+ * Unknown values (e.g. a case removed from the enum) are discarded on read instead of throwing.
  *
  * @implements CastsAttributes<array<int, BackedEnum>, array<int, BackedEnum|string>>
  */
