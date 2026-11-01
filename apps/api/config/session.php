@@ -49,7 +49,9 @@ return [
     |
     */
 
-    'encrypt' => env('SESSION_ENCRYPT', false),
+    // On unless turned off explicitly: the payload is personal data at rest
+    // in the `sessions` table (#358, docs/architecture/security.md).
+    'encrypt' => env('SESSION_ENCRYPT', true),
 
     /*
     |--------------------------------------------------------------------------

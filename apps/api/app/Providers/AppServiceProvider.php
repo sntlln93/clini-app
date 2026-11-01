@@ -9,6 +9,7 @@ use App\Contracts\MedicationSource;
 use App\Contracts\ProfessionalRegistry;
 use App\Contracts\SubscriptionGateway;
 use App\Contracts\TwoFactorAuthenticator;
+use App\Http\Middleware\StartSessionWithoutPreviousUrl;
 use App\Models\User;
 use App\Services\Auth\Google2FaService;
 use App\Services\Holidays\CalendariosNacionalesService;
@@ -18,7 +19,11 @@ use App\Services\Professionals\NationalProfessionalSearchService;
 use App\Support\CurrentOrganization;
 use App\Support\PendingTwoFactorLogin;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Contracts\Cache\Factory as CacheFactory;
+use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\Request;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Session\SessionManager;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
@@ -41,6 +46,13 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(CurrentOrganization::class);
+
+        // Sanctum's stateful pipeline resolves StartSession from the
+        // container, so this swaps it everywhere (#358).
+        $this->app->singleton(StartSession::class, fn (Application $app): StartSession => new StartSessionWithoutPreviousUrl(
+            $app->make(SessionManager::class),
+            fn (): CacheFactory => $app->make(CacheFactory::class),
+        ));
     }
 
     public function boot(): void
