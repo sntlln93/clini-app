@@ -12,7 +12,8 @@ import type { ComponentType } from 'react';
 export type NavItem = {
     label: string;
     to: string;
-    icon: ComponentType<{ className?: string }>;
+    /** Shown next to the label in the main navigation; a secondary bar is text only. */
+    icon?: ComponentType<{ className?: string }>;
     /** Absent = always visible; when set, the item renders only if the session holds any of these permissions. */
     permissions?: string[];
     /** When set, the item renders only if the organization's plan includes it (#237). */

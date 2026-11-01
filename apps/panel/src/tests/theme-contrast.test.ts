@@ -54,7 +54,7 @@ const SURFACES = ['card', 'background', 'popover'];
 const STATUSES = ['scheduled', 'confirmed', 'arrived', 'completed', 'no-show'];
 
 const PAIRS: Pair[] = [
-    // Brand: buttons, links, sidebar and menu highlights, selected day.
+    // Brand: buttons, links, header navigation and menu highlights, selected day.
     { fg: 'primary-foreground', bg: 'primary', min: TEXT },
     {
         fg: 'primary-foreground',
@@ -74,7 +74,8 @@ const PAIRS: Pair[] = [
         min: TEXT,
     })),
     { fg: 'secondary-foreground', bg: 'secondary', min: TEXT },
-    ...SURFACES.map((bg) => ({
+    // The panel's header and secondary navigation sit on `muted`.
+    ...[...SURFACES, 'muted'].map((bg) => ({
         fg: `ring/${focusHalo}`,
         bg,
         min: GRAPHIC,

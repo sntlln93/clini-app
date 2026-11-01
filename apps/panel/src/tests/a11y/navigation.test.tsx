@@ -10,10 +10,8 @@ import {
 import { render } from '@testing-library/react';
 import { describe, it, vi } from 'vitest';
 
-import { SidebarProvider } from '@/components/ui/sidebar';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { PanelBreadcrumbs } from '@/features/panel-breadcrumbs/PanelBreadcrumbs';
-import { PanelSidebar } from '@/features/panel-sidebar/PanelSidebar';
+import { PanelHeader } from '@/features/panel-header/PanelHeader';
 import { sessionQueryOptions } from '@/lib/session';
 import { expectNoA11yViolations } from '../a11y';
 
@@ -21,7 +19,7 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
 }));
 
-// PanelSidebar renders ProfileMenu, which reads the signed-in user, so the
+// PanelHeader renders ProfileMenu, which reads the signed-in user, so the
 // session must be pre-seeded into the query cache.
 function renderPanelChrome(path: string) {
     const queryClient = new QueryClient();
@@ -34,13 +32,9 @@ function renderPanelChrome(path: string) {
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
-                <TooltipProvider>
-                    <SidebarProvider>
-                        <PanelSidebar />
-                        <PanelBreadcrumbs />
-                        <Outlet />
-                    </SidebarProvider>
-                </TooltipProvider>
+                <PanelHeader />
+                <PanelBreadcrumbs />
+                <Outlet />
             </QueryClientProvider>
         ),
     });
@@ -61,7 +55,7 @@ function renderPanelChrome(path: string) {
 }
 
 describe('navigation a11y', () => {
-    it('PanelSidebar + ProfileMenu: the collapsible nav with the signed-in user has no violations', async () => {
+    it('PanelHeader + ProfileMenu: the header navigation with the signed-in user has no violations', async () => {
         const { container } = renderPanelChrome('/pacientes');
         await expectNoA11yViolations(container);
     });
