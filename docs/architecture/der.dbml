@@ -114,7 +114,49 @@ Table users {
   created_at timestamp [not null]
   updated_at timestamp [not null]
 
-  Note: 'Anyone who logs in to the panel: owners, admins, professionals, staff. Not patients.'
+  Note: '''
+    Anyone who logs in to the panel: owners, admins, professionals, staff. Not patients. A deleted account (#384,
+    ADR 0034) keeps its row, anonymized: email cuenta-eliminada-<id>@clini.invalid, no credentials, and the name only
+    if it wrote a clinical record (else «Usuario eliminado»).
+  '''
+}
+
+Table account_deletion_requests {
+  id bigint [pk, increment]
+  user_id bigint [not null]
+  status varchar [not null, note: 'pending | cancelled (a login) | voided (blocked at the deadline) | completed']
+  deletes_at timestamp [not null, note: 'Requested at + 7 days']
+  resolved_at timestamp [null]
+  created_at timestamp [not null]
+  updated_at timestamp [not null]
+
+  indexes {
+    user_id [unique, note: 'Partial: WHERE status = pending']
+    (status, deletes_at)
+  }
+
+  Note: 'Account deletion asked by a clinic user for their own account (#384, ADR 0034). accounts:complete-deletions completes it hourly once due.'
+}
+
+Table account_deletion_request_memberships {
+  id bigint [pk, increment]
+  account_deletion_request_id bigint [not null]
+  membership_id bigint [not null]
+  previous_status membership_status [not null]
+
+  indexes {
+    (account_deletion_request_id, membership_id) [unique]
+  }
+
+  Note: 'The memberships a request deactivated and the status each had: a login within the grace period puts back exactly these.'
+}
+
+Table account_deletions {
+  id bigint [pk, increment]
+  user_id bigint [not null, unique]
+  created_at timestamp [not null]
+
+  Note: 'Append-only trace of each completed account deletion (#384): the user id and the date, never a personal datum.'
 }
 
 Table memberships {
@@ -570,6 +612,10 @@ Table contact_requests {
 
 Ref: memberships.organization_id > organizations.id [delete: restrict]
 Ref: memberships.user_id > users.id [delete: restrict]
+Ref: account_deletion_requests.user_id > users.id [delete: restrict]
+Ref: account_deletion_request_memberships.account_deletion_request_id > account_deletion_requests.id [delete: cascade]
+Ref: account_deletion_request_memberships.membership_id > memberships.id [delete: restrict]
+Ref: account_deletions.user_id > users.id [delete: restrict]
 
 Ref: professional_licenses.user_id > users.id [delete: cascade]
 Ref: user_specialties.user_id > users.id [delete: cascade]
