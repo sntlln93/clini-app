@@ -8,6 +8,7 @@ use App\Http\Middleware\EnsureNotDashboardOrigin;
 use App\Http\Middleware\EnsurePlanIncludes;
 use App\Http\Middleware\EnsureSubscriptionActive;
 use App\Http\Middleware\EnsureUserNotBlocked;
+use App\Http\Middleware\PreventResponseCaching;
 use App\Http\Middleware\ResolveCurrentOrganization;
 use App\Http\Middleware\ResolvePublicOrganization;
 use App\Support\SafeExceptionLog;
@@ -37,6 +38,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->statefulApi();
+        $middleware->append(PreventResponseCaching::class);
         // Which proxies to trust comes from config/trustedproxy.php, read per
         // request (an env() here would read null once the config is cached).
         // Only the headers Dokploy's proxy sets: no X-Forwarded-Prefix.
