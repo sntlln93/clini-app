@@ -68,7 +68,11 @@ export type ClinicalRecordPrescriptionVersion = {
         dosage: string;
         quantity: number;
         gtin: string | null;
+        snomed: string | null;
         substances: string[] | null;
+        dispensing_condition: string | null;
+        control_mark: string | null;
+        composition_incomplete: boolean | null;
     }[];
     allergy_warning_overridden: boolean;
 };
