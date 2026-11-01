@@ -54,7 +54,8 @@ function AllergyList({ current }: { current: CurrentAllergiesData }) {
 
 // The patient's current allergies the professional reads, above the form that
 // indicates medication (#362). Another author's, without the patient's code,
-// stay out: the warning on saving still covers them.
+// stay out: the warning on saving still covers them. Its last line says what
+// that warning compares (#377).
 export function CurrentAllergies({
     appointmentId,
 }: {
@@ -78,6 +79,11 @@ export function CurrentAllergies({
             ) : (
                 <AllergyList current={query.data} />
             )}
+            <Note>
+                Con un medicamento elegido de las sugerencias, Clini compara sus
+                principios activos; escrito a mano, compara el texto. No
+                reconoce familias de medicamentos.
+            </Note>
         </section>
     );
 }

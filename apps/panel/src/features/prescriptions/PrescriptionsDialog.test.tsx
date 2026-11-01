@@ -92,7 +92,9 @@ function mockGets(prescriptions: unknown) {
                           meta: { reason_required: false },
                       },
                   }
-                : prescriptions,
+                : url.startsWith('/medications')
+                  ? { data: { data: [] } }
+                  : prescriptions,
         ),
     );
 }
@@ -211,12 +213,14 @@ describe('PrescriptionsDialog', () => {
                             presentation: 'Comprimidos 500 mg',
                             dosage: '1 cada 8 h',
                             quantity: 2,
+                            gtin: null,
                         },
                         {
                             medication: 'Ibuprofeno',
                             presentation: null,
                             dosage: 'Si hay dolor',
                             quantity: 1,
+                            gtin: null,
                         },
                     ],
                 },
@@ -319,6 +323,7 @@ describe('PrescriptionsDialog', () => {
                             presentation: 'Comprimidos 500 mg',
                             dosage: '1 cada 8 h por 7 días',
                             quantity: 2,
+                            gtin: null,
                         },
                     ],
                     reason: 'Alergia a la penicilina.',

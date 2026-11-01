@@ -5,6 +5,16 @@ export type PrescriptionItem = {
     presentation: string | null;
     dosage: string;
     quantity: number;
+    // Picked from the medication catalog (#377): what the server copied from
+    // the product then; all null for free text. `substances` is a list (maybe
+    // empty) for a picked product, and `composition_incomplete` says the source
+    // cut it short.
+    gtin: string | null;
+    snomed: string | null;
+    substances: string[] | null;
+    dispensing_condition: string | null;
+    control_mark: string | null;
+    composition_incomplete: boolean | null;
 };
 
 // One item list of a record: version 1 is what was recorded first, and each
@@ -54,6 +64,9 @@ export type PrescriptionItemPayload = {
     presentation: string | null;
     dosage: string;
     quantity: number;
+    // The server copies the rest of the snapshot from the catalog, never
+    // from here.
+    gtin: string | null;
 };
 
 export type PrescriptionPayload = {

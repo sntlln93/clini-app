@@ -10,6 +10,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import type { PrescriptionFormValues } from '@/lib/prescription-schema';
+import { MedicationField } from './MedicationField';
 
 type PrescriptionItemFieldsProps = {
     control: Control<PrescriptionFormValues>;
@@ -44,19 +45,7 @@ export function PrescriptionItemFields({
                     Quitar
                 </Button>
             )}
-            <FormField
-                control={control}
-                name={`items.${index}.medication`}
-                render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Medicamento</FormLabel>
-                        <FormControl
-                            render={<Input maxLength={255} {...field} />}
-                        />
-                        <FormMessage />
-                    </FormItem>
-                )}
-            />
+            <MedicationField control={control} index={index} />
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_6rem]">
                 <FormField
                     control={control}

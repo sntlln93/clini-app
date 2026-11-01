@@ -22,7 +22,8 @@ use App\Support\FoldedText;
 
 /**
  * Checks the medication about to be indicated against the patient's current allergies (#362, ADR 0030): an allergy
- * matches when its substance appears in a medication or its presentation, ignoring case and accents. Every current
+ * matches when its substance appears in a medication, its presentation or, for one picked from the catalog, its
+ * active substances (#377), ignoring case and accents. Every current
  * allergy counts, another author's too, since missing one could harm the patient; its detail goes to the warning only
  * when the professional reads it as they would read the patient's background (`readableBy`, without a pending
  * exceptional access). Every warning leaves its own row in the access log, hidden matches too, so trying substances
@@ -85,7 +86,7 @@ class ScreenMedicationForAllergiesAction implements Action
     private function matches(MedicationAllergyScreeningData $dto, bool $reasonRequired): array
     {
         $medication = array_map(
-            fn (PrescriptionItemData $item): string => FoldedText::fold("{$item->medication} {$item->presentation}"),
+            fn (PrescriptionItemData $item): string => FoldedText::fold(implode(' ', [$item->medication, $item->presentation, ...($item->substances ?? [])])),
             $dto->items,
         );
 

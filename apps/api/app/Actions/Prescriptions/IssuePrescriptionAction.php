@@ -13,6 +13,7 @@ use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\Prescription;
+use App\Support\MedicationSnapshot;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -36,16 +37,18 @@ class IssuePrescriptionAction implements Action
      */
     public function handle(Data $dto): Prescription
     {
+        $items = MedicationSnapshot::of($dto->items);
+
         $allergyMatches = $this->screen->handle(new MedicationAllergyScreeningData(
             organizationId: $dto->organizationId,
             membershipId: $dto->membershipId,
             patientId: $dto->patientId,
             appointmentId: $dto->appointmentId,
-            items: $dto->items,
+            items: $items,
             confirmedAllergies: $dto->confirmedAllergies,
         ));
 
-        return DB::transaction(function () use ($dto, $allergyMatches): Prescription {
+        return DB::transaction(function () use ($dto, $items, $allergyMatches): Prescription {
             $prescription = Prescription::create([
                 'organization_id' => $dto->organizationId,
                 'appointment_id' => $dto->appointmentId,
@@ -59,7 +62,7 @@ class IssuePrescriptionAction implements Action
                 'membership_id' => $dto->membershipId,
             ]);
 
-            foreach ($dto->items as $position => $item) {
+            foreach ($items as $position => $item) {
                 $version->items()->create(['position' => $position, ...$item->toArray()]);
             }
 

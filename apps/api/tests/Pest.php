@@ -215,3 +215,11 @@ function shareAccessCode(Membership $membership, int $patientId, ?Appointment $a
         'redeemed_at' => now(),
     ]);
 }
+
+/**
+ * A response recorded from the national medication search (#377), under tests/Fixtures/NationalMedicationSearch.
+ */
+function nationalMedicationSearchFixture(string $name): string
+{
+    return (string) file_get_contents(__DIR__."/Fixtures/NationalMedicationSearch/{$name}");
+}

@@ -1,6 +1,8 @@
+import type { PickedMedication } from '@/types/medication';
 import type {
     Prescription,
     PrescriptionAmendmentPayload,
+    PrescriptionItem,
 } from '@/types/prescription';
 import { z } from 'zod';
 import { amendmentReason } from './clinical-note-schema';
@@ -32,6 +34,17 @@ const itemSchema = z.object({
             (value) => Number(value) >= 1 && Number(value) <= 999,
             'La cantidad debe estar entre 1 y 999.',
         ),
+    // The catalog product it was picked from (#377), null for free text:
+    // typing in «Medicamento» drops it. Only its GTIN goes out.
+    catalog: z
+        .object({
+            gtin: z.string(),
+            substances: z.array(z.string()),
+            dispensing_condition: z.string().nullable(),
+            control_mark: z.string().nullable(),
+            composition_incomplete: z.boolean(),
+        })
+        .nullable(),
 });
 
 // `reason` only goes out with an amendment (#323); recording one ignores it.
@@ -55,12 +68,28 @@ export const EMPTY_ITEM: PrescriptionItemFormValues = {
     presentation: '',
     dosage: '',
     quantity: '1',
+    catalog: null,
 };
 
 export const EMPTY_PRESCRIPTION: PrescriptionFormValues = {
     reason: '',
     items: [EMPTY_ITEM],
 };
+
+// An amended item keeps its product, as its snapshot copied it.
+function pickedFromItem(item: PrescriptionItem): PickedMedication | null {
+    if (item.gtin === null) {
+        return null;
+    }
+
+    return {
+        gtin: item.gtin,
+        substances: item.substances ?? [],
+        dispensing_condition: item.dispensing_condition,
+        control_mark: item.control_mark,
+        composition_incomplete: item.composition_incomplete === true,
+    };
+}
 
 export function toFormValues(
     prescription: Prescription,
@@ -72,6 +101,7 @@ export function toFormValues(
             presentation: item.presentation ?? '',
             dosage: item.dosage,
             quantity: String(item.quantity),
+            catalog: pickedFromItem(item),
         })),
     };
 }
@@ -86,6 +116,7 @@ export function toPayload(
             presentation: item.presentation.trim() || null,
             dosage: item.dosage.trim(),
             quantity: Number(item.quantity),
+            gtin: item.catalog?.gtin ?? null,
         })),
     };
 }

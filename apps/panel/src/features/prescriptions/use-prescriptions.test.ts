@@ -26,6 +26,7 @@ const PAYLOAD: PrescriptionAmendmentPayload = {
             presentation: null,
             dosage: '1 cada 6 h',
             quantity: 1,
+            gtin: null,
         },
     ],
     reason: 'Alergia.',
