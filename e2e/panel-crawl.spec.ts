@@ -53,6 +53,21 @@ test('/disponibilidad renders for an authenticated user', async ({ page }) => {
     ).toBeVisible();
 });
 
+test('/disponibilidad/excepciones renders for an authenticated user', async ({
+    page,
+}) => {
+    await page.goto('/disponibilidad/excepciones');
+    await page.waitForLoadState('networkidle');
+
+    await expect(page).not.toHaveURL(/\/login$/);
+    await expect(
+        page.getByRole('heading', { name: 'Disponibilidad', level: 1 }),
+    ).toBeVisible();
+    await expect(
+        page.getByRole('button', { name: 'Agregar excepción' }),
+    ).toBeVisible();
+});
+
 // The setup session is the owner's (#325): the list of exceptional accesses is hers.
 test('/accesos-excepcionales renders for the owner', async ({ page }) => {
     await page.goto('/accesos-excepcionales');

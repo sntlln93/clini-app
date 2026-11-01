@@ -139,6 +139,16 @@ for (const colorScheme of ['light', 'dark'] as const) {
                 await runA11yScan(page, '/disponibilidad');
             });
 
+            test('/disponibilidad/excepciones has no unexpected accessibility violations', async ({
+                page,
+            }) => {
+                await page.goto('/disponibilidad/excepciones');
+                await page.waitForLoadState('networkidle');
+                await waitForPage(page, 'Disponibilidad');
+
+                await runA11yScan(page, '/disponibilidad/excepciones');
+            });
+
             test('/reportes has no unexpected accessibility violations', async ({
                 page,
             }) => {
