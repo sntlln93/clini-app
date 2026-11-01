@@ -10,20 +10,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Database\Eloquent\Model;
 
 /**
- * CU-33: rejects a reference to an entity that doesn't exist, belongs to
- * another organization, or is checked with no organization active.
- *
- * Filters organization_id explicitly against CurrentOrganization instead
- * of depending on the model's implicit BelongsToOrganization global
- * scope — it bypasses that scope by name and re-applies the filter
- * itself, so the rule works the same whether or not the scope happens to
- * be registered on $modelClass.
- *
- * Reused for any foreign-key-shaped field that must resolve within the
- * active organization, with optional extra conditions, e.g.:
- *
- *   new BelongsToCurrentOrganization(Membership::class, ['status' => MembershipStatus::Active])
- *   new BelongsToCurrentOrganization(Service::class)
+ * Filters organization_id itself instead of relying on the global scope, so it works whether or not $modelClass registers it.
  */
 final readonly class BelongsToCurrentOrganization implements ValidationRule
 {
