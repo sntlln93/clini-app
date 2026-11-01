@@ -133,18 +133,20 @@ export function ExceptionWhenFields({
                 control={form.control}
                 name="allDay"
                 render={({ field }) => (
-                    <FormItem className="flex flex-row items-center gap-2">
-                        <FormControl
-                            render={
-                                <Checkbox
-                                    checked={field.value}
-                                    onCheckedChange={(checked) =>
-                                        field.onChange(checked === true)
-                                    }
-                                />
-                            }
-                        />
-                        <FormLabel className="font-normal">
+                    <FormItem>
+                        {/* The checkbox sits inside its label, so a tap on
+                            the text toggles it and its hit area stays its own. */}
+                        <FormLabel className="flex w-fit items-center gap-2 font-normal">
+                            <FormControl
+                                render={
+                                    <Checkbox
+                                        checked={field.value}
+                                        onCheckedChange={(checked) =>
+                                            field.onChange(checked === true)
+                                        }
+                                    />
+                                }
+                            />
                             Todo el día
                         </FormLabel>
                     </FormItem>
