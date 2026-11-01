@@ -3,6 +3,7 @@ import { StatusPill } from '@/components/StatusPill';
 import { Button } from '@/components/ui/button';
 import { formatDayMonthYear, fromInstant } from '@/lib/datetime';
 import { healthProfessionLabel } from '@/lib/health-professions';
+import { formatLicenseIssuer } from '@/lib/license-issuer';
 import { provinceLabel } from '@/lib/provinces';
 import type { ProfessionalLicense } from '@/types/professional-license';
 import { Trash2 } from 'lucide-react';
@@ -28,7 +29,8 @@ export function ProfessionalLicenseItem({
     const status = LICENSE_STATUS[license.status];
     const title = `${healthProfessionLabel(license.profession)} · ${provinceLabel(license.province)} · ${license.number}`;
     const registryDetails = [
-        license.issuer && `Emitida por ${license.issuer}`,
+        license.issuer &&
+            `Entidad emisora: ${formatLicenseIssuer(license.issuer)}`,
         license.specialty && `Especialidad: ${license.specialty}`,
         license.refeps_code && `Código REFEPS ${license.refeps_code}`,
         license.checked_at &&

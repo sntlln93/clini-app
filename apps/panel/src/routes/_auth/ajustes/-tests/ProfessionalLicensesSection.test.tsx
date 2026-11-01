@@ -48,7 +48,7 @@ const VERIFIED = license({
     id: 1,
     status: 'verified',
     refeps_code: '541030123456',
-    issuer: 'Consejo de Médicos de Córdoba',
+    issuer: 'MEDICOS DE LA PROVINCIA DE CORDOBA, Consejo de',
     specialty: 'Pediatría',
     situation: 'Habilitado',
     checked_at: '2026-11-01T12:00:00Z',
@@ -106,6 +106,9 @@ describe('ProfessionalLicensesSection', () => {
         expect(within(verified).getByText('Verificada')).toBeDefined();
         expect(verified.textContent).toContain('Código REFEPS 541030123456');
         expect(verified.textContent).toContain('Especialidad: Pediatría');
+        expect(verified.textContent).toContain(
+            'Entidad emisora: Consejo de Medicos de la Provincia de Cordoba',
+        );
 
         const mismatch = item('Odontólogo · Santa Fe · 4321');
         expect(within(mismatch).getByText('No coincide')).toBeDefined();
