@@ -3,10 +3,7 @@ import { browserTimeZone } from '@/lib/datetime';
 import { navigateToExternalUrl } from '@/lib/external-navigation';
 import { extractFormErrors } from '@/lib/form-errors';
 import { sessionQueryOptions, type SessionUser } from '@/lib/session';
-import {
-    startSubscriptionCheckout,
-    SUBSCRIPTION_SECTION_ID,
-} from '@/lib/subscription';
+import { startSubscriptionCheckout } from '@/lib/subscription';
 import { notifyError } from '@/lib/toast';
 import type { SubscriptionBilling } from '@/types/subscription';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -56,10 +53,7 @@ export function useRegister() {
                     error,
                     'Tu cuenta quedó creada en el plan Gratis, pero no se pudo iniciar el pago de Consultorio. Podés reintentarlo desde acá.',
                 );
-                await navigate({
-                    to: '/ajustes',
-                    hash: SUBSCRIPTION_SECTION_ID,
-                });
+                await navigate({ to: '/ajustes/suscripcion' });
                 return 'ajustes' as const;
             }
         },

@@ -1,6 +1,7 @@
 import { PanelLayout } from '@/layouts/PanelLayout';
 import { api } from '@/lib/api';
 import { sessionQueryOptions } from '@/lib/session';
+import type { MembershipRole } from '@/types/membership';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -27,12 +28,22 @@ const SETTINGS_NAV: SecondaryNav = {
             to: '/ajustes/profesionales',
             permissions: ['memberships.view'],
         },
+        {
+            label: 'Mis especialidades',
+            to: '/ajustes/especialidades',
+            roles: ['professional'],
+            permissions: ['memberships.manage'],
+        },
     ],
 };
 
 // A route tree where `/ajustes` declares a secondary navigation that its
 // children inherit, and `/agenda` declares none.
-function renderLayoutAt(path: string, permissions: string[] = []) {
+function renderLayoutAt(
+    path: string,
+    permissions: string[] = [],
+    roles: MembershipRole[] = [],
+) {
     const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
     });
@@ -42,6 +53,16 @@ function renderLayoutAt(path: string, permissions: string[] = []) {
         email: 'ana@clini.app',
         two_factor_enabled: false,
         permissions,
+        membership: {
+            id: 1,
+            user: { id: 1, name: 'Ana Ejemplo', email: 'ana@clini.app' },
+            roles,
+            status: 'active',
+            slug: null,
+            deleted_at: null,
+            created_at: '2026-01-01T00:00:00Z',
+            updated_at: '2026-01-01T00:00:00Z',
+        },
     });
     const rootRoute = createRootRoute({
         component: () => (
@@ -58,7 +79,11 @@ function renderLayoutAt(path: string, permissions: string[] = []) {
         staticData: { secondaryNav: SETTINGS_NAV },
         component: () => <Outlet />,
     });
-    const settingsChildren = ['/cuenta', '/profesionales'].map((p) =>
+    const settingsChildren = [
+        '/cuenta',
+        '/profesionales',
+        '/especialidades',
+    ].map((p) =>
         createRoute({
             getParentRoute: () => settingsRoute,
             path: p,
@@ -114,6 +139,26 @@ describe('secondary navigation', () => {
             within(bar).queryByRole('link', { name: 'Profesionales' }),
         ).toBeNull();
     });
+
+    it.each([
+        ['a professional of the practice', [], ['professional'], true],
+        ['whoever can turn it on', ['memberships.manage'], ['owner'], true],
+        ['anyone else', [], ['staff'], false],
+    ] satisfies [string, string[], MembershipRole[], boolean][])(
+        'shows an item gated by role or permission to %s',
+        async (_label, permissions, roles, shown) => {
+            renderLayoutAt('/ajustes/cuenta', permissions, roles);
+
+            const bar = await screen.findByRole('navigation', {
+                name: 'Secciones de Ajustes',
+            });
+            expect(
+                within(bar).queryByRole('link', {
+                    name: 'Mis especialidades',
+                }) !== null,
+            ).toBe(shown);
+        },
+    );
 
     it('shows no bar on a page whose route declares none', async () => {
         renderLayoutAt('/agenda');

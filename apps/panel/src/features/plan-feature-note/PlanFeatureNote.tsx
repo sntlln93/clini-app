@@ -1,8 +1,4 @@
 import { buttonVariants } from '@/components/ui/button';
-import {
-    SUBSCRIPTION_SECTION_ID,
-    scrollToSubscriptionSection,
-} from '@/lib/subscription';
 import { cn } from '@/lib/utils';
 import { Link } from '@tanstack/react-router';
 import { Lock } from 'lucide-react';
@@ -25,9 +21,7 @@ export function PlanFeatureNote({ children, className }: PlanFeatureNoteProps) {
             <Lock className="size-4 shrink-0" aria-hidden />
             <span>{children}</span>
             <Link
-                to="/ajustes"
-                hash={SUBSCRIPTION_SECTION_ID}
-                onClick={scrollToSubscriptionSection}
+                to="/ajustes/suscripcion"
                 className={cn(buttonVariants({ size: 'sm', variant: 'link' }))}
             >
                 Ver planes

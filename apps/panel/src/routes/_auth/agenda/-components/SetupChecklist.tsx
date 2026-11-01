@@ -12,7 +12,6 @@ import {
 } from '@/features/JoinAsProfessionalButton';
 import { usePlan } from '@/lib/plan';
 import { useSession } from '@/lib/session';
-import { SUBSCRIPTION_SECTION_ID } from '@/lib/subscription';
 import { Link } from '@tanstack/react-router';
 import type { SetupProgress } from '../-hooks/setup-progress';
 import { SetupStep } from './SetupStep';
@@ -68,7 +67,7 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
                         action={
                             <Button
                                 variant="outline"
-                                render={<Link to="/ajustes" />}
+                                render={<Link to="/ajustes/profesionales" />}
                                 nativeButton={false}
                             >
                                 Ir a Ajustes
@@ -96,12 +95,7 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
                             action={
                                 <Button
                                     variant="outline"
-                                    render={
-                                        <Link
-                                            to="/ajustes"
-                                            hash={SUBSCRIPTION_SECTION_ID}
-                                        />
-                                    }
+                                    render={<Link to="/ajustes/suscripcion" />}
                                     nativeButton={false}
                                 >
                                     Ver planes
@@ -115,7 +109,7 @@ export function SetupChecklist({ progress }: { progress: SetupProgress }) {
                         action={
                             <Button
                                 variant="outline"
-                                render={<Link to="/ajustes" />}
+                                render={<Link to="/ajustes/reservas" />}
                                 nativeButton={false}
                             >
                                 Ver el link

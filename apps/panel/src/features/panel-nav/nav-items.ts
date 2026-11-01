@@ -1,3 +1,4 @@
+import type { MembershipRole } from '@/types/membership';
 import type { PlanFeature } from '@/types/plan';
 import {
     Armchair,
@@ -14,10 +15,14 @@ export type NavItem = {
     to: string;
     /** Shown next to the label in the main navigation; a secondary bar is text only. */
     icon?: ComponentType<{ className?: string }>;
-    /** Absent = always visible; when set, the item renders only if the session holds any of these permissions. */
+    /** Absent = always visible; when set, the item renders only if the session holds any of these permissions (or any of `roles`). */
     permissions?: string[];
+    /** Like `permissions`, for the roles of the active membership; with both, either one is enough. */
+    roles?: MembershipRole[];
     /** When set, the item renders only if the organization's plan includes it (#237). */
     feature?: PlanFeature;
+    /** When true, the item renders only with an active membership (an organization to act on). */
+    requiresMembership?: boolean;
 };
 
 export const navItems: NavItem[] = [

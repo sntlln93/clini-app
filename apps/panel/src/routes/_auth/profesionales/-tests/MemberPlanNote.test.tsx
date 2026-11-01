@@ -57,7 +57,7 @@ describe('MemberPlanNote', () => {
             screen
                 .getByRole('link', { name: 'Ver planes' })
                 .getAttribute('href'),
-        ).toBe('/ajustes');
+        ).toBe('/ajustes/suscripcion');
     });
 
     it('shows the new Consultorio amount before inviting a professional past the included ones', () => {

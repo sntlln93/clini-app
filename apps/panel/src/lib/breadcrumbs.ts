@@ -18,6 +18,15 @@ const SEGMENT_LABELS: Record<string, string> = {
 };
 
 const SECTION_SEGMENT_LABELS: Record<string, Record<string, string>> = {
+    ajustes: {
+        apariencia: 'Apariencia',
+        seguridad: 'Seguridad',
+        suscripcion: 'Plan y suscripción',
+        reservas: 'Reservas',
+        especialidades: 'Mis especialidades',
+        profesionales: 'Profesionales',
+        'proteccion-de-datos': 'Protección de datos',
+    },
     pacientes: {
         nuevo: 'Nuevo paciente',
         editar: 'Editar paciente',

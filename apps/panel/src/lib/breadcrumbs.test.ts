@@ -65,6 +65,14 @@ describe('buildBreadcrumbs', () => {
         ]);
     });
 
+    it('names a tab of Ajustes after its secondary navigation item', () => {
+        expect(buildBreadcrumbs('/ajustes/proteccion-de-datos')).toEqual([
+            { label: 'Agenda', href: '/agenda' },
+            { label: 'Ajustes', href: '/ajustes' },
+            { label: 'Protección de datos' },
+        ]);
+    });
+
     it('treats a trailing slash the same as no trailing slash', () => {
         const crumbs = buildBreadcrumbs('/ajustes/');
 

@@ -27,7 +27,7 @@ export function useCheckoutReturn(
         // Dropping the flag is not a new page: keep the scroll where it is (#279).
         () =>
             navigate({
-                to: '/ajustes',
+                to: '/ajustes/suscripcion',
                 search: {},
                 replace: true,
                 resetScroll: false,
