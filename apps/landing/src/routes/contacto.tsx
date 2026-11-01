@@ -1,3 +1,4 @@
+import { pageHead } from '@/lib/page-head';
 import { createFileRoute } from '@tanstack/react-router';
 import { ContactPage } from './-components/ContactPage';
 import { PLANS, type PlanId } from './-components/plans';
@@ -16,14 +17,8 @@ function isPlanId(value: unknown): value is PlanId {
 export const Route = createFileRoute('/contacto')({
     validateSearch: (search: Record<string, unknown>): { plan?: PlanId } =>
         isPlanId(search.plan) ? { plan: search.plan } : {},
-    head: () => ({
-        meta: [
-            { title: TITLE },
-            { name: 'description', content: DESCRIPTION },
-            { property: 'og:title', content: TITLE },
-            { property: 'og:description', content: DESCRIPTION },
-        ],
-    }),
+    head: () =>
+        pageHead({ path: '/contacto', title: TITLE, description: DESCRIPTION }),
     component: ContactRoute,
 });
 
