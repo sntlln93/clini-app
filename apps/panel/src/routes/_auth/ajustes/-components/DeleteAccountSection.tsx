@@ -36,9 +36,10 @@ export function DeleteAccountSection({
                 </p>
                 <p className="text-sm text-muted-foreground">
                     Se borran tu correo, tu contraseña, tu verificación en dos
-                    pasos, tu DNI, tus matrículas y tus especialidades. Lo que
-                    registraste en historias clínicas se conserva con tu nombre,
-                    porque la ley obliga a guardarlo.
+                    pasos, tu DNI, tus matrículas y tus especialidades. Si
+                    registraste o consultaste historias clínicas, lo que hiciste
+                    se conserva con tu nombre en ellas y en su registro de
+                    accesos, porque hay que guardarlo.
                 </p>
                 <p className="text-sm text-muted-foreground">
                     Si sos la única persona que administra un consultorio, o
