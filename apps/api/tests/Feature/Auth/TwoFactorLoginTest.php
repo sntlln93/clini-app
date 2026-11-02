@@ -112,6 +112,20 @@ test('the second step needs exactly one well-formed code', function (array $payl
     'both kinds' => [['code' => '123456', 'recovery_code' => 'abcde-fghjk'], 'code'],
 ]);
 
+test('a password changed while the second step waits drops the pending login', function () {
+    $user = User::factory()->withTwoFactor()->create();
+    passwordStep($user)->assertOk()->assertExactJson(['two_factor' => true]);
+
+    // The owner rotates the password elsewhere (#389): the old one can't finish this login.
+    $user->forceFill(['password' => 'una-clave-nueva-y-larga'])->save();
+
+    fromPanel()->postJson('/api/v1/login/two-factor', ['code' => currentTwoFactorCode()])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', 'auth.two_factor_challenge_expired');
+    $this->assertGuest('web');
+    fromPanel()->getJson('/api/v1/me')->assertUnauthorized();
+});
+
 test('a pending login expires after ten minutes', function () {
     $user = User::factory()->withTwoFactor()->create();
     passwordStep($user);
