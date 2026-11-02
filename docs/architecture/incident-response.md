@@ -52,7 +52,7 @@ Fuentes para estimarlo:
 
 Lo que corresponda al caso, de menor a mayor impacto:
 
-- **Una cuenta clínica comprometida**: bloquear al usuario desde el dashboard. El bloqueo corta sus sesiones en el próximo pedido (`not-blocked`). Hasta #389 no hay cambio ni recuperación de contraseña, así que desbloquearlo le devuelve el acceso a quien tenga la contraseña: el usuario queda bloqueado hasta que el titular le reemplace el hash a mano, con una anotación en el registro de operación. Si tiene TOTP, `php artisan user:reset-two-factor <email>`, una vez verificada su identidad.
+- **Una cuenta clínica comprometida**: bloquear al usuario desde el dashboard. El bloqueo corta sus sesiones en el próximo pedido (`not-blocked`). Antes de desbloquearlo, el titular de la cuenta restablece su contraseña desde «¿Olvidaste tu contraseña?» (#389): el enlace llega a su correo y cambiarla cierra todas sus sesiones. Si el correo también está comprometido, queda bloqueado hasta que el titular le reemplace el hash a mano, con una anotación en el registro de operación. Si tiene TOTP, `php artisan user:reset-two-factor <email>`, una vez verificada su identidad.
 - **Una cuenta de operador**: reemplazar su `password` en `platform_admins` por un hash inutilizable. La fila no se puede borrar si ya tiene auditoría, y la tabla no tiene estado: la baja real va en #392. Después, cerrar todas las sesiones (abajo). `sessions.user_id` no sirve para encontrar las suyas: guarda el id del guard que tocó la sesión por última vez, y un mismo navegador comparte una sesión entre el panel y el dashboard (ADR 0010). Se anota en el registro de operación.
 - **Cerrar todas las sesiones**: `TRUNCATE sessions` desloguea a todos.
 - **Credenciales filtradas** (R2, Resend, Mercado Pago, base): rotarlas en el proveedor y en las variables de Dokploy, y redeploy.
@@ -75,7 +75,7 @@ Un mail del titular a los dueños de cada organización afectada (los `owner` ac
 - qué pasó y cuándo, en lenguaje claro;
 - qué datos de su consultorio se vieron afectados y de cuántos pacientes;
 - qué hizo Clini para contenerlo y qué va a hacer;
-- qué conviene que hagan ellos (avisar a sus pacientes; hasta #389 no pueden cambiar la contraseña, así que Clini bloquea las cuentas comprometidas);
+- qué conviene que hagan ellos (avisar a sus pacientes y cambiar la contraseña desde Ajustes › Seguridad, lo que cierra sus otras sesiones);
 - un contacto para dudas.
 
 Si no se sabe todavía el alcance completo, se avisa igual dentro del plazo con lo que se sabe y se completa después. El envío masivo es manual hasta que haga falta otra cosa.

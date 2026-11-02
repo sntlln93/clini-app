@@ -7,6 +7,7 @@ describe('safeInternalPath', () => {
         '/pacientes/12?x=1',
         '/agenda?fecha=2026-10-05&vista=semana#turno',
         '/loginx',
+        '/restablecer-contrasena',
     ])('accepts the internal path %s', (value) => {
         expect(safeInternalPath(value)).toBe(value);
     });
@@ -23,6 +24,8 @@ describe('safeInternalPath', () => {
         ['the login page with a query', '/login?redirect=/agenda'],
         ['the login page with a trailing slash', '/login/'],
         ['the register page', '/registro'],
+        ['the password recovery page', '/recuperar-contrasena'],
+        ['a password reset link', '/restablecer-contrasena/abc123'],
     ])('rejects a %s', (_, value) => {
         expect(safeInternalPath(value)).toBeUndefined();
     });

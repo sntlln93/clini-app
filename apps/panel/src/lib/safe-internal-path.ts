@@ -1,5 +1,11 @@
-// Auth pages themselves: returning to them after login would loop.
-const EXCLUDED_PATHS = new Set(['/login', '/registro']);
+// Auth pages themselves: returning to them after login would loop, and a
+// password reset link is spent once used.
+const EXCLUDED_PATHS = new Set([
+    '/login',
+    '/registro',
+    '/recuperar-contrasena',
+]);
+const EXCLUDED_PREFIXES = ['/restablecer-contrasena/'];
 
 /**
  * Accepts only a same-origin path ("/pacientes/12?x=1"), so a `redirect`
@@ -25,7 +31,10 @@ export function safeInternalPath(value: unknown): string | undefined {
 
     const pathname = (value.split(/[?#]/)[0] ?? '').replace(/\/+$/, '');
 
-    if (EXCLUDED_PATHS.has(pathname)) {
+    if (
+        EXCLUDED_PATHS.has(pathname) ||
+        EXCLUDED_PREFIXES.some((prefix) => pathname.startsWith(prefix))
+    ) {
         return undefined;
     }
 

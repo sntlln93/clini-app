@@ -77,4 +77,5 @@ enum ErrorCode: string
     case AuthTwoFactorChallengeExpired = 'auth.two_factor_challenge_expired';
     case AccountDeletionLastActiveAdmin = 'account.deletion_last_active_admin';
     case AccountDeletionFutureAppointments = 'account.deletion_future_appointments';
+    case AuthPasswordResetInvalidOrExpired = 'auth.password_reset_invalid_or_expired';
 }

@@ -25,8 +25,13 @@ async function fillRegistration(page: Page, path: string) {
     await page
         .getByLabel('Correo electrónico')
         .fill(`duena-${suffix}@test.com`);
-    await page.getByLabel('Contraseña', { exact: true }).fill('password123');
-    await page.getByLabel('Confirmar contraseña').fill('password123');
+    // 12 characters at least, and in no known breach (#389).
+    await page
+        .getByLabel('Contraseña', { exact: true })
+        .fill('clave-de-la-duena-nueva');
+    await page
+        .getByLabel('Confirmar contraseña')
+        .fill('clave-de-la-duena-nueva');
 }
 
 async function register(page: Page) {

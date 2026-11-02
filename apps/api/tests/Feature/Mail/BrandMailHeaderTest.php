@@ -9,6 +9,7 @@ use App\Mail\Account\AccountDeletionRequestedMail;
 use App\Mail\Account\AccountDeletionVoidedMail;
 use App\Mail\Appointments\AppointmentReminderMail;
 use App\Mail\Auth\EmailVerificationMail;
+use App\Mail\Auth\PasswordResetMail;
 use App\Mail\Contact\ContactRequestReceivedMail;
 use App\Mail\Memberships\MembershipInvitationMail;
 use App\Models\Appointment;
@@ -39,6 +40,7 @@ dataset('mailables', [
     'appointment reminder' => fn (): Mailable => new AppointmentReminderMail(Appointment::factory()->create()),
     'membership invitation' => fn (): Mailable => new MembershipInvitationMail(MembershipInvitation::factory()->create(), 'https://panel.test/invitaciones/token'),
     'email verification' => fn (): Mailable => new EmailVerificationMail(User::factory()->create(), 'https://panel.test/verificar-email/token'),
+    'password reset' => fn (): Mailable => new PasswordResetMail('Ana', 'https://panel.test/restablecer-contrasena/token'),
     'contact request' => fn (): Mailable => new ContactRequestReceivedMail(ContactRequest::factory()->create()),
     'account deletion requested' => fn (): Mailable => new AccountDeletionRequestedMail('Ana', '9 de noviembre de 2026'),
     'account deleted' => fn (): Mailable => new AccountDeletedMail('Ana'),

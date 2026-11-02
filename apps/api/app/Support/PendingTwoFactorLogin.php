@@ -5,10 +5,16 @@ declare(strict_types=1);
 namespace App\Support;
 
 use App\Models\User;
+use Illuminate\Auth\SessionGuard;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 /**
  * Kept in the session, never as an authenticated guard, so nothing behind `auth:sanctum` answers until the code is in.
+ *
+ * It remembers the password it was started with (Sanctum's HMAC of the hash, as `AuthenticateSession` keeps it): a
+ * password changed or reset meanwhile drops it (#389), so the old password can't finish a login after the rotation
+ * that was meant to end every session.
  */
 final class PendingTwoFactorLogin
 {
@@ -21,6 +27,7 @@ final class PendingTwoFactorLogin
     {
         $request->session()->put(self::SESSION_KEY, [
             'user_id' => $user->id,
+            'password_hash' => self::passwordHash($user),
             'expires_at' => now()->addMinutes(self::TTL_MINUTES)->getTimestamp(),
         ]);
     }
@@ -46,8 +53,23 @@ final class PendingTwoFactorLogin
     public static function user(Request $request): ?User
     {
         $userId = self::userId($request);
+        $user = $userId === null ? null : User::query()->find($userId);
 
-        return $userId === null ? null : User::query()->find($userId);
+        if ($user === null) {
+            return null;
+        }
+
+        $passwordHash = $request->session()->get(self::SESSION_KEY.'.password_hash');
+
+        return is_string($passwordHash) && hash_equals($passwordHash, self::passwordHash($user)) ? $user : null;
+    }
+
+    private static function passwordHash(User $user): string
+    {
+        /** @var SessionGuard $guard */
+        $guard = Auth::guard('web');
+
+        return $guard->hashPasswordForCookie($user->getAuthPassword());
     }
 
     public static function clear(Request $request): void

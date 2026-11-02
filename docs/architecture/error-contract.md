@@ -58,6 +58,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `patients.not_found` | 404 | `PatientController::lookup` | |
 | `patients.insurance_member_number_taken` | 409 | `RegisterPatientAction` (otro paciente de la misma obra social ya tiene ese número de afiliado) | |
 | `auth.email_verification_invalid_or_expired` | 404 | `FindValidEmailVerificationUserAction`, `VerifyEmailAction` | |
+| `auth.password_reset_invalid_or_expired` | 404 | `ResetPasswordAction` (el token del enlace no corresponde al correo, venció o ya se usó; todos los casos responden igual, #389) | |
 | `auth.user_blocked` | 403 | login de la clínica (`Auth::attemptWhen`, solo con contraseña correcta), `TwoFactorChallengeController` (bloqueado entre la contraseña y el código, #357) y middleware `EnsureUserNotBlocked` | |
 | `auth.two_factor_already_enabled` | 409 | `StartTwoFactorSetupAction`, `ConfirmTwoFactorSetupAction` (la verificación en dos pasos ya está activada, #357) | |
 | `auth.two_factor_not_enabled` | 409 | `DisableTwoFactorAction`, `RegenerateTwoFactorRecoveryCodesAction`, `VerifyTwoFactorChallengeAction` (no está activada, o se desactivó entre la contraseña y el código) | |

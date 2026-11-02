@@ -123,6 +123,17 @@ export function PasswordLoginForm({
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground">
+                    ¿Olvidaste tu contraseña?{' '}
+                    <Link
+                        to="/recuperar-contrasena"
+                        // Inline link is exempt from the 44px coarse-pointer touch target per WCAG 2.5.8's inline exception (see `.touch-target-exempt` in index.css).
+                        className="touch-target-exempt font-medium text-foreground underline underline-offset-4"
+                    >
+                        Recuperala
+                    </Link>
+                </p>
+
+                <p className="text-center text-sm text-muted-foreground">
                     ¿No tenés cuenta?{' '}
                     <Link
                         to="/registro"

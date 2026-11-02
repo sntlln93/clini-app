@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
-    PASSWORD_MIN_LENGTH,
-    PASSWORD_TOO_SHORT_MESSAGE,
+    newPasswordSchema,
+    passwordConfirmationSchema,
+    PASSWORDS_DIFFER_MESSAGE,
 } from '@/lib/password';
 import type { SubscriptionBilling } from '@/types/subscription';
 import { useRegister } from '../-hooks/use-register';
@@ -30,17 +31,14 @@ const registerSchema = z
             .string()
             .min(1, 'El correo es obligatorio.')
             .email('El correo no es válido.'),
-        password: z
-            .string()
-            .min(1, 'La contraseña es obligatoria.')
-            .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
-        password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
+        password: newPasswordSchema,
+        password_confirmation: passwordConfirmationSchema,
         plan: z.enum(REGISTER_PLANS),
         billing: z.enum(['monthly', 'annual']),
     })
     .refine((v) => v.password === v.password_confirmation, {
         path: ['password_confirmation'],
-        message: 'Las contraseñas no coinciden.',
+        message: PASSWORDS_DIFFER_MESSAGE,
     });
 
 export type RegisterFormValues = z.infer<typeof registerSchema>;

@@ -26,5 +26,8 @@ Schedule::command('accounts:complete-deletions')->hourly()->withoutOverlapping()
 // Closed contact requests past their retention window (config/contact.php).
 Schedule::command('model:prune', ['--model' => [ContactRequest::class]])->daily()->withoutOverlapping();
 
+// Password reset tokens past their 60 minutes (config/auth.php, #389): each row holds the user's email.
+Schedule::command('auth:clear-resets')->daily()->withoutOverlapping();
+
 // Failed jobs past their retention window (config/queue.php).
 Schedule::command('queue:prune-failed', ['--hours' => config('queue.failed.retention_hours')])->daily()->withoutOverlapping();
