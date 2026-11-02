@@ -60,7 +60,7 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 | Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
 | Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
-| Buscador Nacional de Medicamentos | Recibe solo el término buscado (ADR 0031) | Ninguno | — | La API |
+| Buscador Nacional de Medicamentos | Recibe solo el término buscado, de un medicamento o de la sustancia de una alergia (ADR 0031, #383) | Ninguno | — | La API |
 | Buscador Nacional de Profesionales | Recibe el DNI del profesional (ADR 0032); se guarda lo mínimo | Identificatorios del profesional | Titular | La API |
 | Repositorio y GitHub Actions | Código, secrets de CI (sin datos reales) | Ninguno | Titular | Colaboradores del repo |
 | Backups | Pendientes (#390) | Todas | Titular | Pendiente (#390) |
@@ -160,7 +160,7 @@ Navegador (reserva anónima)   ──HTTPS──▶ Traefik ──▶ API       
 Navegador (landing, SSR)      ──HTTPS──▶ Traefik ──▶ landing (Node) ··· sin datos; su formulario hace POST a la API
 API ──▶ Resend ──▶ mail del paciente: consultorio, día, hora y dirección; código de acceso (ADR 0018, 0029)
 API ──▶ Mercado Pago: suscripción de la organización (sin pacientes)
-API ──▶ Buscador Nacional de Medicamentos: solo el término (ADR 0031)
+API ──▶ Buscador Nacional de Medicamentos: solo el término, sin el paciente (ADR 0031)
 API ──▶ Buscador Nacional de Profesionales: DNI del profesional (ADR 0032)
 ```
 
