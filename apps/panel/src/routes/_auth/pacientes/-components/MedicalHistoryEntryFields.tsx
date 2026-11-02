@@ -14,6 +14,7 @@ import {
     ALLERGY_SEVERITIES,
     type MedicalHistoryCategory,
 } from '@/types/medical-history';
+import { AllergySubstanceField } from './AllergySubstanceField';
 import { OptionSelectField } from './OptionSelectField';
 
 const SEVERITY_ITEMS = ALLERGY_SEVERITIES.map((severity) => ({
@@ -59,8 +60,8 @@ function TextField({
     );
 }
 
-// An allergy names the substance and may say its reaction and severity; an
-// antecedent is free text with an optional approximate date (#361).
+// An allergy names the substance, suggested from the medication catalog
+// (#383), and may say its reaction and severity; an antecedent is free text with an optional approximate date (#361).
 export function MedicalHistoryEntryFields({
     control,
     category,
@@ -71,12 +72,7 @@ export function MedicalHistoryEntryFields({
     if (category === 'allergy') {
         return (
             <>
-                <TextField
-                    control={control}
-                    name="description"
-                    label="Sustancia"
-                    maxLength={500}
-                />
+                <AllergySubstanceField control={control} />
                 <TextField
                     control={control}
                     name="reaction"
