@@ -79,7 +79,8 @@ final class AccountDeletionRules
 
     /**
      * Puts back exactly the memberships the request deactivated, each in the status it had. One whose public link
-     * someone else took in the meantime comes back without it.
+     * someone else took in the meantime comes back without it. A professional one whose organization filled its plan's
+     * last seat meanwhile stays out: over the limit, every write of the practice would answer 409.
      */
     public static function restoreMemberships(AccountDeletionRequest $request): void
     {
@@ -96,16 +97,21 @@ final class AccountDeletionRules
             /** @var MembershipStatus $status */
             $status = $deactivated->previous_status;
 
+            /** @var array<int, MembershipRole> $roles */
+            $roles = $membership->roles;
+            $attends = $status === MembershipStatus::Active && in_array(MembershipRole::Professional, $roles, true);
+
+            if ($attends && self::professionalSeatTaken($membership->organization_id)) {
+                return;
+            }
+
             $membership->restore();
             $membership->update([
                 'status' => $status,
                 'slug' => self::slugTakenByOther($membership) ? null : $membership->slug,
             ]);
 
-            /** @var array<int, MembershipRole> $roles */
-            $roles = $membership->roles;
-
-            if ($status === MembershipStatus::Active && in_array(MembershipRole::Professional, $roles, true)) {
+            if ($attends) {
                 SyncSubscriptionAmountJob::dispatch($membership->organization_id);
             }
         });
@@ -148,6 +154,17 @@ final class AccountDeletionRules
         'medical_history_entry_withdrawals',
     ];
 
+    /** Under the organization's row lock, as every path that adds an active professional. */
+    private static function professionalSeatTaken(int $organizationId): bool
+    {
+        Organization::query()->whereKey($organizationId)->lockForUpdate()->first(['id']);
+
+        $plans = app(OrganizationPlan::class);
+        $limit = $plans->of($organizationId)->professionalLimit();
+
+        return $limit !== null && $plans->activeProfessionals($organizationId) >= $limit;
+    }
+
     private static function slugTakenByOther(Membership $membership): bool
     {
         if ($membership->slug === null) {
@@ -162,11 +179,12 @@ final class AccountDeletionRules
     }
 
     /**
-     * A deleted account's address: unique per user, and under `.invalid` (RFC 2606), a domain no mail can reach.
+     * A deleted account's address: unique per user, and without an `@`, so the `email` rule of every form that writes
+     * one (register, invitation, login) refuses it. A real address can't take it first, and no mail can reach it.
      */
     public static function anonymousEmail(int $userId): string
     {
-        return "cuenta-eliminada-{$userId}@clini.invalid";
+        return "cuenta-eliminada:{$userId}";
     }
 
     /**

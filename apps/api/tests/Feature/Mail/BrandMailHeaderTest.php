@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Enums\ErrorCode;
 use App\Mail\Account\AccountDeletedMail;
+use App\Mail\Account\AccountDeletionCancelledMail;
 use App\Mail\Account\AccountDeletionRequestedMail;
 use App\Mail\Account\AccountDeletionVoidedMail;
 use App\Mail\Appointments\AppointmentReminderMail;
@@ -41,6 +42,7 @@ dataset('mailables', [
     'contact request' => fn (): Mailable => new ContactRequestReceivedMail(ContactRequest::factory()->create()),
     'account deletion requested' => fn (): Mailable => new AccountDeletionRequestedMail('Ana', '9 de noviembre de 2026'),
     'account deleted' => fn (): Mailable => new AccountDeletedMail('Ana'),
+    'account deletion cancelled' => fn (): Mailable => new AccountDeletionCancelledMail('Ana'),
     'account deletion voided' => fn (): Mailable => new AccountDeletionVoidedMail('Ana', ErrorCode::AccountDeletionFutureAppointments, ['Consultorio Oeste']),
 ]);
 

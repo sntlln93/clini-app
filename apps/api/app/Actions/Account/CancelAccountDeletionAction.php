@@ -8,9 +8,11 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Account\AccountDeletionCancellationData;
 use App\Enums\AccountDeletionStatus;
+use App\Mail\Account\AccountDeletionCancelledMail;
 use App\Models\AccountDeletionRequest;
 use App\Support\AccountDeletionRules;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * A completed login within the grace period cancels the user's pending account deletion (#384, ADR 0034) and puts
@@ -43,6 +45,10 @@ class CancelAccountDeletionAction implements Action
                 'status' => AccountDeletionStatus::Cancelled,
                 'resolved_at' => now(),
             ]);
+
+            // Every path that logs in cancels it, some without a page to say so (an invitation, the email check); the
+            // mail also tells the owner if someone else got in.
+            Mail::to($dto->user->email)->queue(new AccountDeletionCancelledMail(name: $dto->user->name));
 
             return true;
         });

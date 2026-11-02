@@ -3,19 +3,24 @@
 declare(strict_types=1);
 
 use App\Enums\AccountDeletionStatus;
+use App\Enums\AdminAuditAction;
+use App\Enums\AdminAuditSubject;
 use App\Enums\AppointmentStatus;
 use App\Enums\ErrorCode;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Mail\Account\AccountDeletedMail;
+use App\Mail\Account\AccountDeletionCancelledMail;
 use App\Mail\Account\AccountDeletionRequestedMail;
 use App\Mail\Account\AccountDeletionVoidedMail;
 use App\Models\AccountDeletion;
 use App\Models\AccountDeletionRequest;
+use App\Models\AdminAuditLog;
 use App\Models\Appointment;
 use App\Models\ClinicalNote;
 use App\Models\Membership;
 use App\Models\MembershipInvitation;
+use App\Models\PatientLookup;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
 use App\Models\UserSpecialty;
@@ -177,7 +182,7 @@ test('at its date the account loses its personal data and leaves a trace without
 
     $user->refresh();
     expect($user->name)->toBe(AccountDeletionRules::ANONYMOUS_NAME)
-        ->and($user->email)->toBe("cuenta-eliminada-{$user->id}@clini.invalid")
+        ->and($user->email)->toBe("cuenta-eliminada:{$user->id}")
         ->and($user->email_verified_at)->toBeNull()
         ->and($user->document_number)->toBeNull()
         ->and($user->two_factor_secret)->toBeNull()
@@ -315,4 +320,89 @@ test('the mails say when, how to cancel, and what blocked it', function () {
     (new AccountDeletionVoidedMail('Ana', ErrorCode::AccountDeletionFutureAppointments, ['Consultorio Oeste']))
         ->assertSeeInHtml('tenés turnos por atender en')
         ->assertSeeInHtml('reasigná o cancelá esos turnos');
+});
+
+test('nobody can take the anonymous address first: no form accepts it', function () {
+    fromPanel()->postJson('/api/v1/register', [
+        'name' => 'Ocupa',
+        'email' => AccountDeletionRules::anonymousEmail(42),
+        'password' => 'password123',
+        'password_confirmation' => 'password123',
+        'organization_name' => 'Clínica Ocupa',
+        'timezone' => 'America/Argentina/Buenos_Aires',
+    ])->assertStatus(422)->assertJsonValidationErrors('email');
+});
+
+test('what the law or the audit keeps survives, naming the user only by the anonymous address', function () {
+    $membership = professionalWithAnotherOwner();
+    $user = $membership->user;
+    $email = $user->email;
+    $blocked = AdminAuditLog::factory()->create([
+        'action' => AdminAuditAction::UserBlocked,
+        'subject_type' => AdminAuditSubject::User,
+        'subject_id' => $user->id,
+        'metadata' => ['subject_label' => $email, 'reason' => 'Spam'],
+    ]);
+    $other = AdminAuditLog::factory()->create([
+        'action' => AdminAuditAction::UserBlocked,
+        'subject_type' => AdminAuditSubject::User,
+        'subject_id' => $user->id + 1000,
+        'metadata' => ['subject_label' => 'otra@example.com', 'reason' => 'Spam'],
+    ]);
+    $lookup = PatientLookup::query()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'patient_id' => null,
+    ]);
+    $appointment = Appointment::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'membership_id' => $membership->id,
+        'status' => AppointmentStatus::Completed,
+        'start_at' => now()->subDays(3),
+        'end_at' => now()->subDays(3)->addMinutes(30),
+    ]);
+    pendingAccountDeletion($user);
+
+    $this->travel(7)->days();
+    $this->artisan('accounts:complete-deletions')->assertSuccessful();
+
+    expect($blocked->fresh()?->metadata)->toBe(['reason' => 'Spam', 'subject_label' => AccountDeletionRules::anonymousEmail($user->id)])
+        ->and($other->fresh()?->metadata)->toBe(['reason' => 'Spam', 'subject_label' => 'otra@example.com'])
+        ->and($lookup->fresh()?->membership_id)->toBe($membership->id)
+        ->and(Appointment::withoutGlobalScope('organization')->find($appointment->id)?->membership_id)->toBe($membership->id);
+});
+
+test('cancelling it mails the user, whatever way they logged in', function () {
+    $user = professionalWithAnotherOwner()->user;
+    pendingAccountDeletion($user);
+
+    fromPanel()->postJson('/api/v1/login', ['email' => $user->email, 'password' => 'password'])->assertOk();
+
+    Mail::assertQueued(AccountDeletionCancelledMail::class, fn (AccountDeletionCancelledMail $mail): bool => $mail->hasTo($user->email)
+        && $mail->name === $user->name);
+});
+
+test('a professional membership whose plan seat was taken meanwhile stays out, so the practice isn\'t blocked', function () {
+    // The default organization is on Free: one professional.
+    $membership = professionalWithAnotherOwner();
+    $user = $membership->user;
+    pendingAccountDeletion($user);
+    Membership::factory()->professional()->create(['organization_id' => $membership->organization_id]);
+
+    fromPanel()->postJson('/api/v1/login', ['email' => $user->email, 'password' => 'password'])
+        ->assertOk()
+        ->assertJsonPath('account_deletion_cancelled', true);
+
+    expect(trashedMembership($membership->id)?->trashed())->toBeTrue()
+        ->and(AccountDeletionRequest::query()->sole()->status)->toBe(AccountDeletionStatus::Cancelled);
+});
+
+test('a login racing the deletion gets no session for the deleted account', function () {
+    $user = professionalWithAnotherOwner()->user;
+    // As if the deletion committed while the password was being checked.
+    AccountDeletion::query()->create(['user_id' => $user->id]);
+
+    fromPanel()->postJson('/api/v1/login', ['email' => $user->email, 'password' => 'password'])->assertUnauthorized();
+
+    $this->assertGuest('web');
 });

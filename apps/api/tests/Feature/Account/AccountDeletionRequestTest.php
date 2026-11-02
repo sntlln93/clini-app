@@ -230,3 +230,32 @@ test('a guest can\'t request it, nor a script on the dashboard origin', function
 
     expect(AccountDeletionRequest::query()->exists())->toBeFalse();
 });
+
+test('a session opened elsewhere is ended by the request on its next call', function () {
+    $user = deletableProfessional()->user;
+    fromPanel()->postJson('/api/v1/login', ['email' => $user->email, 'password' => 'password'])->assertOk();
+    fromPanel()->getJson('/api/v1/me')->assertOk();
+    $openSession = app('session.store')->all();
+    freshRequestState();
+
+    // Another device asks for the deletion.
+    requestAccountDeletion(User::query()->findOrFail($user->id))->assertStatus(202);
+    freshRequestState();
+
+    // The first device comes back with its own session.
+    $this->withSession($openSession);
+    fromPanel()->getJson('/api/v1/me')->assertUnauthorized();
+});
+
+test('asking again from another session answers the same request', function () {
+    $user = deletableProfessional()->user;
+    requestAccountDeletion($user)->assertStatus(202);
+    freshRequestState();
+    $this->travel(1)->hours();
+
+    requestAccountDeletion(User::query()->findOrFail($user->id))
+        ->assertStatus(202)
+        ->assertExactJson(['data' => ['deletes_at' => '2026-11-09T15:00:00+00:00']]);
+
+    expect(AccountDeletionRequest::query()->count())->toBe(1);
+});

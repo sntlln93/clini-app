@@ -26,7 +26,8 @@ use Illuminate\Support\Facades\Mail;
  * Opens the grace period of a clinic user's own account deletion (#384, ADR 0034): checks the second factor, refuses
  * while the user is the last owner or admin of an organization or has appointments to attend, deactivates every
  * membership (so no appointment comes in meanwhile) remembering each one's status, and mails the date. All in one
- * transaction: a refusal also gives back a recovery code it spent.
+ * transaction: a refusal also gives back a recovery code it spent. Two co-owners asking at once lock each other's
+ * memberships in opposite order; the deadlock's loser retries and gets the 409.
  *
  * @implements Action<AccountDeletionRequestData>
  */
@@ -47,6 +48,13 @@ class RequestAccountDeletionAction implements Action
 
             if ($user->hasTwoFactorEnabled()) {
                 $this->verifyTwoFactor->handle(new TwoFactorChallengeData($user, $dto->code, $dto->recoveryCode));
+            }
+
+            // Another session of the same account asked first: the same request, not a second one.
+            $pending = AccountDeletionRequest::query()->pending()->where('user_id', $user->id)->first();
+
+            if ($pending !== null) {
+                return $pending;
             }
 
             $memberships = Membership::withoutGlobalScope('organization')
@@ -86,6 +94,6 @@ class RequestAccountDeletionAction implements Action
             ));
 
             return $request;
-        });
+        }, attempts: 3);
     }
 }
