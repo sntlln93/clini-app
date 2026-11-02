@@ -1,5 +1,6 @@
 import { api, refreshCsrfCookie } from '@/lib/api';
 import { sessionQueryOptions } from '@/lib/session';
+import { notifySuccess } from '@/lib/toast';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
     createMemoryHistory,
@@ -17,6 +18,8 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
     refreshCsrfCookie: vi.fn(() => Promise.resolve({ data: '' })),
 }));
+
+vi.mock('@/lib/toast', () => ({ notifySuccess: vi.fn() }));
 
 function unauthorizedError(data: unknown, status = 422) {
     return { isAxiosError: true, response: { status, data } };
@@ -77,6 +80,44 @@ async function submitValidCredentials() {
 }
 
 describe('LoginForm', () => {
+    it('says when the login cancelled a pending account deletion, and keeps the flag out of the session', async () => {
+        vi.mocked(notifySuccess).mockReset();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: {
+                id: 1,
+                name: 'Ana',
+                email: 'ana@clini.app',
+                account_deletion_cancelled: true,
+            },
+        });
+        const { queryClient } = renderLoginForm();
+
+        await submitValidCredentials();
+
+        await screen.findByText('Agenda');
+        expect(notifySuccess).toHaveBeenCalledWith(
+            'Cancelamos la eliminación de tu cuenta: todo quedó como antes.',
+        );
+        expect(queryClient.getQueryData(sessionQueryOptions.queryKey)).toEqual({
+            id: 1,
+            name: 'Ana',
+            email: 'ana@clini.app',
+        });
+    });
+
+    it('says nothing about a deletion on an ordinary login', async () => {
+        vi.mocked(notifySuccess).mockReset();
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { id: 1, name: 'Ana', email: 'ana@clini.app' },
+        });
+        renderLoginForm();
+
+        await submitValidCredentials();
+
+        await screen.findByText('Agenda');
+        expect(notifySuccess).not.toHaveBeenCalled();
+    });
+
     it('sends email and password to POST /login on submit', async () => {
         vi.mocked(api.post).mockResolvedValueOnce({
             data: { id: 1, name: 'Ana', email: 'ana@clini.app' },

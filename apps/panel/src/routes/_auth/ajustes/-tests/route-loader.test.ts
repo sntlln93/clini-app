@@ -109,6 +109,7 @@ function mockApiGet(
         name: string;
         email: string;
         permissions: string[];
+        two_factor_enabled?: boolean;
         roles?: string[];
         organization?: { id: number; name: string; slug: string } | null;
         membership: Membership | null;
@@ -328,11 +329,16 @@ describe('Protección de datos tab', () => {
     });
 
     it('shows the export to a professional and the exceptional accesses to the owner', async () => {
-        mockApiGet({ ...ANA, roles: ['owner', 'professional'] });
+        mockApiGet({
+            ...ANA,
+            roles: ['owner', 'professional'],
+            two_factor_enabled: true,
+        });
 
         expect(await loadDataProtection()).toEqual({
             isProfessional: true,
             isOwner: true,
+            twoFactorEnabled: true,
         });
     });
 
@@ -341,11 +347,13 @@ describe('Protección de datos tab', () => {
             ...ANA,
             roles: ['staff'],
             membership: { ...OWN_MEMBERSHIP, roles: ['staff'] },
+            two_factor_enabled: false,
         });
 
         expect(await loadDataProtection()).toEqual({
             isProfessional: false,
             isOwner: false,
+            twoFactorEnabled: false,
         });
     });
 });

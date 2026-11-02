@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Account\AccountDeletionController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Auth\EmailVerificationController;
 use App\Http\Controllers\Auth\TwoFactorChallengeController;
@@ -30,4 +31,9 @@ Route::middleware('clinic.origin')->group(function (): void {
         Route::delete('/', [TwoFactorController::class, 'destroy']);
         Route::post('/recovery-codes', [TwoFactorController::class, 'regenerateRecoveryCodes']);
     });
+
+    // The signed-in user's own account deletion (#384): checks the password and the second factor, so it shares
+    // their bucket.
+    Route::post('/me/account-deletion', [AccountDeletionController::class, 'store'])
+        ->middleware(['auth:sanctum', 'not-blocked', 'throttle:two-factor']);
 });

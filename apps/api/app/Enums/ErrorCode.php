@@ -75,4 +75,6 @@ enum ErrorCode: string
     case AuthTwoFactorSetupMissing = 'auth.two_factor_setup_missing';
     case AuthTwoFactorCodeInvalid = 'auth.two_factor_code_invalid';
     case AuthTwoFactorChallengeExpired = 'auth.two_factor_challenge_expired';
+    case AccountDeletionLastActiveAdmin = 'account.deletion_last_active_admin';
+    case AccountDeletionFutureAppointments = 'account.deletion_future_appointments';
 }

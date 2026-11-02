@@ -6,6 +6,7 @@ namespace App\Http\Resources\Auth;
 
 use App\Enums\MembershipStatus;
 use App\Http\Resources\Memberships\MembershipResource;
+use App\Listeners\Auth\CancelAccountDeletionOnLogin;
 use App\Models\Membership;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -42,6 +43,11 @@ class SessionUserResource extends JsonResource
                 ? array_map(fn ($permission): string => $permission->value, $membership->permissions())
                 : [],
             'membership' => $membership !== null ? new MembershipResource($membership) : null,
+            // Only on the login that cancelled a pending account deletion (#384).
+            'account_deletion_cancelled' => $this->when(
+                $request->attributes->get(CancelAccountDeletionOnLogin::CANCELLED_ATTRIBUTE) === true,
+                true,
+            ),
         ]);
     }
 

@@ -23,6 +23,8 @@ export type SessionUser = {
     // The caller's own membership, same shape as a GET /memberships item.
     // Absent/null for a user with no active membership.
     membership?: Membership | null;
+    /** Only on the login that cancelled a pending account deletion (#384). */
+    account_deletion_cancelled?: true;
 };
 
 export const sessionQueryOptions = queryOptions({

@@ -521,6 +521,23 @@ Convenciones:
   - De la respuesta se guarda lo mínimo (código REFEPS, entidad emisora, especialidad, situación y
     fecha); nunca el CUIL, el sexo ni el nombre.
 
+### CU-58 · Un usuario elimina su propia cuenta *(issue #384)*
+
+- **Actor**: cualquier usuario del consultorio (dueño, admin, profesional, recepción).
+- **Flujo**: desde Ajustes › Protección de datos pide eliminar su cuenta con su contraseña (y el
+  segundo factor si lo tiene). Deja de figurar en todos sus consultorios y se cierran sus sesiones;
+  tiene 7 días para arrepentirse ingresando de nuevo. Al vencer, la cuenta se anonimiza.
+- **Invariantes**:
+  - No se puede pedir siendo el último dueño o admin activo de un consultorio, ni con turnos por
+    atender como profesional: se resuelve antes, nada se cancela ni se transfiere solo.
+  - Ingresar dentro de la gracia vuelve todo a como estaba: exactamente las membresías que el
+    pedido desactivó, con sus roles.
+  - La fila del usuario no se borra (CU-05: lo histórico sigue apuntando a la membresía). Se borran
+    el email, las credenciales, el DNI, las matrículas y las especialidades; el nombre se conserva
+    solo si firmó algún registro clínico o figura en el registro de accesos de una historia
+    (ADR 0034).
+  - Queda una constancia de solo agregado sin datos personales (id y fecha).
+
 ### CU-44 · Marca y URL pública de la organización
 
 - **Actor**: paciente que entra a `clini.ar/consultorio-belgrano`.
@@ -808,6 +825,7 @@ cambios a los mocks): la identidad del paciente por **documento con selector de 
 | CU-45 | Nota clínica ligada a turno↔profesional↔organización |
 | CU-53 | Medicación indicada ligada a turno↔profesional autor↔organización |
 | CU-55 | Registro de accesos de solo agregado, con motivo fuera de turno |
+| CU-58 | Usuario anonimizado en vez de borrado, con gracia que restaura exactamente lo desactivado |
 | CU-47, CU-48 | Demografía y obra social del paciente global |
 | CU-49 | Motivo opcional del turno (≠ nota clínica) |
 | CU-50 | Dirección polimórfica, solo organización por ahora |

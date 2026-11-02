@@ -67,7 +67,9 @@ export type ErrorCode =
     | 'auth.two_factor_not_enabled'
     | 'auth.two_factor_setup_missing'
     | 'auth.two_factor_code_invalid'
-    | 'auth.two_factor_challenge_expired';
+    | 'auth.two_factor_challenge_expired'
+    | 'account.deletion_last_active_admin'
+    | 'account.deletion_future_appointments';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -197,6 +199,10 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'El código no es válido o ya se usó. Probá con el código que muestra ahora tu app.',
     'auth.two_factor_challenge_expired':
         'El inicio de sesión venció. Ingresá de nuevo tu correo y tu contraseña.',
+    'account.deletion_last_active_admin':
+        'Antes de eliminar tu cuenta, sumá a otra persona como dueña o administradora donde sos la única.',
+    'account.deletion_future_appointments':
+        'Antes de eliminar tu cuenta, reasigná o cancelá los turnos que tenés por atender.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

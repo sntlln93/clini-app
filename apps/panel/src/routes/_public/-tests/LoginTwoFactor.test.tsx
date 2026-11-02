@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { sessionQueryOptions } from '@/lib/session';
+import { notifySuccess } from '@/lib/toast';
 import { stubElementFromPoint } from '@/tests/input-otp';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
@@ -18,6 +19,8 @@ vi.mock('@/lib/api', () => ({
     api: { get: vi.fn(), post: vi.fn() },
     refreshCsrfCookie: vi.fn(() => Promise.resolve({ data: '' })),
 }));
+
+vi.mock('@/lib/toast', () => ({ notifySuccess: vi.fn() }));
 
 const SESSION_USER = {
     id: 7,
@@ -117,6 +120,26 @@ describe('LoginForm with two-factor authentication', () => {
         expect(api.post).toHaveBeenLastCalledWith('/login/two-factor', {
             code: '123456',
         });
+        expect(queryClient.getQueryData(sessionQueryOptions.queryKey)).toEqual(
+            SESSION_USER,
+        );
+    });
+
+    it('says when the second step cancelled a pending account deletion, and keeps the flag out of the session', async () => {
+        vi.mocked(notifySuccess).mockReset();
+        const { queryClient } = renderLoginForm();
+        const codeInput = await passPasswordStep();
+
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: { ...SESSION_USER, account_deletion_cancelled: true },
+        });
+        fireEvent.change(codeInput, { target: { value: '123456' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Verificar' }));
+
+        await screen.findByText('Agenda');
+        expect(notifySuccess).toHaveBeenCalledWith(
+            'Cancelamos la eliminación de tu cuenta: todo quedó como antes.',
+        );
         expect(queryClient.getQueryData(sessionQueryOptions.queryKey)).toEqual(
             SESSION_USER,
         );
