@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
+import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
+import { sessionQueryOptions } from '@/lib/session';
 import {
     blockingOrganizations,
     useDeleteAccount,
@@ -23,6 +25,7 @@ import {
     deleteAccountSchema,
     type DeleteAccountValues,
 } from './delete-account-schema';
+import { DeleteAccountRefusal } from './DeleteAccountRefusal';
 import { DeleteAccountSecondFactorField } from './DeleteAccountSecondFactorField';
 
 type DeleteAccountFormProps = {
@@ -45,6 +48,7 @@ export function DeleteAccountForm({
         defaultValues: { password: '', code: '' },
     });
     const { mutateAsync } = useDeleteAccount();
+    const refreshPageData = useRefreshPageData();
 
     async function submit({ password, code }: DeleteAccountValues) {
         setBlockedBy([]);
@@ -56,13 +60,28 @@ export function DeleteAccountForm({
             });
         } catch (error) {
             setBlockedBy(blockingOrganizations(error));
+            const errors = extractFormErrors(error, {
+                'auth.two_factor_code_invalid': 'code',
+            });
+            // Without the field on screen, the code's error goes to the top.
             applyFormErrors(
                 form,
-                extractFormErrors(error, {
-                    'auth.two_factor_code_invalid': 'code',
-                }),
-                { password: 'password', code: 'code', recovery_code: 'code' },
+                errors,
+                twoFactorEnabled
+                    ? {
+                          password: 'password',
+                          code: 'code',
+                          recovery_code: 'code',
+                      }
+                    : { password: 'password' },
             );
+            // The factor was turned on since this page loaded: the reloaded
+            // session brings the field; if it fails, the message still says why.
+            if (!twoFactorEnabled && 'code' in errors.errors) {
+                await refreshPageData(sessionQueryOptions.queryKey).catch(
+                    () => undefined,
+                );
+            }
         }
     }
 
@@ -76,20 +95,11 @@ export function DeleteAccountForm({
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(submit)} className="grid gap-4">
-                {form.formState.errors.root && (
-                    <div
-                        role="alert"
-                        className="space-y-1 text-sm text-destructive"
-                    >
-                        <p>{form.formState.errors.root.message}</p>
-                        {blockedBy.length > 0 && (
-                            <ul className="list-disc pl-5">
-                                {blockedBy.map((name) => (
-                                    <li key={name}>{name}</li>
-                                ))}
-                            </ul>
-                        )}
-                    </div>
+                {form.formState.errors.root?.message && (
+                    <DeleteAccountRefusal
+                        message={form.formState.errors.root.message}
+                        organizations={blockedBy}
+                    />
                 )}
                 <FormField
                     control={form.control}

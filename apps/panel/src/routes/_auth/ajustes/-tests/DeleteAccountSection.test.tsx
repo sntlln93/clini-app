@@ -1,5 +1,6 @@
 import { api } from '@/lib/api';
 import { setPracticeTimeZone } from '@/lib/datetime';
+import { sessionQueryOptions } from '@/lib/session';
 import { notifySuccess } from '@/lib/toast';
 import { stubElementFromPoint } from '@/tests/input-otp';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -17,10 +18,15 @@ vi.mock('@/lib/toast', () => ({
 }));
 
 const navigate = vi.fn();
+const invalidate = vi.fn(() => Promise.resolve());
 vi.mock('@tanstack/react-router', async (importOriginal) => {
     const actual =
         await importOriginal<typeof import('@tanstack/react-router')>();
-    return { ...actual, useNavigate: () => navigate };
+    return {
+        ...actual,
+        useNavigate: () => navigate,
+        useRouter: () => ({ invalidate }),
+    };
 });
 
 function businessError(code: string, organizations: string[]) {
@@ -75,6 +81,7 @@ describe('DeleteAccountSection', () => {
         vi.mocked(api.post).mockReset();
         vi.mocked(notifySuccess).mockReset();
         navigate.mockReset();
+        invalidate.mockClear();
     });
 
     it("says what goes, what stays and how long there is to change one's mind", () => {
@@ -179,6 +186,47 @@ describe('DeleteAccountSection', () => {
 
         await screen.findByText('La contraseña no es correcta.');
         expect(navigate).not.toHaveBeenCalled();
+    });
+
+    it('when the factor was turned on since the page loaded, says the code is missing and reloads the session', async () => {
+        vi.mocked(api.get).mockResolvedValue({
+            data: { id: 1, two_factor_enabled: true },
+        });
+        vi.mocked(api.post).mockRejectedValueOnce({
+            isAxiosError: true,
+            response: {
+                status: 422,
+                data: {
+                    message: 'Ingresá el código de tu app de autenticación.',
+                    errors: {
+                        code: ['Ingresá el código de tu app de autenticación.'],
+                    },
+                },
+            },
+        });
+        const queryClient = renderSection(false);
+        // As the route's loader leaves it.
+        await queryClient.fetchQuery({ ...sessionQueryOptions, staleTime: 0 });
+
+        await openDialog();
+        confirm();
+
+        const alert = await screen.findByRole('alert');
+        expect(alert.textContent).toContain(
+            'Ingresá el código de tu app de autenticación.',
+        );
+        await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    });
+
+    it('gives focus back to the button that opened it when cancelled', async () => {
+        renderSection();
+
+        const trigger = screen.getByRole('button', { name: 'Eliminar cuenta' });
+        trigger.focus();
+        await openDialog();
+        fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
+
+        await waitFor(() => expect(document.activeElement).toBe(trigger));
     });
 
     it.each([

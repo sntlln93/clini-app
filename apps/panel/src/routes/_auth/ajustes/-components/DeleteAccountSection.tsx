@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import {
@@ -22,18 +22,11 @@ export function DeleteAccountSection({
     twoFactorEnabled,
 }: DeleteAccountSectionProps) {
     const [open, setOpen] = useState(false);
-    const titleRef = useRef<HTMLHeadingElement>(null);
 
     return (
         <section className="space-y-3">
             <div className="space-y-2">
-                <h2
-                    ref={titleRef}
-                    tabIndex={-1}
-                    className="text-sm font-medium outline-none"
-                >
-                    Eliminar cuenta
-                </h2>
+                <h2 className="text-sm font-medium">Eliminar cuenta</h2>
                 <p className="text-sm text-muted-foreground">
                     Al pedirlo dejás de figurar en la agenda y en la reserva
                     online de todos tus consultorios, y se cierran tus sesiones.
@@ -61,7 +54,7 @@ export function DeleteAccountSection({
             </Button>
 
             <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent finalFocus={titleRef}>
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Eliminar tu cuenta</DialogTitle>
                         <DialogDescription>
