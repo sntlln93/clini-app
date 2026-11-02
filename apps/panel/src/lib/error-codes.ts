@@ -69,7 +69,8 @@ export type ErrorCode =
     | 'auth.two_factor_code_invalid'
     | 'auth.two_factor_challenge_expired'
     | 'account.deletion_last_active_admin'
-    | 'account.deletion_future_appointments';
+    | 'account.deletion_future_appointments'
+    | 'auth.password_reset_invalid_or_expired';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -203,6 +204,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Antes de eliminar tu cuenta, sumá a otra persona como dueña o administradora donde sos la única.',
     'account.deletion_future_appointments':
         'Antes de eliminar tu cuenta, reasigná o cancelá los turnos que tenés por atender.',
+    'auth.password_reset_invalid_or_expired':
+        'El enlace para restablecer la contraseña no es válido, ya venció o no corresponde a ese correo. Pedí uno nuevo.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */

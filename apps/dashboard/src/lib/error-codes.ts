@@ -69,7 +69,8 @@ export type ErrorCode =
     | 'auth.two_factor_code_invalid'
     | 'auth.two_factor_challenge_expired'
     | 'account.deletion_last_active_admin'
-    | 'account.deletion_future_appointments';
+    | 'account.deletion_future_appointments'
+    | 'auth.password_reset_invalid_or_expired';
 
 /** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
 export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
@@ -207,6 +208,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'El usuario es el único dueño o administrador activo de un consultorio.',
     'account.deletion_future_appointments':
         'El usuario tiene turnos por atender como profesional.',
+    'auth.password_reset_invalid_or_expired':
+        'El enlace para restablecer la contraseña no es válido o ya venció.',
 };
 
 /** Generic copy for every non-`'business'` `AppError` kind; `validation` here is only the fallback when the 422 carries no top-level message. */
