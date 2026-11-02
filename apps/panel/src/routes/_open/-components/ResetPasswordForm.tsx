@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -15,13 +16,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { NewPasswordFields } from '@/features/new-password/NewPasswordFields';
+import { mapToAppError } from '@/lib/api-errors';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     newPasswordSchema,
     passwordConfirmationSchema,
     PASSWORDS_DIFFER_MESSAGE,
 } from '@/lib/password';
-import { useResetPassword } from '../-hooks/use-password-reset';
+import { useResetPassword } from '../-hooks/use-reset-password';
 
 const resetPasswordSchema = z
     .object({
@@ -44,8 +46,9 @@ type ResetPasswordFormProps = {
 };
 
 /**
- * The page the reset mail links to (#389). The link carries the token alone,
- * so the address is typed again here and never travels in a URL.
+ * The page the reset mail links to (#389), open with or without a session.
+ * The link carries the token alone, so the address is typed again here and
+ * never travels in a URL.
  */
 export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
     const form = useForm<ResetPasswordValues>({
@@ -53,11 +56,19 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
         defaultValues: { email: '', password: '', password_confirmation: '' },
     });
     const { mutateAsync } = useResetPassword();
+    // Only a spent, expired or mismatched link calls for a new one.
+    const [linkRejected, setLinkRejected] = useState(false);
 
     async function onSubmit(values: ResetPasswordValues) {
+        setLinkRejected(false);
         try {
             await mutateAsync({ ...values, token });
         } catch (error) {
+            const appError = mapToAppError(error);
+            setLinkRejected(
+                appError.kind === 'business' &&
+                    appError.code === 'auth.password_reset_invalid_or_expired',
+            );
             applyFormErrors(form, extractFormErrors(error), {
                 email: 'email',
                 password: 'password',
@@ -87,13 +98,15 @@ export function ResetPasswordForm({ token }: ResetPasswordFormProps) {
                         className="space-y-1 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
                     >
                         <p>{rootMessage}</p>
-                        <Link
-                            to="/recuperar-contrasena"
-                            // Inline link is exempt from the 44px coarse-pointer touch target per WCAG 2.5.8's inline exception (see `.touch-target-exempt` in index.css).
-                            className="touch-target-exempt font-medium underline underline-offset-4"
-                        >
-                            Pedir un enlace nuevo
-                        </Link>
+                        {linkRejected && (
+                            <Link
+                                to="/recuperar-contrasena"
+                                // Inline link is exempt from the 44px coarse-pointer touch target per WCAG 2.5.8's inline exception (see `.touch-target-exempt` in index.css).
+                                className="touch-target-exempt font-medium underline underline-offset-4"
+                            >
+                                Pedir un enlace nuevo
+                            </Link>
+                        )}
                     </div>
                 )}
 

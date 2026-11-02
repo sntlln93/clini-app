@@ -11,7 +11,6 @@ import {
 } from '@tanstack/react-router';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ForgotPasswordForm } from '../-components/ForgotPasswordForm';
 import { ResetPasswordForm } from '../-components/ResetPasswordForm';
 
 vi.mock('@/lib/api', () => ({
@@ -31,6 +30,8 @@ function renderAt(initialPath: string) {
     const queryClient = new QueryClient({
         defaultOptions: { mutations: { retry: false } },
     });
+    // A session this browser had open: the reset ends it.
+    queryClient.setQueryData(['session'], { id: 1 });
     const rootRoute = createRootRoute({
         component: () => (
             <QueryClientProvider client={queryClient}>
@@ -39,11 +40,6 @@ function renderAt(initialPath: string) {
         ),
     });
     const routeTree = rootRoute.addChildren([
-        createRoute({
-            getParentRoute: () => rootRoute,
-            path: '/recuperar-contrasena',
-            component: ForgotPasswordForm,
-        }),
         createRoute({
             getParentRoute: () => rootRoute,
             path: '/restablecer-contrasena/$token',
@@ -61,71 +57,13 @@ function renderAt(initialPath: string) {
     });
     render(<RouterProvider router={router} />);
 
-    return { router };
+    return { router, queryClient };
 }
 
 beforeEach(() => {
     vi.mocked(api.post).mockReset();
     vi.mocked(refreshCsrfCookie).mockClear();
     vi.mocked(notifySuccess).mockClear();
-});
-
-describe('ForgotPasswordForm', () => {
-    async function askForLink(email: string) {
-        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
-            target: { value: email },
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Enviar enlace' }));
-    }
-
-    it('asks for the link and says the same thing whatever the address', async () => {
-        vi.mocked(api.post).mockResolvedValue({ status: 202, data: '' });
-        renderAt('/recuperar-contrasena');
-
-        await askForLink('ana@clini.app');
-
-        expect(
-            await screen.findByText(
-                /Si hay una cuenta con ese correo, te enviamos un enlace/,
-            ),
-        ).not.toBeNull();
-        expect(refreshCsrfCookie).toHaveBeenCalled();
-        expect(api.post).toHaveBeenCalledWith('/password-reset-links', {
-            email: 'ana@clini.app',
-        });
-        expect(
-            screen
-                .getByRole('link', { name: 'Iniciá sesión' })
-                .getAttribute('href'),
-        ).toBe('/login');
-    });
-
-    it('asks for the address before sending', async () => {
-        renderAt('/recuperar-contrasena');
-
-        await askForLink('');
-
-        expect(
-            await screen.findByText('El correo es obligatorio.'),
-        ).not.toBeNull();
-        expect(api.post).not.toHaveBeenCalled();
-    });
-
-    it('says when there were too many requests', async () => {
-        vi.mocked(api.post).mockRejectedValue(
-            httpError(429, { message: 'Too Many Attempts.' }),
-        );
-        renderAt('/recuperar-contrasena');
-
-        await askForLink('ana@clini.app');
-
-        expect(
-            await screen.findByText(
-                'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
-            ),
-        ).not.toBeNull();
-        expect(screen.queryByText(/te enviamos un enlace/)).toBeNull();
-    });
 });
 
 describe('ResetPasswordForm', () => {
@@ -149,13 +87,16 @@ describe('ResetPasswordForm', () => {
 
     it('sends the token from the link with the typed address and goes to the login, signed out', async () => {
         vi.mocked(api.post).mockResolvedValue({ status: 204, data: '' });
-        const { router } = renderAt('/restablecer-contrasena/token-del-mail');
+        const { router, queryClient } = renderAt(
+            '/restablecer-contrasena/token-del-mail',
+        );
 
         await fillAndSubmit();
 
         await waitFor(() =>
             expect(router.state.location.pathname).toBe('/login'),
         );
+        expect(queryClient.getQueryData(['session'])).toBeUndefined();
         expect(api.post).toHaveBeenCalledWith('/password-resets', {
             token: 'token-del-mail',
             email: 'ana@clini.app',
@@ -236,5 +177,36 @@ describe('ResetPasswordForm', () => {
         expect(router.state.location.pathname).toBe(
             '/restablecer-contrasena/token-del-mail',
         );
+    });
+});
+
+describe('ResetPasswordForm errors that are not the link', () => {
+    it('does not offer a new link when the request was only throttled', async () => {
+        vi.mocked(api.post).mockRejectedValue(
+            httpError(429, { message: 'Too Many Attempts.' }),
+        );
+        renderAt('/restablecer-contrasena/token-del-mail');
+
+        fireEvent.change(await screen.findByLabelText('Correo electrónico'), {
+            target: { value: 'ana@clini.app' },
+        });
+        fireEvent.change(screen.getByLabelText('Contraseña nueva'), {
+            target: { value: NEW_PASSWORD },
+        });
+        fireEvent.change(screen.getByLabelText('Repetí la contraseña nueva'), {
+            target: { value: NEW_PASSWORD },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Cambiar contraseña' }),
+        );
+
+        expect(
+            await screen.findByText(
+                'Hiciste demasiados intentos. Esperá un momento y volvé a intentar.',
+            ),
+        ).not.toBeNull();
+        expect(
+            screen.queryByRole('link', { name: 'Pedir un enlace nuevo' }),
+        ).toBeNull();
     });
 });

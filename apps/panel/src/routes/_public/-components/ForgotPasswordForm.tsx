@@ -1,6 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Link } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Spinner } from '@/components/ui/spinner';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
-import { useRequestPasswordReset } from '../-hooks/use-password-reset';
+import { useRequestPasswordReset } from '../-hooks/use-request-password-reset';
 
 const forgotPasswordSchema = z.object({
     email: z
@@ -46,16 +46,7 @@ export function ForgotPasswordForm() {
     }
 
     if (sent) {
-        return (
-            <div className="space-y-4 text-center">
-                <h1 className="text-2xl tracking-tight">Revisá tu correo</h1>
-                <p role="status" className="text-sm text-muted-foreground">
-                    Si hay una cuenta con ese correo, te enviamos un enlace para
-                    elegir una contraseña nueva. Vence en 60 minutos.
-                </p>
-                <BackToLogin />
-            </div>
-        );
+        return <LinkSent />;
     }
 
     return (
@@ -113,6 +104,37 @@ export function ForgotPasswordForm() {
                 <BackToLogin />
             </form>
         </Form>
+    );
+}
+
+/** Replaces the form, so focus moves to its title instead of falling to the page. */
+function LinkSent() {
+    const titleRef = useRef<HTMLHeadingElement>(null);
+
+    useEffect(() => {
+        titleRef.current?.focus();
+    }, []);
+
+    return (
+        <div className="space-y-4 text-center">
+            <h1
+                ref={titleRef}
+                tabIndex={-1}
+                aria-describedby="password-reset-link-sent"
+                className="text-2xl tracking-tight outline-none"
+            >
+                Revisá tu correo
+            </h1>
+            <p
+                id="password-reset-link-sent"
+                role="status"
+                className="text-sm text-muted-foreground"
+            >
+                Si hay una cuenta con ese correo, te enviamos un enlace para
+                elegir una contraseña nueva. Vence en 60 minutos.
+            </p>
+            <BackToLogin />
+        </div>
     );
 }
 

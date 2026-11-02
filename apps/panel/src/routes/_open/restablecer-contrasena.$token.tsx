@@ -2,7 +2,7 @@ import { titleHead } from '@/lib/page-title';
 import { createFileRoute } from '@tanstack/react-router';
 import { ResetPasswordForm } from './-components/ResetPasswordForm';
 
-export const Route = createFileRoute('/_public/restablecer-contrasena/$token')({
+export const Route = createFileRoute('/_open/restablecer-contrasena/$token')({
     head: () => titleHead('Elegí una contraseña nueva'),
     component: ResetPasswordPage,
 });

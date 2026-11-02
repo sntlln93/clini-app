@@ -3,7 +3,7 @@ import { PublicLayout } from '@/layouts/PublicLayout';
 import { redirectIfAuthenticated } from '@/lib/auth-guards';
 import { createFileRoute } from '@tanstack/react-router';
 
-/** Login, registration and password recovery only: a signed-in visitor has nothing to do here, so it's sent on. Pages that must open either way live under `_open`. */
+/** Login, registration and asking for a password reset link only: a signed-in visitor has nothing to do here, so it's sent on. Pages that must open either way live under `_open`. */
 export const Route = createFileRoute('/_public')({
     beforeLoad: ({ context, location }) =>
         redirectIfAuthenticated({ ...context, location }),
