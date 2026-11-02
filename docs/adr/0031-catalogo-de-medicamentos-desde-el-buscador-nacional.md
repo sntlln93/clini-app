@@ -48,6 +48,8 @@ El término se registra y se consulta igual (`MedicationSearch::key()`): en min�
 - elegir uno completa el ítem con lo que trae la sugerencia, sin un segundo pedido;
 - el campo lleva una ayuda que pide elegir una sugerencia o escribir el principio activo (Ley 25.649).
 
+**Sustancias para las alergias (#383).** La «Sustancia» de una alergia también es texto libre, y desde 5 caracteres sugiere hasta 10 principios activos del catálogo (`GET /medication-substances`): las `substances` de los productos sugeribles que contienen el término plegado, una por forma plegada y primero las que empiezan con él. Llena el catálogo igual que la búsqueda de medicamentos (`FillMedicationCatalogAction`, con la misma cobertura, la misma pausa y el mismo límite `medication-search`), pero no depende del plan, porque las alergias están en todos. Elegida, la sustancia se guarda como texto tal como la nombra el catálogo, sin una marca de origen ni una columna nueva en la versión de la alergia: el aviso no la leería, porque ya busca la sustancia plegada dentro de las `substances` del producto elegido, y la columna nula que prevé el ADR 0027 queda libre para el código SNOMED de #376. Por la misma razón el aviso no cambia: una comparación exacta contra `substances` perdería coincidencias que hoy avisan, y las alergias escritas a mano siguen avisando igual.
+
 ## Alternativas descartadas
 
 - **La consulta ZK de ANMAT** (`servicios.pami.org.ar/vademecum`, la primera versión de esta rama). No tiene API: hacía falta una sesión, cuatro pedidos para el detalle de cada producto y un parseo de HTML frágil. Además paginaba de a 10 filas, así que la cobertura dependía de saber si una respuesta vino completa.

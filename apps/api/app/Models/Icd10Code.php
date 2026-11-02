@@ -39,13 +39,11 @@ class Icd10Code extends Model
         $code = str_replace('.', '', $literal).'%';
         $description = '%'.strtr(mb_strtolower($literal), FoldedText::UNACCENTED).'%';
         $codeMatch = "replace(code, '.', '') ilike ?";
-        $accented = implode('', array_keys(FoldedText::UNACCENTED));
-        $unaccented = implode('', FoldedText::UNACCENTED);
 
         return $query
-            ->where(function (Builder $query) use ($code, $description, $codeMatch, $accented, $unaccented) {
+            ->where(function (Builder $query) use ($code, $description, $codeMatch) {
                 $query->whereRaw($codeMatch, [$code])
-                    ->orWhereRaw('translate(lower(description), ?, ?) like ?', [$accented, $unaccented, $description]);
+                    ->orWhereRaw(FoldedText::sql('description').' like ?', [...FoldedText::sqlBindings(), $description]);
             })
             ->orderByRaw("CASE WHEN {$codeMatch} THEN 0 ELSE 1 END", [$code])
             ->orderBy('code');
