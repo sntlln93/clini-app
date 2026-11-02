@@ -94,10 +94,10 @@ async function fillForm() {
         target: { value: 'ana@clini.app' },
     });
     fireEvent.change(screen.getByLabelText('Contraseña'), {
-        target: { value: 'secreta123' },
+        target: { value: 'secreta-larga-123' },
     });
     fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
-        target: { value: 'secreta123' },
+        target: { value: 'secreta-larga-123' },
     });
 }
 
@@ -125,8 +125,8 @@ describe('RegisterForm', () => {
                 name: 'Ana Ejemplo',
                 email: 'ana@clini.app',
                 organization_name: 'Consultorio Ana',
-                password: 'secreta123',
-                password_confirmation: 'secreta123',
+                password: 'secreta-larga-123',
+                password_confirmation: 'secreta-larga-123',
                 timezone: STUB_TIMEZONE,
             }),
         );
@@ -367,11 +367,11 @@ describe('RegisterForm', () => {
         expect(api.post).not.toHaveBeenCalled();
     });
 
-    it('shows the 8-character rule upfront and blocks a shorter password before submitting', async () => {
+    it('shows the 12-character rule upfront and blocks a shorter password before submitting', async () => {
         renderRegisterForm();
 
         await fillForm();
-        expect(screen.getByText('Mínimo 8 caracteres.')).not.toBeNull();
+        expect(screen.getByText('Mínimo 12 caracteres.')).not.toBeNull();
         fireEvent.change(screen.getByLabelText('Contraseña'), {
             target: { value: 'corta' },
         });
@@ -381,7 +381,7 @@ describe('RegisterForm', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Crear cuenta' }));
 
         await screen.findByText(
-            'La contraseña debe tener al menos 8 caracteres.',
+            'La contraseña debe tener al menos 12 caracteres.',
         );
         expect(api.post).not.toHaveBeenCalled();
     });

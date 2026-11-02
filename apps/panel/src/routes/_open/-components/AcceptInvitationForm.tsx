@@ -11,8 +11,9 @@ import { mapToAppError } from '@/lib/api-errors';
 import { messageForAppError } from '@/lib/error-codes';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
-    PASSWORD_MIN_LENGTH,
-    PASSWORD_TOO_SHORT_MESSAGE,
+    newPasswordSchema,
+    passwordConfirmationSchema,
+    PASSWORDS_DIFFER_MESSAGE,
 } from '@/lib/password';
 import {
     useAcceptInvitation,
@@ -42,15 +43,12 @@ function buildSchema(requiresRegistration: boolean) {
     return z
         .object({
             name: z.string().min(1, 'El nombre es obligatorio.'),
-            password: z
-                .string()
-                .min(1, 'La contraseña es obligatoria.')
-                .min(PASSWORD_MIN_LENGTH, PASSWORD_TOO_SHORT_MESSAGE),
-            password_confirmation: z.string().min(1, 'Confirmá tu contraseña.'),
+            password: newPasswordSchema,
+            password_confirmation: passwordConfirmationSchema,
         })
         .refine((v) => v.password === v.password_confirmation, {
             path: ['password_confirmation'],
-            message: 'Las contraseñas no coinciden.',
+            message: PASSWORDS_DIFFER_MESSAGE,
         });
 }
 

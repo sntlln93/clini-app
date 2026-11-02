@@ -106,10 +106,10 @@ describe('AcceptInvitationForm', () => {
             target: { value: 'Ana Gomez' },
         });
         fireEvent.change(screen.getByLabelText('Contraseña'), {
-            target: { value: 'secreta123' },
+            target: { value: 'secreta-larga-123' },
         });
         fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
-            target: { value: 'secreta123' },
+            target: { value: 'secreta-larga-123' },
         });
         fireEvent.click(
             screen.getByRole('button', { name: 'Crear cuenta y unirme' }),
@@ -118,8 +118,8 @@ describe('AcceptInvitationForm', () => {
         await waitFor(() =>
             expect(api.post).toHaveBeenCalledWith(`/invitations/${TOKEN}`, {
                 name: 'Ana Gomez',
-                password: 'secreta123',
-                password_confirmation: 'secreta123',
+                password: 'secreta-larga-123',
+                password_confirmation: 'secreta-larga-123',
             }),
         );
     });
@@ -179,7 +179,7 @@ describe('AcceptInvitationForm', () => {
         ).toBe('/login');
     });
 
-    it('blocks a password shorter than 8 characters before submitting, with the rule shown upfront', async () => {
+    it('blocks a password shorter than 12 characters before submitting, with the rule shown upfront', async () => {
         vi.mocked(api.get).mockResolvedValueOnce({
             data: {
                 email: 'ana@clini.app',
@@ -192,7 +192,7 @@ describe('AcceptInvitationForm', () => {
         fireEvent.change(await screen.findByLabelText('Nombre'), {
             target: { value: 'Ana Gomez' },
         });
-        expect(screen.getByText('Mínimo 8 caracteres.')).not.toBeNull();
+        expect(screen.getByText('Mínimo 12 caracteres.')).not.toBeNull();
         fireEvent.change(screen.getByLabelText('Contraseña'), {
             target: { value: 'corta' },
         });
@@ -204,7 +204,7 @@ describe('AcceptInvitationForm', () => {
         );
 
         await screen.findByText(
-            'La contraseña debe tener al menos 8 caracteres.',
+            'La contraseña debe tener al menos 12 caracteres.',
         );
         expect(api.post).not.toHaveBeenCalled();
     });
