@@ -118,10 +118,11 @@ final class AccountDeletionRules
     }
 
     /**
-     * Whether the user wrote any record of a clinical history, under any of their memberships, deactivated ones
-     * included: the law keeps the history and the name of who signed it (Ley 26.529, art. 18).
+     * Whether the user wrote, read or exported any clinical history, under any of their memberships, deactivated ones
+     * included. The law keeps the history with the name of who signed it (Ley 26.529, art. 18), and the access trail
+     * says who reached it (ADR 0022, Res. AAIP 47/2018): both keep naming them.
      */
-    public static function isClinicalAuthor(int $userId): bool
+    public static function appearsInClinicalHistory(int $userId): bool
     {
         $membershipIds = Membership::withoutGlobalScope('organization')
             ->withTrashed()
@@ -132,13 +133,18 @@ final class AccountDeletionRules
             return false;
         }
 
-        return collect(self::CLINICAL_AUTHOR_TABLES)->contains(
+        return collect(self::CLINICAL_TRACE_TABLES)->contains(
             fn (string $table): bool => DB::table($table)->whereIn('membership_id', $membershipIds)->exists()
         );
     }
 
-    /** Every clinical record table with an author: base records, amendments and annulments or withdrawals. */
-    private const array CLINICAL_AUTHOR_TABLES = [
+    /**
+     * Every clinical record table with an author (base records, amendments and annulments or withdrawals), and the
+     * trail of who read, wrote or exported the history.
+     */
+    private const array CLINICAL_TRACE_TABLES = [
+        'clinical_access_logs',
+        'clinical_record_exports',
         'clinical_notes',
         'clinical_note_versions',
         'clinical_note_annulments',

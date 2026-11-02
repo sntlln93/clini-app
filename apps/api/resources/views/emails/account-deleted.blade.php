@@ -15,7 +15,8 @@
     </p>
 
     <p>
-        Si registraste algo en historias clínicas, se conserva con tu nombre, porque la ley obliga a guardarlo.
+        Si registraste o consultaste historias clínicas, lo que hiciste se conserva con tu nombre en ellas y en su
+        registro de accesos, porque hay que guardarlo.
     </p>
 
     <p>

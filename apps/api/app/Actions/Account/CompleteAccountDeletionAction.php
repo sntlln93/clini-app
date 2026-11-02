@@ -33,8 +33,8 @@ use Illuminate\Support\Str;
  * Ends a pending account deletion whose grace period is over (#384, ADR 0034). The user row stays — memberships, and
  * through them every clinical record, point at it — but its personal data goes: the address becomes one no mail can
  * reach (also in the operators' audit trail), the credentials, second factor, DNI, licenses, specialties and public
- * links are dropped, and the name becomes «Usuario eliminado» unless the user wrote in a clinical history, which the
- * law keeps with who signed it. A membership that came back to life meanwhile is deactivated again under the same rules; if those refuse, nothing is
+ * links are dropped, and the name becomes «Usuario eliminado» unless the user wrote in a clinical history or appears
+ * in its access trail, which keep naming who signed or reached it. A membership that came back to life meanwhile is deactivated again under the same rules; if those refuse, nothing is
  * deleted: the request is voided, the memberships it deactivated come back and the user is told why.
  *
  * @implements Action<AccountDeletionCompletionData>
@@ -154,7 +154,7 @@ class CompleteAccountDeletionAction implements Action
         );
 
         $user->forceFill([
-            'name' => AccountDeletionRules::isClinicalAuthor($user->id) ? $user->name : AccountDeletionRules::ANONYMOUS_NAME,
+            'name' => AccountDeletionRules::appearsInClinicalHistory($user->id) ? $user->name : AccountDeletionRules::ANONYMOUS_NAME,
             'email' => AccountDeletionRules::anonymousEmail($user->id),
             'email_verified_at' => null,
             'email_verification_token' => null,

@@ -6,6 +6,7 @@ use App\Enums\AccountDeletionStatus;
 use App\Enums\AdminAuditAction;
 use App\Enums\AdminAuditSubject;
 use App\Enums\AppointmentStatus;
+use App\Enums\ClinicalAccessAction;
 use App\Enums\ErrorCode;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
@@ -17,9 +18,11 @@ use App\Models\AccountDeletion;
 use App\Models\AccountDeletionRequest;
 use App\Models\AdminAuditLog;
 use App\Models\Appointment;
+use App\Models\ClinicalAccessLog;
 use App\Models\ClinicalNote;
 use App\Models\Membership;
 use App\Models\MembershipInvitation;
+use App\Models\Patient;
 use App\Models\PatientLookup;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
@@ -243,6 +246,37 @@ test('an author of a clinical history keeps their name, which the history shows'
 
     expect($user->fresh()?->name)->toBe($name)
         ->and($note->fresh()?->author?->user?->name)->toBe($name);
+});
+
+test('someone who only reached a clinical history keeps their name, which its access trail shows', function () {
+    $staff = Membership::factory()->staff()->create();
+    Membership::factory()->owner()->create(['organization_id' => $staff->organization_id]);
+    $user = $staff->user;
+    $name = $user->name;
+    $entry = ClinicalAccessLog::withoutGlobalScope('organization')->create([
+        'organization_id' => $staff->organization_id,
+        'membership_id' => $staff->id,
+        'patient_id' => Patient::factory()->create()->id,
+        'action' => ClinicalAccessAction::AccessCodeResent,
+    ]);
+    pendingAccountDeletion($user);
+
+    $this->travel(7)->days();
+    $this->artisan('accounts:complete-deletions')->assertSuccessful();
+
+    expect($user->fresh()?->name)->toBe($name)
+        ->and($entry->fresh()?->accessor?->user?->name)->toBe($name);
+});
+
+test('someone who never reached a clinical history loses their name', function () {
+    $staff = Membership::factory()->staff()->create();
+    Membership::factory()->owner()->create(['organization_id' => $staff->organization_id]);
+    pendingAccountDeletion($staff->user);
+
+    $this->travel(7)->days();
+    $this->artisan('accounts:complete-deletions')->assertSuccessful();
+
+    expect($staff->user->fresh()?->name)->toBe(AccountDeletionRules::ANONYMOUS_NAME);
 });
 
 test('a membership back to life at the date is deactivated again when nothing blocks it', function () {
