@@ -220,8 +220,8 @@ test('after the deletion the account can\'t log in, and its address is free to r
     fromPanel()->postJson('/api/v1/register', [
         'name' => 'Nueva Cuenta',
         'email' => $email,
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Nueva',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertCreated();
@@ -360,8 +360,8 @@ test('nobody can take the anonymous address first: no form accepts it', function
     fromPanel()->postJson('/api/v1/register', [
         'name' => 'Ocupa',
         'email' => AccountDeletionRules::anonymousEmail(42),
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Ocupa',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertStatus(422)->assertJsonValidationErrors('email');

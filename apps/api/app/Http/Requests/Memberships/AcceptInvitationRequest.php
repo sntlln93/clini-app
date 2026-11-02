@@ -6,8 +6,10 @@ namespace App\Http\Requests\Memberships;
 
 use App\Models\MembershipInvitation;
 use App\Models\User;
+use App\Support\PasswordPolicy;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Password;
 
 /**
  * Public endpoint: failure messages stay generic so a caller can never infer whether the underlying email is registered.
@@ -32,8 +34,16 @@ class AcceptInvitationRequest extends FormRequest
 
         return [
             'name' => [$requiresRegistration ? 'required' : 'prohibited', 'string', 'max:255'],
-            'password' => [$requiresRegistration ? 'required' : 'prohibited', 'string', 'min:8', 'confirmed'],
+            'password' => [$requiresRegistration ? 'required' : 'prohibited', 'string', Password::defaults(), 'confirmed'],
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return PasswordPolicy::messages();
     }
 
     public function withValidator(Validator $validator): void

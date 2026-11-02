@@ -17,10 +17,13 @@ use App\Services\Medications\NationalMedicationSearchService;
 use App\Services\Payments\MercadoPagoService;
 use App\Services\Professionals\NationalProfessionalSearchService;
 use App\Support\CurrentOrganization;
+use App\Support\PasswordPolicy;
 use App\Support\PendingTwoFactorLogin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
 use Illuminate\Contracts\Foundation\Application;
+use Illuminate\Contracts\Validation\UncompromisedVerifier;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Request;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Session\SessionManager;
@@ -28,6 +31,8 @@ use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Illuminate\Validation\NotPwnedVerifier;
+use Illuminate\Validation\Rules\Password;
 use Symfony\Component\HttpFoundation\Response;
 
 class AppServiceProvider extends ServiceProvider
@@ -53,10 +58,21 @@ class AppServiceProvider extends ServiceProvider
             $app->make(SessionManager::class),
             fn (): CacheFactory => $app->make(CacheFactory::class),
         ));
+
+        // The breach check behind `PasswordPolicy` (#389) waits 30 seconds by default before letting the password
+        // through; someone choosing a password shouldn't. `extend`, since the validation provider is deferred and
+        // would register its own verifier over a plain binding.
+        $this->app->extend(UncompromisedVerifier::class, fn (UncompromisedVerifier $verifier, Application $app): UncompromisedVerifier => new NotPwnedVerifier(
+            $app->make(HttpFactory::class),
+            PasswordPolicy::BREACH_CHECK_TIMEOUT_SECONDS,
+        ));
     }
 
     public function boot(): void
     {
+        // The one rule for choosing a password (#389): every entry point uses `Password::defaults()`.
+        Password::defaults(fn (): Password => PasswordPolicy::rule());
+
         // Platform-operator login (`throttle:admin-login`): 5 attempts per
         // minute per email + IP. Behind a proxy not in TRUSTED_PROXIES
         // (config/trustedproxy.php) the IP is the proxy's, so it degrades to
@@ -90,6 +106,18 @@ class AppServiceProvider extends ServiceProvider
             $userId = PendingTwoFactorLogin::userId($request);
 
             return Limit::perMinute(5)->by($userId !== null ? 'user:'.$userId : 'ip:'.$request->ip());
+        });
+
+        // Asking for a password reset link (`throttle:password-reset`, #389): anonymous, and each request may mail the
+        // address it names. Same key as `login` per minute, plus a cap per IP an hour so walking through addresses
+        // can't flood mailboxes; the broker adds its own minute per account. Resetting shares the bucket.
+        RateLimiter::for('password-reset', function (Request $request): array {
+            $email = $request->input('email');
+
+            return [
+                Limit::perMinute(5)->by('email:'.(is_string($email) ? Str::lower(trim($email)) : '').'|'.$request->ip()),
+                Limit::perHour(20)->by('ip:'.$request->ip()),
+            ];
         });
 
         // The two-factor settings (`throttle:two-factor`, #357): each of

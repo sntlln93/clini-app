@@ -23,8 +23,8 @@ test('a visitor can register a new organization as its owner', function () {
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -58,8 +58,8 @@ test('registering logs the user in', function () {
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -85,8 +85,8 @@ test('registering exposes the new owner membership permissions, roles and organi
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -110,8 +110,8 @@ test('registering with a duplicate email fails validation and persists nothing',
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -130,8 +130,8 @@ test('registering with a colliding organization slug appends a numeric suffix', 
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -147,8 +147,8 @@ test('registering with an invalid timezone fails validation and persists nothing
     $response = registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'Not/AZone',
     ]);
@@ -165,8 +165,8 @@ test('the owner registers as owner and professional without being asked', functi
     registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertCreated()
@@ -181,8 +181,8 @@ test('the retired attends_patients flag no longer registers an owner who is not 
     registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
         'attends_patients' => false,
@@ -196,8 +196,8 @@ test('the registering owner fills the Free plan professional slot', function () 
     registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertCreated();
@@ -216,8 +216,8 @@ test('the sixth registration within a minute from one ip is a 429 that creates n
     $register = fn (int $n) => registerFromSpa()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => "ana{$n}@example.com",
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => "Clínica {$n}",
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);

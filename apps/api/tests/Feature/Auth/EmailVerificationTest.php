@@ -34,8 +34,8 @@ function registerAndCaptureToken(): string
     registerFromSpaForVerification()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertCreated();
@@ -56,8 +56,8 @@ test('registering queues the verification mail and persists a hashed token with 
     $response = registerFromSpaForVerification()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -93,8 +93,8 @@ test('the register response body does not expose the verification token or its e
     $response = registerFromSpaForVerification()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ]);
@@ -261,8 +261,8 @@ test('the queued verification mail keeps the address and the token out of the st
     registerFromSpaForVerification()->postJson('/api/v1/register', [
         'name' => 'Ana Owner',
         'email' => 'ana@example.com',
-        'password' => 'password123',
-        'password_confirmation' => 'password123',
+        'password' => 'clave-de-prueba-larga',
+        'password_confirmation' => 'clave-de-prueba-larga',
         'organization_name' => 'Clínica Norte',
         'timezone' => 'America/Argentina/Buenos_Aires',
     ])->assertCreated();
