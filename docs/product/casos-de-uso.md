@@ -534,7 +534,8 @@ Convenciones:
     pedido desactivó, con sus roles.
   - La fila del usuario no se borra (CU-05: lo histórico sigue apuntando a la membresía). Se borran
     el email, las credenciales, el DNI, las matrículas y las especialidades; el nombre se conserva
-    solo si firmó algún registro clínico, que la ley obliga a guardar (ADR 0034).
+    solo si firmó algún registro clínico o figura en el registro de accesos de una historia
+    (ADR 0034).
   - Queda una constancia de solo agregado sin datos personales (id y fecha).
 
 ### CU-44 · Marca y URL pública de la organización

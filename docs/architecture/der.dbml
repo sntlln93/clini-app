@@ -117,7 +117,7 @@ Table users {
   Note: '''
     Anyone who logs in to the panel: owners, admins, professionals, staff. Not patients. A deleted account (#384,
     ADR 0034) keeps its row, anonymized: email cuenta-eliminada:<id> (no @, so no form accepts it), no credentials, and the name only
-    if it wrote a clinical record (else «Usuario eliminado»).
+    if it wrote a clinical record or appears in clinical_access_logs (else «Usuario eliminado»).
   '''
 }
 
