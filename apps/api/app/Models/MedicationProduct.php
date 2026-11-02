@@ -95,13 +95,13 @@ class MedicationProduct extends Model
     public function scopeSearch(Builder $query, string $term): Builder
     {
         $folded = addcslashes(FoldedText::fold($term), '\\%_');
-        $name = self::folded('name');
+        $name = FoldedText::sql('name');
 
         return $query
             ->where(fn (Builder $query) => $query
-                ->whereRaw("{$name} like ?", [...self::accents(), "%{$folded}%"])
-                ->orWhereRaw(self::folded('drug').' like ?', [...self::accents(), "%{$folded}%"]))
-            ->orderByRaw("CASE WHEN {$name} like ? THEN 0 ELSE 1 END", [...self::accents(), "{$folded}%"])
+                ->whereRaw("{$name} like ?", [...FoldedText::sqlBindings(), "%{$folded}%"])
+                ->orWhereRaw(FoldedText::sql('drug').' like ?', [...FoldedText::sqlBindings(), "%{$folded}%"]))
+            ->orderByRaw("CASE WHEN {$name} like ? THEN 0 ELSE 1 END", [...FoldedText::sqlBindings(), "{$folded}%"])
             ->orderBy('name')
             ->orderBy('presentation')
             ->orderBy('gtin');
@@ -119,29 +119,10 @@ class MedicationProduct extends Model
 
         foreach (self::NON_DRUG_MARKERS as $column => $markers) {
             foreach ($markers as $marker) {
-                $query->whereRaw(self::folded("coalesce({$column}, '')").' <> ?', [...self::accents(), FoldedText::fold($marker)]);
+                $query->whereRaw(FoldedText::sql("coalesce({$column}, '')").' <> ?', [...FoldedText::sqlBindings(), FoldedText::fold($marker)]);
             }
         }
 
         return $query;
-    }
-
-    /**
-     * The SQL that folds an expression like `FoldedText`, taking `accents()` as its bindings.
-     *
-     * @param  literal-string  $expression
-     * @return literal-string
-     */
-    private static function folded(string $expression): string
-    {
-        return "translate(lower({$expression}), ?, ?)";
-    }
-
-    /**
-     * @return array{0: string, 1: string}
-     */
-    private static function accents(): array
-    {
-        return [implode('', array_keys(FoldedText::UNACCENTED)), implode('', FoldedText::UNACCENTED)];
     }
 }

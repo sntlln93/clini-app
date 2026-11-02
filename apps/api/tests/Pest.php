@@ -2,8 +2,11 @@
 
 declare(strict_types=1);
 
+use App\Contracts\MedicationSource;
+use App\Data\Medications\MedicationProductData;
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
+use App\Exceptions\Medications\MedicationSourceUnavailableException;
 use App\Models\Appointment;
 use App\Models\ClinicalAccessLog;
 use App\Models\ContactRequest;
@@ -16,6 +19,7 @@ use App\Models\Service;
 use App\Models\Subscription;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\MedicationComposition;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
@@ -224,6 +228,73 @@ function shareAccessCode(Membership $membership, int $patientId, ?Appointment $a
 function nationalMedicationSearchFixture(string $name): string
 {
     return (string) file_get_contents(__DIR__."/Fixtures/NationalMedicationSearch/{$name}");
+}
+
+/**
+ * A source that answers what it is given and records the terms it was asked.
+ *
+ * @param  array<string, list<MedicationProductData>>  $answers  by term, as sent
+ */
+function fakeMedicationSource(array $answers = [], bool $available = true, bool $failing = false): ArrayObject
+{
+    $calls = new ArrayObject;
+
+    app()->instance(MedicationSource::class, new class($answers, $available, $failing, $calls) implements MedicationSource
+    {
+        /**
+         * @param  array<string, list<MedicationProductData>>  $answers
+         */
+        public function __construct(
+            private array $answers,
+            private bool $available,
+            private bool $failing,
+            private ArrayObject $calls,
+        ) {}
+
+        public function available(): bool
+        {
+            return $this->available;
+        }
+
+        public function search(string $term): array
+        {
+            $this->calls[] = $term;
+
+            if ($this->failing) {
+                throw new MedicationSourceUnavailableException('status');
+            }
+
+            return $this->answers[$term] ?? [];
+        }
+    });
+
+    return $calls;
+}
+
+function sourceProduct(string $gtin, string $name, string $drug = 'ibuprofeno', array $overrides = []): MedicationProductData
+{
+    $fields = [
+        'gtin' => $gtin,
+        'name' => $name,
+        'presentation' => 'comp.x 20',
+        'pharmaceuticalForm' => 'Comprimidos/Pastillas/Tabletas/Grageas',
+        'administrationRoute' => 'oral',
+        'laboratory' => 'Montpellier',
+        'troquel' => '730152',
+        'snomed' => '239671000221103',
+        'drug' => $drug,
+        'drugCode' => '00378',
+        'therapeuticAction' => 'Analgésico Antiinflam.',
+        'therapeuticActionCode' => '00056',
+        'dispensingCondition' => 'Venta Bajo Receta',
+        'controlMark' => null,
+        'withdrawn' => false,
+        'inForce' => true,
+        'updatedOn' => '2026-10-27',
+        ...$overrides,
+    ];
+
+    return new MedicationProductData(...$fields, composition: MedicationComposition::of($fields['drug']));
 }
 
 /**

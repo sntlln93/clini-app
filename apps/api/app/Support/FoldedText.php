@@ -25,6 +25,25 @@ class FoldedText
         return self::collapsed(strtr(mb_strtolower($text), self::UNACCENTED_VOWELS));
     }
 
+    /**
+     * The SQL that folds an expression like `fold()`, taking `sqlBindings()` as its bindings.
+     *
+     * @param  literal-string  $expression
+     * @return literal-string
+     */
+    public static function sql(string $expression): string
+    {
+        return "translate(lower({$expression}), ?, ?)";
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    public static function sqlBindings(): array
+    {
+        return [implode('', array_keys(self::UNACCENTED)), implode('', self::UNACCENTED)];
+    }
+
     private static function collapsed(string $text): string
     {
         return trim((string) preg_replace('/\s+/u', ' ', $text));
