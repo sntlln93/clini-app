@@ -58,7 +58,7 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 | Tablas `jobs` y `failed_jobs` | Payloads de los mails en cola (cifrados si llevan datos que no son modelos) y excepciones; una semana | Contacto | Titular | La API |
 | Bucket R2 (`media`) | Logos de las organizaciones | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
 | Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
-| Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, avisos de plan y suscripción, y la eliminación de la cuenta (pedido, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
+| Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
 | Buscador Nacional de Medicamentos | Recibe solo el término buscado (ADR 0031) | Ninguno | — | La API |
 | Buscador Nacional de Profesionales | Recibe el DNI del profesional (ADR 0032); se guarda lo mínimo | Identificatorios del profesional | Titular | La API |
