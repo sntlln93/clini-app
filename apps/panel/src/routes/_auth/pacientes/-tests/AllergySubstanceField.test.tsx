@@ -87,8 +87,9 @@ describe('allergy substance suggestions', () => {
         renderCard();
         const dialog = await openAllergyDialog();
 
-        type(dialog.getByLabelText('Sustancia'), 'amoxi');
-        await new Promise((resolve) => setTimeout(resolve, 100));
+        // Below five characters the catalog is never asked.
+        type(dialog.getByLabelText('Sustancia'), 'amox');
+        await new Promise((resolve) => setTimeout(resolve, 400));
         expect(substanceSearches()).toHaveLength(0);
 
         type(dialog.getByLabelText('Sustancia'), 'Amoxic');
