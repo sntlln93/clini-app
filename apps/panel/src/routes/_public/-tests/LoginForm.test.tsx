@@ -49,6 +49,11 @@ function renderLoginForm(redirectTo?: string) {
         path: '/registro',
         component: () => <div>Registro</div>,
     });
+    const forgotPasswordRoute = createRoute({
+        getParentRoute: () => rootRoute,
+        path: '/recuperar-contrasena',
+        component: () => <div>Recuperar contraseña</div>,
+    });
     const agendaRoute = createRoute({
         getParentRoute: () => rootRoute,
         path: '/agenda',
@@ -57,6 +62,7 @@ function renderLoginForm(redirectTo?: string) {
     const routeTree = rootRoute.addChildren([
         loginRoute,
         registerRoute,
+        forgotPasswordRoute,
         agendaRoute,
         patientRoute,
     ]);
@@ -287,6 +293,13 @@ describe('LoginForm', () => {
         expect(
             queryClient.getQueryData(sessionQueryOptions.queryKey),
         ).toMatchObject({ id: 2 });
+    });
+
+    it('links to the password recovery page', async () => {
+        renderLoginForm();
+
+        const link = await screen.findByRole('link', { name: 'Recuperala' });
+        expect(link.getAttribute('href')).toBe('/recuperar-contrasena');
     });
 
     it('links to /registro', async () => {
