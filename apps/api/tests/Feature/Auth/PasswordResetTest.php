@@ -2,9 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Actions\Auth\SendPasswordResetLinkAction;
+use App\Data\Auth\PasswordResetLinkRecipientData;
 use App\Enums\ErrorCode;
 use App\Mail\Auth\PasswordResetMail;
 use App\Models\User;
+use Illuminate\Console\Scheduling\Event;
+use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Defer\DeferredCallbackCollection;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -213,6 +218,27 @@ test('a script on the dashboard origin can use neither endpoint', function () {
     ])->assertForbidden();
 
     Mail::assertNothingQueued();
+});
+
+test('the link is looked up and mailed only once the response is out, so its time never tells an account apart', function () {
+    User::factory()->create(['email' => 'ana@example.com']);
+
+    app(SendPasswordResetLinkAction::class)->handle(new PasswordResetLinkRecipientData('ana@example.com'));
+
+    Mail::assertNothingQueued();
+    expect(DB::table('password_reset_tokens')->exists())->toBeFalse();
+
+    app(DeferredCallbackCollection::class)->invoke();
+
+    Mail::assertQueuedCount(1);
+});
+
+test('expired reset tokens are cleared daily', function () {
+    $events = collect(app(Schedule::class)->events())
+        ->filter(fn (Event $event): bool => str_contains((string) $event->command, 'auth:clear-resets'));
+
+    expect($events)->toHaveCount(1)
+        ->and($events->sole()->expression)->toBe('0 0 * * *');
 });
 
 test('the mail is in Spanish and links to the reset page', function () {

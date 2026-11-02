@@ -13,6 +13,7 @@ use Illuminate\Contracts\Validation\UncompromisedVerifier;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Mail;
@@ -36,7 +37,7 @@ afterEach(function () {
 
 /**
  * Each entry point that chooses a password: chooses `$password` and answers whether it was taken, and the message
- * about the password a refusal gave (null for `admin:create`, whose output another test reads).
+ * about the password a refusal gave.
  *
  * @return array<string, array{0: Closure(string): array{bool, ?string}}>
  */
@@ -103,16 +104,18 @@ function passwordEntryPoints(): array
             return policyOutcome($response);
         }],
         'admin:create' => [function (string $password): array {
-            test()->artisan('admin:create', [
+            Artisan::call('admin:create', [
                 '--name' => 'Olivia',
                 '--email' => 'olivia@clini.test',
                 '--password' => $password,
                 '--no-interaction' => true,
-            ])->run();
+            ]);
+            $output = Artisan::output();
 
             $admin = PlatformAdmin::query()->where('email', 'olivia@clini.test')->first();
+            $taken = $admin !== null && Hash::check($password, $admin->password);
 
-            return [$admin !== null && Hash::check($password, $admin->password), null];
+            return [$taken, $taken ? null : trim($output)];
         }],
     ];
 }
@@ -137,7 +140,7 @@ test('a password under 12 characters is refused', function (Closure $choose) {
     [$taken, $message] = $choose(ELEVEN_CHARACTERS);
 
     expect($taken)->toBeFalse()
-        ->and($message)->toBeIn(['La contraseña debe tener al menos 12 caracteres.', null]);
+        ->and($message)->toBe('La contraseña debe tener al menos 12 caracteres.');
 })->with('password entry points');
 
 test('a password a known breach holds is refused', function (Closure $choose) {
@@ -146,19 +149,8 @@ test('a password a known breach holds is refused', function (Closure $choose) {
     [$taken, $message] = $choose(BREACHED_PASSWORD);
 
     expect($taken)->toBeFalse()
-        ->and($message)->toBeIn(['Esta contraseña apareció en una filtración de datos de otro sitio. Elegí otra.', null]);
+        ->and($message)->toBe('Esta contraseña apareció en una filtración de datos de otro sitio. Elegí otra.');
 })->with('password entry points');
-
-test('admin:create tells the operator why the password was refused, in Spanish', function () {
-    $this->reportBreachedPassword(BREACHED_PASSWORD);
-
-    $this->artisan('admin:create', ['--name' => 'O', '--email' => 'o@clini.test', '--password' => ELEVEN_CHARACTERS, '--no-interaction' => true])
-        ->expectsOutputToContain('La contraseña debe tener al menos 12 caracteres.')
-        ->assertFailed();
-    $this->artisan('admin:create', ['--name' => 'O', '--email' => 'o@clini.test', '--password' => BREACHED_PASSWORD, '--no-interaction' => true])
-        ->expectsOutputToContain('Esta contraseña apareció en una filtración de datos de otro sitio. Elegí otra.')
-        ->assertFailed();
-});
 
 test('the breach check sends only the first five characters of the password\'s SHA-1', function () {
     fromPanel()->postJson('/api/v1/register', [
