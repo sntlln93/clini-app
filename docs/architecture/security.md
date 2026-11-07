@@ -57,7 +57,7 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 | Tabla `sessions` | Payload de la sesión, cifrado con `APP_KEY` desde #358; `ip_address` y `user_agent` en claro; 120 minutos | Identificatorios mínimos | Titular | La API |
 | Tabla `password_reset_tokens` | Email y hash (bcrypt) del token de recuperación de contraseña; uno por email, vence a los 60 minutos y se borra al usarse, al eliminarse la cuenta o, vencido, en la limpieza diaria (`auth:clear-resets`, #389) | Contacto | Titular | La API |
 | Tablas `jobs` y `failed_jobs` | Payloads de los mails en cola (cifrados si llevan datos que no son modelos) y excepciones; una semana | Contacto | Titular | La API |
-| Bucket R2 (`media`) | Logos de las organizaciones | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
+| Bucket R2 (`media`) | Logos de las organizaciones; uno reemplazado o quitado sigue `MEDIA_DELETION_RETENTION_DAYS` días (35) antes de borrarse (#410) | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
 | Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
 | Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, recuperación de contraseña (#389), avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
@@ -183,7 +183,7 @@ No hay QA separado de la demo. La demo corre la imagen de producción, pero nunc
 
 | Medida | Estado | Cómo |
 |---|---|---|
-| F.1.1 (DP) Procedimiento de destrucción | #329 | Qué se borra y cuándo lo fija la retención (#329). Hoy se purgan solas las consultas de contacto cerradas (`CONTACT_RETENTION_DAYS`), los jobs fallidos (`QUEUE_FAILED_RETENTION_HOURS`) y las sesiones vencidas, y se anonimiza la cuenta de un usuario que pidió eliminarla, a los 7 días (`accounts:complete-deletions`, ADR 0034). La historia clínica es de solo agregado (ADR 0019). |
+| F.1.1 (DP) Procedimiento de destrucción | #329 | Qué se borra y cuándo lo fija la retención (#329). Hoy se purgan solas las consultas de contacto cerradas (`CONTACT_RETENTION_DAYS`), los jobs fallidos (`QUEUE_FAILED_RETENTION_HOURS`), las sesiones vencidas y los archivos subidos que se reemplazaron o quitaron (`MEDIA_DELETION_RETENTION_DAYS`, `media:delete-due`, ADR 0035), y se anonimiza la cuenta de un usuario que pidió eliminarla, a los 7 días (`accounts:complete-deletions`, ADR 0034). La historia clínica es de solo agregado (ADR 0019). |
 | F.1.2 (DP) Borrado irreversible | #329 | Al vencer la retención, el borrado físico de las filas. En los backups, al vencer la copia (#390). |
 | F.1.3 (DP) Persona autorizada | Resuelta acá | El titular. Toda destrucción fuera de las purgas programadas requiere su autorización escrita en el registro de operación. |
 | F.1.4 (DP) Inventario de medios destruidos | #379 | Lo lleva el proveedor del servidor y de los backups. Se exige en el contrato. |

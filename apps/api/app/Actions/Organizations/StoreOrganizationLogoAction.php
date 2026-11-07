@@ -9,6 +9,7 @@ use App\Contracts\Data;
 use App\Data\Organizations\OrganizationLogoData;
 use App\Enums\PlanFeature;
 use App\Models\OrganizationLogo;
+use App\Support\MediaObjectDeletions;
 use App\Support\OrganizationPlan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -17,9 +18,9 @@ use Throwable;
 /**
  * Uploading a logo is a paid-plan function (#239); removing it never is.
  *
- * The object is written before the row and the replaced one is deleted after
- * the commit, so a failure on either side leaves at most an orphan object,
- * never a row pointing at a missing one.
+ * The object is written before the row is saved, and the replaced one is only scheduled for deletion (#410), in the
+ * same transaction. The same file uploaded again names the same key, so its pending deletion is cancelled before the
+ * object is written. If the transaction fails, the object just written is deleted unless a row already named it.
  *
  * @implements Action<OrganizationLogoData>
  */
@@ -33,6 +34,7 @@ class StoreOrganizationLogoAction implements Action
 
     public function __construct(
         private readonly OrganizationPlan $plans,
+        private readonly MediaObjectDeletions $deletions,
     ) {}
 
     /**
@@ -42,34 +44,32 @@ class StoreOrganizationLogoAction implements Action
     {
         $this->plans->ensureIncludes($dto->organizationId, PlanFeature::BookingBranding);
 
-        $disk = Storage::disk(OrganizationLogo::DISK);
         $checksum = hash('sha256', $dto->contents);
         $extension = self::EXTENSIONS[$dto->mimeType] ?? 'bin';
         $path = "organization-logos/{$dto->organizationId}/{$checksum}.{$extension}";
 
-        $disk->put($path, $dto->contents, ['ContentType' => $dto->mimeType]);
-
         try {
-            [$logo, $replacedPath] = DB::transaction(function () use ($dto, $path, $checksum): array {
+            return DB::transaction(function () use ($dto, $path, $checksum): OrganizationLogo {
                 $logo = OrganizationLogo::withoutGlobalScope('organization')
                     ->lockForUpdate()
                     ->firstOrNew(['organization_id' => $dto->organizationId]);
                 $replacedPath = $logo->exists ? $logo->path : null;
 
+                $this->deletions->cancel(OrganizationLogo::DISK, $path);
+                Storage::disk(OrganizationLogo::DISK)->put($path, $dto->contents, ['ContentType' => $dto->mimeType]);
+
                 $logo->fill(['mime_type' => $dto->mimeType, 'path' => $path, 'checksum' => $checksum])->save();
 
-                return [$logo, $replacedPath];
+                if ($replacedPath !== null && $replacedPath !== $path) {
+                    $this->deletions->schedule(OrganizationLogo::DISK, $replacedPath);
+                }
+
+                return $logo;
             });
         } catch (Throwable $exception) {
-            $disk->delete($path);
+            rescue(fn () => $this->deletions->discardUnnamed(OrganizationLogo::DISK, $path));
 
             throw $exception;
         }
-
-        if ($replacedPath !== null && $replacedPath !== $path) {
-            $disk->delete($replacedPath);
-        }
-
-        return $logo;
     }
 }
