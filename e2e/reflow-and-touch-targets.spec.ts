@@ -475,7 +475,12 @@ test.describe('booking select truncation at scaled font', () => {
             document.documentElement.style.fontSize = '24px';
         });
 
-        const specialtyTrigger = page.getByLabel('Especialidad');
+        // By role: the router devtools (dev only, rendered in e2e) label a
+        // match "Open match details for /_auth/ajustes/especialidades", which
+        // a substring `getByLabel('Especialidad')` also matches.
+        const specialtyTrigger = page.getByRole('combobox', {
+            name: 'Especialidad',
+        });
         await expect(specialtyTrigger).toBeVisible();
 
         const truncation = await specialtyTrigger.evaluate((trigger) => {
