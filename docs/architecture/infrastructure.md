@@ -76,6 +76,10 @@ El checklist de la Res. AAIP 47/2018 contra el estado del proyecto está en [Seg
 - Si la base pasa a otro servidor o a un servicio gestionado: `DB_SSLMODE=require`, y `verify-full` con `DB_SSLROOTCERT` (la ruta al certificado de la CA, montado en el contenedor) cuando la conexión cruza una red que no es privada. El default de Laravel, `prefer`, usa TLS solo si el servidor lo ofrece, y si no, conecta en claro sin avisar.
 - Backups: pendientes (#390).
 
+### Maestra de la historia clínica
+
+`CLINICAL_ENCRYPTION_KEY` cifra la clave de datos de la historia clínica (#391, [ADR 0036](../adr/0036-cifrado-envolvente-de-la-historia-clinica.md)). Se genera una vez con `php artisan clinical-keys:generate-master --show`, se carga en las variables de Dokploy **antes del primer deploy que migre** y se guarda también fuera de línea: perderla es perder la historia. Nunca es `APP_KEY`, y producción rechaza la clave pública de `.env.example`. La demo tiene la suya. Cómo rotarla: [Seguridad](security.md#cifrado-de-la-historia-clínica).
+
 ### Logs y modo debug
 
 - `APP_ENV=production` y `APP_DEBUG=false`: con debug, un error inesperado devuelve la traza (ADR 0024).
@@ -91,7 +95,8 @@ Antes de abrir producción a consultorios reales:
 - [ ] Postgres sin puerto publicado.
 - [ ] El access log de Traefik apagado (abajo, Observabilidad).
 - [ ] Backups funcionando y una restauración probada (#390).
-- [ ] La demo sin la base, el bucket ni la `APP_KEY` de producción.
+- [ ] `CLINICAL_ENCRYPTION_KEY` propia, cargada en Dokploy y guardada fuera de línea (#391).
+- [ ] La demo sin la base, el bucket, la `APP_KEY` ni la `CLINICAL_ENCRYPTION_KEY` de producción.
 
 ## Colas
 
