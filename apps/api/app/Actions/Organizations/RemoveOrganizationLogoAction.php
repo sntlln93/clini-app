@@ -8,33 +8,40 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Organizations\OrganizationLogoRemovalData;
 use App\Models\OrganizationLogo;
-use Illuminate\Support\Facades\Storage;
+use App\Support\MediaObjectDeletions;
+use Illuminate\Support\Facades\DB;
 
 /**
- * Idempotent: removing a missing logo is not an error; returns whether one was
- * removed. The row goes first, so a storage failure leaves an orphan object
- * rather than a row pointing at nothing.
+ * Idempotent: removing a missing logo is not an error; returns whether one was removed. The object is not deleted
+ * here: it is scheduled for deletion with the row's removal (#410).
  *
  * @implements Action<OrganizationLogoRemovalData>
  */
 class RemoveOrganizationLogoAction implements Action
 {
+    public function __construct(
+        private readonly MediaObjectDeletions $deletions,
+    ) {}
+
     /**
      * @param  OrganizationLogoRemovalData  $dto
      */
     public function handle(Data $dto): bool
     {
-        $logo = OrganizationLogo::withoutGlobalScope('organization')
-            ->where('organization_id', $dto->organizationId)
-            ->first();
+        return DB::transaction(function () use ($dto): bool {
+            $logo = OrganizationLogo::withoutGlobalScope('organization')
+                ->where('organization_id', $dto->organizationId)
+                ->lockForUpdate()
+                ->first();
 
-        if ($logo === null) {
-            return false;
-        }
+            if ($logo === null) {
+                return false;
+            }
 
-        $logo->delete();
-        Storage::disk(OrganizationLogo::DISK)->delete($logo->path);
+            $logo->delete();
+            $this->deletions->schedule(OrganizationLogo::DISK, $logo->path);
 
-        return true;
+            return true;
+        });
     }
 }

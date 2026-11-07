@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use App\Enums\ErrorCode;
+use App\Models\MediaObjectDeletion;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\OrganizationLogo;
 use App\Support\CurrentOrganization;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 
@@ -78,7 +80,64 @@ test('uploading again replaces the logo and changes its URL', function () {
     expect($second)->not->toBe($first);
     $logo = OrganizationLogo::withoutGlobalScope('organization')->sole();
     expect($logo->mime_type)->toBe('image/jpeg');
-    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([$logo->path]);
+});
+
+test('replacing a logo keeps the replaced object and schedules its deletion after the retention window', function () {
+    config(['filesystems.media_deletion_retention_days' => 40]);
+    $this->travelTo(CarbonImmutable::parse('2026-11-07 12:00:00', 'UTC'));
+    $owner = paidOwner();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.png', 200, 80),
+    ])->assertOk();
+    $replaced = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.jpg', 120, 120),
+    ])->assertOk();
+
+    $current = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toEqualCanonicalizing([$replaced, $current]);
+    $deletion = MediaObjectDeletion::query()->sole();
+    expect($deletion->disk)->toBe(OrganizationLogo::DISK);
+    expect($deletion->path)->toBe($replaced);
+    expect($deletion->deletes_at->equalTo(now()->addDays(40)))->toBeTrue();
+});
+
+test('uploading a file that is pending deletion cancels it, and the replaced one is scheduled instead', function () {
+    $owner = paidOwner();
+    $first = UploadedFile::fake()->image('logo.png', 200, 80);
+    $contents = $first->getContent();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', ['logo' => $first])->assertOk();
+    $firstPath = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.jpg', 120, 120),
+    ])->assertOk();
+    $secondPath = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->createWithContent('logo.png', $contents),
+    ])->assertOk();
+
+    expect(OrganizationLogo::withoutGlobalScope('organization')->sole()->path)->toBe($firstPath);
+    expect(MediaObjectDeletion::query()->pluck('path')->all())->toBe([$secondPath]);
+    expect(Storage::disk(OrganizationLogo::DISK)->get($firstPath))->toBe($contents);
+});
+
+test('removing a logo and uploading the same file again cancels its pending deletion', function () {
+    $owner = paidOwner();
+    $file = UploadedFile::fake()->image('logo.png', 200, 80);
+    $contents = $file->getContent();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', ['logo' => $file])->assertOk();
+    $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
+    expect(MediaObjectDeletion::query()->count())->toBe(1);
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->createWithContent('logo.png', $contents),
+    ])->assertOk();
+
+    expect(MediaObjectDeletion::query()->count())->toBe(0);
+    $logo = OrganizationLogo::withoutGlobalScope('organization')->sole();
+    expect(Storage::disk(OrganizationLogo::DISK)->get($logo->path))->toBe($contents);
 });
 
 test('the Free plan rejects uploading a logo with 409 plans.feature_unavailable and stores nothing', function () {
@@ -165,16 +224,21 @@ test('after a downgrade to Free the logo is kept, still listed, and can be remov
         ->assertOk()
         ->assertJsonPath('data.logo_url', fn (?string $url) => $url !== null);
 
+    $path = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+
     $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
 
     expect(OrganizationLogo::withoutGlobalScope('organization')->count())->toBe(0);
-    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([$path]);
+    expect(MediaObjectDeletion::query()->pluck('path')->all())->toBe([$path]);
 });
 
 test('removing a logo that does not exist is a no-op 204', function () {
     $owner = paidOwner();
 
     $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
+
+    expect(MediaObjectDeletion::query()->count())->toBe(0);
 });
 
 test('an owner only reads and removes their own organization logo', function () {
@@ -195,6 +259,7 @@ test('an owner only reads and removes their own organization logo', function () 
 
     expect(OrganizationLogo::withoutGlobalScope('organization')->where('organization_id', $other->organization_id)->exists())->toBeTrue();
     expect(Storage::disk(OrganizationLogo::DISK)->exists('organization-logos/other.png'))->toBeTrue();
+    expect(MediaObjectDeletion::query()->count())->toBe(0);
 });
 
 test('a failure saving the row deletes the object it just uploaded', function () {
@@ -206,4 +271,54 @@ test('a failure saving the row deletes the object it just uploaded', function ()
     ])->assertStatus(500);
 
     expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([]);
+    expect(MediaObjectDeletion::query()->count())->toBe(0);
+});
+
+test('a failure replacing a logo keeps the current one and schedules nothing', function () {
+    $owner = paidOwner();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.png', 200, 80),
+    ])->assertOk();
+    $current = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+    OrganizationLogo::saving(fn () => throw new RuntimeException('database down'));
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->image('logo.jpg', 120, 120),
+    ])->assertStatus(500);
+
+    expect(Storage::disk(OrganizationLogo::DISK)->allFiles())->toBe([$current]);
+    expect(MediaObjectDeletion::query()->count())->toBe(0);
+});
+
+test('a failure uploading a file pending deletion keeps its object and its pending row', function () {
+    $owner = paidOwner();
+    $file = UploadedFile::fake()->image('logo.png', 200, 80);
+    $contents = $file->getContent();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', ['logo' => $file])->assertOk();
+    $path = OrganizationLogo::withoutGlobalScope('organization')->sole()->path;
+    $this->actingAs($owner->user)->deleteJson('/api/v1/organization/logo')->assertNoContent();
+    OrganizationLogo::saving(fn () => throw new RuntimeException('database down'));
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->createWithContent('logo.png', $contents),
+    ])->assertStatus(500);
+
+    expect(Storage::disk(OrganizationLogo::DISK)->get($path))->toBe($contents);
+    expect(MediaObjectDeletion::query()->pluck('path')->all())->toBe([$path]);
+});
+
+test('a failure uploading the current logo again keeps the object its row names', function () {
+    $owner = paidOwner();
+    $file = UploadedFile::fake()->image('logo.png', 200, 80);
+    $contents = $file->getContent();
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', ['logo' => $file])->assertOk();
+    $logo = OrganizationLogo::withoutGlobalScope('organization')->sole();
+    OrganizationLogo::saving(fn () => throw new RuntimeException('database down'));
+
+    $this->actingAs($owner->user)->postJson('/api/v1/organization/logo', [
+        'logo' => UploadedFile::fake()->createWithContent('logo.png', $contents),
+    ])->assertStatus(500);
+
+    expect(OrganizationLogo::withoutGlobalScope('organization')->sole()->path)->toBe($logo->path);
+    expect(Storage::disk(OrganizationLogo::DISK)->get($logo->path))->toBe($contents);
 });
