@@ -85,6 +85,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Deferred Deletion of Uploaded Files
+    |--------------------------------------------------------------------------
+    |
+    | Days an object of the `media` disk outlives the row that named it before
+    | `media:delete-due` deletes it (#410), so a database restored to an
+    | earlier point still finds its objects. Never below the backups' PITR
+    | window (docs/architecture/infrastructure.md), and never below a day: an
+    | empty variable would otherwise delete right away.
+    |
+    */
+
+    'media_deletion_retention_days' => max(1, (int) (env('MEDIA_DELETION_RETENTION_DAYS') ?: 35)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Symbolic Links
     |--------------------------------------------------------------------------
     |
