@@ -117,7 +117,9 @@ Los archivos que suben los usuarios (hoy, el logo de la organización, #239) van
 | `AWS_ENDPOINT` | `https://<account-id>.r2.cloudflarestorage.com` |
 | `AWS_USE_PATH_STYLE_ENDPOINT` | `false` |
 
-Sin ellas, la API arranca igual, pero subir un logo responde 500. El bucket todavía no tiene backup ni versionado: un logo borrado no se recupera. Lo resuelve #390, por separado de los de Postgres.
+Sin ellas, la API arranca igual, pero subir un logo responde 500.
+
+**Borrado diferido** ([ADR 0035](../adr/0035-borrado-diferido-de-los-archivos-de-usuarios.md), #410). Reemplazar o quitar un archivo no borra el objeto: queda anotado en `media_object_deletions` con una fecha de borrado a `MEDIA_DELETION_RETENTION_DAYS` días (default 35; un valor vacío o en `0` toma el default, y nunca es menos de un día). `media:delete-due` corre todos los días en el scheduler y borra los vencidos, salvo que una fila viva vuelva a nombrar el objeto. Así, una base restaurada a un momento anterior sigue encontrando los objetos que nombra, y un logo quitado se puede recuperar mientras no venza. **`MEDIA_DELETION_RETENTION_DAYS` no puede ser menor que la ventana de PITR de los backups de Postgres** (30 días, #411): si lo fuera, restaurar la base al principio de esa ventana dejaría filas que nombran objetos ya borrados. Si se agranda la ventana, se agranda también esta variable. El backup y el versionado del bucket van en #411.
 
 En dev, el servicio `s3` de Compose (`adobe/s3mock`) reemplaza a R2: crea el bucket `clini` al arrancar y guarda los objetos en el volumen `clini-s3-v5` (s3mock 5 no lee lo que guardó la 4.x, así que el volumen `clini-s3` anterior puede borrarse con `docker volume rm clini-app_clini-s3`).
 
