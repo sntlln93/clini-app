@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,11 +12,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 /**
  * Takes a measurement recorded by mistake out of the series without erasing it (#361): it stays in the history with
  * every version, and it can no longer be amended.
+ *
+ * @property string $reason never null, which its encrypted cast (#391) can't tell Larastan
  */
 #[Fillable(['vital_sign_id', 'membership_id', 'reason'])]
 class VitalSignAnnulment extends Model
 {
     public const null UPDATED_AT = null;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'reason' => EncryptedClinicalText::class,
+        ];
+    }
 
     /**
      * @return BelongsTo<VitalSign, $this>

@@ -20,9 +20,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('prescription_items', function (Blueprint $table) {
-            $table->string('gtin', 14)->nullable()->after('quantity');
-            $table->string('snomed', 20)->nullable()->after('gtin');
-            $table->jsonb('substances')->nullable()->after('snomed');
+            // Encrypted (#391): together they name the product, as much as its name does. The substances are
+            // one encrypted JSON text, never jsonb, since nothing queries them.
+            $table->text('gtin')->nullable()->after('quantity');
+            $table->text('snomed')->nullable()->after('gtin');
+            $table->text('substances')->nullable()->after('snomed');
             $table->string('dispensing_condition')->nullable()->after('substances');
             $table->string('control_mark')->nullable()->after('dispensing_condition');
             // Whether the source cut the drug text short («+asoc.»): the substances above then miss some.

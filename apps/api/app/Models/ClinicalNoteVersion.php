@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalText;
 use Database\Factories\ClinicalNoteVersionFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * One text of a clinical note, with its ICD-10 diagnoses (#324): version 1
  * is what was written first, and every amendment adds the next one with its
  * optional reason.
+ *
+ * @property string $body never null, which its encrypted cast (#391) can't tell Larastan
  */
 #[Fillable(['clinical_note_id', 'version', 'membership_id', 'body', 'reason'])]
 class ClinicalNoteVersion extends Model
@@ -30,6 +33,8 @@ class ClinicalNoteVersion extends Model
     protected function casts(): array
     {
         return [
+            'body' => EncryptedClinicalText::class,
+            'reason' => EncryptedClinicalText::class,
             'version' => 'integer',
         ];
     }

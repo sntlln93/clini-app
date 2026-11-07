@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalText;
 use App\Enums\ClinicalAccessAction;
 use App\Enums\ClinicalAccessReason;
 use App\Support\Concerns\BelongsToOrganization;
@@ -48,6 +49,7 @@ class ClinicalAccessLog extends Model
     protected function casts(): array
     {
         return [
+            'reason_detail' => EncryptedClinicalText::class,
             'action' => ClinicalAccessAction::class,
             'reason' => ClinicalAccessReason::class,
         ];

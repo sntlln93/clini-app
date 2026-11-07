@@ -47,7 +47,7 @@ return new class extends Migration
             $table->foreignId('vital_sign_id')->constrained()->restrictOnDelete();
             $table->unsignedSmallInteger('version');
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500)->nullable();
+            $table->text('reason')->nullable();
             $table->decimal('weight_kg', 5, 2)->nullable();
             $table->decimal('height_cm', 4, 1)->nullable();
             $table->decimal('head_circumference_cm', 4, 1)->nullable();
@@ -68,7 +68,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('vital_sign_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500);
+            $table->text('reason');
             $table->dateTimeTz('created_at');
         });
 

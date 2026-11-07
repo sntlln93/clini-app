@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,11 +13,23 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * Marks indicated medication as no longer valid without erasing it (#344):
  * the record and every version stay in the history, and it can no longer be
  * amended.
+ *
+ * @property string $reason never null, which its encrypted cast (#391) can't tell Larastan
  */
 #[Fillable(['prescription_id', 'membership_id', 'reason'])]
 class PrescriptionAnnulment extends Model
 {
     public const null UPDATED_AT = null;
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'reason' => EncryptedClinicalText::class,
+        ];
+    }
 
     /**
      * @return BelongsTo<Prescription, $this>

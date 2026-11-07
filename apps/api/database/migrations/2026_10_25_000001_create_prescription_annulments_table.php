@@ -23,7 +23,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('prescription_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500);
+            $table->text('reason');
             $table->dateTimeTz('created_at');
         });
 

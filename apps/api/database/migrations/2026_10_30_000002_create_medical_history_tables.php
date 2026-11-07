@@ -36,7 +36,7 @@ return new class extends Migration
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->string('blood_type', 3);
-            $table->string('reason', 500)->nullable();
+            $table->text('reason')->nullable();
             $table->dateTimeTz('created_at');
 
             $table->index(['patient_id', 'organization_id', 'created_at']);
@@ -75,11 +75,12 @@ return new class extends Migration
             $table->foreignId('medical_history_entry_id')->constrained()->restrictOnDelete();
             $table->unsignedSmallInteger('version');
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('description', 500);
-            $table->string('reaction')->nullable();
+            // Encrypted (#391), all but the severity, which is an enum.
+            $table->text('description');
+            $table->text('reaction')->nullable();
             $table->string('severity')->nullable();
-            $table->string('approximate_date', 50)->nullable();
-            $table->string('reason', 500)->nullable();
+            $table->text('approximate_date')->nullable();
+            $table->text('reason')->nullable();
             $table->dateTimeTz('created_at');
 
             $table->unique(['medical_history_entry_id', 'version']);
@@ -89,7 +90,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('medical_history_entry_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500)->nullable();
+            $table->text('reason')->nullable();
             $table->dateTimeTz('created_at');
         });
 

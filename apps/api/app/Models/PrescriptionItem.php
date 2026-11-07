@@ -4,12 +4,16 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalList;
+use App\Casts\EncryptedClinicalText;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * @property list<string>|null $substances the substances of the catalog product it was picked from (#377)
+ * @property string $medication never null, which its encrypted cast (#391) can't tell Larastan
+ * @property string $dosage never null, which its encrypted cast (#391) can't tell Larastan
  */
 #[Fillable([
     'prescription_version_id',
@@ -35,9 +39,14 @@ class PrescriptionItem extends Model
     protected function casts(): array
     {
         return [
+            'medication' => EncryptedClinicalText::class,
+            'presentation' => EncryptedClinicalText::class,
+            'dosage' => EncryptedClinicalText::class,
+            'gtin' => EncryptedClinicalText::class,
+            'snomed' => EncryptedClinicalText::class,
             'position' => 'integer',
             'quantity' => 'integer',
-            'substances' => 'array',
+            'substances' => EncryptedClinicalList::class,
             'composition_incomplete' => 'boolean',
         ];
     }

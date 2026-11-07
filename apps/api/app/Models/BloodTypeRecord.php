@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use App\Casts\EncryptedClinicalText;
 use App\Enums\BloodType;
 use App\Support\Concerns\BelongsToOrganization;
 use App\Support\Concerns\ReadableThroughAccessCode;
@@ -31,6 +32,7 @@ class BloodTypeRecord extends Model
     protected function casts(): array
     {
         return [
+            'reason' => EncryptedClinicalText::class,
             'blood_type' => BloodType::class,
         ];
     }
