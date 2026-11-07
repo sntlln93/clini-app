@@ -32,7 +32,8 @@ return new class extends Migration
         Schema::create('blood_type_records', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->foreignId('appointment_id');
+            // Null for a record written outside an appointment, its «fuera de un turno» mark (#382, ADR 0037).
+            $table->foreignId('appointment_id')->nullable();
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->string('blood_type', 3);
@@ -53,7 +54,8 @@ return new class extends Migration
         Schema::create('medical_history_entries', function (Blueprint $table) {
             $table->id();
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
-            $table->foreignId('appointment_id');
+            // Null for a record written outside an appointment, its «fuera de un turno» mark (#382, ADR 0037).
+            $table->foreignId('appointment_id')->nullable();
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->string('category');
