@@ -45,7 +45,8 @@ test('the attending professional downloads the patient history as JSON and as PD
 
     // The note is Carla's own: the page amends and annuls it like the agenda.
     // Its appointment is years ahead, not today, so nothing new is recorded
-    // there: once the amendment saves, the dialog offers no new note.
+    // there: once the amendment saves, the dialog offers no new note. A new
+    // record goes outside an appointment, from the page itself (#382).
     await page.getByRole('button', { name: 'Enmendar' }).click();
     const corrected = notesDialog.getByLabel('Texto corregido');
     await expect(corrected).toHaveValue('Control anual sin hallazgos.');
@@ -64,7 +65,7 @@ test('the attending professional downloads the patient history as JSON and as PD
     ).toBeVisible();
     await expect(
         page.getByRole('button', { name: 'Registrar medicación' }),
-    ).toBeHidden();
+    ).toBeVisible();
 
     await page.getByRole('button', { name: 'Anular' }).click();
     const annulDialog = page.getByRole('dialog', { name: 'Anular nota' });
