@@ -1,3 +1,4 @@
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { api } from '@/lib/api';
 import {
     recordsPath,
@@ -56,6 +57,10 @@ export function useSavePrescription(appointment: RecordAppointment | null) {
     const refreshPrescriptions = useRefreshPrescriptions(
         appointment?.id ?? null,
     );
+    // Only outside an appointment can the history close under the form (#382).
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(
+        appointment?.id === null ? appointment.patient_id : null,
+    );
 
     return useMutation({
         mutationFn: ({
@@ -83,6 +88,7 @@ export function useSavePrescription(appointment: RecordAppointment | null) {
                       ...confirmation,
                   });
         },
+        onError: refreshOnExpiredAccess,
         onSuccess: refreshPrescriptions,
     });
 }

@@ -443,7 +443,11 @@ describe('ClinicalNotesDialog', () => {
         vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
         renderAmending(note, { appointment: { id: null, patient_id: 50 } });
 
-        expect(screen.getByText(/registrada fuera de un turno/)).toBeTruthy();
+        expect(
+            screen.getByText(
+                /Tu nota, registrada fuera de un turno, queda en la historia/,
+            ),
+        ).toBeTruthy();
         const textarea = (await screen.findByLabelText(
             'Texto corregido',
         )) as HTMLTextAreaElement;

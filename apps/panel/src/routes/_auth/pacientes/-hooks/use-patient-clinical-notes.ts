@@ -2,6 +2,7 @@ import {
     patientAppointmentsQueryKey,
     patientClinicalNotesQueryKey,
 } from '@/hooks/use-patient';
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
@@ -39,6 +40,7 @@ export function useCreatePatientClinicalNote(
     appointmentId: number | null,
 ) {
     const refreshPageData = useRefreshPageData();
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     const mutation = useMutation({
         mutationFn: ({ body, icd10CodeIds }: NoteDraft) =>
@@ -52,6 +54,7 @@ export function useCreatePatientClinicalNote(
                     icd10_code_ids: icd10CodeIds,
                 },
             ),
+        onError: refreshOnExpiredAccess,
         onSuccess: () =>
             refreshPageData(
                 patientClinicalNotesQueryKey(patientId),

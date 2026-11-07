@@ -1,4 +1,5 @@
 import { patientVitalSignsQueryKey } from '@/hooks/use-patient';
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
@@ -30,6 +31,7 @@ export function patientVitalSignsQueryOptions(patientId: number) {
 // page reloads afterwards, its trail included.
 export function useSaveVitalSign(patientId: number) {
     const refreshPageData = useRefreshPageData();
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     return useMutation({
         mutationFn: ({
@@ -53,6 +55,7 @@ export function useSaveVitalSign(patientId: number) {
                       ...values,
                       reason,
                   }),
+        onError: refreshOnExpiredAccess,
         onSuccess: () => refreshPageData(patientVitalSignsQueryKey(patientId)),
     });
 }

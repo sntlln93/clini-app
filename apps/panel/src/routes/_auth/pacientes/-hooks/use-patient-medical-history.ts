@@ -1,4 +1,5 @@
 import { patientMedicalHistoryQueryKey } from '@/hooks/use-patient';
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
@@ -39,6 +40,7 @@ function useRefreshMedicalHistory(patientId: number) {
 // `appointmentId`, or outside an appointment when it is null (#382).
 export function useRecordBloodType(patientId: number) {
     const refresh = useRefreshMedicalHistory(patientId);
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     return useMutation({
         mutationFn: ({
@@ -60,6 +62,7 @@ export function useRecordBloodType(patientId: number) {
                     reason,
                 },
             ),
+        onError: refreshOnExpiredAccess,
         onSuccess: refresh,
     });
 }
@@ -69,6 +72,7 @@ export function useRecordBloodType(patientId: number) {
 // category stays).
 export function useSaveMedicalHistoryEntry(patientId: number) {
     const refresh = useRefreshMedicalHistory(patientId);
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     return useMutation({
         mutationFn: ({
@@ -94,6 +98,7 @@ export function useSaveMedicalHistoryEntry(patientId: number) {
                       ...content,
                       reason,
                   }),
+        onError: refreshOnExpiredAccess,
         onSuccess: refresh,
     });
 }
