@@ -1,3 +1,4 @@
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import type { ReactNode } from 'react';
 
 import { ClinicalRecordStatusChip } from '@/features/clinical-history/ClinicalRecordStatusChip';
@@ -61,6 +62,7 @@ export function MedicalHistoryEntryItem({
                     <span className="tabular-nums">
                         {formatShortDateTime(entry.created_at)}
                     </span>
+                    {outsideAppointmentSuffix(entry.appointment_id)}
                 </span>
                 {actions}
             </div>

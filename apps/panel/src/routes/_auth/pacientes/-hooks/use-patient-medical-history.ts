@@ -1,7 +1,9 @@
 import { patientMedicalHistoryQueryKey } from '@/hooks/use-patient';
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
+import { recordsPath } from '@/lib/clinical-record-target';
 import type {
     BloodType,
     MedicalHistory,
@@ -34,9 +36,11 @@ function useRefreshMedicalHistory(patientId: number) {
     return () => refreshPageData(patientMedicalHistoryQueryKey(patientId));
 }
 
-// Changing the blood type records the new one; the earlier ones stay.
+// Changing the blood type records the new one; the earlier ones stay. On
+// `appointmentId`, or outside an appointment when it is null (#382).
 export function useRecordBloodType(patientId: number) {
     const refresh = useRefreshMedicalHistory(patientId);
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     return useMutation({
         mutationFn: ({
@@ -44,22 +48,31 @@ export function useRecordBloodType(patientId: number) {
             bloodType,
             reason,
         }: {
-            appointmentId: number;
+            appointmentId: number | null;
             bloodType: BloodType;
             reason: string | null;
         }) =>
-            api.post(`/appointments/${appointmentId}/blood-types`, {
-                blood_type: bloodType,
-                reason,
-            }),
+            api.post(
+                recordsPath(
+                    { id: appointmentId, patient_id: patientId },
+                    'blood-types',
+                ),
+                {
+                    blood_type: bloodType,
+                    reason,
+                },
+            ),
+        onError: refreshOnExpiredAccess,
         onSuccess: refresh,
     });
 }
 
-// Records one on `appointmentId` when `entryId` is null, amends it otherwise
-// (a new version; the category stays).
+// Records one on `appointmentId` (or outside an appointment when it is null,
+// #382) when `entryId` is null, amends it otherwise (a new version; the
+// category stays).
 export function useSaveMedicalHistoryEntry(patientId: number) {
     const refresh = useRefreshMedicalHistory(patientId);
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(patientId);
 
     return useMutation({
         mutationFn: ({
@@ -67,7 +80,7 @@ export function useSaveMedicalHistoryEntry(patientId: number) {
             entryId,
             payload: { category, reason, ...content },
         }: {
-            appointmentId: number;
+            appointmentId: number | null;
             entryId: number | null;
             payload: MedicalHistoryAmendmentPayload & {
                 category: MedicalHistoryCategory;
@@ -75,13 +88,17 @@ export function useSaveMedicalHistoryEntry(patientId: number) {
         }): Promise<unknown> =>
             entryId === null
                 ? api.post(
-                      `/appointments/${appointmentId}/medical-history-entries`,
+                      recordsPath(
+                          { id: appointmentId, patient_id: patientId },
+                          'medical-history-entries',
+                      ),
                       { category, ...content },
                   )
                 : api.post(`/medical-history-entries/${entryId}/amendments`, {
                       ...content,
                       reason,
                   }),
+        onError: refreshOnExpiredAccess,
         onSuccess: refresh,
     });
 }

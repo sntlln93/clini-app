@@ -23,6 +23,15 @@ class MedicalHistoryEntryPolicy
         return ClinicalAccess::attends($user, $patient);
     }
 
+    /**
+     * Outside an appointment (#382, ADR 0037): only who attends the patient, as a read of their history. The window or
+     * an open exceptional access is the Action's (`ClinicalAccess::ensureOpenToWrite`).
+     */
+    public function createForPatient(User $user, Patient $patient): bool
+    {
+        return ClinicalAccess::attends($user, $patient);
+    }
+
     public function create(User $user, Appointment $appointment): bool
     {
         return $this->isAppointmentOwner($user, $appointment);
@@ -34,6 +43,14 @@ class MedicalHistoryEntryPolicy
     public function viewCurrentAllergies(User $user, Appointment $appointment): bool
     {
         return $this->isAppointmentOwner($user, $appointment);
+    }
+
+    /**
+     * Shown above the medication form outside an appointment (#382), to who may indicate it there.
+     */
+    public function viewCurrentAllergiesForPatient(User $user, Patient $patient): bool
+    {
+        return ClinicalAccess::attends($user, $patient);
     }
 
     public function amend(User $user, MedicalHistoryEntry $entry): bool

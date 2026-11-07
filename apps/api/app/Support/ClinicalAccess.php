@@ -6,6 +6,7 @@ namespace App\Support;
 
 use App\Enums\AppointmentStatus;
 use App\Enums\ClinicalAccessAction;
+use App\Exceptions\ClinicalAccess\ClinicalAccessReasonRequiredException;
 use App\Models\Appointment;
 use App\Models\BloodTypeRecord;
 use App\Models\ClinicalAccessLog;
@@ -50,6 +51,18 @@ class ClinicalAccess
     {
         return ! self::hasAppointmentNearNow($organizationId, $membershipId, $patientId)
             && ! self::hasOpenExceptionalAccess($organizationId, $membershipId, $patientId);
+    }
+
+    /**
+     * A record written on one of the writer's appointments needs nothing else (#360). One written outside an
+     * appointment (#382, ADR 0037) opens the patient's history as a patient-wide read does: without an own appointment
+     * near today, only while an exceptional access is open. That the writer attends the patient is the policy's.
+     */
+    public static function ensureOpenToWrite(int $organizationId, int $membershipId, int $patientId, ?int $appointmentId): void
+    {
+        if ($appointmentId === null && self::requiresReason($organizationId, $membershipId, $patientId)) {
+            throw new ClinicalAccessReasonRequiredException($patientId);
+        }
     }
 
     public static function hasAppointmentNearNow(int $organizationId, int $membershipId, int $patientId): bool

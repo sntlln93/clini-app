@@ -1,4 +1,9 @@
+import { useRefreshOnExpiredAccess } from '@/hooks/use-refresh-on-expired-access';
 import { api } from '@/lib/api';
+import {
+    recordsPath,
+    type RecordAppointment,
+} from '@/lib/clinical-record-target';
 import { discardPageData } from '@/lib/page-data';
 import type {
     Prescription,
@@ -46,9 +51,16 @@ function useRefreshPrescriptions(appointmentId: number | null) {
 
 // Records one when `prescriptionId` is null, amends it otherwise: a record is
 // never edited (#323), an amendment adds a version and keeps the earlier ones.
+// A new one goes on the appointment, or on the patient outside one (#382).
 // `confirmedAllergies` is «Indicar igual» after an allergy warning (#362).
-export function useSavePrescription(appointmentId: number | null) {
-    const refreshPrescriptions = useRefreshPrescriptions(appointmentId);
+export function useSavePrescription(appointment: RecordAppointment | null) {
+    const refreshPrescriptions = useRefreshPrescriptions(
+        appointment?.id ?? null,
+    );
+    // Only outside an appointment can the history close under the form (#382).
+    const refreshOnExpiredAccess = useRefreshOnExpiredAccess(
+        appointment?.id === null ? appointment.patient_id : null,
+    );
 
     return useMutation({
         mutationFn: ({
@@ -65,8 +77,8 @@ export function useSavePrescription(appointmentId: number | null) {
                     ? { confirmed_allergies: confirmedAllergies }
                     : {};
 
-            return prescriptionId === null
-                ? api.post(`/appointments/${appointmentId}/prescriptions`, {
+            return prescriptionId === null && appointment !== null
+                ? api.post(recordsPath(appointment, 'prescriptions'), {
                       items,
                       ...confirmation,
                   })
@@ -76,6 +88,7 @@ export function useSavePrescription(appointmentId: number | null) {
                       ...confirmation,
                   });
         },
+        onError: refreshOnExpiredAccess,
         onSuccess: refreshPrescriptions,
     });
 }

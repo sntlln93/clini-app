@@ -1,3 +1,4 @@
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import type { ReactNode } from 'react';
 
 import { ClinicalRecordStatusChip } from '@/features/clinical-history/ClinicalRecordStatusChip';
@@ -67,6 +68,7 @@ export function VitalSignEntry({ vitalSign, actions }: VitalSignEntryProps) {
                     <span className="tabular-nums">
                         {formatShortDateTime(vitalSign.measured_at)}
                     </span>
+                    {outsideAppointmentSuffix(vitalSign.appointment_id)}
                 </span>
                 {actions}
             </div>

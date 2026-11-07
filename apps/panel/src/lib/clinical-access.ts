@@ -1,4 +1,5 @@
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
+import { OUTSIDE_APPOINTMENT_LABEL } from './clinical-record-target';
 import { formatShortDateTime } from './datetime';
 import type { ErrorCode } from './error-codes';
 
@@ -105,9 +106,20 @@ export const CLINICAL_ACCESS_EXPIRED: ErrorCode =
 // access adds a row to it.
 export const EXCEPTIONAL_ACCESSES_QUERY_KEY = ['exceptional-accesses'];
 
+// The rows that add a record to the history. Without an appointment, the
+// record was made outside one (#382, ADR 0037); a read, an export or an
+// amendment without one says nothing.
+const RECORD_ADDITIONS: readonly ClinicalAccessAction[] = [
+    'note_written',
+    'prescription_issued',
+    'vital_sign_recorded',
+    'blood_type_recorded',
+    'medical_history_recorded',
+];
+
 // What a row of a patient's access trail did, on their page and in the PDF:
-// the action, then the listed reason, the appointment it touched or the
-// export's format.
+// the action, then the listed reason, the appointment it touched (or that a
+// record was added outside one) or the export's format.
 export function describeTrailEntry(entry: ClinicalAccessTrailEntry): string {
     const parts = [CLINICAL_ACCESS_ACTION_LABELS[entry.action]];
 
@@ -119,6 +131,8 @@ export function describeTrailEntry(entry: ClinicalAccessTrailEntry): string {
         parts.push(
             `Turno del ${formatShortDateTime(entry.appointment.start_at)}`,
         );
+    } else if (RECORD_ADDITIONS.includes(entry.action)) {
+        parts.push(OUTSIDE_APPOINTMENT_LABEL);
     }
 
     if (entry.export) {

@@ -19,8 +19,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
  * Part of the clinical history, so append-only (#323, ADR 0019): the body
  * lives in its versions, a correction adds one, and an annulment replaces
  * deletion. A database trigger rejects any UPDATE or DELETE of the row.
- * Its patient is always its appointment's, which the database enforces and
- * then keeps from changing (#360).
+ * Written on an appointment, its patient is always the appointment's, which
+ * the database enforces and then keeps from changing (#360); written outside
+ * one, its appointment is null, the record's «fuera de un turno» mark (#382,
+ * ADR 0037).
  */
 #[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id'])]
 class ClinicalNote extends Model

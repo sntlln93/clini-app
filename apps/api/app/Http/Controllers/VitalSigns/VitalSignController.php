@@ -83,4 +83,33 @@ class VitalSignController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    /**
+     * A measurement outside an appointment (#382, ADR 0037), taken when it is recorded.
+     */
+    public function storeForPatient(
+        StoreVitalSignRequest $request,
+        Patient $patient,
+        RecordVitalSignAction $action
+    ): JsonResponse {
+        Gate::authorize('createForPatient', [VitalSign::class, $patient]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $vitalSign = $action->handle(new VitalSignDraftData(
+            organizationId: $membership->organization_id,
+            appointmentId: null,
+            patientId: $patient->id,
+            membershipId: $membership->id,
+            values: $request->values(),
+        ));
+
+        return (new VitalSignResource($vitalSign->load(self::RELATIONS)))
+            ->response()
+            ->setStatusCode(201);
+    }
 }

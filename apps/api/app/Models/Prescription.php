@@ -15,7 +15,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * The medication a professional indicated during one appointment, kept as an
+ * The medication a professional indicated during one appointment, or outside
+ * one with a null appointment (#382, ADR 0037), kept as an
  * internal record of the clinical history (issue #319). Clini never issues a
  * prescription: valid ones are electronic, through a ReNaPDiS platform.
  * Append-only like clinical notes (#323, ADR 0019): the items live in its

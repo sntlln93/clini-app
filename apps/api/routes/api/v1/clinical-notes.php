@@ -15,6 +15,8 @@ Route::get('patients/{patient}/clinical-notes', [ClinicalNoteController::class, 
 // A note is never edited or deleted (#323, ADR 0019): it is amended or annulled.
 Route::middleware('subscription.active')->group(function (): void {
     Route::post('appointments/{appointment}/clinical-notes', [ClinicalNoteController::class, 'store']);
+    // Outside an appointment, by who attends the patient (#382, ADR 0037).
+    Route::post('patients/{patient}/clinical-notes', [ClinicalNoteController::class, 'storeForPatient'])->whereNumber('patient');
     Route::post('clinical-notes/{clinicalNote}/amendments', [ClinicalNoteAmendmentController::class, 'store']);
     Route::post('clinical-notes/{clinicalNote}/annulment', [ClinicalNoteAnnulmentController::class, 'store']);
 });

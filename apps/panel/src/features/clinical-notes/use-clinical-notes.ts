@@ -4,15 +4,16 @@ import {
 } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
+import type { RecordAppointment } from '@/lib/clinical-record-target';
 import { extractFormErrors } from '@/lib/form-errors';
 import { discardPageData } from '@/lib/page-data';
-import type { Appointment } from '@/types/appointment';
 import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 // What the notes' writes read of their appointment: the agenda passes its
-// whole `Appointment`, the patient page the id and the patient it has.
-export type NoteAppointment = Pick<Appointment, 'id' | 'patient_id'>;
+// whole `Appointment`, the patient page the id and the patient it has, the id
+// null for a note written outside an appointment (#382).
+export type NoteAppointment = RecordAppointment;
 
 function queryKey(appointmentId: number | null) {
     return ['clinical-notes', appointmentId];

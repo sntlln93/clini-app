@@ -53,20 +53,38 @@ describe('PatientVitalSignsCard', () => {
         vi.mocked(api.post).mockResolvedValue({ data: {} });
     });
 
-    it("says when no one has measured the patient yet, and records only on today's own appointment", () => {
+    it('says when no one has measured the patient yet', () => {
         renderCard([]);
 
         expect(
             screen.getByText('Todavía no hay mediciones de este paciente.'),
         ).toBeTruthy();
-        expect(
-            screen.queryByRole('button', { name: 'Registrar medición' }),
-        ).toBeNull();
-        expect(
-            screen.getByText(
-                'Podés registrar cuando tengas un turno con este paciente hoy.',
+        expect(screen.queryByText(/cuando tengas un turno/)).toBeNull();
+    });
+
+    // #382: without an own appointment today it goes outside one, on the
+    // patient, and the list marks it.
+    it('records a measurement outside an appointment when there is none today, marked as such', async () => {
+        renderCard([buildVitalSign({ id: 3, appointment_id: null })]);
+
+        expect(screen.getByText(/· Fuera de un turno/)).toBeTruthy();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medición' }),
+        );
+        const dialog = within(await screen.findByRole('dialog'));
+        fireEvent.change(dialog.getByLabelText('Peso (kg)'), {
+            target: { value: '70,5' },
+        });
+        fireEvent.click(
+            dialog.getByRole('button', { name: 'Registrar medición' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/patients/10/vital-signs',
+                expect.objectContaining({ weight_kg: 70.5 }),
             ),
-        ).toBeTruthy();
+        );
     });
 
     it('shows each latest value, the evolution and every measurement with its author', () => {

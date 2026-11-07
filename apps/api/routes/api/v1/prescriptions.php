@@ -18,6 +18,8 @@ Route::get('patients/{patient}/prescriptions', [PrescriptionController::class, '
 // annulled (#344).
 Route::middleware(['subscription.active', 'plan.feature:prescriptions'])->group(function (): void {
     Route::post('appointments/{appointment}/prescriptions', [PrescriptionController::class, 'store']);
+    // Outside an appointment, by who attends the patient (#382, ADR 0037).
+    Route::post('patients/{patient}/prescriptions', [PrescriptionController::class, 'storeForPatient'])->whereNumber('patient');
     Route::post('prescriptions/{prescription}/amendments', [PrescriptionAmendmentController::class, 'store']);
     Route::post('prescriptions/{prescription}/annulment', [PrescriptionAnnulmentController::class, 'store']);
 });

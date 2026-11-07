@@ -13,6 +13,7 @@ use App\Data\Prescriptions\MedicationAllergyScreeningData;
 use App\Data\Prescriptions\PrescriptionDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\Prescription;
+use App\Support\ClinicalAccess;
 use App\Support\MedicationSnapshot;
 use Illuminate\Support\Facades\DB;
 
@@ -37,6 +38,8 @@ class IssuePrescriptionAction implements Action
      */
     public function handle(Data $dto): Prescription
     {
+        ClinicalAccess::ensureOpenToWrite($dto->organizationId, $dto->membershipId, $dto->patientId, $dto->appointmentId);
+
         $items = MedicationSnapshot::of($dto->items);
 
         $allergyMatches = $this->screen->handle(new MedicationAllergyScreeningData(

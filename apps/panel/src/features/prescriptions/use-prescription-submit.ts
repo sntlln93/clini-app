@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useWatch, type UseFormReturn } from 'react-hook-form';
 
+import type { RecordAppointment } from '@/lib/clinical-record-target';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     EMPTY_PRESCRIPTION,
@@ -29,16 +30,16 @@ type PendingWarning = {
 // those allergies confirmed, or the professional changes the medication.
 export function usePrescriptionSubmit({
     form,
-    appointmentId,
+    appointment,
     amending,
     onSaved,
 }: {
     form: UseFormReturn<PrescriptionFormValues>;
-    appointmentId: number | null;
+    appointment: RecordAppointment | null;
     amending: Prescription | null;
     onSaved: () => void;
 }) {
-    const save = useSavePrescription(appointmentId);
+    const save = useSavePrescription(appointment);
     const items = useWatch({ control: form.control, name: 'items' });
     const [pending, setPending] = useState<PendingWarning | null>(null);
 

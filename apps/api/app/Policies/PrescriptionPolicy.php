@@ -26,6 +26,15 @@ class PrescriptionPolicy
         return ClinicalAccess::attends($user, $patient);
     }
 
+    /**
+     * Outside an appointment (#382, ADR 0037): only who attends the patient, as a read of their history. The window or
+     * an open exceptional access is the Action's (`ClinicalAccess::ensureOpenToWrite`).
+     */
+    public function createForPatient(User $user, Patient $patient): bool
+    {
+        return ClinicalAccess::attends($user, $patient);
+    }
+
     public function create(User $user, Appointment $appointment): bool
     {
         return $this->isAppointmentOwner($user, $appointment);

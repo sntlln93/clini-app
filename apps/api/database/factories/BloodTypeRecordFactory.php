@@ -29,4 +29,17 @@ class BloodTypeRecordFactory extends Factory
             'blood_type' => BloodType::OPositive,
         ];
     }
+
+    /**
+     * Written outside an appointment (#382, ADR 0037), by the professional of the given one and about its patient.
+     */
+    public function outsideAppointment(Appointment $attended): static
+    {
+        return $this->state([
+            'appointment_id' => null,
+            'organization_id' => $attended->organization_id,
+            'patient_id' => $attended->patient_id,
+            'membership_id' => $attended->membership_id,
+        ]);
+    }
 }

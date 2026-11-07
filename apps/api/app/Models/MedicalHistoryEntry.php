@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
  * One allergy or one personal, family or surgical antecedent of the patient, recorded during an appointment (#361, ADR
- * 0027). Append-only like the notes (ADR 0019): its text lives in its versions, a correction adds one, and a
+ * 0027) or outside one, with a null appointment (#382, ADR 0037). Append-only like the notes (ADR 0019): its text lives in its versions, a correction adds one, and a
  * withdrawal says it no longer applies without erasing it.
  */
 #[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'category'])]

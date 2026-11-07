@@ -27,8 +27,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * One patient's clinical history within the organization (#326, ADR 0021), as `ClinicalRecordLoader` loads it: the
- * appointments in order, each with every author's notes, indicated medication (#359) and measurements (#361), and every
- * version of each with
+ * appointments in order, each with every author's notes, indicated medication (#359) and measurements (#361), and those
+ * recorded outside an appointment in a group of their own (#382), with every version of each with
  * its author, time and reason, so the export shows who did what and when; the patient's background (blood type,
  * allergies, antecedents); then the patient's access trail, oldest
  * first, which also says who read it and exported it (#325, ADR 0022). The patient's identity goes without contact
@@ -73,7 +73,14 @@ class ClinicalRecordResource extends JsonResource
                 'prescriptions' => $prescriptions->get($appointment->id, new Collection)->map($this->prescription(...))->values()->all(),
                 'vital_signs' => $vitalSigns->get($appointment->id, new Collection)->map($this->vitalSign(...))->values()->all(),
             ])->values()->all(),
-            // Of the person rather than of one appointment (#361): each one still says which appointment it was recorded on.
+            // Recorded outside an appointment (#382, ADR 0037), in a group of their own: «Fuera de un turno».
+            'outside_appointments' => [
+                'clinical_notes' => $patient->clinicalNotes->whereNull('appointment_id')->map($this->note(...))->values()->all(),
+                'prescriptions' => $patient->prescriptions->whereNull('appointment_id')->map($this->prescription(...))->values()->all(),
+                'vital_signs' => $patient->vitalSigns->whereNull('appointment_id')->map($this->vitalSign(...))->values()->all(),
+            ],
+            // Of the person rather than of one appointment (#361): each one still says which appointment it was recorded
+            // on, or none when it was recorded outside one (#382).
             'blood_types' => $patient->bloodTypeRecords->map(fn (BloodTypeRecord $record): array => [
                 'id' => $record->id,
                 'appointment_id' => $record->appointment_id,

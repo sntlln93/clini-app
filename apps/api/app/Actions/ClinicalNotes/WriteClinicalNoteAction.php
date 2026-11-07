@@ -11,6 +11,7 @@ use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\ClinicalNotes\ClinicalNoteDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\ClinicalNote;
+use App\Support\ClinicalAccess;
 use App\Support\ClinicalNoteDiagnoses;
 use Illuminate\Support\Facades\DB;
 
@@ -31,6 +32,8 @@ class WriteClinicalNoteAction implements Action
      */
     public function handle(Data $dto): ClinicalNote
     {
+        ClinicalAccess::ensureOpenToWrite($dto->organizationId, $dto->membershipId, $dto->patientId, $dto->appointmentId);
+
         return DB::transaction(function () use ($dto): ClinicalNote {
             $clinicalNote = ClinicalNote::create([
                 'organization_id' => $dto->organizationId,

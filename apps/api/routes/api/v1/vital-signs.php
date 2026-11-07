@@ -15,6 +15,8 @@ Route::get('patients/{patient}/vital-signs', [VitalSignController::class, 'index
 // A measurement is never edited or deleted (ADR 0019): it is amended or annulled.
 Route::middleware('subscription.active')->group(function (): void {
     Route::post('appointments/{appointment}/vital-signs', [VitalSignController::class, 'store']);
+    // Outside an appointment, by who attends the patient (#382, ADR 0037).
+    Route::post('patients/{patient}/vital-signs', [VitalSignController::class, 'storeForPatient'])->whereNumber('patient');
     Route::post('vital-signs/{vitalSign}/amendments', [VitalSignAmendmentController::class, 'store']);
     Route::post('vital-signs/{vitalSign}/annulment', [VitalSignAnnulmentController::class, 'store']);
 });

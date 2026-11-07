@@ -36,7 +36,11 @@ type BloodTypeFormValues = z.infer<typeof schema>;
 type BloodTypeDialogProps = {
     patientId: number;
     // The appointment it is recorded on, and whether one is recorded already.
-    target: { appointmentId: number; current: BloodType | null } | null;
+    // A null appointment records it outside one (#382).
+    target: {
+        appointmentId: number | null;
+        current: BloodType | null;
+    } | null;
     onClose: () => void;
 };
 

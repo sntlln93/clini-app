@@ -74,10 +74,13 @@ export function ClinicalNotesDialog({
                 <DialogHeader>
                     <DialogTitle>Notas clínicas</DialogTitle>
                     <DialogDescription>
-                        Tus notas de este turno quedan en la historia clínica
-                        del paciente, que leen los profesionales que lo
-                        atienden. Una nota no se edita ni se borra: si la
-                        corregís, la versión anterior queda en el historial.
+                        {appointment !== null && appointmentId === null
+                            ? 'Tu nota, registrada fuera de un turno, queda'
+                            : 'Tus notas de este turno quedan'}{' '}
+                        en la historia clínica del paciente, que leen los
+                        profesionales que lo atienden. Una nota no se edita ni
+                        se borra: si la corregís, la versión anterior queda en
+                        el historial.
                     </DialogDescription>
                 </DialogHeader>
 

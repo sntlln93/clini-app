@@ -20,7 +20,7 @@ final readonly class MedicationAllergyScreeningData implements Data
         public int $organizationId,
         public int $membershipId,
         public int $patientId,
-        public int $appointmentId,
+        public ?int $appointmentId,
         public array $items,
         public array $confirmedAllergies,
     ) {}

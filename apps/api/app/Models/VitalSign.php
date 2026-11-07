@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 /**
- * One measurement of the clinical history, taken during an appointment (#361). Append-only like the notes (ADR 0019):
+ * One measurement of the clinical history, taken during an appointment (#361) or outside one (#382, ADR 0037). Append-only like the notes (ADR 0019):
  * the values live in its versions, a correction adds one, and an annulment takes it out of the series.
  */
 #[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'measured_at'])]

@@ -31,8 +31,8 @@ type PatientVitalSignsCardProps = {
 // (#361), part of the clinical history: each value's latest reading, the
 // evolution of the followed ones (against the WHO curves for a minor, #363)
 // and every measurement with its versions.
-// One is recorded on today's own appointment; only its author amends it or
-// annuls it with a reason.
+// One is recorded on today's own appointment, or outside one without it
+// (#382); only its author amends it or annuls it with a reason.
 export function PatientVitalSignsCard({
     patientId,
     patient,
@@ -42,7 +42,7 @@ export function PatientVitalSignsCard({
     const access = useClinicalWriteAccess(todaysAppointmentId);
     const annul = useAnnulVitalSign(patientId);
     const [editing, setEditing] = useState<{
-        appointmentId: number;
+        appointmentId: number | null;
         amending: VitalSign | null;
     } | null>(null);
     const [annulling, setAnnulling] = useState<VitalSign | null>(null);
@@ -58,7 +58,7 @@ export function PatientVitalSignsCard({
                         {access.unavailableReason}
                     </CardDescription>
                 )}
-                {recordingAppointmentId !== null && (
+                {access.canWrite && (
                     <CardAction>
                         <Button
                             type="button"

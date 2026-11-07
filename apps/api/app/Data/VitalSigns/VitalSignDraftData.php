@@ -10,7 +10,7 @@ final readonly class VitalSignDraftData implements Data
 {
     public function __construct(
         public int $organizationId,
-        public int $appointmentId,
+        public ?int $appointmentId,
         public int $patientId,
         public int $membershipId,
         public VitalSignValuesData $values,

@@ -227,6 +227,11 @@ export function buildClinicalRecord(
                 vital_signs: [],
             },
         ],
+        outside_appointments: {
+            clinical_notes: [],
+            prescriptions: [],
+            vital_signs: [],
+        },
         blood_types: [
             {
                 id: 51,

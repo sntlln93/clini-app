@@ -32,7 +32,8 @@ export type VitalSignVersion = {
 // point of the series; an annulled one leaves the series but stays.
 export type VitalSign = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     patient_id: number;
     membership_id: number;
     measured_at: string;

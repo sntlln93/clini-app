@@ -11,6 +11,7 @@ use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\MedicalHistory\MedicalHistoryEntryDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\MedicalHistoryEntry;
+use App\Support\ClinicalAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -29,6 +30,8 @@ class RecordMedicalHistoryEntryAction implements Action
      */
     public function handle(Data $dto): MedicalHistoryEntry
     {
+        ClinicalAccess::ensureOpenToWrite($dto->organizationId, $dto->membershipId, $dto->patientId, $dto->appointmentId);
+
         return DB::transaction(function () use ($dto): MedicalHistoryEntry {
             $entry = MedicalHistoryEntry::create([
                 'organization_id' => $dto->organizationId,

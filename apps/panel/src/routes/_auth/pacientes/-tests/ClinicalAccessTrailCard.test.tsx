@@ -68,6 +68,41 @@ describe('describeTrailEntry', () => {
         );
     });
 
+    // #382: a record added without an appointment says so; a read, an
+    // amendment or an export without one says nothing new.
+    it('marks the records added outside an appointment, and nothing else', () => {
+        expect(describeTrailEntry(buildEntry({ action: 'note_written' }))).toBe(
+            'Escribió una nota · Fuera de un turno',
+        );
+        expect(
+            [
+                'prescription_issued',
+                'vital_sign_recorded',
+                'blood_type_recorded',
+                'medical_history_recorded',
+            ].map((action) =>
+                describeTrailEntry(
+                    buildEntry({
+                        action: action as ClinicalAccessTrailEntry['action'],
+                    }),
+                ).endsWith(' · Fuera de un turno'),
+            ),
+        ).toEqual([true, true, true, true]);
+        expect(describeTrailEntry(buildEntry({ action: 'note_amended' }))).toBe(
+            'Enmendó una nota',
+        );
+        expect(
+            describeTrailEntry(
+                buildEntry({
+                    action: 'note_written',
+                    appointment: { id: 7, start_at: '2026-10-01T13:00:00Z' },
+                }),
+            ),
+        ).toBe(
+            `Escribió una nota · Turno del ${formatShortDateTime('2026-10-01T13:00:00Z')}`,
+        );
+    });
+
     it('says the format of an export, and when it held every attended patient', () => {
         const exported = (scope: 'patient' | 'attended_patients') =>
             buildEntry({
@@ -102,7 +137,10 @@ describe('ClinicalAccessTrailCard', () => {
 
         expect(screen.getByText('Dra. Carla Ruiz')).toBeTruthy();
         expect(screen.getByText('Leyó las notas clínicas')).toBeTruthy();
-        expect(screen.getByText('Escribió una nota')).toBeTruthy();
+        // Written without an appointment: outside one (#382).
+        expect(
+            screen.getByText('Escribió una nota · Fuera de un turno'),
+        ).toBeTruthy();
         expect(screen.getByText('—')).toBeTruthy();
         expect(
             screen.getAllByText(formatShortDateTime('2026-10-20T13:30:00Z')),

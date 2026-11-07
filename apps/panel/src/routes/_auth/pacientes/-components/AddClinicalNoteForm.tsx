@@ -18,7 +18,8 @@ import { useCreatePatientClinicalNote } from '../-hooks/use-patient-clinical-not
 
 type AddClinicalNoteFormProps = {
     patientId: number;
-    appointmentId: number;
+    // Today's own appointment, or null to write it outside one (#382).
+    appointmentId: number | null;
     onSaved: () => void;
 };
 
@@ -26,7 +27,8 @@ const EMPTY_VALUES: NoteFormValues = { body: '', diagnoses: [] };
 
 // Reuses the shared `noteSchema` validation (issue #217, whose body rule
 // `features/clinical-notes/ClinicalNoteForm.tsx` shares): this only writes a
-// new note, against the acting membership's own appointment for today.
+// new note, against the acting membership's own appointment for today, or
+// outside an appointment when there is none (#382).
 // Amending and annulling go through the agenda's dialogs, on the note's own
 // appointment (`PatientNoteDialogs`).
 export function AddClinicalNoteForm({

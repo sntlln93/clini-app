@@ -102,4 +102,34 @@ class MedicalHistoryController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    /**
+     * An allergy or antecedent outside an appointment (#382, ADR 0037), such as one the patient reports by phone.
+     */
+    public function storeForPatient(
+        StoreMedicalHistoryEntryRequest $request,
+        Patient $patient,
+        RecordMedicalHistoryEntryAction $action
+    ): JsonResponse {
+        Gate::authorize('createForPatient', [MedicalHistoryEntry::class, $patient]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $entry = $action->handle(new MedicalHistoryEntryDraftData(
+            organizationId: $membership->organization_id,
+            appointmentId: null,
+            patientId: $patient->id,
+            membershipId: $membership->id,
+            category: $request->category(),
+            content: $request->content(),
+        ));
+
+        return (new MedicalHistoryEntryResource($entry->load(self::ENTRY_RELATIONS)))
+            ->response()
+            ->setStatusCode(201);
+    }
 }

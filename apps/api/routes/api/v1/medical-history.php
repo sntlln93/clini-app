@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('patients/{patient}/medical-history', [MedicalHistoryController::class, 'show']);
 // The current ones, above the form that indicates medication (#362).
 Route::get('appointments/{appointment}/allergies', [CurrentAllergyController::class, 'index']);
+Route::get('patients/{patient}/allergies', [CurrentAllergyController::class, 'indexForPatient'])->whereNumber('patient');
 
 // Writes are read-only while the subscription is expired (#28) or the
 // organization exceeds its plan's professional limit (#237). Part of the
@@ -21,6 +22,9 @@ Route::get('appointments/{appointment}/allergies', [CurrentAllergyController::cl
 Route::middleware('subscription.active')->group(function (): void {
     Route::post('appointments/{appointment}/blood-types', [BloodTypeController::class, 'store']);
     Route::post('appointments/{appointment}/medical-history-entries', [MedicalHistoryController::class, 'store']);
+    // Outside an appointment, by who attends the patient (#382, ADR 0037).
+    Route::post('patients/{patient}/blood-types', [BloodTypeController::class, 'storeForPatient'])->whereNumber('patient');
+    Route::post('patients/{patient}/medical-history-entries', [MedicalHistoryController::class, 'storeForPatient'])->whereNumber('patient');
     Route::post('medical-history-entries/{medicalHistoryEntry}/amendments', [MedicalHistoryAmendmentController::class, 'store']);
     Route::post('medical-history-entries/{medicalHistoryEntry}/withdrawal', [MedicalHistoryWithdrawalController::class, 'store']);
 });

@@ -111,10 +111,11 @@ export type ClinicalRecordVitalSign = {
 };
 
 // The background is of the person (#361): it goes beside the appointments,
-// each record still saying which one it was recorded on.
+// each record still saying which one it was recorded on, if any (#382).
 export type ClinicalRecordBloodType = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     author: ClinicalRecordPerson;
     created_at: string;
     blood_type: BloodType;
@@ -123,7 +124,8 @@ export type ClinicalRecordBloodType = {
 
 export type ClinicalRecordMedicalHistoryEntry = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     category: MedicalHistoryCategory;
     author: ClinicalRecordPerson;
     created_at: string;
@@ -150,10 +152,19 @@ export type ClinicalRecordAppointment = {
     vital_signs: ClinicalRecordVitalSign[];
 };
 
+// What was recorded outside an appointment (#382, ADR 0037), in a group of
+// its own: «Fuera de un turno».
+export type ClinicalRecordOutsideAppointments = {
+    clinical_notes: ClinicalRecordNote[];
+    prescriptions: ClinicalRecordPrescription[];
+    vital_signs: ClinicalRecordVitalSign[];
+};
+
 export type ClinicalRecordDocument = {
     export: ClinicalRecordHeading;
     patient: ClinicalRecordPatient;
     appointments: ClinicalRecordAppointment[];
+    outside_appointments: ClinicalRecordOutsideAppointments;
     blood_types: ClinicalRecordBloodType[];
     medical_history: ClinicalRecordMedicalHistoryEntry[];
     access_log: ClinicalAccessTrailEntry[];

@@ -9,6 +9,7 @@ import {
 } from '@/components/ui/card';
 import { ClinicalNoteEntry } from '@/features/clinical-history/ClinicalNoteEntry';
 import { ClinicalNoteActions } from '@/features/clinical-notes/ClinicalNoteActions';
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import { formatShortDateTime } from '@/lib/datetime';
 import { useWritesRestriction, type WritesRestriction } from '@/lib/plan';
 import { useSession } from '@/lib/session';
@@ -22,8 +23,9 @@ type PatientClinicalNotesCardProps = {
     // Only rendered once the history is open to the acting membership: while
     // it isn't, `ClinicalHistoryAccessCard` takes its place (#325).
     notes: ClinicalNote[];
-    // The acting membership's own appointment for today, or null when it
-    // doesn't have one — drives whether "add note" is offered (issue #217).
+    // The acting membership's own appointment for today, where a new note
+    // goes (#217), or null: the note is then written outside an appointment
+    // (#382, ADR 0037). The history is open here, so the API allows it.
     todaysAppointmentId: number | null;
 };
 
@@ -49,12 +51,10 @@ export function PatientClinicalNotesCard({
     // Clinical-note writes are read-only while writes are restricted (#28,
     // #237); the backend still enforces it.
     const restriction = useWritesRestriction();
-    const canAddNote = todaysAppointmentId !== null && restriction === null;
+    const canAddNote = restriction === null;
     const unavailableReason = restriction
         ? READ_ONLY_REASONS[restriction]
-        : todaysAppointmentId === null
-          ? 'Podés agregar notas cuando tengas un turno con este paciente hoy.'
-          : null;
+        : null;
 
     return (
         <Card>
@@ -77,7 +77,7 @@ export function PatientClinicalNotesCard({
                 )}
             </CardHeader>
             <CardContent ref={listRef} tabIndex={-1} className="space-y-3">
-                {canAddNote && todaysAppointmentId !== null && showForm && (
+                {canAddNote && showForm && (
                     <AddClinicalNoteForm
                         patientId={patientId}
                         appointmentId={todaysAppointmentId}
@@ -111,6 +111,9 @@ export function PatientClinicalNotesCard({
                                     <span>{note.author_name ?? '—'}</span>
                                     <span className="tabular-nums">
                                         {formatShortDateTime(note.created_at)}
+                                        {outsideAppointmentSuffix(
+                                            note.appointment_id,
+                                        )}
                                     </span>
                                 </>
                             }
