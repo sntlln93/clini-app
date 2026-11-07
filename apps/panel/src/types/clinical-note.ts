@@ -25,7 +25,8 @@ export type ClinicalNoteAnnulment = {
 // `versions` holds every one, oldest first, the current one included.
 export type ClinicalNote = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     membership_id: number;
     body: string;
     diagnoses: ClinicalNoteDiagnosis[];

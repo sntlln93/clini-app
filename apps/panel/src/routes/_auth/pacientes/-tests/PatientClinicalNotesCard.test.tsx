@@ -180,20 +180,43 @@ describe('PatientClinicalNotesCard', () => {
         await screen.findByRole('button', { name: 'Agregar nota' });
     });
 
-    it('does not render the "Agregar nota" control when there is none', async () => {
-        renderCard({ todaysAppointmentId: null });
+    // #382: the history is open here, so a note goes outside an appointment.
+    it('offers "Agregar nota" without an own appointment today and writes it outside one, on the patient', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        renderCard({ patientId: 10, todaysAppointmentId: null });
 
-        await screen.findByText(
-            'Todavía no hay notas clínicas para este paciente.',
+        fireEvent.click(
+            await screen.findByRole('button', { name: 'Agregar nota' }),
         );
-        expect(
-            screen.queryByRole('button', { name: 'Agregar nota' }),
-        ).toBeNull();
-        expect(
-            screen.getByText(
-                'Podés agregar notas cuando tengas un turno con este paciente hoy.',
+        fireEvent.change(
+            screen.getByRole('textbox', { name: 'Nueva nota clínica' }),
+            { target: { value: 'Llegó el laboratorio: normal.' } },
+        );
+        fireEvent.click(screen.getByRole('button', { name: 'Guardar nota' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/patients/10/clinical-notes',
+                {
+                    body: 'Llegó el laboratorio: normal.',
+                    icd10_code_ids: [],
+                },
             ),
-        ).toBeTruthy();
+        );
+        expect(screen.queryByText(/cuando tengas un turno/)).toBeNull();
+    });
+
+    it('marks a note written outside an appointment, and only that one', async () => {
+        renderCard({
+            notes: [
+                buildNote({ id: 1, appointment_id: null, body: 'Sin turno.' }),
+                buildNote({ id: 2, appointment_id: 77, body: 'En el turno.' }),
+            ],
+        });
+
+        await screen.findByText('Sin turno.');
+        expect(screen.getAllByText(/· Fuera de un turno/)).toHaveLength(1);
     });
 
     it.each(['expired'] as const)(

@@ -67,7 +67,7 @@ function renderDialog(onSaved = vi.fn()) {
                 <PrescriptionsDialog
                     open
                     onOpenChange={() => {}}
-                    appointment={{ id: 42 }}
+                    appointment={{ id: 42, patient_id: 7 }}
                     onSaved={onSaved}
                 />
             </QueryClientProvider>

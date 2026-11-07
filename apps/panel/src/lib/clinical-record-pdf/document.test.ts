@@ -196,6 +196,41 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain('Exportó la historia clínica · PDF');
     });
 
+    // #382: what was recorded outside an appointment, in a group of its own.
+    it('groups the records made outside an appointment apart, and marks the background', () => {
+        const record = buildClinicalRecord();
+        const [appointment] = record.appointments;
+        const text = textOf(
+            buildClinicalRecordDocument(
+                {
+                    ...record,
+                    appointments: [],
+                    outside_appointments: {
+                        clinical_notes: appointment.clinical_notes,
+                        prescriptions: appointment.prescriptions,
+                        vital_signs: appointment.vital_signs,
+                    },
+                    blood_types: record.blood_types.map((bloodType) => ({
+                        ...bloodType,
+                        appointment_id: null,
+                    })),
+                },
+                { brandName: 'Clini', logoSvg: LOGO },
+            ).content,
+        );
+        const outside = text.slice(text.indexOf('Fuera de un turno\n'));
+
+        expect(outside).toContain(
+            'Registrado desde la ficha del paciente, sin un turno.',
+        );
+        expect(outside).toContain('Nota enmendada.');
+        expect(text).toMatch(/O\+ · .+ · Fuera de un turno/);
+    });
+
+    it('leaves the group out when nothing was recorded outside an appointment', () => {
+        expect(textOf(render().content)).not.toContain('Fuera de un turno');
+    });
+
     it('says so when there are no appointments nor accesses', () => {
         const text = textOf(
             buildClinicalRecordDocument(

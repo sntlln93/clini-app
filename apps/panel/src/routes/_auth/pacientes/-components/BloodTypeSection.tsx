@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import { formatShortDateTime } from '@/lib/datetime';
 import type { BloodTypeRecord } from '@/types/medical-history';
 
@@ -41,6 +42,7 @@ export function BloodTypeSection({ records, onRecord }: BloodTypeSectionProps) {
                         <span className="tabular-nums">
                             {formatShortDateTime(current.created_at)}
                         </span>
+                        {outsideAppointmentSuffix(current.appointment_id)}
                         {current.reason && ` · Motivo: ${current.reason}`}
                     </span>
                 </p>
@@ -65,6 +67,9 @@ export function BloodTypeSection({ records, onRecord }: BloodTypeSectionProps) {
                                 <span className="tabular-nums">
                                     {formatShortDateTime(record.created_at)}
                                 </span>
+                                {outsideAppointmentSuffix(
+                                    record.appointment_id,
+                                )}
                                 {record.reason && ` · Motivo: ${record.reason}`}
                             </li>
                         ))}

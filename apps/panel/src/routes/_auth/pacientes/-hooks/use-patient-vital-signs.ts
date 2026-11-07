@@ -2,6 +2,7 @@ import { patientVitalSignsQueryKey } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
+import { recordsPath } from '@/lib/clinical-record-target';
 import type { VitalSign, VitalSignAmendmentPayload } from '@/types/vital-sign';
 import { queryOptions, useMutation } from '@tanstack/react-query';
 
@@ -23,7 +24,8 @@ export function patientVitalSignsQueryOptions(patientId: number) {
     });
 }
 
-// Records one on `appointmentId` when `vitalSignId` is null, amends it
+// Records one on `appointmentId` (or outside an appointment when it is null,
+// #382) when `vitalSignId` is null, amends it
 // otherwise: an amendment corrects the same point, it never adds one. The
 // page reloads afterwards, its trail included.
 export function useSaveVitalSign(patientId: number) {
@@ -35,12 +37,18 @@ export function useSaveVitalSign(patientId: number) {
             vitalSignId,
             payload: { reason, ...values },
         }: {
-            appointmentId: number;
+            appointmentId: number | null;
             vitalSignId: number | null;
             payload: VitalSignAmendmentPayload;
         }): Promise<unknown> =>
             vitalSignId === null
-                ? api.post(`/appointments/${appointmentId}/vital-signs`, values)
+                ? api.post(
+                      recordsPath(
+                          { id: appointmentId, patient_id: patientId },
+                          'vital-signs',
+                      ),
+                      values,
+                  )
                 : api.post(`/vital-signs/${vitalSignId}/amendments`, {
                       ...values,
                       reason,

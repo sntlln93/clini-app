@@ -31,7 +31,8 @@ import { useSaveMedicalHistoryEntry } from '../-hooks/use-patient-medical-histor
 import { MedicalHistoryEntryFields } from './MedicalHistoryEntryFields';
 
 export type MedicalHistoryEntryTarget = {
-    appointmentId: number;
+    // A null appointment records it outside one (#382).
+    appointmentId: number | null;
     category: MedicalHistoryCategory;
     amending: MedicalHistoryEntry | null;
 };

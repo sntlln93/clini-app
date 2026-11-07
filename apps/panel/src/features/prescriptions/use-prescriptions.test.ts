@@ -61,7 +61,7 @@ describe('useSavePrescription (#273)', () => {
         await queryClient.ensureQueryData(patientPrescriptionsQueryOptions(50));
         const gets = deferredGets();
         const { result } = renderWithClient(queryClient, () =>
-            useSavePrescription(42),
+            useSavePrescription({ id: 42, patient_id: 50 }),
         );
 
         const saving = result.current.mutateAsync(SAVE);
@@ -87,7 +87,7 @@ describe('useSavePrescription (#273)', () => {
         });
         const { result } = renderWithClient(queryClient, () => ({
             prescriptions: usePrescriptions(42, true),
-            save: useSavePrescription(42),
+            save: useSavePrescription({ id: 42, patient_id: 50 }),
         }));
         await waitFor(() => expect(gets).toHaveLength(1));
 
@@ -106,7 +106,7 @@ describe('useSavePrescription (#273)', () => {
     it('recording one posts only the items, to the appointment', async () => {
         vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
         const { result } = renderWithClient(new QueryClient(), () =>
-            useSavePrescription(42),
+            useSavePrescription({ id: 42, patient_id: 50 }),
         );
 
         await result.current.mutateAsync(SAVE);
@@ -117,10 +117,23 @@ describe('useSavePrescription (#273)', () => {
         );
     });
 
+    it('recording one outside an appointment posts it to the patient (#382)', async () => {
+        vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
+        const { result } = renderWithClient(new QueryClient(), () =>
+            useSavePrescription({ id: null, patient_id: 50 }),
+        );
+
+        await result.current.mutateAsync(SAVE);
+
+        expect(api.post).toHaveBeenCalledWith('/patients/50/prescriptions', {
+            items: PAYLOAD.items,
+        });
+    });
+
     it('amending one posts the items and the reason as an amendment (#323)', async () => {
         vi.mocked(api.get).mockResolvedValue({ data: { data: [] } });
         const { result } = renderWithClient(new QueryClient(), () =>
-            useSavePrescription(42),
+            useSavePrescription({ id: 42, patient_id: 50 }),
         );
 
         await result.current.mutateAsync({

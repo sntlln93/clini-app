@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import type { RecordAppointment } from '@/lib/clinical-record-target';
 import { extractFormErrors } from '@/lib/form-errors';
 import { entryDetails } from '@/lib/medical-history';
 import {
@@ -57,13 +58,13 @@ function AllergyList({ current }: { current: CurrentAllergiesData }) {
 // stay out: the warning on saving still covers them. Its last line says what
 // that warning compares (#377).
 export function CurrentAllergies({
-    appointmentId,
+    appointment,
 }: {
-    appointmentId: number | null;
+    appointment: RecordAppointment | null;
 }) {
-    const query = useCurrentAllergies(appointmentId);
+    const query = useCurrentAllergies(appointment);
 
-    if (appointmentId === null) {
+    if (appointment === null) {
         return null;
     }
 

@@ -1,5 +1,6 @@
 import { STATUS_LABELS } from '@/lib/appointment-status';
 import { describeTrailEntry } from '@/lib/clinical-access';
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import { fromCalendarDate } from '@/lib/datetime';
 import { CATEGORY_SECTIONS, entryDetails } from '@/lib/medical-history';
 import type { ClinicalAccessTrailEntry } from '@/types/clinical-access';
@@ -129,7 +130,7 @@ function backgroundEntryBlock(
         style: 'record',
         stack: [
             {
-                text: `Registrado por ${nameOf(entry.author)} el ${at(entry.created_at)}`,
+                text: `Registrado por ${nameOf(entry.author)} el ${at(entry.created_at)}${outsideAppointmentSuffix(entry.appointment_id)}`,
                 style: 'muted',
             },
             ...(entry.withdrawal
@@ -164,7 +165,7 @@ function bloodTypeLines(records: ClinicalRecordBloodType[]): Content {
             {
                 ul: records.map(
                     (record) =>
-                        `${record.blood_type} · ${nameOf(record.author)}, ${at(record.created_at)}${record.reason ? ` · Motivo: ${record.reason}` : ''}`,
+                        `${record.blood_type} · ${nameOf(record.author)}, ${at(record.created_at)}${outsideAppointmentSuffix(record.appointment_id)}${record.reason ? ` · Motivo: ${record.reason}` : ''}`,
                 ),
             },
         ],

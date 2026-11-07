@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { AmendmentReasonField } from '@/features/clinical-history/AmendmentReasonField';
+import type { RecordAppointment } from '@/lib/clinical-record-target';
 import {
     EMPTY_ITEM,
     EMPTY_PRESCRIPTION,
@@ -21,7 +22,9 @@ import { PrescriptionItemFields } from './PrescriptionItemFields';
 import { usePrescriptionSubmit } from './use-prescription-submit';
 
 type PrescriptionFormProps = {
-    appointmentId: number | null;
+    // Where a new record goes: an appointment, or the patient outside one
+    // (#382). Amending reads only its allergies.
+    appointment: RecordAppointment | null;
     open: boolean;
     amending: Prescription | null;
     onCancelAmendment: () => void;
@@ -33,7 +36,7 @@ type PrescriptionFormProps = {
 // The patient's current allergies come first, and medication that matches one
 // is saved only once the warning is confirmed (#362).
 export function PrescriptionForm({
-    appointmentId,
+    appointment,
     open,
     amending,
     onCancelAmendment,
@@ -54,7 +57,7 @@ export function PrescriptionForm({
 
     const submit = usePrescriptionSubmit({
         form,
-        appointmentId,
+        appointment,
         amending,
         onSaved,
     });
@@ -64,7 +67,7 @@ export function PrescriptionForm({
     return (
         <Form {...form}>
             <form onSubmit={submit.onSubmit} className="space-y-3">
-                <CurrentAllergies appointmentId={appointmentId} />
+                <CurrentAllergies appointment={appointment} />
                 {form.formState.errors.root && (
                     <p className="text-sm text-destructive">
                         {form.formState.errors.root.message}

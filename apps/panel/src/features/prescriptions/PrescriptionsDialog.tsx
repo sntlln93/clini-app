@@ -8,9 +8,9 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PlanFeatureNote } from '@/features/plan-feature-note/PlanFeatureNote';
+import type { RecordAppointment } from '@/lib/clinical-record-target';
 import { extractFormErrors } from '@/lib/form-errors';
 import { usePlanIncludes, useWritesRestricted } from '@/lib/plan';
-import type { Appointment } from '@/types/appointment';
 import type { Prescription } from '@/types/prescription';
 import { AnnulPrescriptionDialog } from './AnnulPrescriptionDialog';
 import { PrescriptionForm } from './PrescriptionForm';
@@ -20,16 +20,18 @@ import { usePrescriptions } from './use-prescriptions';
 type PrescriptionsDialogProps = {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    // Only its id is read, so the patient page passes its own appointment of
-    // today without the agenda's whole `Appointment`.
-    appointment: Pick<Appointment, 'id'> | null;
+    // Only its id and patient are read, so the patient page passes its own
+    // appointment of today without the agenda's whole `Appointment`, or a null
+    // id for medication indicated outside an appointment (#382).
+    appointment: RecordAppointment | null;
     // After each record, amendment or annulment, for a page that shows the
     // medication outside the dialog (the patient page, #325).
     onSaved?: () => void;
     // Opens straight on amending this record: the patient page's «Enmendar».
     amendOnOpen?: Prescription | null;
     // False keeps it to amending: the patient page records new medication
-    // only on today's own appointment, not on the one an amendment opens on.
+    // only on today's own appointment (or outside one without it), not on the
+    // one an amendment opens on.
     allowCreate?: boolean;
 };
 
@@ -75,8 +77,11 @@ export function PrescriptionsDialog({
                 <DialogHeader>
                     <DialogTitle>Medicación indicada</DialogTitle>
                     <DialogDescription>
-                        La medicación que indicás en este turno queda en la
-                        historia clínica del paciente, que leen los
+                        La medicación que indicás{' '}
+                        {appointment !== null && appointmentId === null
+                            ? 'fuera de un turno'
+                            : 'en este turno'}{' '}
+                        queda en la historia clínica del paciente, que leen los
                         profesionales que lo atienden, y no se borra: si la
                         corregís, la versión anterior queda en el historial.
                     </DialogDescription>
@@ -108,7 +113,7 @@ export function PrescriptionsDialog({
 
                 {!restricted && (allowCreate || amending !== null) && (
                     <PrescriptionForm
-                        appointmentId={appointmentId}
+                        appointment={appointment}
                         open={open}
                         amending={amending}
                         onCancelAmendment={() => setAmending(null)}

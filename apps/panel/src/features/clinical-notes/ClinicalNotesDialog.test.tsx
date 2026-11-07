@@ -432,6 +432,39 @@ describe('ClinicalNotesDialog', () => {
         expect(await screen.findByLabelText('Texto corregido')).toBeTruthy();
     });
 
+    // #382: a note written outside an appointment is amended from the patient
+    // page with a null appointment: nothing is listed, the amendment goes out.
+    it('amends a note written outside an appointment without reading any appointment', async () => {
+        const note = buildNote({
+            id: 7,
+            appointment_id: null,
+            body: 'Sin turno.',
+        });
+        vi.mocked(api.post).mockResolvedValueOnce({ data: {} });
+        renderAmending(note, { appointment: { id: null, patient_id: 50 } });
+
+        expect(screen.getByText(/registrada fuera de un turno/)).toBeTruthy();
+        const textarea = (await screen.findByLabelText(
+            'Texto corregido',
+        )) as HTMLTextAreaElement;
+        await waitFor(() => expect(textarea.value).toBe('Sin turno.'));
+        fireEvent.change(textarea, { target: { value: 'Corregida.' } });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Guardar enmienda' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith(
+                '/clinical-notes/7/amendments',
+                { body: 'Corregida.', icd10_code_ids: [], reason: null },
+            ),
+        );
+        expect(api.get).not.toHaveBeenCalledWith(
+            expect.stringContaining('/appointments/'),
+        );
+        expect(screen.queryByText(/para este turno/)).toBeNull();
+    });
+
     // The patient page writes new notes only on today's own appointment.
     it('without allowCreate, cancelling the amendment leaves no new-note form', async () => {
         const note = buildNote({ id: 7, body: 'Nota original.' });

@@ -41,7 +41,8 @@ export type PrescriptionAnnulment = {
 // oldest first, the current one included; an annulled one stays (#344).
 export type Prescription = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     patient_id: number;
     membership_id: number;
     issued_at: string;

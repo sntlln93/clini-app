@@ -181,7 +181,7 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'medical_history.blood_type_unchanged':
         'Ese ya es el grupo sanguíneo registrado. Elegí otro o cancelá el cambio.',
     'clinical_access.reason_required':
-        'No tenés un turno con este paciente cerca de hoy. Para ver su historia clínica, contá el motivo del acceso.',
+        'No tenés un turno con este paciente cerca de hoy. Para ver su historia clínica o registrar en ella, contá el motivo del acceso.',
     'clinical_access.reason_not_required':
         'Ya tenés un turno con este paciente cerca de hoy: su historia clínica está abierta sin indicar un motivo.',
     'clinical_access.code_invalid':

@@ -31,7 +31,8 @@ export type AllergySeverity = (typeof ALLERGY_SEVERITIES)[number];
 // records a new one, so the earlier ones stay with their authors.
 export type BloodTypeRecord = {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     membership_id: number;
     blood_type: BloodType;
     reason: string | null;
@@ -58,7 +59,8 @@ export type MedicalHistoryEntryVersion = MedicalHistoryContent & {
 // version or withdrawn once it no longer applies, never erased.
 export type MedicalHistoryEntry = MedicalHistoryContent & {
     id: number;
-    appointment_id: number;
+    // Null for one recorded outside an appointment (#382).
+    appointment_id: number | null;
     patient_id: number;
     membership_id: number;
     category: MedicalHistoryCategory;

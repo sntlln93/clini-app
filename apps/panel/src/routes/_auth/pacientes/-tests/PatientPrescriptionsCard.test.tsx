@@ -30,14 +30,15 @@ vi.mock('@/lib/session', async (importOriginal) => ({
 vi.mock('@/features/prescriptions/PrescriptionsDialog', () => ({
     PrescriptionsDialog: (props: {
         open: boolean;
-        appointment: { id: number } | null;
+        appointment: { id: number | null; patient_id: number } | null;
         amendOnOpen?: { id: number } | null;
         allowCreate?: boolean;
         onSaved?: () => void;
     }) =>
         props.open ? (
             <div role="dialog" aria-label="Medicación indicada">
-                Turno {props.appointment?.id}
+                Turno {props.appointment?.id ?? 'ninguno'} de{' '}
+                {props.appointment?.patient_id}
                 {props.amendOnOpen && ` · enmienda ${props.amendOnOpen.id}`}
                 {props.allowCreate ? ' · alta' : ' · solo enmienda'}
                 <button type="button" onClick={props.onSaved}>
@@ -213,18 +214,37 @@ describe('PatientPrescriptionsCard', () => {
         expect(screen.getByText('Amoxicilina')).toBeTruthy();
     });
 
-    // A record belongs to an appointment, as a note does (#217).
-    it('offers no record without an own appointment today, and says why', () => {
-        renderCard([]);
+    // #382: without an own appointment today it is indicated outside one.
+    it('records outside an appointment when there is none today, and marks what was', () => {
+        renderCard([
+            buildPrescription({
+                id: 7,
+                appointment_id: null,
+                membership_id: 2,
+            }),
+        ]);
+
+        expect(screen.getByText(/· Fuera de un turno/)).toBeTruthy();
+        expect(screen.queryByText(/cuando tengas un turno/)).toBeNull();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Registrar medicación' }),
+        );
 
         expect(
-            screen.getByText(
-                /Podés registrarla cuando tengas un turno con este paciente hoy\./,
-            ),
-        ).toBeTruthy();
+            screen.getByRole('dialog', { name: 'Medicación indicada' })
+                .textContent,
+        ).toContain('Turno ninguno de 10 · alta');
+    });
+
+    it("amends a record made outside an appointment there, with no new record on today's", () => {
+        renderCard([buildPrescription({ id: 7, appointment_id: null })], 31);
+
+        fireEvent.click(screen.getByRole('button', { name: 'Enmendar' }));
+
         expect(
-            screen.queryByRole('button', { name: 'Registrar medicación' }),
-        ).toBeNull();
+            screen.getByRole('dialog', { name: 'Medicación indicada' })
+                .textContent,
+        ).toContain('Turno ninguno de 10 · enmienda 7 · solo enmienda');
     });
 
     it("records on today's own appointment, as the agenda does, and reloads the list", () => {
@@ -236,7 +256,7 @@ describe('PatientPrescriptionsCard', () => {
         const dialog = screen.getByRole('dialog', {
             name: 'Medicación indicada',
         });
-        expect(dialog.textContent).toContain('Turno 31 · alta');
+        expect(dialog.textContent).toContain('Turno 31 de 10 · alta');
 
         fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
 
@@ -252,7 +272,7 @@ describe('PatientPrescriptionsCard', () => {
         expect(
             screen.getByRole('dialog', { name: 'Medicación indicada' })
                 .textContent,
-        ).toContain('Turno 55 · enmienda 7 · solo enmienda');
+        ).toContain('Turno 55 de 10 · enmienda 7 · solo enmienda');
     });
 
     it("amending a record of today's own appointment still allows a new one there", () => {
@@ -263,7 +283,7 @@ describe('PatientPrescriptionsCard', () => {
         expect(
             screen.getByRole('dialog', { name: 'Medicación indicada' })
                 .textContent,
-        ).toContain('Turno 31 · enmienda 7 · alta');
+        ).toContain('Turno 31 de 10 · enmienda 7 · alta');
     });
 
     it('annuls a record with a reason and reloads the list (#344)', () => {

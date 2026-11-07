@@ -5,6 +5,7 @@ import {
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { CLINICAL_ACCESS_EXPIRED } from '@/lib/clinical-access';
+import { recordsPath } from '@/lib/clinical-record-target';
 import { extractFormErrors } from '@/lib/form-errors';
 import { notifySuccess } from '@/lib/toast';
 import type { ClinicalNote, NoteDraft } from '@/types/clinical-note';
@@ -29,10 +30,10 @@ export function patientClinicalNotesQueryOptions(patientId: number) {
     });
 }
 
-// Reuses the existing appointment-scoped store endpoint and its validation
-// (issue #30) — only the success side-effect differs: this page is read via
-// loader, so it refreshes through `useRefreshPageData` instead of a plain
-// `invalidateQueries`.
+// Reuses the appointment-scoped store endpoint and its validation (issue #30),
+// or the patient's outside an appointment (#382) — only the success
+// side-effect differs: this page is read via loader, so it refreshes through
+// `useRefreshPageData` instead of a plain `invalidateQueries`.
 export function useCreatePatientClinicalNote(
     patientId: number,
     appointmentId: number | null,
@@ -41,10 +42,16 @@ export function useCreatePatientClinicalNote(
 
     const mutation = useMutation({
         mutationFn: ({ body, icd10CodeIds }: NoteDraft) =>
-            api.post(`/appointments/${appointmentId}/clinical-notes`, {
-                body,
-                icd10_code_ids: icd10CodeIds,
-            }),
+            api.post(
+                recordsPath(
+                    { id: appointmentId, patient_id: patientId },
+                    'clinical-notes',
+                ),
+                {
+                    body,
+                    icd10_code_ids: icd10CodeIds,
+                },
+            ),
         onSuccess: () =>
             refreshPageData(
                 patientClinicalNotesQueryKey(patientId),

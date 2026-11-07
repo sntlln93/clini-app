@@ -41,7 +41,7 @@ export function PatientMedicalHistoryCard({
 }: PatientMedicalHistoryCardProps) {
     const access = useClinicalWriteAccess(todaysAppointmentId);
     const [bloodType, setBloodType] = useState<{
-        appointmentId: number;
+        appointmentId: number | null;
         current: BloodType | null;
     } | null>(null);
     const [editing, setEditing] = useState<MedicalHistoryEntryTarget | null>(
@@ -67,7 +67,7 @@ export function PatientMedicalHistoryCard({
                 <BloodTypeSection
                     records={history.blood_types}
                     onRecord={
-                        appointmentId === null
+                        !access.canWrite
                             ? null
                             : () =>
                                   setBloodType({
@@ -84,7 +84,7 @@ export function PatientMedicalHistoryCard({
                         category={category}
                         entries={entriesOf(history, category)}
                         onRecord={
-                            appointmentId === null
+                            !access.canWrite
                                 ? null
                                 : () =>
                                       setEditing({

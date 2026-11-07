@@ -55,7 +55,7 @@ describe('PatientMedicalHistoryCard', () => {
         vi.mocked(api.post).mockResolvedValue({ data: {} });
     });
 
-    it("says what is not recorded yet, and records nothing without today's own appointment", () => {
+    it('says what is not recorded yet', () => {
         renderCard(EMPTY, null);
 
         expect(
@@ -65,8 +65,38 @@ describe('PatientMedicalHistoryCard', () => {
         expect(
             section('Antecedentes familiares').getByText('Sin registrar.'),
         ).toBeTruthy();
-        expect(screen.queryByRole('button', { name: 'Agregar' })).toBeNull();
-        expect(screen.queryByRole('button', { name: 'Registrar' })).toBeNull();
+        expect(screen.queryByText(/cuando tengas un turno/)).toBeNull();
+    });
+
+    // #382: without an own appointment today, the background is recorded
+    // outside one, on the patient, and the list marks what was.
+    it('records a blood type and an allergy outside an appointment when there is none today', async () => {
+        renderCard(
+            {
+                blood_types: [
+                    buildBloodTypeRecord({ id: 1, appointment_id: null }),
+                ],
+                entries: [],
+            },
+            null,
+        );
+
+        expect(
+            section('Grupo sanguíneo').getByText(/· Fuera de un turno/),
+        ).toBeTruthy();
+        fireEvent.click(
+            section('Grupo sanguíneo').getByRole('button', { name: 'Cambiar' }),
+        );
+        const bloodDialog = within(await screen.findByRole('dialog'));
+        fireEvent.click(bloodDialog.getByRole('radio', { name: 'AB-' }));
+        fireEvent.click(bloodDialog.getByRole('button', { name: 'Guardar' }));
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenCalledWith('/patients/10/blood-types', {
+                blood_type: 'AB-',
+                reason: null,
+            }),
+        );
     });
 
     it('shows the current blood type with every earlier one kept', () => {

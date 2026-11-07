@@ -5,6 +5,7 @@ import type {
     NodeQueries,
     TDocumentDefinitions,
 } from 'pdfmake/interfaces';
+import { outsideAppointmentsSection } from './outside-appointments';
 import { at, nameOf } from './records';
 import {
     accessLogSection,
@@ -153,6 +154,7 @@ export function buildClinicalRecordDocument(
             ...patientSection(record.patient),
             ...backgroundSection(record.blood_types, record.medical_history),
             ...appointmentsSection(record.appointments),
+            ...outsideAppointmentsSection(record.outside_appointments),
             ...accessLogSection(record.access_log),
         ],
         defaultStyle: { fontSize: 10, color: TEXT, lineHeight: 1.25 },

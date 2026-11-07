@@ -14,6 +14,7 @@ import { PrescriptionActions } from '@/features/prescriptions/PrescriptionAction
 import { PrescriptionsDialog } from '@/features/prescriptions/PrescriptionsDialog';
 import { patientPrescriptionsQueryKey } from '@/hooks/use-patient';
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
+import { outsideAppointmentSuffix } from '@/lib/clinical-record-target';
 import { fromInstant } from '@/lib/datetime';
 import {
     usePlanIncludes,
@@ -39,18 +40,20 @@ const READ_ONLY_REASONS: Record<WritesRestriction | 'feature', string> = {
 type PatientPrescriptionsCardProps = {
     patientId: number;
     prescriptions: Prescription[];
-    // The acting membership's own appointment for today, or null: a record
-    // belongs to an appointment, as a note does (#217).
+    // The acting membership's own appointment for today, where a new record
+    // goes, as a note does (#217), or null: it is then indicated outside an
+    // appointment (#382, ADR 0037).
     todaysAppointmentId: number | null;
 };
 
 // The medication every professional of the practice indicated to this patient
 // (#319, #359), part of the clinical history as the notes are, with its author,
 // in full since nothing else shows it, every earlier version (#323) and, once
-// annulled, how and why (#344). It is recorded on today's own appointment and
-// only its author amends it on its own appointment, both in the agenda's
-// dialog, or annuls it with a reason; while the plan or the subscription leaves
-// it read-only the card says why and offers neither.
+// annulled, how and why (#344). It is recorded on today's own appointment, or
+// outside one without it (#382), and only its author amends it where it was
+// recorded, both in the agenda's dialog, or annuls it with a reason; while the
+// plan or the subscription leaves it read-only the card says why and offers
+// neither.
 export function PatientPrescriptionsCard({
     patientId,
     prescriptions,
@@ -59,7 +62,7 @@ export function PatientPrescriptionsCard({
     // The appointment the dialog works on, and the record it amends, if any.
     // Kept after it closes, so the list stays put while the popup fades out.
     const [dialog, setDialog] = useState<{
-        appointmentId: number;
+        appointmentId: number | null;
         amending: Prescription | null;
     } | null>(null);
     const [dialogOpen, setDialogOpen] = useState(false);
@@ -77,13 +80,9 @@ export function PatientPrescriptionsCard({
         restriction ?? (includedInPlan ? null : ('feature' as const));
     const canWrite = readOnlyReason === null;
     const unavailableReason =
-        readOnlyReason !== null
-            ? READ_ONLY_REASONS[readOnlyReason]
-            : todaysAppointmentId === null
-              ? 'Podés registrarla cuando tengas un turno con este paciente hoy.'
-              : null;
+        readOnlyReason !== null ? READ_ONLY_REASONS[readOnlyReason] : null;
     const openDialog = (
-        appointmentId: number,
+        appointmentId: number | null,
         amending: Prescription | null,
     ) => {
         setDialog({ appointmentId, amending });
@@ -97,7 +96,7 @@ export function PatientPrescriptionsCard({
                 {unavailableReason && (
                     <CardDescription>{unavailableReason}</CardDescription>
                 )}
-                {canWrite && todaysAppointmentId !== null && (
+                {canWrite && (
                     <CardAction>
                         <Button
                             type="button"
@@ -147,6 +146,9 @@ export function PatientPrescriptionsCard({
                                     </span>
                                     <span className="tabular-nums">
                                         {formatDate(prescription.issued_at)}
+                                        {outsideAppointmentSuffix(
+                                            prescription.appointment_id,
+                                        )}
                                     </span>
                                 </>
                             }
@@ -159,9 +161,15 @@ export function PatientPrescriptionsCard({
             <PrescriptionsDialog
                 open={dialogOpen}
                 onOpenChange={setDialogOpen}
-                appointment={dialog && { id: dialog.appointmentId }}
+                appointment={
+                    dialog && {
+                        id: dialog.appointmentId,
+                        patient_id: patientId,
+                    }
+                }
                 amendOnOpen={dialog?.amending ?? null}
-                // A new record only on today's own appointment (CU-53).
+                // A new record only on today's own appointment (CU-53), or
+                // outside one when there is none (#382).
                 allowCreate={
                     dialog !== null &&
                     dialog.appointmentId === todaysAppointmentId

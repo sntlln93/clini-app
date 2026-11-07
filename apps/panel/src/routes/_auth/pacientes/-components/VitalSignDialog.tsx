@@ -40,7 +40,11 @@ import { useSaveVitalSign } from '../-hooks/use-patient-vital-signs';
 type VitalSignDialogProps = {
     patientId: number;
     // The appointment a new measurement goes on, or the one being amended.
-    target: { appointmentId: number; amending: VitalSign | null } | null;
+    // A null appointment records it outside one (#382).
+    target: {
+        appointmentId: number | null;
+        amending: VitalSign | null;
+    } | null;
     onClose: () => void;
 };
 
