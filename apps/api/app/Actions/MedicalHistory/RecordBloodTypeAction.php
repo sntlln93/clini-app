@@ -13,6 +13,7 @@ use App\Enums\ClinicalAccessAction;
 use App\Exceptions\MedicalHistory\BloodTypeUnchangedException;
 use App\Models\BloodTypeRecord;
 use App\Models\Patient;
+use App\Support\ClinicalAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -34,6 +35,8 @@ class RecordBloodTypeAction implements Action
      */
     public function handle(Data $dto): BloodTypeRecord
     {
+        ClinicalAccess::ensureOpenToWrite($dto->organizationId, $dto->membershipId, $dto->patientId, $dto->appointmentId);
+
         return DB::transaction(function () use ($dto): BloodTypeRecord {
             Patient::query()->withTrashed()->whereKey($dto->patientId)->lockForUpdate()->firstOrFail();
 

@@ -11,6 +11,7 @@ use App\Data\ClinicalAccess\ClinicalAccessEntryData;
 use App\Data\VitalSigns\VitalSignDraftData;
 use App\Enums\ClinicalAccessAction;
 use App\Models\VitalSign;
+use App\Support\ClinicalAccess;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -30,6 +31,8 @@ class RecordVitalSignAction implements Action
      */
     public function handle(Data $dto): VitalSign
     {
+        ClinicalAccess::ensureOpenToWrite($dto->organizationId, $dto->membershipId, $dto->patientId, $dto->appointmentId);
+
         return DB::transaction(function () use ($dto): VitalSign {
             $vitalSign = VitalSign::create([
                 'organization_id' => $dto->organizationId,

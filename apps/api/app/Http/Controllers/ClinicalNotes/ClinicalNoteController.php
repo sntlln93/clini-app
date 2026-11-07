@@ -110,4 +110,35 @@ class ClinicalNoteController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    /**
+     * A note outside an appointment (#382, ADR 0037): the patient comes from the route, and the null appointment is the
+     * note's «fuera de un turno» mark.
+     */
+    public function storeForPatient(
+        StoreClinicalNoteRequest $request,
+        Patient $patient,
+        WriteClinicalNoteAction $action
+    ): JsonResponse {
+        Gate::authorize('createForPatient', [ClinicalNote::class, $patient]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $note = $action->handle(new ClinicalNoteDraftData(
+            organizationId: $membership->organization_id,
+            appointmentId: null,
+            patientId: $patient->id,
+            membershipId: $membership->id,
+            body: $request->string('body')->toString(),
+            icd10CodeIds: $request->icd10CodeIds(),
+        ));
+
+        return (new ClinicalNoteResource($note->load(self::RELATIONS)))
+            ->response()
+            ->setStatusCode(201);
+    }
 }

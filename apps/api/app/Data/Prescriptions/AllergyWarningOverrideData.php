@@ -18,7 +18,7 @@ final readonly class AllergyWarningOverrideData implements Data
         public int $organizationId,
         public int $membershipId,
         public int $patientId,
-        public int $appointmentId,
+        public ?int $appointmentId,
         public int $prescriptionId,
         public int $prescriptionVersionId,
         public array $matches,

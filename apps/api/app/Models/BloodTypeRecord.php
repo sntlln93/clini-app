@@ -15,8 +15,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * The patient's blood type as one professional recorded it during an appointment (#361, ADR 0027). The latest record
- * is the current value; changing it records a new one, so every earlier value stays with its author.
+ * The patient's blood type as one professional recorded it during an appointment (#361, ADR 0027), or outside one with
+ * a null appointment (#382, ADR 0037). The latest record is the current value; changing it records a new one, so every
+ * earlier value stays with its author.
  */
 #[Fillable(['organization_id', 'appointment_id', 'patient_id', 'membership_id', 'blood_type', 'reason'])]
 class BloodTypeRecord extends Model

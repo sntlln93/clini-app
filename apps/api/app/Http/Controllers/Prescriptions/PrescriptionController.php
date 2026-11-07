@@ -113,4 +113,34 @@ class PrescriptionController extends Controller
             ->response()
             ->setStatusCode(201);
     }
+
+    /**
+     * Medication indicated outside an appointment (#382, ADR 0037), screened against the patient's allergies as on one.
+     */
+    public function storeForPatient(
+        StorePrescriptionRequest $request,
+        Patient $patient,
+        IssuePrescriptionAction $action
+    ): JsonResponse {
+        Gate::authorize('createForPatient', [Prescription::class, $patient]);
+
+        /** @var User $user */
+        $user = $request->user();
+
+        /** @var Membership $membership */
+        $membership = $user->currentMembership();
+
+        $prescription = $action->handle(new PrescriptionDraftData(
+            organizationId: $membership->organization_id,
+            appointmentId: null,
+            patientId: $patient->id,
+            membershipId: $membership->id,
+            items: $request->prescriptionItems(),
+            confirmedAllergies: $request->confirmedAllergies(),
+        ));
+
+        return (new PrescriptionResource($prescription->load(self::RELATIONS)))
+            ->response()
+            ->setStatusCode(201);
+    }
 }
