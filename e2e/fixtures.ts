@@ -20,11 +20,19 @@ type ResponseViolation = {
     status: number;
 };
 
-type Violation = ConsoleViolation | ResponseViolation;
+type PageErrorViolation = {
+    kind: 'pageerror';
+    message: string;
+};
+
+type Violation = ConsoleViolation | ResponseViolation | PageErrorViolation;
 
 export type ExpectedIssues = {
     console?: ConsoleExpectation[];
     responses?: ResponseExpectation[];
+    // Uncaught exceptions and unhandled promise rejections raised in the page,
+    // matched against `Error.message` the same way as `console`.
+    pageErrors?: ConsoleExpectation[];
 };
 
 type GuardedFixtures = {
@@ -39,7 +47,7 @@ type GuardedFixtures = {
     expectedIssues: ExpectedIssues;
 };
 
-function matchesConsoleExpectation(
+function matchesTextExpectation(
     text: string,
     expectation: ConsoleExpectation,
 ): boolean {
@@ -66,6 +74,10 @@ function formatViolation(violation: Violation): string {
         return `console.${violation.type}: ${violation.text}`;
     }
 
+    if (violation.kind === 'pageerror') {
+        return `pageerror: ${violation.message}`;
+    }
+
     return `response ${violation.status} ${violation.method} ${violation.url}`;
 }
 
@@ -74,6 +86,7 @@ export const test = base.extend<GuardedFixtures>({
     page: async ({ page, expectedIssues }, use) => {
         const allowedConsoleMessages = expectedIssues.console ?? [];
         const allowedResponses = expectedIssues.responses ?? [];
+        const allowedPageErrors = expectedIssues.pageErrors ?? [];
         const violations: Violation[] = [];
 
         page.on('console', (msg) => {
@@ -84,7 +97,7 @@ export const test = base.extend<GuardedFixtures>({
 
             const text = msg.text();
             const isAllowed = allowedConsoleMessages.some((expectation) =>
-                matchesConsoleExpectation(text, expectation),
+                matchesTextExpectation(text, expectation),
             );
 
             if (!isAllowed) {
@@ -113,11 +126,22 @@ export const test = base.extend<GuardedFixtures>({
             }
         });
 
+        page.on('pageerror', (error) => {
+            const message = error.message;
+            const isAllowed = allowedPageErrors.some((expectation) =>
+                matchesTextExpectation(message, expectation),
+            );
+
+            if (!isAllowed) {
+                violations.push({ kind: 'pageerror', message });
+            }
+        });
+
         await use(page);
 
         expect(
             violations,
-            `Unexpected console errors/warnings or HTTP >= 400 responses:\n${violations
+            `Unexpected console errors/warnings, uncaught page errors or HTTP >= 400 responses:\n${violations
                 .map(formatViolation)
                 .join('\n')}`,
         ).toEqual([]);

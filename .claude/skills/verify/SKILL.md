@@ -31,12 +31,13 @@ test('my check', async ({ page }) => {
 ```
 
 The fixture fails the spec on any unexpected browser `console.error`/
-`console.warn`, and on any HTTP response with status >= 400. Declare a
+`console.warn`, on any uncaught page error (`pageerror`), and on any HTTP
+response with status >= 400. Declare a
 narrowly-scoped exception with a single object-valued option — never two
 array-valued options:
 
 ```ts
-test.use({ expectedIssues: { console: [...], responses: [{ url, status }] } });
+test.use({ expectedIssues: { console: [...], pageErrors: [...], responses: [{ url, status }] } });
 ```
 
 Run it inside the `e2e` compose service (`npx` never runs on the host). It
