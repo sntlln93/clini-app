@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\HolidayProvider;
+use App\Contracts\KeyManagementService;
 use App\Contracts\MedicationSource;
 use App\Contracts\ProfessionalRegistry;
 use App\Contracts\SubscriptionGateway;
@@ -12,10 +13,12 @@ use App\Contracts\TwoFactorAuthenticator;
 use App\Http\Middleware\StartSessionWithoutPreviousUrl;
 use App\Models\User;
 use App\Services\Auth\Google2FaService;
+use App\Services\ClinicalEncryption\EnvKeyManagementService;
 use App\Services\Holidays\CalendariosNacionalesService;
 use App\Services\Medications\NationalMedicationSearchService;
 use App\Services\Payments\MercadoPagoService;
 use App\Services\Professionals\NationalProfessionalSearchService;
+use App\Support\ClinicalEncryption;
 use App\Support\CurrentOrganization;
 use App\Support\PasswordPolicy;
 use App\Support\PendingTwoFactorLogin;
@@ -42,6 +45,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public array $bindings = [
         HolidayProvider::class => CalendariosNacionalesService::class,
+        KeyManagementService::class => EnvKeyManagementService::class,
         MedicationSource::class => NationalMedicationSearchService::class,
         ProfessionalRegistry::class => NationalProfessionalSearchService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
@@ -51,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(CurrentOrganization::class);
+        // Each data key of the clinical history is decrypted once per process (#391).
+        $this->app->singleton(ClinicalEncryption::class);
 
         // Sanctum's stateful pipeline resolves StartSession from the
         // container, so this swaps it everywhere (#358).

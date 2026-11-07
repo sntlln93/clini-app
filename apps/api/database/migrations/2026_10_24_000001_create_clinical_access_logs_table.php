@@ -32,7 +32,8 @@ return new class extends Migration
             $table->foreignId('prescription_id')->nullable()->constrained()->restrictOnDelete();
             $table->foreignId('clinical_record_export_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('reason')->nullable();
-            $table->string('reason_detail', 500)->nullable();
+            // The professional's own words for an exceptional access, encrypted (#391).
+            $table->text('reason_detail')->nullable();
             $table->dateTimeTz('created_at')->useCurrent();
 
             $table->foreign(['membership_id', 'organization_id'])

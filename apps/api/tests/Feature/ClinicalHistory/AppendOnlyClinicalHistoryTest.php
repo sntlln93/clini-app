@@ -16,6 +16,7 @@ use App\Models\Membership;
 use App\Models\Prescription;
 use App\Models\PrescriptionAllergyWarning;
 use App\Models\VitalSign;
+use App\Support\ClinicalEncryption;
 use App\Support\ClinicalNoteDiagnoses;
 use App\Support\CurrentOrganization;
 use Illuminate\Database\QueryException;
@@ -197,11 +198,13 @@ test('the migration turns existing rows into version 1 and restores soft-deleted
         'patient_id' => $appointment->patient_id,
         'membership_id' => $membership->id,
     ];
-    $editedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota editada.', 'created_at' => '2026-09-01 10:00:00+00', 'updated_at' => '2026-09-02 10:00:00+00']);
-    $deletedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => 'Nota borrada.', 'created_at' => '2026-09-03 10:00:00+00', 'updated_at' => '2026-09-04 10:00:00+00', 'deleted_at' => '2026-09-04 10:00:00+00']);
+    // Before the migration the body and the items are already encrypted (#391), so a raw insert encrypts them itself.
+    $encryption = app(ClinicalEncryption::class);
+    $editedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => $encryption->encrypt('Nota editada.'), 'created_at' => '2026-09-01 10:00:00+00', 'updated_at' => '2026-09-02 10:00:00+00']);
+    $deletedNoteId = DB::table('clinical_notes')->insertGetId([...$legacy, 'body' => $encryption->encrypt('Nota borrada.'), 'created_at' => '2026-09-03 10:00:00+00', 'updated_at' => '2026-09-04 10:00:00+00', 'deleted_at' => '2026-09-04 10:00:00+00']);
     $prescriptionId = DB::table('prescriptions')->insertGetId([...$legacy, 'issued_at' => '2026-09-05 10:00:00+00', 'created_at' => '2026-09-05 10:00:00+00', 'updated_at' => '2026-09-06 10:00:00+00']);
     foreach (['Amoxicilina', 'Ibuprofeno'] as $position => $medication) {
-        DB::table('prescription_items')->insert(['prescription_id' => $prescriptionId, 'position' => $position, 'medication' => $medication, 'dosage' => '1 por día', 'quantity' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('prescription_items')->insert(['prescription_id' => $prescriptionId, 'position' => $position, 'medication' => $encryption->encrypt($medication), 'dosage' => $encryption->encrypt('1 por día'), 'quantity' => 1, 'created_at' => now(), 'updated_at' => now()]);
     }
 
     $migration->up();
@@ -256,9 +259,10 @@ test('rolling the migration back keeps the latest version and brings annulled no
     (require database_path(DIAGNOSES_MIGRATION))->down();
     (require database_path(APPEND_ONLY_MIGRATION))->down();
 
+    $encryption = app(ClinicalEncryption::class);
     $legacyNote = DB::table('clinical_notes')->where('id', $note->id)->sole();
-    expect($legacyNote->body)->toBe('Versión 2.')
+    expect($encryption->decrypt($legacyNote->body))->toBe('Versión 2.')
         ->and($legacyNote->deleted_at)->not->toBeNull();
-    expect(DB::table('prescription_items')->where('prescription_id', $prescription->id)->pluck('medication')->all())
+    expect(DB::table('prescription_items')->where('prescription_id', $prescription->id)->pluck('medication')->map($encryption->decrypt(...))->all())
         ->toBe(['Paracetamol']);
 });

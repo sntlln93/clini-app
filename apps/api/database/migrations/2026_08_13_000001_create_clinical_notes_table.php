@@ -20,6 +20,7 @@ return new class extends Migration
             // Always the appointment's patient, so the history is defined by its own records (#360).
             $table->foreignId('patient_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
+            // Encrypted (#391); the append-only migration moves it to clinical_note_versions.
             $table->text('body');
             $table->timestampsTz();
             $table->softDeletesTz();

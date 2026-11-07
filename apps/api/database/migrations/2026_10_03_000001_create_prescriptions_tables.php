@@ -38,9 +38,10 @@ return new class extends Migration
             $table->id();
             $table->foreignId('prescription_id')->constrained()->cascadeOnDelete();
             $table->unsignedSmallInteger('position');
-            $table->string('medication');
-            $table->string('presentation')->nullable();
-            $table->string('dosage', 500);
+            // Encrypted (#391): the cipher text outgrows any length, which the requests check instead.
+            $table->text('medication');
+            $table->text('presentation')->nullable();
+            $table->text('dosage');
             $table->unsignedInteger('quantity');
             $table->timestampsTz();
 

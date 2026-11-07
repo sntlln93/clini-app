@@ -27,6 +27,8 @@ apps/api/vendor/bin/sail artisan migrate
 
 El `npm install` de arriba no hace falta para que nada *corra* — `panel`, `dashboard` y `landing` gestionan cada uno su propio `node_modules` aislado (ver más abajo) y `e2e` hace lo mismo dentro de su propio container (ver Testing). Existe solo para que el editor/IDE resuelva tipos en el host.
 
+Un `apps/api/.env` copiado antes de #391 no tiene `CLINICAL_ENCRYPTION_KEY`, la maestra que cifra la historia clínica: copiá esa línea de `.env.example` (una clave pública, solo para datos sintéticos) y corré `migrate:fresh --seed`. Sin ella, migrar falla en vez de guardar la historia en claro.
+
 Esto levanta seis servicios en la red `sail`:
 
 | Servicio      | URL                     | Descripción                        |

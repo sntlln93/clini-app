@@ -10,7 +10,7 @@ Cualquier evento, confirmado o sospechado, que comprometa la confidencialidad, l
 
 - acceso indebido a la base, al servidor, a Dokploy o a una cuenta de proveedor (Cloudflare, Resend, GitHub);
 - un usuario que ve datos de otro consultorio, o un bug que expone datos;
-- filtración de `APP_KEY`, de credenciales o de un backup;
+- filtración de `APP_KEY`, de la maestra clínica (`CLINICAL_ENCRYPTION_KEY`), de credenciales o de un backup;
 - una cuenta clínica o de operador comprometida;
 - un mail con datos enviado a quien no correspondía;
 - pérdida de datos o caída prolongada sin backup del que restaurar.
@@ -57,6 +57,7 @@ Lo que corresponda al caso, de menor a mayor impacto:
 - **Cerrar todas las sesiones**: `TRUNCATE sessions` desloguea a todos.
 - **Credenciales filtradas** (R2, Resend, Mercado Pago, base): rotarlas en el proveedor y en las variables de Dokploy, y redeploy.
 - **`APP_KEY` filtrada**: generar una nueva, mover la vieja a `APP_PREVIOUS_KEYS` para seguir leyendo lo cifrado, redeploy y `TRUNCATE sessions`. Mientras la clave filtrada siga en `APP_PREVIOUS_KEYS`, quien la tenga puede seguir armando links `/turno/<token>` válidos y descifrar lo que esté cifrado con ella. Por eso se recifran cuanto antes las columnas con el cast `encrypted` (`users.document_number`, `two_factor_secret`, `two_factor_recovery_codes`, `patient_access_codes.code`) y después se saca la clave vieja, lo que invalida los links `/turno/<token>` emitidos antes.
+- **Maestra clínica filtrada** (`CLINICAL_ENCRYPTION_KEY`): rotarla como dice [Seguridad](security.md#cifrado-de-la-historia-clínica) (`clinical-keys:rotate`). Rotar vuelve a cifrar la clave de datos, no la historia: si además se filtró la base, quien tenga las dos ya pudo descifrar la clave de datos, y eso no se deshace sin volver a cifrar la historia, que el trigger de solo agregado impide. Se trata como una filtración de la historia.
 - **Un bug que expone datos**: revertir el deploy o desactivar la ruta. Un fix urgente pasa igual por un PR con los checks.
 - **Servidor comprometido**: modo mantenimiento (`php artisan down`), aislar el servidor y restaurar en uno limpio desde el último backup sano (#390). Con `APP_MAINTENANCE_DRIVER=file` (el default), el modo mantenimiento es un archivo dentro del contenedor de la API: recrearlo o redeployar lo apaga, así que se repite después de cada redeploy durante el incidente. Solo afecta a la API: los SPAs siguen arriba y muestran errores.
 

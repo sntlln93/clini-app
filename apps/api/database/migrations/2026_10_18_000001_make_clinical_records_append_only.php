@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Support\ClinicalEncryption;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -44,7 +45,7 @@ return new class extends Migration
             $table->unsignedSmallInteger('version');
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
             $table->text('body');
-            $table->string('reason', 500)->nullable();
+            $table->text('reason')->nullable();
             $table->dateTimeTz('created_at');
 
             $table->unique(['clinical_note_id', 'version']);
@@ -54,7 +55,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('clinical_note_id')->unique()->constrained()->restrictOnDelete();
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500);
+            $table->text('reason');
             $table->dateTimeTz('created_at');
         });
 
@@ -62,6 +63,7 @@ return new class extends Migration
         // version 1 says it was written; the note keeps its created_at. A
         // soft delete overwrote updated_at with the deletion time, so a
         // deleted note's version 1 falls back to its created_at.
+        // The body is already encrypted (#391), so it moves as it is.
         DB::statement(<<<'SQL'
             INSERT INTO clinical_note_versions (clinical_note_id, version, membership_id, body, reason, created_at)
             SELECT id, 1, membership_id, body, NULL,
@@ -75,7 +77,7 @@ return new class extends Migration
             SELECT id, membership_id, ?, deleted_at
             FROM clinical_notes
             WHERE deleted_at IS NOT NULL
-            SQL, [self::LEGACY_DELETION_REASON]);
+            SQL, [app(ClinicalEncryption::class)->encrypt(self::LEGACY_DELETION_REASON)]);
 
         Schema::table('clinical_notes', function (Blueprint $table) {
             $table->dropColumn(['body', 'updated_at', 'deleted_at']);
@@ -86,7 +88,7 @@ return new class extends Migration
             $table->foreignId('prescription_id')->constrained()->restrictOnDelete();
             $table->unsignedSmallInteger('version');
             $table->foreignId('membership_id')->constrained()->restrictOnDelete();
-            $table->string('reason', 500)->nullable();
+            $table->text('reason')->nullable();
             $table->dateTimeTz('created_at');
 
             $table->unique(['prescription_id', 'version']);

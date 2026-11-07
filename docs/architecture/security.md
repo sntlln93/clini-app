@@ -53,12 +53,12 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 
 | Activo | Qué guarda o procesa | Categoría | Responsable | Quién accede |
 |---|---|---|---|---|
-| Postgres de producción | Todo el modelo (`der.dbml`): pacientes, contactos, turnos, historia clínica, usuarios, logs de acceso | Identificatorios, contacto, **salud** | Titular | La API, y el titular por la terminal de Dokploy |
+| Postgres de producción | Todo el modelo (`der.dbml`): pacientes, contactos, turnos, historia clínica (su texto libre, cifrado con la maestra clínica desde #391), usuarios, logs de acceso | Identificatorios, contacto, **salud** | Titular | La API, y el titular por la terminal de Dokploy |
 | Tabla `sessions` | Payload de la sesión, cifrado con `APP_KEY` desde #358; `ip_address` y `user_agent` en claro; 120 minutos | Identificatorios mínimos | Titular | La API |
 | Tabla `password_reset_tokens` | Email y hash (bcrypt) del token de recuperación de contraseña; uno por email, vence a los 60 minutos y se borra al usarse, al eliminarse la cuenta o, vencido, en la limpieza diaria (`auth:clear-resets`, #389) | Contacto | Titular | La API |
 | Tablas `jobs` y `failed_jobs` | Payloads de los mails en cola (cifrados si llevan datos que no son modelos) y excepciones; una semana | Contacto | Titular | La API |
 | Bucket R2 (`media`) | Logos de las organizaciones; uno reemplazado o quitado sigue `MEDIA_DELETION_RETENTION_DAYS` días (35) antes de borrarse (#410) | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
-| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
+| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, `CLINICAL_ENCRYPTION_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
 | Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, recuperación de contraseña (#389), avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
 | Have I Been Pwned (Pwned Passwords) | Recibe los primeros 5 caracteres del SHA-1 de cada contraseña que se elige, nunca la contraseña ni el hash completo (k-anonimato, #389). Si no responde en 5 segundos, la contraseña pasa | Ninguno | — | La API |
@@ -74,6 +74,7 @@ Pueden saltear los controles de la aplicación:
 
 - **Root del servidor y acceso a Postgres** (titular): puede leer todo y desactivar los triggers de solo agregado. Solo se entra para operar o diagnosticar, y cada acceso se anota en el [registro de operación](#registro-de-operación).
 - **Quien tiene `APP_KEY`**: descifra la sesión, los payloads de jobs, el DNI del profesional, los secretos 2FA y los códigos de acceso. Vive solo en las variables de Dokploy. Su resguardo va en #390.
+- **Quien tiene `CLINICAL_ENCRYPTION_KEY`** (la maestra clínica, #391) **y la base**: descifra el texto libre de la historia clínica. Vive solo en las variables de Dokploy, aparte de `APP_KEY`. Ver [Cifrado de la historia clínica](#cifrado-de-la-historia-clínica).
 - **Quien mergea a `main`**: despliega código arbitrario. Todo cambio pasa por un PR con los 5 checks ([Control de cambios](#c-control-de-cambios)).
 - **Cuentas de Cloudflare, Resend, Mercado Pago y GitHub** (titular): con segundo factor activado en cada proveedor.
 - **Operadores de plataforma** (dashboard): no leen la historia clínica (ArchTest) y toda mutación suya queda registrada. Ver B.2.3.
@@ -147,10 +148,11 @@ Lo borrado en la base sigue en los backups hasta que vencen (#329 fija la retenc
 | Un usuario de un consultorio lee los datos de otro | `organization_id` con scope global en los modelos del consultorio, el pivot `organization_patient` para los listados, policies y la historia por autoría y código (ADR 0029). Los datos personales del paciente se comparten en la plataforma a propósito (ADR 0028), pero se llega a ellos solo por documento exacto, con un límite de 30 búsquedas cada 5 minutos por usuario y una fila en `patient_lookups` por búsqueda | Alertas ante muchas búsquedas (#392) |
 | XSS en un SPA que usa la sesión | React escapa, pines de origen entre el panel y el dashboard (ADR 0010) | CSP (#393) |
 | CSRF | Sanctum SPA (token XSRF), `SameSite=Lax` | — |
-| Volcado de la base (backup o acceso indebido) | Tokens guardados como hash, secretos 2FA, DNI del profesional y sesión cifrados con `APP_KEY` | Cifrar el contenido clínico (#391) y los backups (#390) |
+| Volcado de la base (backup o acceso indebido, inyección SQL que lee) | Tokens guardados como hash, secretos 2FA, DNI del profesional y sesión cifrados con `APP_KEY`; el texto libre de la historia clínica, con cifrado envolvente y una maestra propia (#391, ADR 0036) | Cifrar los backups (#390) |
 | Un operador de plataforma abusa de su acceso | Sin acceso a la historia (ArchTest), auditoría de sus mutaciones | Segundo factor y trigger de solo agregado (#392) |
 | Abuso de los formularios anónimos (reserva, contacto, registro) | Throttles por IP y por consultorio (#299) con `TRUSTED_PROXIES` | Alertas (#393) |
-| Pérdida del servidor o de `APP_KEY` | — | Backups y resguardo de la clave (#390) |
+| Pérdida del servidor, de `APP_KEY` o de la maestra clínica | — | Backups y resguardo de las claves (#390); sin la maestra clínica, la historia es ilegible |
+| Compromiso del servidor de la app (base y maestra clínica a la vez) | Ninguna desde el cifrado: es el riesgo residual aceptado de #391 | Un KMS que no entregue la maestra (ADR 0036) |
 | Datos personales en los logs | `logContext()` sin datos personales, `SafeExceptionLog`, access logs apagados (#322) | — |
 | Dependencia vulnerable | Imágenes fijadas y Dependabot de imágenes | Composer y npm (#393) |
 
@@ -231,13 +233,56 @@ Los tokens de invitación y de verificación de correo se guardan como `sha256`.
 
 | Dato | Uso en SQL | Decisión |
 |---|---|---|
-| Texto de las notas, ítems de medicación y antecedentes | Ninguno: se leen por ids y el aviso de alergias compara en PHP | **Cifrarlo, #391**, antes del lanzamiento. Las tablas son de solo agregado y su trigger impide cifrar filas existentes, así que hay que hacerlo mientras las migraciones se editan en el lugar. |
+| Texto de las notas, ítems de medicación y antecedentes | Ninguno: se leen por ids y el aviso de alergias compara en PHP | **Cifrado desde #391**, con cifrado envolvente y una maestra propia: ver [Cifrado de la historia clínica](#cifrado-de-la-historia-clínica). |
 | Documento del paciente | Lookup exacto, `UNIQUE (document_type, document_number)` contra duplicados en carrera, búsqueda parcial en `/pacientes` | **Queda en claro.** Cifrarlo exige un blind index (un HMAC con una clave propia) y perder la búsqueda parcial. Con unos 10⁸ DNI posibles, el HMAC se fuerza en minutos si se filtra la clave, así que solo protegería un volcado sin la clave, que ya cubre el cifrado de los backups (#390). |
 | Nombre del paciente | `ILIKE` y orden alfabético del listado | **Queda en claro.** No es viable sin un motor de búsqueda aparte. |
 | Contactos, dirección, nacimiento | `UNIQUE (patient_id, type, value)` en contactos; el resto no se busca | **Queda en claro** por ahora. Su exposición la cubre el cifrado de los backups y del disco. |
 | Signos vitales | Numéricos | **Quedan en claro.** No son texto libre y cifrarlos les quita el tipo. |
 
 El cifrado del disco y de los volúmenes del servidor es del proveedor (#379). R2 cifra los objetos en reposo por defecto.
+
+### Cifrado de la historia clínica
+
+Desde #391 ([ADR 0036](../adr/0036-cifrado-envolvente-de-la-historia-clinica.md)) el texto libre de la historia clínica se guarda cifrado con **cifrado envolvente**:
+
+- Cada valor se cifra (AES-256-GCM) con una **clave de datos** y se guarda como `<id de la clave>:<texto cifrado>` en una columna `text` (cast `EncryptedClinicalText`, o `EncryptedClinicalList` para una lista).
+- Hay una sola clave de datos, en `clinical_encryption_keys`, cifrada con la **maestra** (`CLINICAL_ENCRYPTION_KEY`), que no es `APP_KEY`. Esa tabla es la única de la historia que admite `UPDATE`.
+- La maestra solo la usa `App\Contracts\KeyManagementService` para cifrar o descifrar la clave de datos. Hoy la da el entorno (`EnvKeyManagementService`).
+- Sin la maestra no se escribe ni se lee nada clínico, y migrar falla: nunca se guarda en claro. La clave pública de `.env.example`, `phpunit.xml` y e2e (solo datos sintéticos) la rechaza producción.
+
+**Columnas cifradas:**
+
+- `clinical_note_versions.body` y `reason`, `clinical_note_annulments.reason`;
+- `prescription_items.medication`, `presentation`, `dosage`, `gtin`, `snomed` y `substances` (un JSON cifrado, ya no `jsonb`), `prescription_versions.reason`, `prescription_annulments.reason`;
+- `medical_history_entry_versions.description`, `reaction`, `approximate_date` y `reason`, `medical_history_entry_withdrawals.reason`;
+- `blood_type_records.reason`, `vital_sign_versions.reason`, `vital_sign_annulments.reason`;
+- `clinical_access_logs.reason_detail` (las palabras del profesional al declarar un acceso excepcional).
+
+**Quedan en claro**, y por qué:
+
+- Los valores de `vital_signs`: son numéricos, y cifrarlos les quita el tipo.
+- `severity`, `blood_type`, `dispensing_condition`, `control_mark`, la categoría del antecedente y el motivo (`reason`) del acceso excepcional: son enums, sin texto libre.
+- Los diagnósticos CIE-10 (`clinical_note_diagnoses`): son una copia del catálogo, no texto libre, y #391 no los incluye. Revelan el diagnóstico, así que quedan anotados como candidatos a una próxima ronda.
+- Los ids, las fechas, los autores y los vínculos (turno, paciente, organización): la historia se lee por ellos.
+- El documento, el nombre y los contactos del paciente: ver la tabla de arriba.
+
+Nada de lo cifrado se busca, se ordena ni se agrupa en SQL. Una columna clínica de texto libre nueva usa el mismo cast, y su test de lectura cruda se suma a `ClinicalEncryptionAtRestTest`.
+
+**Riesgo residual aceptado.** El cifrado protege un robo de la base, un backup filtrado o una inyección SQL que solo lee, porque la maestra no está en la base. No protege de quien compromete el servidor de la app: ahí están la base y la maestra a la vez. Lo cubriría un KMS que nunca entregue la maestra (ver abajo). Tampoco de una inyección que inserta filas y además tiene una cuenta de profesional: el texto cifrado no está atado a su fila, y podría copiar el de otro paciente en un registro propio. Atarlo queda para un issue aparte.
+
+**Rotar la maestra** (si se filtró o por calendario):
+
+1. Generar una nueva con `php artisan clinical-keys:generate-master --show`.
+2. En Dokploy, poner la nueva en `CLINICAL_ENCRYPTION_KEY` y la vieja en `CLINICAL_ENCRYPTION_PREVIOUS_KEYS`, y redesplegar.
+3. Correr `php artisan clinical-keys:rotate` en el contenedor de la API. Vuelve a cifrar la clave de datos con la nueva en una sola transacción: si falla a mitad, la clave queda como estaba. Las fichas no se tocan: el trigger de solo agregado impide volver a cifrarlas, y no hace falta.
+4. Quitar `CLINICAL_ENCRYPTION_PREVIOUS_KEYS` y redesplegar. Con la maestra vieja, la clave de datos guardada ya no se descifra.
+5. Anotarlo en el [registro de operación](#registro-de-operación).
+
+**Resguardo fuera de línea.** La maestra vigente se guarda también fuera del servidor: perderla es perder la historia. La maestra retirada sale del servidor y se guarda fuera de línea **solo mientras duren los backups anteriores a la rotación**, porque esos backups traen la clave de datos cifrada con ella. Después se destruye. El procedimiento va con los backups (#390).
+
+**Camino a un KMS.** Un KMS (OpenBao, u otro) entra como otro adaptador de `KeyManagementService`. La migración es como una rotación: se descifra la clave de datos con la maestra del entorno y se vuelve a cifrar con el KMS. La historia no se toca.
+
+**Rotar la clave de datos** queda fuera de alcance: implicaría volver a cifrar la historia, que el trigger impide. Si alguna vez hiciera falta, una clave de datos nueva convive con la vieja (cada valor nombra la suya).
 
 **`APP_KEY` pasa a ser crítica:** si se pierde, todo lo de arriba queda ilegible. Rotarla sin `APP_PREVIOUS_KEYS` invalida las sesiones y los links `/turno/<token>` y deja ilegible lo cifrado. Con `APP_PREVIOUS_KEYS` se sigue leyendo lo viejo (ver el [protocolo](incident-response.md) si la clave se filtró). Su resguardo fuera del servidor va en #390.
 
