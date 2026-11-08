@@ -87,7 +87,7 @@ export function ProfessionalSpecialtyRow({
                         return (
                             <div
                                 key={option.id}
-                                className="flex flex-wrap items-center gap-2 text-sm"
+                                className="flex items-center gap-2 text-sm"
                             >
                                 <Checkbox
                                     id={checkboxId}
@@ -97,14 +97,18 @@ export function ProfessionalSpecialtyRow({
                                         toggle(option.id, next === true)
                                     }
                                 />
-                                <Label htmlFor={checkboxId}>
-                                    {option.name}
-                                </Label>
-                                {!option.backed && (
-                                    <StatusPill tone="warning">
-                                        Sin respaldo de matrícula
-                                    </StatusPill>
-                                )}
+                                {/* A long registry name wraps beside the
+                                    checkbox, and the mark under it. */}
+                                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                                    <Label htmlFor={checkboxId}>
+                                        {option.name}
+                                    </Label>
+                                    {!option.backed && (
+                                        <StatusPill tone="warning">
+                                            Sin respaldo de matrícula
+                                        </StatusPill>
+                                    )}
+                                </div>
                             </div>
                         );
                     })}
