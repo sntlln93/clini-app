@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Console\Commands;
 
 use App\Actions\Professionals\ResetProfessionalDocumentAction;
+use App\Console\Commands\Concerns\FindsClinicUserByEmail;
 use App\Data\Professionals\ProfessionalDocumentResetData;
-use App\Models\User;
 use Illuminate\Console\Attributes\Description;
 use Illuminate\Console\Attributes\Signature;
 use Illuminate\Console\Command;
@@ -20,26 +20,15 @@ use Illuminate\Console\Command;
 #[Description('Takes a clinic user\'s DNI and licenses away so they can load their DNI again')]
 class ResetProfessionalDocumentCommand extends Command
 {
+    use FindsClinicUserByEmail;
+
     public function handle(ResetProfessionalDocumentAction $action): int
     {
-        $argument = $this->argument('email');
-        $email = is_string($argument) ? trim($argument) : '';
-        // Emails are unique only as typed: fall back to a case-insensitive match only when it is unambiguous.
-        $user = User::query()->where('email', $email)->first();
-        $matches = $user !== null
-            ? collect([$user])
-            : User::query()->whereRaw('lower(email) = ?', [mb_strtolower($email)])->limit(2)->get();
+        $user = $this->clinicUserFromEmailArgument();
 
-        if ($matches->count() !== 1) {
-            $this->error($matches->isEmpty()
-                ? 'No hay ningún usuario con ese correo.'
-                : 'Hay más de un usuario con ese correo en otras mayúsculas: escribilo exactamente como está guardado.');
-
+        if ($user === null) {
             return self::FAILURE;
         }
-
-        /** @var User $user */
-        $user = $matches->first();
 
         if ($user->document_number === null) {
             $this->error('Ese usuario no tiene un DNI cargado.');
