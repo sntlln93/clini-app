@@ -24,12 +24,13 @@ class ReverifyProfessionalLicensesCommand extends Command
     public function handle(ProfessionalRegistry $registry, VerifyProfessionalLicensesAction $action): int
     {
         $userIds = ProfessionalLicense::query()
+            ->added()
             ->dueForReverification()
             ->whereHas('user', fn ($query) => $query->whereNotNull('document_number'))
             ->groupBy('user_id')
             ->orderByRaw('min(attempted_at) asc nulls first')
             ->orderBy('user_id')
-            ->limit(Config::integer('services.national_professional_search.per_run'))
+            ->limit(Config::integer('services.professional_registry.per_run'))
             ->get(['user_id'])
             ->map(fn (ProfessionalLicense $license): int => $license->user_id);
 

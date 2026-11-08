@@ -69,7 +69,7 @@ Cómo usarlo:
 - [x] El catálogo (`Service`) solo tiene nombre; la **duración** y el **precio** (nullable) viven en la **asignación** profesional↔prestación (`professional_services`), no en el catálogo. · CU-15, CU-17
 - [x] La relación profesional ↔ prestación es muchos-a-muchos dentro de la organización, vía la asignación. · CU-16
 - [x] La **especialidad** existe como concepto propio, distinto de la prestación. · CU-34, CU-43
-- [x] La especialidad es de **dos niveles**: una credencial **global** del profesional (`user_specialties`, viaja con la persona) y un subconjunto **practicado por membresía/organización** (`professional_specialties`). · CU-43
+- [x] La especialidad es de **dos niveles**: lo que respaldan las matrículas **verificadas** del profesional (viaja con la persona; se deriva, no se elige, #387) y un subconjunto **practicado por membresía/organización** (`professional_specialties`). · CU-43
 - [x] Es expresable "profesionales de la especialidad X en la organización Y". · CU-34
 
 ## E. Turnos

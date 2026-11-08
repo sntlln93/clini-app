@@ -11,16 +11,17 @@ use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Service;
 use App\Models\Specialty;
-use App\Models\UserSpecialty;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Seeder;
 
 /**
  * Literal specialty and service assignments for the organization's
- * professional memberships (created by OrganizationsSeeder). Catalog rows
- * are resolved by name — never inRandomOrder — and idempotent via
- * firstOrCreate on each table's natural key, so a repeated
- * `php artisan db:seed` never duplicates rows.
+ * professional memberships (created by OrganizationsSeeder). Each one
+ * offers every specialty its verified licenses back
+ * (ProfessionalRegistrySeeder, #387); services are resolved by name —
+ * never inRandomOrder — and every row is idempotent via firstOrCreate on
+ * its table's natural key, so a repeated `php artisan db:seed` never
+ * duplicates rows.
  */
 class ProfessionalsSeeder extends Seeder
 {
@@ -29,23 +30,20 @@ class ProfessionalsSeeder extends Seeder
      * memberships in membership id order, cycling if there are more
      * professionals than fixtures.
      *
-     * @var array<int, array{specialties: array<int, string>, service: string, duration: int, price: int}>
+     * @var array<int, array{service: string, duration: int, price: int}>
      */
     private const array PROFESSIONAL_FIXTURES = [
         [
-            'specialties' => ['Medicina General', 'Pediatría'],
             'service' => 'Consulta',
             'duration' => 30,
             'price' => 5000,
         ],
         [
-            'specialties' => ['Cardiología'],
             'service' => 'Control',
             'duration' => 20,
             'price' => 4000,
         ],
         [
-            'specialties' => ['Dermatología'],
             'service' => 'Primera consulta',
             'duration' => 45,
             'price' => 6000,
@@ -59,7 +57,7 @@ class ProfessionalsSeeder extends Seeder
         foreach ($professionalMemberships as $index => $membership) {
             $fixture = self::PROFESSIONAL_FIXTURES[$index % count(self::PROFESSIONAL_FIXTURES)];
 
-            $this->assignSpecialties($organization, $membership, $fixture['specialties']);
+            $this->assignSpecialties($organization, $membership);
             $this->assignService($organization, $membership, $fixture['service'], $fixture['duration'], $fixture['price']);
         }
     }
@@ -76,22 +74,11 @@ class ProfessionalsSeeder extends Seeder
             ->values();
     }
 
-    /**
-     * @param  array<int, string>  $specialtyNames
-     */
-    private function assignSpecialties(Organization $organization, Membership $membership, array $specialtyNames): void
+    private function assignSpecialties(Organization $organization, Membership $membership): void
     {
-        foreach ($specialtyNames as $specialtyName) {
-            $specialty = Specialty::where('name', $specialtyName)->firstOrFail();
+        $specialties = Specialty::query()->backedFor($membership->user_id)->orderBy('id')->get();
 
-            // The composite FK on professional_specialties requires a
-            // matching user_specialties row (the user's global credential)
-            // before the org-level assignment can be created.
-            UserSpecialty::firstOrCreate([
-                'user_id' => $membership->user_id,
-                'specialty_id' => $specialty->id,
-            ]);
-
+        foreach ($specialties as $specialty) {
             ProfessionalSpecialty::firstOrCreate(
                 ['membership_id' => $membership->id, 'specialty_id' => $specialty->id],
                 ['organization_id' => $organization->id, 'user_id' => $membership->user_id],

@@ -83,14 +83,6 @@ class Organization extends Model
     }
 
     /**
-     * @return HasMany<Specialty, $this>
-     */
-    public function specialties(): HasMany
-    {
-        return $this->hasMany(Specialty::class);
-    }
-
-    /**
      * @return HasMany<Service, $this>
      */
     public function services(): HasMany

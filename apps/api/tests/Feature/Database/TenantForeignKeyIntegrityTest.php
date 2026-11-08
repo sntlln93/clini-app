@@ -80,12 +80,11 @@ test('a direct insert into professional_specialties with a user_id not matching 
         ->toThrow(QueryException::class);
 });
 
-test('a direct insert into professional_specialties with a specialty outside the user credential fails at the database level', function () {
+test('a direct insert into professional_specialties with a specialty outside the catalog fails at the database level', function () {
     $base = ProfessionalSpecialty::factory()->create();
-    $otherSpecialty = Specialty::factory()->create();
 
     $attributes = collect($base->getAttributes())->except('id')->all();
-    $attributes['specialty_id'] = $otherSpecialty->id;
+    $attributes['specialty_id'] = Specialty::query()->max('id') + 1;
 
     expect(fn () => DB::table('professional_specialties')->insert($attributes))
         ->toThrow(QueryException::class);

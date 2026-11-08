@@ -2,21 +2,19 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Professionals\BackedSpecialtyController;
 use App\Http\Controllers\Professionals\ProfessionalController;
 use App\Http\Controllers\Professionals\ProfessionalDocumentController;
 use App\Http\Controllers\Professionals\ProfessionalLicenseController;
 use App\Http\Controllers\Professionals\ProfessionalLicenseVerificationController;
 use App\Http\Controllers\Professionals\ProfessionalServiceController;
 use App\Http\Controllers\Professionals\ProfessionalSpecialtyController;
-use App\Http\Controllers\Professionals\UserSpecialtyController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('professionals', [ProfessionalController::class, 'index']);
 
-Route::get('users/{user}/specialties', [UserSpecialtyController::class, 'index']);
-Route::post('users/{user}/specialties', [UserSpecialtyController::class, 'store']);
-Route::delete('users/{user}/specialties/{specialty}', [UserSpecialtyController::class, 'destroy']);
-
+// What the professional's verified licenses back (#387): what a practice may offer them with.
+Route::get('memberships/{membership}/backed-specialties', [BackedSpecialtyController::class, 'index']);
 Route::get('memberships/{membership}/specialties', [ProfessionalSpecialtyController::class, 'index']);
 Route::post('memberships/{membership}/specialties', [ProfessionalSpecialtyController::class, 'store']);
 Route::delete('memberships/{membership}/specialties/{specialty}', [ProfessionalSpecialtyController::class, 'destroy']);
@@ -31,6 +29,7 @@ Route::delete('memberships/{membership}/services/{service}', [ProfessionalServic
 Route::get('me/professional-document', [ProfessionalDocumentController::class, 'show']);
 Route::put('me/professional-document', [ProfessionalDocumentController::class, 'update'])->middleware('throttle:professional-registry');
 Route::get('me/licenses', [ProfessionalLicenseController::class, 'index']);
-Route::post('me/licenses', [ProfessionalLicenseController::class, 'store'])->middleware('throttle:professional-registry');
 Route::post('me/licenses/verification', [ProfessionalLicenseVerificationController::class, 'store'])->middleware('throttle:professional-registry');
-Route::delete('me/licenses/{license}', [ProfessionalLicenseController::class, 'destroy']);
+// One the registry holds for the caller's DNI, added to Clini or taken out (#387).
+Route::put('me/licenses/{license}/clini', [ProfessionalLicenseController::class, 'update']);
+Route::delete('me/licenses/{license}/clini', [ProfessionalLicenseController::class, 'destroy']);

@@ -45,8 +45,15 @@ const LICENSES: ProfessionalLicense[] = [
         specialty: null,
         situation: 'Habilitado',
         checked_at: '2026-11-01T12:00:00Z',
+        added: true,
     },
 ];
+
+const DOCUMENT = {
+    document_number: '30123456',
+    locked: true,
+    registry: 'found',
+};
 
 function mockApiGet(session: {
     permissions: string[];
@@ -69,7 +76,7 @@ function mockApiGet(session: {
         }
         if (url === '/me/professional-document') {
             return Promise.resolve({
-                data: { data: { document_number: '30123456' } },
+                data: { data: DOCUMENT },
             });
         }
         return Promise.reject(new Error(`unexpected GET ${url}`));
@@ -110,16 +117,38 @@ describe('Matrículas tab', () => {
         });
 
         expect(await loadLicenses()).toEqual({
-            documentNumber: '30123456',
+            isProfessional: true,
+            managedOwnMembership: null,
+            document: DOCUMENT,
             licenses: LICENSES,
             organizationProvince: 'cordoba',
         });
     });
 
-    it('sends whoever doesn’t attend patients back to Ajustes, never reading the DNI', async () => {
+    // The «Atiendo pacientes» switch lives here since #387 (#286).
+    it('hands whoever manages the team their own membership, professional or not, and reads no DNI unless they attend', async () => {
+        const owner = membership(['owner']);
         mockApiGet({
             permissions: ['memberships.manage'],
-            membership: membership(['owner']),
+            membership: owner,
+            organization: ORGANIZATION,
+        });
+
+        expect(await loadLicenses()).toEqual({
+            isProfessional: false,
+            managedOwnMembership: owner,
+            document: null,
+            licenses: [],
+            organizationProvince: 'cordoba',
+        });
+        expect(api.get).not.toHaveBeenCalledWith('/me/professional-document');
+        expect(api.get).not.toHaveBeenCalledWith('/me/licenses');
+    });
+
+    it('sends whoever neither attends patients nor can turn it on back to Ajustes, never reading the DNI', async () => {
+        mockApiGet({
+            permissions: [],
+            membership: membership(['staff']),
             organization: ORGANIZATION,
         });
 

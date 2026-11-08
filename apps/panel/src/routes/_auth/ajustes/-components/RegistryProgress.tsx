@@ -1,13 +1,13 @@
 import { useProgressMessages } from '@/hooks/use-progress-messages';
 
 // What a lookup in the national registry actually goes through (#380): it
-// reads the Buscador's form, sends the DNI and compares the answer with the
-// declared licenses. The last line only shows when it takes longer than its
+// reads the Buscador's form, sends the DNI and brings the licenses it holds
+// for it (#387). The last line only shows when it takes longer than its
 // steps.
 export const REGISTRY_PROGRESS_MESSAGES = [
     'Conectando con el Buscador Nacional de Profesionales de la Salud',
     'Buscando tu DNI en el registro',
-    'Comparando tus matrículas con lo que figura en el registro',
+    'Trayendo las matrículas que figuran en el registro',
     'El Buscador está tardando un poco más de lo normal',
 ] as const;
 

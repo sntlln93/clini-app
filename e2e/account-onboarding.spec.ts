@@ -117,7 +117,7 @@ test('an owner who only manages steps out from Ajustes and back in from the chec
 }) => {
     await register(page);
 
-    await page.goto('/ajustes/especialidades');
+    await page.goto('/ajustes/matriculas');
     const attends = page.getByRole('switch', {
         name: 'Atiendo pacientes en este consultorio',
     });

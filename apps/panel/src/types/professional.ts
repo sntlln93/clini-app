@@ -13,9 +13,14 @@ export type CatalogService = {
     name: string;
 };
 
-export type CatalogSpecialty = {
+/**
+ * A row of the specialties catalog the national professional registry fills
+ * (#387): a specialty of a profession, or the profession itself.
+ */
+export type Specialty = {
     id: number;
     name: string;
+    profession: string;
 };
 
 export type ProfessionalService = {
@@ -31,12 +36,6 @@ export type ProfessionalService = {
 export type ProfessionalSpecialty = {
     id: number;
     membership_id: number;
-    specialty_id: number;
-    specialty_name: string | null;
-};
-
-export type UserSpecialty = {
-    id: number;
     specialty_id: number;
     specialty_name: string | null;
 };

@@ -5,16 +5,25 @@ declare(strict_types=1);
 namespace App\Http\Requests\Professionals;
 
 use App\Models\Membership;
-use App\Models\UserSpecialty;
+use App\Models\ProfessionalSpecialty;
+use App\Models\Specialty;
 use App\Rules\BelongsToCurrentOrganization;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreProfessionalSpecialtyRequest extends FormRequest
 {
+    /**
+     * Before the rules: whether a verified license backs a specialty comes from the professional's licenses (#387), so
+     * a 422 against a 403 must never tell whoever can't choose for that membership, here or elsewhere, what they back.
+     */
     public function authorize(): bool
     {
-        return true;
+        $membership = $this->route('membership');
+
+        return $membership instanceof Membership
+            && Gate::allows('create', [ProfessionalSpecialty::class, $membership]);
     }
 
     protected function prepareForValidation(): void
@@ -44,13 +53,11 @@ class StoreProfessionalSpecialtyRequest extends FormRequest
                         return;
                     }
 
-                    $isInCredential = UserSpecialty::query()
-                        ->where('user_id', $membership->user_id)
-                        ->where('specialty_id', $value)
-                        ->exists();
+                    // Only what a verified license of theirs backs (#387); one that loses it later stays, marked.
+                    $isBacked = Specialty::query()->backedFor($membership->user_id)->whereKey($value)->exists();
 
-                    if (! $isInCredential) {
-                        $fail('El profesional no cuenta con esta especialidad como credencial.');
+                    if (! $isBacked) {
+                        $fail('Ninguna matrícula verificada del profesional respalda esta especialidad.');
                     }
                 },
             ],

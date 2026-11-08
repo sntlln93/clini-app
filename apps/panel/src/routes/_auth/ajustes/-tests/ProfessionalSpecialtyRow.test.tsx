@@ -1,9 +1,6 @@
 import { api } from '@/lib/api';
 import type { Membership } from '@/types/membership';
-import type {
-    ProfessionalSpecialty,
-    UserSpecialty,
-} from '@/types/professional';
+import type { ProfessionalSpecialty, Specialty } from '@/types/professional';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -31,8 +28,9 @@ const MEMBERSHIP: Membership = {
     updated_at: '2026-01-01T00:00:00Z',
 };
 
-const CREDENTIALS: UserSpecialty[] = [
-    { id: 5, specialty_id: 1, specialty_name: 'Cardiología' },
+const BACKED: Specialty[] = [
+    { id: 1, name: 'Cardiología', profession: 'medico' },
+    { id: 2, name: 'Pediatría', profession: 'medico' },
 ];
 
 const ASSIGNED: ProfessionalSpecialty[] = [
@@ -44,15 +42,18 @@ const ASSIGNED: ProfessionalSpecialty[] = [
     },
 ];
 
-function renderRow() {
+function renderRow({
+    backed = BACKED,
+    assigned = ASSIGNED,
+}: { backed?: Specialty[]; assigned?: ProfessionalSpecialty[] } = {}) {
     const queryClient = new QueryClient();
     render(
         <QueryClientProvider client={queryClient}>
             <ProfessionalSpecialtyRow
                 membership={MEMBERSHIP}
                 canManage
-                credentials={CREDENTIALS}
-                assigned={ASSIGNED}
+                backed={backed}
+                assigned={assigned}
             />
         </QueryClientProvider>,
     );
@@ -92,5 +93,34 @@ describe('ProfessionalSpecialtyRow', () => {
             ),
         );
         await waitFor(() => expect(invalidate).toHaveBeenCalled());
+    });
+
+    it('offers only what a verified license backs, with nothing marked', async () => {
+        renderRow();
+
+        const pediatrics = await screen.findByRole('checkbox', {
+            name: 'Pediatría',
+        });
+        expect(pediatrics.getAttribute('aria-checked')).toBe('false');
+        expect(pediatrics.hasAttribute('data-disabled')).toBe(false);
+        expect(screen.queryByText('Sin respaldo de matrícula')).toBeNull();
+    });
+
+    it('keeps an offered specialty no license backs anymore, marked, and only lets it be taken off', async () => {
+        renderRow({ backed: [BACKED[1]] });
+
+        const cardiology = await screen.findByRole('checkbox', {
+            name: 'Cardiología',
+        });
+        expect(cardiology.getAttribute('aria-checked')).toBe('true');
+        expect(cardiology.hasAttribute('data-disabled')).toBe(false);
+        screen.getByText('Sin respaldo de matrícula');
+    });
+
+    it('says where the specialties come from when no license backs any', async () => {
+        renderRow({ backed: [], assigned: [] });
+
+        await screen.findByText(/Ajustes › Matrículas/);
+        expect(screen.queryByRole('checkbox')).toBeNull();
     });
 });

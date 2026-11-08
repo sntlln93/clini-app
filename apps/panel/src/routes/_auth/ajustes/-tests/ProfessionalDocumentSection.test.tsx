@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import type { ProfessionalDocument } from '@/types/professional-license';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -19,10 +20,20 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
     return { ...actual, useRouter: () => ({ invalidate: vi.fn() }) };
 });
 
-function renderSection(documentNumber: string | null) {
+function renderSection(
+    documentNumber: string | null,
+    overrides: Partial<ProfessionalDocument> = {},
+) {
     render(
         <QueryClientProvider client={new QueryClient()}>
-            <ProfessionalDocumentSection documentNumber={documentNumber} />
+            <ProfessionalDocumentSection
+                document={{
+                    document_number: documentNumber,
+                    locked: false,
+                    registry: documentNumber === null ? 'unchecked' : 'found',
+                    ...overrides,
+                }}
+            />
         </QueryClientProvider>,
     );
 }
@@ -90,5 +101,28 @@ describe('ProfessionalDocumentSection', () => {
                 .getByRole('button', { name: 'Guardar' })
                 .hasAttribute('disabled'),
         ).toBe(true);
+    });
+
+    // #387: once a license of this DNI is in Clini, only support changes it.
+    it('shows a settled DNI without a way to change it', () => {
+        renderSection('30123456', { locked: true });
+
+        screen.getByText('30123456');
+        screen.getByText(/comunicate con el soporte de Clini/);
+        expect(screen.queryByLabelText('DNI')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull();
+    });
+
+    it('says when the registry holds no license for the DNI, and lets it be corrected', () => {
+        renderSection('30123456', { registry: 'not_found' });
+
+        screen.getByText(/no tiene matrículas para este DNI/);
+        expect(screen.getByLabelText('DNI')).toBeDefined();
+    });
+
+    it('says nothing about the registry while it hasn’t answered', () => {
+        renderSection('30123456', { registry: 'unchecked' });
+
+        expect(screen.queryByText(/no tiene matrículas/)).toBeNull();
     });
 });

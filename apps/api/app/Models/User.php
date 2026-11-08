@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -23,10 +22,11 @@ use Illuminate\Notifications\Notifiable;
  * `/me` payload unchanged. The `two_factor_*` columns (#357) are written
  * only by the two-factor Actions, the same way, and never leave the API.
  * `document_number` (#380), the professional's DNI, is written only by its
- * Action, encrypted, and read only through its own endpoint.
+ * Action, encrypted, and read only through its own endpoint; once a license
+ * of theirs is in Clini it is locked, and only support changes it (#387).
  */
 #[Fillable(['name', 'email', 'password', 'email_verification_token', 'email_verification_token_expires_at'])]
-#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step', 'document_number'])]
+#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step', 'document_number', 'document_checked_at'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -51,6 +51,7 @@ class User extends Authenticatable
             'two_factor_confirmed_at' => 'immutable_datetime',
             'two_factor_last_used_step' => 'integer',
             'document_number' => 'encrypted',
+            'document_checked_at' => 'immutable_datetime',
         ];
     }
 
@@ -77,7 +78,8 @@ class User extends Authenticatable
     }
 
     /**
-     * The user's licenses (#380): like their specialties, they travel with the person, not with an organization.
+     * The user's licenses (#380): they travel with the person, not with an organization, and the verified ones back the
+     * specialties a practice may offer them with (#387, `Specialty::backedFor()`).
      *
      * @return HasMany<ProfessionalLicense, $this>
      */
@@ -87,13 +89,12 @@ class User extends Authenticatable
     }
 
     /**
-     * The user's global credential: specialties they are qualified to practise, independent of any organization.
-     *
-     * @return BelongsToMany<Specialty, $this>
+     * Whether the DNI is settled (#387): a license the registry holds for it is in Clini, so the professional said it
+     * is theirs. From then on only support changes it (`user:reset-professional-document`).
      */
-    public function specialties(): BelongsToMany
+    public function hasLockedProfessionalDocument(): bool
     {
-        return $this->belongsToMany(Specialty::class, 'user_specialties');
+        return $this->document_number !== null && $this->professionalLicenses()->added()->exists();
     }
 
     /** The user's active membership in the currently active organization (App\Support\CurrentOrganization), memoized per request. */

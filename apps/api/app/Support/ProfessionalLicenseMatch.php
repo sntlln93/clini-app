@@ -27,7 +27,7 @@ final class ProfessionalLicenseMatch
         foreach ($professionals as $professional) {
             foreach ($professional->licenses as $license) {
                 if ($license->province === $province
-                    && FoldedText::fold($license->profession) === FoldedText::fold($profession->label())
+                    && HealthProfession::fromRegistryName($license->profession) === $profession
                     && self::sameNumber($license->number, $number)) {
                     $candidates[] = [$professional, $license];
                 }

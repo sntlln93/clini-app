@@ -197,6 +197,7 @@ test('index lists each membership\'s specialties, sorted by name', function () {
     $response->assertOk();
     $rows = collect($response->json('data'))->keyBy('id');
     expect(collect($rows[$professional->id]['specialties'])->pluck('name')->all())
-        ->toBe(['Cardiología', 'Pediatría']);
+        ->toBe(['Cardiología', 'Pediatría'])
+        ->and(collect($rows[$professional->id]['specialties'])->pluck('backed')->all())->toBe([true, true]);
     expect($rows[$owner->id]['specialties'])->toBe([]);
 });

@@ -1,16 +1,6 @@
 import { api } from '@/lib/api';
-import type { CatalogService, CatalogSpecialty } from '@/types/professional';
+import type { CatalogService } from '@/types/professional';
 import { queryOptions } from '@tanstack/react-query';
-
-export function catalogSpecialtiesQueryOptions() {
-    return queryOptions({
-        queryKey: ['catalog', 'specialties'],
-        queryFn: () =>
-            api
-                .get<{ data: CatalogSpecialty[] }>('/specialties')
-                .then((response) => response.data.data),
-    });
-}
 
 export function catalogServicesQueryOptions() {
     return queryOptions({

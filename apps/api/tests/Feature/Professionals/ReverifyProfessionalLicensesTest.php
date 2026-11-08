@@ -14,7 +14,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Sleep;
 
 beforeEach(function () {
-    config(['services.national_professional_search.enabled' => false]);
+    // The fake registry unless a test fakes the real one, whatever the run's env says (CI runs the suite with each).
+    config(['services.professional_registry.adapter' => 'fake']);
     Sleep::fake();
 });
 
@@ -81,10 +82,10 @@ test('a professional without a DNI is not looked up', function () {
     Http::assertNothingSent();
 });
 
-test('with the registry off nothing is asked nor changed', function () {
+test('while the registry is paused nothing is asked nor changed', function () {
     $license = licenseCheckedDaysAgo(30);
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));
-    config(['services.national_professional_search.enabled' => false]);
+    pauseNationalProfessionalSearch();
 
     $this->artisan('professionals:reverify-licenses')->assertSuccessful();
 
@@ -109,7 +110,7 @@ test('a run looks up at most its share of professionals', function () {
     licenseCheckedDaysAgo(20, '30000020');
     licenseCheckedDaysAgo(10, '30000010');
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));
-    config(['services.national_professional_search.per_run' => 2]);
+    config(['services.professional_registry.per_run' => 2]);
 
     $this->artisan('professionals:reverify-licenses')->assertSuccessful();
 
@@ -141,4 +142,15 @@ test('the reverification is scheduled daily', function () {
 
     expect($events)->toHaveCount(1)
         ->and($events->sole()->expression)->toBe('0 0 * * *');
+});
+
+// #387: a DNI with nothing in Clini isn't sent to the registry every week.
+test('only professionals with a license in Clini are checked again', function () {
+    licenseCheckedDaysAgo(30, '30000030');
+    licenseCheckedDaysAgo(30, '30000031')->forceFill(['added_at' => null])->save();
+    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));
+
+    $this->artisan('professionals:reverify-licenses')->assertSuccessful();
+
+    expect(lookedUpDocuments())->toBe(['30000030']);
 });

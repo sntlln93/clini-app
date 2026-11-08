@@ -187,15 +187,22 @@ Table memberships {
 
 Table specialties {
   id bigint [pk, increment]
-  name varchar [not null, unique]
+  profession varchar [not null, note: 'HealthProfession enum']
+  name varchar [not null, note: 'As REFEPS writes it, or the profession label when it answers none']
+  folded_name varchar [not null, note: 'FoldedText::fold(name)']
   created_at timestamp [not null]
   updated_at timestamp [not null]
-  deleted_at timestamp [null]
+
+  indexes {
+    (profession, folded_name) [unique]
+  }
 
   Note: '''
-    Global, read-only catalog (CU-15/43), owned by an external management
-    app — not editable from Clini. No organization_id: unlike most tables
-    in this file, this one is NOT tenant-scoped. Seeded for dev/test only.
+    Global catalog (CU-43, #387, ADR 0038) Clini alone owns: every answer of
+    the national professional registry adds the professions and specialties
+    it carries (App\Support\RegistrySpecialtyCatalog, its only writer);
+    nothing edits or deletes a row. No organization_id: unlike most tables
+    in this file, this one is NOT tenant-scoped.
   '''
 }
 
@@ -209,7 +216,7 @@ Table professional_licenses {
   mismatch_reason varchar [null, note: 'not_found | inactive | sanctioned | not_enabled']
   refeps_code varchar(20) [null, note: 'REFEPS codigo of the professional']
   issuer varchar [null, note: 'origenEmite']
-  specialty varchar [null, note: 'refepsEspecialidad']
+  specialty_id bigint [null, note: 'The catalog row of its refepsEspecialidad, or of its profession alone']
   situation varchar [null, note: 'situacionMatricula']
   checked_at timestamp [null, note: 'Last time the registry answered about it']
   attempted_at timestamp [null, note: 'Last time Clini asked, answered or not: the daily reverification goes oldest attempt first']
@@ -222,29 +229,10 @@ Table professional_licenses {
   }
 
   Note: '''
-    A professional's licenses (#380, ADR 0032): the user's own, like their specialties, read and changed only by
-    them. Checked against the Buscador Nacional de Profesionales de la Salud (one lookup of the DNI) when declared,
+    A professional's licenses (#380, ADR 0032): the user's own, read and changed only by them. The verified ones
+    back the specialties a practice may offer them with (#387, ADR 0038): there is no table for that level. Checked against the Buscador Nacional de Profesionales de la Salud (one lookup of the DNI) when declared,
     when the DNI changes, on demand and daily (professionals:reverify-licenses, after 7 days). Only the minimum of
     the answer is kept: never the CUIL, sex or name.
-  '''
-}
-
-Table user_specialties {
-  id bigint [pk, increment]
-  user_id bigint [not null]
-  specialty_id bigint [not null]
-  created_at timestamp [not null]
-  updated_at timestamp [not null]
-
-  indexes {
-    (user_id, specialty_id) [unique]
-  }
-
-  Note: '''
-    The professional's global credential (CU-43): specialties a User is
-    qualified to practise, independent of any organization. Edited only by
-    the professional themself. Also the composite-FK target that keeps
-    professional_specialties a subset of this table.
   '''
 }
 
@@ -252,7 +240,7 @@ Table professional_specialties {
   id bigint [pk, increment]
   organization_id bigint [not null]
   membership_id bigint [not null]
-  user_id bigint [not null, note: 'denormalized from membership_id, for the composite FK into user_specialties']
+  user_id bigint [not null, note: 'denormalized from membership_id: whose licenses back the specialty']
   specialty_id bigint [not null]
 
   indexes {
@@ -260,11 +248,10 @@ Table professional_specialties {
   }
 
   Note: '''
-    What a professional actually practises in ONE organization (CU-34/43),
-    always a subset of their user_specialties credential — enforced at the
-    DB level by a composite FK on (user_id, specialty_id) into
-    user_specialties, in addition to (membership_id, organization_id) into
-    memberships.
+    What a professional actually practises in ONE organization (CU-34/43).
+    Only a specialty a verified license of theirs backs can be chosen (422,
+    #387); one that loses that backing stays, marked «sin respaldo de
+    matrícula» for memberships.view, never for the patient.
   '''
 }
 
@@ -618,13 +605,12 @@ Ref: account_deletion_request_memberships.membership_id > memberships.id [delete
 Ref: account_deletions.user_id > users.id [delete: restrict]
 
 Ref: professional_licenses.user_id > users.id [delete: cascade]
-Ref: user_specialties.user_id > users.id [delete: cascade]
-Ref: user_specialties.specialty_id > specialties.id [delete: restrict]
+Ref: professional_licenses.specialty_id > specialties.id [delete: restrict]
 
 Ref: professional_specialties.organization_id > organizations.id [delete: restrict]
 Ref: professional_specialties.membership_id > memberships.id [delete: cascade]
 Ref: professional_specialties.user_id > users.id [delete: cascade]
-Ref: professional_specialties.specialty_id > specialties.id [delete: cascade]
+Ref: professional_specialties.specialty_id > specialties.id [delete: restrict]
 
 Ref: patients.insurance_provider_id > insurance_providers.id [delete: set null]
 Ref: appointments.reported_insurance_provider_id > insurance_providers.id [delete: set null]

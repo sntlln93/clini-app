@@ -10,7 +10,7 @@ use App\Data\Professionals\ProfessionalSpecialtyAssignmentData;
 use App\Models\ProfessionalSpecialty;
 
 /**
- * Persists the denormalized user_id the composite FK to user_specialties depends on.
+ * Persists the denormalized user_id: whether a verified license still backs the specialty is read through it (#387).
  *
  * @implements Action<ProfessionalSpecialtyAssignmentData>
  */

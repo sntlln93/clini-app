@@ -23,6 +23,7 @@ use App\Support\MedicationComposition;
 use Carbon\CarbonImmutable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -356,13 +357,34 @@ function nationalProfessionalSearchItem(?array $licenses = null, string $active 
 }
 
 /**
- * Turns the national professional search on and answers every lookup with `$results` (a page) or by running it (a
- * failure). Each lookup is a GET of the form and a POST of the DNI.
+ * The item with this `refepsEspecialidad` on every profession, as the registry writes it.
+ *
+ * @param  array<string, mixed>  $item
+ * @return array<string, mixed>
+ */
+function withRegistrySpecialty(array $item, ?string $specialty): array
+{
+    $item['profesiones'] = array_map(fn (array $profession): array => [...$profession, 'refepsEspecialidad' => $specialty], $item['profesiones']);
+
+    return $item;
+}
+
+/**
+ * Pauses the national professional search the way a failure does, for five minutes.
+ */
+function pauseNationalProfessionalSearch(): void
+{
+    Cache::put('professionals:national-professional-search:paused', true, 300);
+}
+
+/**
+ * Makes the national professional search the registry and answers every lookup with `$results` (a page) or by running
+ * it (a failure). Each lookup is a GET of the form and a POST of the DNI.
  */
 function fakeNationalProfessionalSearch(string|Closure $results): void
 {
     config([
-        'services.national_professional_search.enabled' => true,
+        'services.professional_registry.adapter' => 'national_search',
         'services.national_professional_search.url' => 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud',
         'services.national_professional_search.user_agent' => 'Clini/test',
     ]);

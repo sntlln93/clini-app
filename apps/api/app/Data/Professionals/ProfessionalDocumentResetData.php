@@ -6,11 +6,13 @@ namespace App\Data\Professionals;
 
 use App\Contracts\Data;
 
-final readonly class UserSpecialtyAssignmentData implements Data
+/**
+ * Support taking a settled DNI away (#387).
+ */
+final readonly class ProfessionalDocumentResetData implements Data
 {
     public function __construct(
         public int $userId,
-        public int $specialtyId,
     ) {}
 
     /**
@@ -18,9 +20,6 @@ final readonly class UserSpecialtyAssignmentData implements Data
      */
     public function toArray(): array
     {
-        return [
-            'userId' => $this->userId,
-            'specialtyId' => $this->specialtyId,
-        ];
+        return ['userId' => $this->userId];
     }
 }

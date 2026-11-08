@@ -16,10 +16,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * A professional's license, as they declared it, with what the national registry last said about it (#380, ADR 0032).
+ * A license the national registry holds for a professional's DNI, with what it last said about it (#380, ADR 0032).
+ * Every lookup brings them; one counts in Clini only once the professional adds it (`added_at`, #387, ADR 0038).
  * It belongs to the user, not to an organization: the one that counts in a practice is the one from the practice's
  * province. The registry's answer (status, reason, REFEPS code, issuer, specialty, situation, `checked_at`, `attempted_at`) is written
- * only by the verification Action, never mass-assigned.
+ * only by the verification Action, never mass-assigned. A verified license backs its specialty (#387, ADR 0038): the
+ * catalog row of the registry's specialty for its profession, or of the profession itself.
  */
 #[Fillable(['user_id', 'number', 'province', 'profession'])]
 class ProfessionalLicense extends Model
@@ -34,22 +36,6 @@ class ProfessionalLicense extends Model
     public const int REVERIFY_AFTER_DAYS = 7;
 
     /**
-     * What a license goes back to when the registry's answer no longer applies to it, as when its DNI changes.
-     *
-     * @var array<string, mixed>
-     */
-    public const array UNVERIFIED = [
-        'status' => ProfessionalLicenseStatus::Unverified,
-        'mismatch_reason' => null,
-        'refeps_code' => null,
-        'issuer' => null,
-        'specialty' => null,
-        'situation' => null,
-        'checked_at' => null,
-        'attempted_at' => null,
-    ];
-
-    /**
      * @return array<string, string>
      */
     protected function casts(): array
@@ -61,6 +47,7 @@ class ProfessionalLicense extends Model
             'mismatch_reason' => ProfessionalLicenseMismatch::class,
             'checked_at' => 'immutable_datetime',
             'attempted_at' => 'immutable_datetime',
+            'added_at' => 'immutable_datetime',
         ];
     }
 
@@ -70,6 +57,24 @@ class ProfessionalLicense extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<Specialty, $this>
+     */
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
+    }
+
+    /**
+     * The ones the professional added to Clini: the rest are only what the registry holds for their DNI.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeAdded(Builder $query): void
+    {
+        $query->whereNotNull('added_at');
     }
 
     /**

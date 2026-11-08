@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * The ICD-10 catalog (#324, ADR 0020): global reference data the external
- * catalog app owns, like specialties. A retired code is soft-deleted, since
+ * catalog app owns, like services. A retired code is soft-deleted, since
  * diagnoses keep pointing at it.
  */
 return new class extends Migration

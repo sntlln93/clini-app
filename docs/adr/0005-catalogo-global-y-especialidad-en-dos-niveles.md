@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado.
+Aceptado. Para las especialidades lo reemplaza el ADR 0038 (#387): Clini es el único dueño de `specialties`, que llena el registro nacional de profesionales, y el nivel del profesional se deriva de sus matrículas verificadas en vez de elegirse (`user_specialties` ya no existe). Las prestaciones siguen como acá.
 
 ## Contexto
 
