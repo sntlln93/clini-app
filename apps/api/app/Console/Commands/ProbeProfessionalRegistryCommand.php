@@ -38,7 +38,7 @@ class ProbeProfessionalRegistryCommand extends Command
         }
 
         if (! $readsNoResults) {
-            $this->error('El registro respondió, pero no «sin resultados»: NATIONAL_PROFESSIONAL_SEARCH_PROBE_DOCUMENT tiene que ser un DNI que nadie tenga.');
+            $this->error('El registro respondió, pero no «sin resultados»: el DNI de prueba (services.national_professional_search.probe_document) tiene que ser uno que nadie tenga.');
 
             return self::FAILURE;
         }

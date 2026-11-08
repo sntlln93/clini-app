@@ -119,11 +119,11 @@ final readonly class ExternalSourceOutage
     }
 
     /**
-     * The team's address: the registry's own, else the contact form's (config/contact.php). Without either, no mail.
+     * The team's address, the contact form's (config/contact.php): no source has its own. Without it, no mail.
      */
     private function mail(ExternalSourceOutageMail|ExternalSourceRecoveredMail $mail): void
     {
-        $address = Config::get('services.national_professional_search.alert_email') ?: Config::get('contact.notification_email');
+        $address = Config::get('contact.notification_email');
 
         if (is_string($address) && $address !== '') {
             Mail::to($address)->queue($mail);

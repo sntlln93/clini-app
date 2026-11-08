@@ -50,7 +50,7 @@ beforeEach(function () {
     Mail::fake();
     config([
         'services.national_professional_search.outage_alert_minutes' => 15,
-        'services.national_professional_search.alert_email' => OUTAGE_TEAM_ADDRESS,
+        'contact.notification_email' => OUTAGE_TEAM_ADDRESS,
         'services.national_professional_search.probe_document' => OUTAGE_PROBE_DOCUMENT,
     ]);
     $this->travelTo(CarbonImmutable::parse('2026-11-08 13:00:00', 'UTC'));
@@ -204,18 +204,16 @@ test('an outage nobody was told of ends without a mail', function () {
     Mail::assertNothingOutgoing();
 });
 
-test('without the registry\'s own address the mail goes to the contact form\'s, and without either nowhere', function () {
-    config([
-        'services.national_professional_search.alert_email' => null,
-        'contact.notification_email' => 'contacto@clini.test',
-    ]);
+test('the mail goes to the contact form\'s address, and without it nowhere', function () {
+    config(['services.national_professional_search.alert_email' => 'propia@clini.test']);
     $page = null;
     registryOutageAnswering($page);
 
     registryOutageLookUp();
     $this->travel(15)->minutes();
     registryOutageLookUp();
-    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->hasTo('contacto@clini.test'));
+    // The registry has no address of its own: a stale setting doesn't take the mail.
+    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->hasTo(OUTAGE_TEAM_ADDRESS) && ! $mail->hasTo('propia@clini.test'));
 
     config(['contact.notification_email' => null]);
     $page = nationalProfessionalSearchFixture('no-results.html');
@@ -284,7 +282,7 @@ test('a probe answered with anything but «no results» fails, though the regist
 
     $page = nationalProfessionalSearchFixture($fixture);
     $this->artisan('professionals:probe-registry')
-        ->expectsOutput('El registro respondió, pero no «sin resultados»: NATIONAL_PROFESSIONAL_SEARCH_PROBE_DOCUMENT tiene que ser un DNI que nadie tenga.')
+        ->expectsOutput('El registro respondió, pero no «sin resultados»: el DNI de prueba (services.national_professional_search.probe_document) tiene que ser uno que nadie tenga.')
         ->assertFailed();
 
     expect(registryOutage()->ongoing())->toBeFalse();
