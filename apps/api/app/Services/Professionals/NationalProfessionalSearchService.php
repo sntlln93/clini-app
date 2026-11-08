@@ -7,9 +7,10 @@ namespace App\Services\Professionals;
 use App\Contracts\ProfessionalRegistry;
 use App\Data\Professionals\RegistryLicenseData;
 use App\Data\Professionals\RegistryProfessionalData;
+use App\Enums\ExternalSource;
 use App\Enums\Province;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
-use App\Support\ProfessionalRegistryOutage;
+use App\Support\ExternalSourceOutage;
 use App\Support\RegistryPersonName;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
@@ -53,9 +54,12 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
      */
     private const string TIMEZONE = 'America/Argentina/Buenos_Aires';
 
-    public function __construct(
-        private readonly ProfessionalRegistryOutage $outage,
-    ) {}
+    private readonly ExternalSourceOutage $outage;
+
+    public function __construct()
+    {
+        $this->outage = new ExternalSourceOutage(ExternalSource::ProfessionalRegistry);
+    }
 
     public function available(): bool
     {
@@ -210,7 +214,7 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
     private function pausing(ProfessionalRegistryUnavailableException $exception, bool $unreadableLookUp = false): ProfessionalRegistryUnavailableException
     {
         Cache::put(self::PAUSED, true, self::PAUSE_SECONDS);
-        $this->outage->failed($exception->step, $unreadableLookUp);
+        $this->outage->failed($exception->step, needsResults: $unreadableLookUp);
 
         return $exception;
     }

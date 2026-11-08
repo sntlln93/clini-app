@@ -50,6 +50,22 @@ El término se registra y se consulta igual (`MedicationSearch::key()`): en min�
 
 **Sustancias para las alergias (#383).** La «Sustancia» de una alergia también es texto libre, y desde 5 caracteres sugiere hasta 10 principios activos del catálogo (`GET /medication-substances`): las `substances` de los productos sugeribles que contienen el término plegado, una por forma plegada y primero las que empiezan con él. Llena el catálogo igual que la búsqueda de medicamentos (`FillMedicationCatalogAction`, con la misma cobertura, la misma pausa y el mismo límite `medication-search`), pero no depende del plan, porque las alergias están en todos. Elegida, la sustancia se guarda como texto tal como la nombra el catálogo, sin una marca de origen ni una columna nueva en la versión de la alergia: el aviso no la leería, porque ya busca la sustancia plegada dentro de las `substances` del producto elegido, y la columna nula que prevé el ADR 0027 queda libre para el código SNOMED de #376. Por la misma razón el aviso no cambia: una comparación exacta contra `substances` perdería coincidencias que hoy avisan, y las alergias escritas a mano siguen avisando igual.
 
+## Caídas del Buscador (#425)
+
+**Se detectan y se avisan, como las del registro de profesionales (ADR 0032, #419).** Mientras el Buscador está caído, un término que el catálogo no tiene no trae sugerencias; este apartado solo hace que el equipo se entere. Solo con el Buscador encendido (`NATIONAL_MEDICATION_SEARCH_ENABLED`): apagado, la prueba no consulta nada y no se anota ninguna caída, y una caída anotada antes de apagarlo se olvida sin avisar, para que al prenderlo de nuevo no se mande un aviso con un inicio viejo.
+
+**Una pieza común para los dos buscadores.** `App\Support\ExternalSourceOutage` anota la caída de una fuente externa, nombrada por `App\Enums\ExternalSource` (su clave en el cache, su bloque de `config/services.php` y cómo la llaman los mails), y el par `ExternalSourceOutageMail`/`ExternalSourceRecoveredMail` nombra la fuente. La primera falla que pausa el Buscador (`MedicationSourceUnavailableException`) anota el inicio, cada falla siguiente guarda su paso (`request`, `status` o `response`) y la primera respuesta legible la borra; la pausa de 5 minutos no cambia. Cuando la caída llega a 15 minutos (`services.national_medication_search.outage_alert_minutes`) sale un solo mail al equipo con el inicio y el último motivo, y otro con la duración cuando vuelve, solo si se avisó. La casilla es la del formulario de contacto (`CONTACT_NOTIFICATION_EMAIL`); sin ella no se avisa. Ni los mails ni los logs llevan un término buscado.
+
+**Prueba periódica que exige resultados.** `medications:probe-source` corre cada hora y, mientras haya una caída anotada, cada 5 minutos. Busca `amoxicilina` (`services.national_medication_search.probe_term`) ignorando la pausa. A diferencia del registro, una respuesta con resultados no expone datos personales, así que la prueba exige al menos un producto válido (con GTIN y nombre): una respuesta legible sin ninguno cuenta como falla `response`, pausa el Buscador y deja una caída que solo termina una respuesta con productos (una búsqueda que devuelve `[]` no la cierra). Así se detecta también un cambio en el formato de las filas.
+
+**Configuración en archivo, no en el entorno.** El umbral y el término son valores fijos de `config/services.php`, igual que el umbral y el DNI de prueba del registro desde #425; ninguno de los dos buscadores tiene una casilla propia. La única variable sigue siendo `NATIONAL_MEDICATION_SEARCH_ENABLED`.
+
+### Alternativas descartadas (#425)
+
+- **Una pieza por servicio.** Duplicaría el lock, el umbral y los mails; la común es también la que va a leer el monitor del dashboard (#426).
+- **Que la prueba acepte una lista vacía.** No distinguiría un término sin productos de un cambio de formato que deja todas las filas ilegibles.
+- **Variables de entorno para el umbral, el término y la casilla.** Son decisiones del producto, no del despliegue: un valor fijo no se desconfigura en un entorno.
+
 ## Alternativas descartadas
 
 - **La consulta ZK de ANMAT** (`servicios.pami.org.ar/vademecum`, la primera versión de esta rama). No tiene API: hacía falta una sesión, cuatro pedidos para el detalle de cada producto y un parseo de HTML frágil. Además paginaba de a 10 filas, así que la cobertura dependía de saber si una respuesta vino completa.

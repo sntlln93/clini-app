@@ -165,7 +165,7 @@ Navegador (reserva anónima)   ──HTTPS──▶ Traefik ──▶ API       
 Navegador (landing, SSR)      ──HTTPS──▶ Traefik ──▶ landing (Node) ··· sin datos; su formulario hace POST a la API
 API ──▶ Resend ──▶ mail del paciente: consultorio, día, hora y dirección; código de acceso (ADR 0018, 0029)
 API ──▶ Mercado Pago: suscripción de la organización (sin pacientes)
-API ──▶ Buscador Nacional de Medicamentos: solo el término, sin el paciente (ADR 0031)
+API ──▶ Buscador Nacional de Medicamentos: solo el término, sin el paciente (ADR 0031); la prueba horaria, un término fijo (#425)
 API ──▶ Buscador Nacional de Profesionales: DNI del profesional (ADR 0032); la prueba horaria, un DNI inexistente (#419)
 ```
 

@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Enums\ExternalSource;
 use App\Models\ContactRequest;
-use App\Support\ProfessionalRegistryOutage;
+use App\Support\ExternalSourceOutage;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -24,7 +25,14 @@ Schedule::command('professionals:reverify-licenses')->daily()->withoutOverlappin
 // The national registry, probed hourly and every 5 minutes during an outage, so its start and end are seen without traffic (#419).
 Schedule::command('professionals:probe-registry')
     ->everyFiveMinutes()
-    ->when(fn (ProfessionalRegistryOutage $outage): bool => now()->minute < 5 || $outage->ongoing())
+    ->when(fn (): bool => now()->minute < 5 || (new ExternalSourceOutage(ExternalSource::ProfessionalRegistry))->ongoing())
+    ->withoutOverlapping();
+
+// The national medication search, probed hourly and every 5 minutes during an outage, so its start and end are seen without traffic (#425).
+// With the search off the command only forgets an outage recorded before.
+Schedule::command('medications:probe-source')
+    ->everyFiveMinutes()
+    ->when(fn (): bool => now()->minute < 5 || (new ExternalSourceOutage(ExternalSource::MedicationSearch))->ongoing())
     ->withoutOverlapping();
 
 // Clinic users' own account deletions whose grace period ended (#384).

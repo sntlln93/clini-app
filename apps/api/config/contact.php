@@ -11,7 +11,9 @@ return [
     |
     | Where a mail goes each time the landing's contact form (#248) stores a
     | request, with the visitor as Reply-To. Empty (the default) sends none:
-    | the requests are always in the dashboard's Contactos module.
+    | the requests are always in the dashboard's Contactos module. It is also
+    | where the outages of the external sources are mailed (#419, #425,
+    | App\Support\ExternalSourceOutage); empty, nobody hears of them.
     |
     */
 

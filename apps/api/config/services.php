@@ -47,6 +47,10 @@ return [
         'enabled' => (bool) env('NATIONAL_MEDICATION_SEARCH_ENABLED', false),
         'url' => env('NATIONAL_MEDICATION_SEARCH_URL', 'https://cnpm.msal.gov.ar'),
         'user_agent' => env('NATIONAL_MEDICATION_SEARCH_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
+        // An outage (#425): minutes until the team is mailed, at the contact form's address (config/contact.php).
+        'outage_alert_minutes' => 15,
+        // The term the scheduled probe searches: one that always has products, so an answer without any is a failure.
+        'probe_term' => 'amoxicilina',
     ],
 
     // The national registry that checks professionals' licenses (#380, ADR 0032) and gives their professions and
@@ -62,12 +66,10 @@ return [
     'national_professional_search' => [
         'url' => env('NATIONAL_PROFESSIONAL_SEARCH_URL', 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud'),
         'user_agent' => env('NATIONAL_PROFESSIONAL_SEARCH_USER_AGENT', 'Clini/1.0 (validacion de matriculas; +'.env('APP_URL', 'http://localhost').')'),
-        // An outage (#419): minutes until the team is mailed, and where. Without an address, the contact form's
-        // (config/contact.php); without either, no mail.
-        'outage_alert_minutes' => (int) env('NATIONAL_PROFESSIONAL_SEARCH_OUTAGE_ALERT_MINUTES', 15),
-        'alert_email' => env('NATIONAL_PROFESSIONAL_SEARCH_ALERT_EMAIL') ?: null,
+        // An outage (#419): minutes until the team is mailed, at the contact form's address (config/contact.php).
+        'outage_alert_minutes' => 15,
         // The DNI the scheduled probe looks up: well formed and held by nobody, never a real person's.
-        'probe_document' => env('NATIONAL_PROFESSIONAL_SEARCH_PROBE_DOCUMENT') ?: '99999999',
+        'probe_document' => '99999999',
     ],
 
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.
