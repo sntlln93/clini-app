@@ -1,6 +1,6 @@
 import { expectNoA11yViolations } from '@/tests/a11y';
 import type { CatalogProfession } from '@/types/specialty';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { SpecialtiesCatalog } from '../-components/SpecialtiesCatalog';
 import { Route } from '../index';
@@ -60,16 +60,42 @@ function card(title: string): HTMLElement {
 
 describe('SpecialtiesCatalog', () => {
     it('explains how the catalog fills while it is empty', () => {
-        render(<SpecialtiesCatalog usage={{ professions: [] }} />);
+        render(
+            <SpecialtiesCatalog
+                usage={{ professions: [] }}
+                query=""
+                onClearSearch={vi.fn()}
+            />,
+        );
 
         screen.getByRole('heading', { name: 'Todavía no hay especialidades' });
         screen.getByText(/registro nacional de profesionales/);
+    });
+
+    it('says nothing matched a search, and offers to clear it', () => {
+        const onClearSearch = vi.fn();
+        render(
+            <SpecialtiesCatalog
+                usage={{ professions: [] }}
+                query="trauma"
+                onClearSearch={onClearSearch}
+            />,
+        );
+
+        screen.getByRole('heading', { name: 'Sin resultados' });
+        expect(screen.queryByText('Todavía no hay especialidades')).toBeNull();
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Limpiar búsqueda' }),
+        );
+        expect(onClearSearch).toHaveBeenCalledOnce();
     });
 
     it('groups the catalog by profession with its license counts', () => {
         render(
             <SpecialtiesCatalog
                 usage={{ professions: [MEDICO, KINESIOLOGO] }}
+                query=""
+                onClearSearch={vi.fn()}
             />,
         );
 
@@ -98,7 +124,13 @@ describe('SpecialtiesCatalog', () => {
     });
 
     it('shows each specialty with its counts, the profession row marked', () => {
-        render(<SpecialtiesCatalog usage={{ professions: [MEDICO] }} />);
+        render(
+            <SpecialtiesCatalog
+                usage={{ professions: [MEDICO] }}
+                query=""
+                onClearSearch={vi.fn()}
+            />,
+        );
 
         const rows = within(card('Médico')).getAllByRole('row');
         expect(rows.map((row) => normalize(row.textContent))).toEqual([
@@ -112,6 +144,8 @@ describe('SpecialtiesCatalog', () => {
         const { container } = render(
             <SpecialtiesCatalog
                 usage={{ professions: [MEDICO, KINESIOLOGO] }}
+                query=""
+                onClearSearch={vi.fn()}
             />,
         );
 
@@ -119,22 +153,36 @@ describe('SpecialtiesCatalog', () => {
     });
 });
 
-describe('/especialidades loader', () => {
-    it('reads the catalog usage through the query cache', async () => {
+describe('/especialidades route', () => {
+    it('reads the catalog for the search through the query cache', async () => {
         const ensureQueryData = vi.fn().mockResolvedValue({ professions: [] });
         const run = Route.options.loader as unknown as (args: {
             context: {
                 queryClient: { ensureQueryData: typeof ensureQueryData };
             };
+            deps: { q: string };
         }) => Promise<unknown>;
 
         await expect(
-            run({ context: { queryClient: { ensureQueryData } } }),
-        ).resolves.toEqual({
-            professions: [],
-        });
+            run({
+                context: { queryClient: { ensureQueryData } },
+                deps: { q: 'cardio' },
+            }),
+        ).resolves.toEqual({ professions: [] });
         expect(ensureQueryData).toHaveBeenCalledWith(
-            expect.objectContaining({ queryKey: ['specialties'] }),
+            expect.objectContaining({
+                queryKey: ['specialties', { q: 'cardio' }],
+            }),
         );
+    });
+
+    it('keeps a search from the URL and drops a broken one', () => {
+        const validate = Route.options.validateSearch as (
+            search: Record<string, unknown>,
+        ) => { q?: string };
+
+        expect(validate({ q: 'cardio' })).toEqual({ q: 'cardio' });
+        expect(validate({ q: 42 })).toEqual({ q: undefined });
+        expect(validate({ q: 'a'.repeat(101) })).toEqual({ q: undefined });
     });
 });

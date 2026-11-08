@@ -1,13 +1,40 @@
+import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/features/empty-state/EmptyState';
 import type { SpecialtyCatalogUsage } from '@/types/specialty';
 import { ProfessionCard } from './ProfessionCard';
 
-/** The catalog grouped by profession, or how it gets filled while empty. */
+type SpecialtiesCatalogProps = {
+    usage: SpecialtyCatalogUsage;
+    /** The search the API answered; empty when there is none. */
+    query: string;
+    onClearSearch: () => void;
+};
+
+/** The catalog grouped by profession, or why there is nothing to show. */
 export function SpecialtiesCatalog({
     usage,
-}: {
-    usage: SpecialtyCatalogUsage;
-}) {
+    query,
+    onClearSearch,
+}: SpecialtiesCatalogProps) {
+    if (usage.professions.length === 0 && query !== '') {
+        return (
+            <EmptyState
+                illustration="search"
+                title="Sin resultados"
+                description="Ninguna profesión ni especialidad contiene ese texto."
+                action={
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={onClearSearch}
+                    >
+                        Limpiar búsqueda
+                    </Button>
+                }
+            />
+        );
+    }
+
     if (usage.professions.length === 0) {
         return (
             <EmptyState
