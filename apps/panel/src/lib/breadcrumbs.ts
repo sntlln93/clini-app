@@ -26,6 +26,7 @@ const SECTION_SEGMENT_LABELS: Record<string, Record<string, string>> = {
         seguridad: 'Seguridad',
         suscripcion: 'Plan y suscripción',
         reservas: 'Reservas',
+        matriculas: 'Matrículas',
         profesionales: 'Profesionales',
         'proteccion-de-datos': 'Protección de datos',
     },

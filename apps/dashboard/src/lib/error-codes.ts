@@ -23,6 +23,7 @@ export type ErrorCode =
     | 'holidays.provider_unavailable'
     | 'medications.source_unavailable'
     | 'professionals.registry_unavailable'
+    | 'professionals.document_locked'
     | 'subscriptions.inactive'
     | 'subscriptions.already_active'
     | 'subscriptions.gateway_unavailable'
@@ -115,6 +116,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'No se pudo consultar el Buscador Nacional de Medicamentos. Escribí el medicamento a mano.',
     'professionals.registry_unavailable':
         'No se pudo consultar el Buscador Nacional de Profesionales de la Salud. Probá de nuevo más tarde.',
+    'professionals.document_locked':
+        'Tu DNI ya está validado y no se puede cambiar desde acá. Para cambiarlo, comunicate con el soporte de Clini.',
     'subscriptions.inactive':
         'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, medicación indicada y disponibilidad, y para recibir reservas online.',
     'subscriptions.already_active':

@@ -4,7 +4,10 @@ export type ProfessionalLicenseStatus = 'unverified' | 'verified' | 'mismatch';
 export type ProfessionalLicenseMismatch =
     'not_found' | 'inactive' | 'sanctioned' | 'not_enabled';
 
-/** A license as the professional declared it, with the registry's answer. */
+/**
+ * A license the registry holds for the professional's DNI, with its answer.
+ * `added`: in Clini; otherwise only offered, and it backs nothing (#387).
+ */
 export type ProfessionalLicense = {
     id: number;
     number: string;
@@ -17,4 +20,15 @@ export type ProfessionalLicense = {
     specialty: string | null;
     situation: string | null;
     checked_at: string | null;
+    added: boolean;
+};
+
+/**
+ * The professional's DNI (#380): `locked` once a license is in Clini, and
+ * whether the registry found anyone under it (#387).
+ */
+export type ProfessionalDocument = {
+    document_number: string | null;
+    locked: boolean;
+    registry: 'unchecked' | 'found' | 'not_found';
 };

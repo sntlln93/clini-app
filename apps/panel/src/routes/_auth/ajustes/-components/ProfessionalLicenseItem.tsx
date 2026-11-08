@@ -7,7 +7,7 @@ import { formatLicenseIssuer } from '@/lib/license-issuer';
 import { provinceLabel } from '@/lib/provinces';
 import type { ProfessionalLicense } from '@/types/professional-license';
 import { Trash2 } from 'lucide-react';
-import { useRemoveProfessionalLicense } from '../-hooks/use-professional-licenses';
+import { useRemoveLicenseFromClini } from '../-hooks/use-professional-licenses';
 import {
     LICENSE_STATUS,
     licenseExplanation,
@@ -25,7 +25,7 @@ export function ProfessionalLicenseItem({
     hasDocument,
     countsHere,
 }: ProfessionalLicenseItemProps) {
-    const remove = useRemoveProfessionalLicense();
+    const remove = useRemoveLicenseFromClini();
     const status = LICENSE_STATUS[license.status];
     const title = `${healthProfessionLabel(license.profession)} · ${provinceLabel(license.province)} · ${license.number}`;
     const registryDetails = [
@@ -55,13 +55,13 @@ export function ProfessionalLicenseItem({
                             variant="ghost"
                             size="icon-sm"
                             className="ml-auto"
-                            aria-label={`Quitar la matrícula ${license.number}`}
+                            aria-label={`Quitar de Clini la matrícula ${license.number}`}
                         >
                             <Trash2 />
                         </Button>
                     }
-                    title="Quitar matrícula"
-                    description="¿Quitar esta matrícula de tu perfil? Podés volver a cargarla cuando quieras."
+                    title="Quitar de Clini"
+                    description="¿Quitar esta matrícula de Clini? Deja de respaldar tus especialidades. Si el Buscador la sigue teniendo, la vas a poder agregar de nuevo."
                     confirmLabel="Quitar"
                     onConfirm={() => remove.mutate(license.id)}
                     isPending={remove.isPending}

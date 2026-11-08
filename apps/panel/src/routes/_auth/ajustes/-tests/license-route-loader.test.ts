@@ -45,8 +45,15 @@ const LICENSES: ProfessionalLicense[] = [
         specialty: null,
         situation: 'Habilitado',
         checked_at: '2026-11-01T12:00:00Z',
+        added: true,
     },
 ];
+
+const DOCUMENT = {
+    document_number: '30123456',
+    locked: true,
+    registry: 'found',
+};
 
 function mockApiGet(session: {
     permissions: string[];
@@ -69,7 +76,7 @@ function mockApiGet(session: {
         }
         if (url === '/me/professional-document') {
             return Promise.resolve({
-                data: { data: { document_number: '30123456' } },
+                data: { data: DOCUMENT },
             });
         }
         return Promise.reject(new Error(`unexpected GET ${url}`));
@@ -112,7 +119,7 @@ describe('Matrículas tab', () => {
         expect(await loadLicenses()).toEqual({
             isProfessional: true,
             managedOwnMembership: null,
-            documentNumber: '30123456',
+            document: DOCUMENT,
             licenses: LICENSES,
             organizationProvince: 'cordoba',
         });
@@ -130,7 +137,7 @@ describe('Matrículas tab', () => {
         expect(await loadLicenses()).toEqual({
             isProfessional: false,
             managedOwnMembership: owner,
-            documentNumber: null,
+            document: null,
             licenses: [],
             organizationProvince: 'cordoba',
         });

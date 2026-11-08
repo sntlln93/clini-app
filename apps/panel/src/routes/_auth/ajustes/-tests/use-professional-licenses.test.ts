@@ -4,8 +4,8 @@ import { renderHook } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-    useAddProfessionalLicense,
-    useRemoveProfessionalLicense,
+    useAddLicenseToClini,
+    useRemoveLicenseFromClini,
     useUpdateProfessionalDocument,
     useVerifyProfessionalLicenses,
 } from '../-hooks/use-professional-licenses';
@@ -47,20 +47,16 @@ const WRITES: [string, (wrapper: Wrapper) => Promise<unknown>][] = [
             }).result.current.mutateAsync('30123456'),
     ],
     [
-        'adding a license',
+        'adding a license to Clini',
         (wrapper) =>
-            renderHook(() => useAddProfessionalLicense(), {
+            renderHook(() => useAddLicenseToClini(), {
                 wrapper,
-            }).result.current.mutateAsync({
-                number: '1',
-                province: 'cordoba',
-                profession: 'medico',
-            }),
+            }).result.current.mutateAsync(1),
     ],
     [
-        'removing a license',
+        'taking a license out of Clini',
         (wrapper) =>
-            renderHook(() => useRemoveProfessionalLicense(), {
+            renderHook(() => useRemoveLicenseFromClini(), {
                 wrapper,
             }).result.current.mutateAsync(1),
     ],

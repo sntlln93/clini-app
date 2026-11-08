@@ -28,7 +28,7 @@ export const Route = createFileRoute('/_auth/ajustes/matriculas')({
         }
 
         // Only whoever attends patients here holds licenses.
-        const [documentNumber, licenses] = ownProfessionalMembership
+        const [document, licenses] = ownProfessionalMembership
             ? await Promise.all([
                   context.queryClient.ensureQueryData(
                       professionalDocumentQueryOptions,
@@ -42,7 +42,7 @@ export const Route = createFileRoute('/_auth/ajustes/matriculas')({
         return {
             isProfessional: ownProfessionalMembership !== null,
             managedOwnMembership,
-            documentNumber,
+            document,
             licenses,
             organizationProvince: session.organization?.province ?? null,
         };
@@ -61,7 +61,7 @@ function MatriculasPage() {
     const {
         isProfessional,
         managedOwnMembership,
-        documentNumber,
+        document,
         licenses,
         organizationProvince,
     } = Route.useLoaderData();
@@ -72,15 +72,13 @@ function MatriculasPage() {
                 <AttendPatientsSection membership={managedOwnMembership} />
             )}
             {managedOwnMembership && isProfessional && <Separator />}
-            {isProfessional && (
+            {isProfessional && document && (
                 <>
-                    <ProfessionalDocumentSection
-                        documentNumber={documentNumber}
-                    />
+                    <ProfessionalDocumentSection document={document} />
                     <Separator />
                     <ProfessionalLicensesSection
                         licenses={licenses}
-                        hasDocument={documentNumber !== null}
+                        hasDocument={document.document_number !== null}
                         organizationProvince={organizationProvince}
                     />
                 </>

@@ -36,6 +36,6 @@ export function licenseExplanation(
         case 'not_enabled':
             return `El Buscador muestra la matrícula como «${license.situation ?? 'no habilitada'}».`;
         default:
-            return 'El Buscador no tiene esta matrícula para tu DNI en esa provincia y profesión. Revisá el número, la provincia y la profesión.';
+            return 'El Buscador ya no muestra esta matrícula para tu DNI.';
     }
 }

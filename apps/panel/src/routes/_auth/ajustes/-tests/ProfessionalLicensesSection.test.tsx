@@ -40,6 +40,7 @@ function license(overrides: Partial<ProfessionalLicense>): ProfessionalLicense {
         specialty: null,
         situation: null,
         checked_at: null,
+        added: true,
         ...overrides,
     };
 }
@@ -81,15 +82,6 @@ function renderSection(props: {
 
 function item(text: string) {
     return screen.getByText(text).closest('li') as HTMLElement;
-}
-
-// base-ui's roving-tabindex needs a real pointer sequence in jsdom; a bare `click` doesn't register.
-async function pickOption(combobox: string, name: string) {
-    fireEvent.click(screen.getByRole('combobox', { name: combobox }));
-    const option = await screen.findByRole('option', { name });
-    fireEvent.pointerDown(option);
-    fireEvent.pointerUp(option);
-    fireEvent.click(option);
 }
 
 describe('ProfessionalLicensesSection', () => {
@@ -193,67 +185,67 @@ describe('ProfessionalLicensesSection', () => {
         ).toBeDefined();
     });
 
-    it('shows a new license is being added and checked', async () => {
-        vi.mocked(api.post).mockReturnValue(new Promise(() => {}));
-        renderSection({ licenses: [], organizationProvince: 'cordoba' });
-
-        fireEvent.change(screen.getByLabelText('Número'), {
-            target: { value: '6789' },
-        });
-        await pickOption('Profesión', 'Médico');
-        fireEvent.click(
-            screen.getByRole('button', { name: 'Agregar matrícula' }),
-        );
-
-        const running = await screen.findByRole('button', {
-            name: /Agregando…/,
-        });
-        expect(running.hasAttribute('disabled')).toBe(true);
-        expect(within(running).getByRole('status')).toBeDefined();
-        expect(
-            screen.getByText(
-                'Conectando con el Buscador Nacional de Profesionales de la Salud',
-            ),
-        ).toBeDefined();
-    });
-
-    it('removes a license after confirming', async () => {
+    it('takes a license out of Clini after confirming', async () => {
         renderSection({ licenses: [VERIFIED] });
 
         fireEvent.click(
-            screen.getByRole('button', { name: 'Quitar la matrícula MP 6789' }),
+            screen.getByRole('button', {
+                name: 'Quitar de Clini la matrícula MP 6789',
+            }),
         );
         fireEvent.click(await screen.findByRole('button', { name: 'Quitar' }));
 
         await waitFor(() =>
-            expect(api.delete).toHaveBeenCalledWith('/me/licenses/1'),
+            expect(api.delete).toHaveBeenCalledWith('/me/licenses/1/clini'),
         );
     });
 
-    it('adds a license with its number, province and profession, offering the practice province first', async () => {
-        renderSection({ licenses: [], organizationProvince: 'cordoba' });
-
-        expect(
-            screen.getByText('Todavía no cargaste matrículas.'),
-        ).toBeDefined();
-        const add = screen.getByRole('button', { name: 'Agregar matrícula' });
-        expect(add.hasAttribute('disabled')).toBe(true);
-
-        fireEvent.change(screen.getByLabelText('Número'), {
-            target: { value: ' MP 6789 ' },
+    // #387: the registry's licenses for the DNI that aren't in Clini yet.
+    it('offers the registry’s other licenses for the DNI, to add to Clini', async () => {
+        vi.mocked(api.put).mockReset().mockResolvedValue({ data: {} });
+        renderSection({
+            licenses: [
+                VERIFIED,
+                license({
+                    id: 7,
+                    number: '501',
+                    province: 'la-rioja',
+                    profession: 'kinesiologo',
+                    status: 'verified',
+                    specialty: 'Kinesiólogo',
+                    added: false,
+                }),
+            ],
         });
-        await pickOption('Profesión', 'Médico');
-        fireEvent.click(add);
 
-        await waitFor(() =>
-            expect(api.post).toHaveBeenCalledWith('/me/licenses', {
-                number: 'MP 6789',
-                province: 'cordoba',
-                profession: 'medico',
+        screen.getByText('En el Buscador para tu DNI');
+        const offered = item('Kinesiólogo · La Rioja · 501');
+        expect(offered.textContent).not.toContain('Te habilita');
+        fireEvent.click(
+            within(offered).getByRole('button', {
+                name: 'Agregar a Clini la matrícula 501',
             }),
         );
+
+        await waitFor(() =>
+            expect(api.put).toHaveBeenCalledWith('/me/licenses/7/clini'),
+        );
+    });
+
+    it('asks for the DNI to bring the licenses, and offers to look it up again once it is there', () => {
+        renderSection({ licenses: [], hasDocument: false });
+
+        screen.getByText('Cargá tu DNI para traer tus matrículas.');
         expect(
-            screen.getByRole('combobox', { name: 'Provincia' }).textContent,
-        ).toContain('Córdoba');
+            screen.queryByRole('button', { name: 'Volver a consultar' }),
+        ).toBeNull();
+        expect(screen.queryByLabelText('Número')).toBeNull();
+    });
+
+    it('looks the DNI up again even before any license is in Clini', () => {
+        renderSection({ licenses: [] });
+
+        screen.getByText('Todavía no agregaste matrículas a Clini.');
+        screen.getByRole('button', { name: 'Volver a consultar' });
     });
 });
