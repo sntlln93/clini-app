@@ -3,7 +3,6 @@
 declare(strict_types=1);
 
 use App\Contracts\ProfessionalRegistry;
-use App\Enums\HealthProfession;
 use App\Enums\ProfessionalLicenseStatus;
 use App\Enums\Province;
 use App\Models\Membership;
@@ -48,11 +47,11 @@ test('a registry answer adds its professions and specialties to the catalog, and
     $user = registryProfessional();
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
-    $this->actingAs($user)->postJson('/api/v1/me/licenses', [
-        'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires->value, 'profession' => HealthProfession::Medico->value,
-    ])->assertCreated()->assertJsonPath('data.specialty', 'Medicina General y/o Medicina de Familia');
+    $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')
+        ->assertOk()
+        ->assertJsonPath('data.0.specialty', 'Medicina General y/o Medicina de Familia');
 
-    // The recorded answer: Médico with a specialty, and Odontólogo without one, which wasn't even declared.
+    // The recorded answer: Médico with a specialty, and Odontólogo without one.
     expect(specialtiesCatalog())->toBe([
         ['medico', 'Medicina General y/o Medicina de Familia'],
         ['odontologo', 'Odontólogo'],
@@ -61,7 +60,10 @@ test('a registry answer adds its professions and specialties to the catalog, and
 
 test('every way the registry is asked fills the catalog', function (string $path) {
     $user = registryProfessional($path === 'a new DNI' ? '30123457' : '30123456');
-    ProfessionalLicense::factory()->create(['user_id' => $user->id, 'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires]);
+    // In Clini, but for a new DNI only what the registry held for the old one: otherwise the DNI would be locked.
+    ProfessionalLicense::factory()
+        ->state(['added_at' => $path === 'a new DNI' ? null : now()])
+        ->create(['user_id' => $user->id, 'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires]);
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
     match ($path) {
@@ -71,7 +73,7 @@ test('every way the registry is asked fills the catalog', function (string $path
     };
 
     expect(specialtiesCatalog())->toHaveCount(2)
-        ->and(ProfessionalLicense::query()->sole()->specialty?->name)->toBe('Medicina General y/o Medicina de Familia');
+        ->and(ProfessionalLicense::query()->where('number', '123456')->sole()->specialty?->name)->toBe('Medicina General y/o Medicina de Familia');
 })->with(['a new DNI', 'on demand', 'the daily reverification']);
 
 test('the same specialty written another way is the same row, kept as first written', function () {
@@ -105,19 +107,23 @@ test('a profession Clini doesn\'t know never reaches the catalog', function () {
     expect(specialtiesCatalog())->toBe([['medico', 'Médico']]);
 });
 
-test('the specialties a professional backs are those of their verified licenses only', function () {
+test('the specialties a professional backs are those of their verified licenses in Clini only', function () {
     $user = registryProfessional();
-    ProfessionalLicense::factory()->create(['user_id' => $user->id, 'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires]);
-    // The recorded answer holds this Odontólogo license only in Buenos Aires: declared in Córdoba, it doesn't match.
-    ProfessionalLicense::factory()->create(['user_id' => $user->id, 'number' => '4321', 'province' => Province::Cordoba, 'profession' => HealthProfession::Odontologo]);
-    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
+    fakeNationalProfessionalSearch(nationalProfessionalSearchResults([withRegistrySpecialty(nationalProfessionalSearchItem([
+        ['Médico', '1', 'Córdoba'],
+        ['Odontólogo', '2', 'Córdoba'],
+        ['Kinesiólogo', '3', 'Córdoba', 'Suspendido'],
+    ]), null)]));
 
-    $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertOk()
-        ->assertJsonPath('data.0.status', 'verified')
-        ->assertJsonPath('data.1.status', 'mismatch')
-        ->assertJsonPath('data.1.specialty', null);
+    $licenses = $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertOk()->json('data');
+    // Nothing backs a specialty until the professional adds it to Clini.
+    expect(Specialty::query()->backedFor($user->id)->exists())->toBeFalse();
 
-    expect(Specialty::query()->backedFor($user->id)->pluck('name')->all())->toBe(['Medicina General y/o Medicina de Familia']);
+    // Médico in Clini and verified; Kinesiólogo in Clini but not enabled; Odontólogo only offered.
+    $this->actingAs($user)->putJson("/api/v1/me/licenses/{$licenses[0]['id']}/clini")->assertOk();
+    $this->actingAs($user)->putJson("/api/v1/me/licenses/{$licenses[2]['id']}/clini")->assertOk();
+
+    expect(Specialty::query()->backedFor($user->id)->pluck('name')->all())->toBe(['Médico']);
 });
 
 test('a license that stops being verified stops backing its specialty, and what the practice offers stays', function () {
@@ -128,7 +134,8 @@ test('a license that stops being verified stops backing its specialty, and what 
     fakeNationalProfessionalSearch(function () use (&$situation) {
         return Http::response(nationalProfessionalSearchResults([withRegistrySpecialty(nationalProfessionalSearchItem([['Médico', '123456', 'CABA', $situation]]), 'Pediatría')]));
     });
-    $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertOk();
+    $license = $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertOk()->json('data.0');
+    $this->actingAs($user)->putJson("/api/v1/me/licenses/{$license['id']}/clini")->assertOk();
     $specialty = Specialty::query()->backedFor($user->id)->sole();
     $this->actingAs($user)->postJson("/api/v1/memberships/{$membership->id}/specialties", ['specialty_id' => $specialty->id])->assertCreated();
 
@@ -141,19 +148,28 @@ test('a license that stops being verified stops backing its specialty, and what 
         ->and(ProfessionalSpecialty::query()->where('membership_id', $membership->id)->pluck('specialty_id')->all())->toBe([$specialty->id]);
 });
 
-test('a new DNI or a removed license takes the backing away at once', function (string $change) {
+test('taking a license out of Clini, or support taking the DNI away, takes the backing away at once', function (string $change) {
     $user = registryProfessional('99000001');
-    $this->actingAs($user)->postJson('/api/v1/me/licenses', ['number' => '120034', 'province' => 'caba', 'profession' => 'medico'])
-        ->assertCreated()->assertJsonPath('data.specialty', 'Pediatría');
+    $licenses = $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')
+        ->assertOk()
+        ->assertJsonPath('data.0.specialty', 'Pediatría')
+        ->json('data');
+
+    foreach ($licenses as $license) {
+        $this->actingAs($user)->putJson("/api/v1/me/licenses/{$license['id']}/clini")->assertOk();
+    }
     expect(Specialty::query()->backedFor($user->id)->pluck('name')->all())->toBe(['Pediatría']);
 
     match ($change) {
-        'a new DNI' => $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])->assertOk(),
-        'a removed license' => $this->actingAs($user)->deleteJson('/api/v1/me/licenses/'.ProfessionalLicense::query()->sole()->id)->assertNoContent(),
+        'out of Clini' => collect($licenses)->each(fn (array $license) => $this->actingAs($user)->deleteJson("/api/v1/me/licenses/{$license['id']}/clini")->assertNoContent()),
+        'support' => $this->artisan('user:reset-professional-document', ['email' => $user->email])->expectsConfirmation(
+            '¿Quitar el DNI y las matrículas de este usuario? Lo que el consultorio le ofrece queda, sin respaldo de matrícula hasta que vuelva a agregarlas.',
+            'yes',
+        )->assertSuccessful(),
     };
 
     expect(Specialty::query()->backedFor($user->id)->exists())->toBeFalse();
-})->with(['a new DNI', 'a removed license']);
+})->with(['out of Clini', 'support']);
 
 test('the fake registry answers the seeder\'s made-up DNIs, and nobody for any other', function () {
     $registry = new FakeProfessionalRegistry;

@@ -30,6 +30,7 @@ enum ErrorCode: string
     case HolidaysProviderUnavailable = 'holidays.provider_unavailable';
     case MedicationsSourceUnavailable = 'medications.source_unavailable';
     case ProfessionalsRegistryUnavailable = 'professionals.registry_unavailable';
+    case ProfessionalsDocumentLocked = 'professionals.document_locked';
     case SubscriptionsInactive = 'subscriptions.inactive';
     case SubscriptionsAlreadyActive = 'subscriptions.already_active';
     case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';

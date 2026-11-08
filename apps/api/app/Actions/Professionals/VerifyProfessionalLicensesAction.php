@@ -11,19 +11,21 @@ use App\Data\Professionals\ProfessionalLicenseVerificationData;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
-use App\Support\ProfessionalLicenseMatch;
+use App\Support\ProfessionalLicenseSync;
 use App\Support\RegistrySpecialtyCatalog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Checks every license of a professional against the registry with one lookup of their DNI (#380, ADR 0032). Without
- * a DNI, or with the registry paused or failing, nothing changes: a license keeps what the registry last said (unverified
- * when it never answered), and nothing in the panel waits on it; only a `strict` check, the professional's own request,
- * says so with `professionals.registry_unavailable`. Every lookup stamps `attempted_at`, answered or not. The lookup
- * runs outside any transaction; its answer is written only if the DNI is still the one looked up. Every answer also
- * fills the specialties catalog (#387), and each license keeps the catalog row it backs while verified.
+ * Looks a professional's DNI up in the registry (#380, ADR 0032) and brings their licenses in line with the answer
+ * (#387, ADR 0038): the ones in Clini are checked again, and the registry's others are offered for the professional to
+ * add (`ProfessionalLicenseSync`). Without a DNI, or with the registry paused or failing, nothing changes: a license
+ * keeps what the registry last said, and nothing in the panel waits on it; only a `strict` check, the professional's
+ * own request, says so with `professionals.registry_unavailable`. Every lookup stamps `attempted_at`, answered or not.
+ * The lookup runs outside any transaction; its answer is written only if the DNI is still the one looked up, and it
+ * stamps `document_checked_at`, so an answer with no license says the registry holds nobody under the DNI. Every
+ * answer also fills the specialties catalog.
  *
  * @implements Action<ProfessionalLicenseVerificationData>
  */
@@ -40,7 +42,7 @@ class VerifyProfessionalLicensesAction implements Action
         $user = User::query()->findOrFail($dto->userId);
         $documentNumber = $user->document_number;
 
-        if (! is_string($documentNumber) || ! $user->professionalLicenses()->exists()) {
+        if (! is_string($documentNumber)) {
             return $this->licenses($user->id);
         }
 
@@ -74,22 +76,8 @@ class VerifyProfessionalLicensesAction implements Action
                 return;
             }
 
-            foreach ($this->licenses($user->id) as $license) {
-                $outcome = ProfessionalLicenseMatch::outcome($license->number, $license->province, $license->profession, $professionals);
-                $specialty = $outcome->license === null
-                    ? null
-                    : RegistrySpecialtyCatalog::key($license->profession, RegistrySpecialtyCatalog::name($license->profession, $outcome->license->specialty));
-
-                $license->forceFill([
-                    'status' => $outcome->status,
-                    'mismatch_reason' => $outcome->mismatchReason,
-                    'refeps_code' => $outcome->refepsCode,
-                    'issuer' => $outcome->license?->issuer,
-                    'specialty_id' => $specialty === null ? null : ($catalog[$specialty] ?? null),
-                    'situation' => $outcome->license?->situation,
-                    'checked_at' => now(),
-                ])->save();
-            }
+            ProfessionalLicenseSync::apply($user->id, $professionals, $catalog);
+            $current->forceFill(['document_checked_at' => now()])->save();
         });
 
         return $this->licenses($user->id);

@@ -35,7 +35,7 @@ class Specialty extends Model
     }
 
     /**
-     * The specialties a user's verified licenses back: what a practice may offer them with (#387).
+     * The specialties a user's verified licenses in Clini back: what a practice may offer them with (#387).
      *
      * @param  Builder<self>  $query
      */
@@ -57,7 +57,8 @@ class Specialty extends Model
             ->from('professional_licenses')
             ->whereColumn('professional_licenses.user_id', 'professional_specialties.user_id')
             ->whereColumn('professional_licenses.specialty_id', 'specialties.id')
-            ->where('professional_licenses.status', ProfessionalLicenseStatus::Verified->value),
+            ->where('professional_licenses.status', ProfessionalLicenseStatus::Verified->value)
+            ->whereNotNull('professional_licenses.added_at'),
         ])->withCasts(['backed' => 'boolean']);
     }
 
@@ -69,6 +70,7 @@ class Specialty extends Model
         return ProfessionalLicense::query()
             ->select('professional_licenses.specialty_id')
             ->where('professional_licenses.status', ProfessionalLicenseStatus::Verified)
+            ->whereNotNull('professional_licenses.added_at')
             ->whereNotNull('professional_licenses.specialty_id');
     }
 }

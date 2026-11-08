@@ -4,21 +4,20 @@ declare(strict_types=1);
 
 namespace App\Http\Controllers\Professionals;
 
-use App\Actions\Professionals\RegisterProfessionalLicenseAction;
-use App\Data\Professionals\ProfessionalLicenseRegistrationData;
+use App\Actions\Professionals\ChooseProfessionalLicenseAction;
+use App\Data\Professionals\ProfessionalLicenseChoiceData;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Professionals\StoreProfessionalLicenseRequest;
 use App\Http\Resources\Professionals\ProfessionalLicenseResource;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Gate;
 
 /**
- * The caller's own licenses (#380): no user id in the URL.
+ * The caller's own licenses (#380): no user id in the URL. They come from the registry (#387): the professional only
+ * adds to Clini, or takes out, the ones it holds for their DNI.
  */
 class ProfessionalLicenseController extends Controller
 {
@@ -30,26 +29,21 @@ class ProfessionalLicenseController extends Controller
         return ProfessionalLicenseResource::collection($user->professionalLicenses()->with('specialty')->orderBy('id')->get());
     }
 
-    public function store(StoreProfessionalLicenseRequest $request, RegisterProfessionalLicenseAction $action): JsonResponse
+    public function update(ProfessionalLicense $license, ChooseProfessionalLicenseAction $action): ProfessionalLicenseResource
     {
-        /** @var User $user */
-        $user = $request->user();
+        Gate::authorize('update', $license);
 
-        $license = $action->handle(new ProfessionalLicenseRegistrationData(
-            userId: $user->id,
-            number: $request->string('number')->toString(),
-            province: $request->province(),
-            profession: $request->profession(),
-        ));
+        /** @var ProfessionalLicense $added */
+        $added = $action->handle(new ProfessionalLicenseChoiceData($license->id, inClini: true));
 
-        return (new ProfessionalLicenseResource($license))->response()->setStatusCode(201);
+        return new ProfessionalLicenseResource($added);
     }
 
-    public function destroy(ProfessionalLicense $license): Response
+    public function destroy(ProfessionalLicense $license, ChooseProfessionalLicenseAction $action): Response
     {
         Gate::authorize('delete', $license);
 
-        $license->delete();
+        $action->handle(new ProfessionalLicenseChoiceData($license->id, inClini: false));
 
         return response()->noContent();
     }

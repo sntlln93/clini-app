@@ -29,6 +29,7 @@ Route::delete('memberships/{membership}/services/{service}', [ProfessionalServic
 Route::get('me/professional-document', [ProfessionalDocumentController::class, 'show']);
 Route::put('me/professional-document', [ProfessionalDocumentController::class, 'update'])->middleware('throttle:professional-registry');
 Route::get('me/licenses', [ProfessionalLicenseController::class, 'index']);
-Route::post('me/licenses', [ProfessionalLicenseController::class, 'store'])->middleware('throttle:professional-registry');
 Route::post('me/licenses/verification', [ProfessionalLicenseVerificationController::class, 'store'])->middleware('throttle:professional-registry');
-Route::delete('me/licenses/{license}', [ProfessionalLicenseController::class, 'destroy']);
+// One the registry holds for the caller's DNI, added to Clini or taken out (#387).
+Route::put('me/licenses/{license}/clini', [ProfessionalLicenseController::class, 'update']);
+Route::delete('me/licenses/{license}/clini', [ProfessionalLicenseController::class, 'destroy']);

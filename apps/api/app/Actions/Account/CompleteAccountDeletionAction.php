@@ -167,6 +167,7 @@ class CompleteAccountDeletionAction implements Action
             'two_factor_confirmed_at' => null,
             'two_factor_last_used_step' => null,
             'document_number' => null,
+            'document_checked_at' => null,
             'block_reason' => null,
         ])->save();
     }

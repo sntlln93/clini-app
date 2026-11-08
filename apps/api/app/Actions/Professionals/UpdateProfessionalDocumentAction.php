@@ -8,13 +8,15 @@ use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Data\Professionals\ProfessionalDocumentData;
 use App\Data\Professionals\ProfessionalLicenseVerificationData;
+use App\Exceptions\Professionals\ProfessionalDocumentLockedException;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Sets the DNI a professional's licenses are looked up with (#380). A different DNI makes what the registry said about
- * the old one stale, so every license goes back to unverified before being checked again.
+ * Sets the DNI a professional's licenses are looked up with (#380), and looks it up. Once a license the registry holds
+ * for it is in Clini the DNI is settled and only support changes it (#387, ADR 0038); until then it can be corrected,
+ * and what the registry held for the old one goes away, since it was someone else's.
  *
  * @implements Action<ProfessionalDocumentData>
  */
@@ -34,12 +36,14 @@ class UpdateProfessionalDocumentAction implements Action
                 return false;
             }
 
-            $user->forceFill(['document_number' => $dto->documentNumber])->save();
+            if ($user->hasLockedProfessionalDocument()) {
+                throw new ProfessionalDocumentLockedException;
+            }
 
-            ProfessionalLicense::query()->where('user_id', $user->id)->update([
-                ...ProfessionalLicense::UNVERIFIED,
-                'updated_at' => now(),
-            ]);
+            $user->forceFill(['document_number' => $dto->documentNumber, 'document_checked_at' => null])->save();
+
+            // What the registry held for the old DNI: none of it is in Clini, or the DNI would be locked.
+            ProfessionalLicense::query()->where('user_id', $user->id)->delete();
 
             return true;
         });

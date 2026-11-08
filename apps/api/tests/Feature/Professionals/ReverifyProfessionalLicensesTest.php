@@ -143,3 +143,14 @@ test('the reverification is scheduled daily', function () {
     expect($events)->toHaveCount(1)
         ->and($events->sole()->expression)->toBe('0 0 * * *');
 });
+
+// #387: a DNI with nothing in Clini isn't sent to the registry every week.
+test('only professionals with a license in Clini are checked again', function () {
+    licenseCheckedDaysAgo(30, '30000030');
+    licenseCheckedDaysAgo(30, '30000031')->forceFill(['added_at' => null])->save();
+    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));
+
+    $this->artisan('professionals:reverify-licenses')->assertSuccessful();
+
+    expect(lookedUpDocuments())->toBe(['30000030']);
+});
