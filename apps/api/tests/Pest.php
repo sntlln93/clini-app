@@ -25,6 +25,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 uses(TestCase::class, RefreshDatabase::class)->in('Feature');
@@ -367,6 +368,20 @@ function withRegistrySpecialty(array $item, ?string $specialty): array
     $item['profesiones'] = array_map(fn (array $profession): array => [...$profession, 'refepsEspecialidad' => $specialty], $item['profesiones']);
 
     return $item;
+}
+
+/**
+ * The first step of a professional invitation (#417), as the panel takes it: the DNI, looked up with the fake registry
+ * unless the test faked the real one. The acceptance that follows in the same test takes the identity it found from
+ * the session. `99000003` is the fake registry's DNI no account holds.
+ */
+function lookUpInvitationDocument(string $rawToken, string $documentNumber = '99000003', bool $fakeRegistry = true): TestResponse
+{
+    if ($fakeRegistry) {
+        config(['services.professional_registry.adapter' => 'fake']);
+    }
+
+    return fromPanel()->postJson("/api/v1/invitations/{$rawToken}/document-lookups", ['document_number' => $documentNumber]);
 }
 
 /**

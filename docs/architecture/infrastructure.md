@@ -80,6 +80,8 @@ El checklist de la Res. AAIP 47/2018 contra el estado del proyecto está en [Seg
 
 `CLINICAL_ENCRYPTION_KEY` cifra la clave de datos de la historia clínica (#391, [ADR 0036](../adr/0036-cifrado-envolvente-de-la-historia-clinica.md)). Se genera una vez con `php artisan clinical-keys:generate-master --show`, se carga en las variables de Dokploy **antes del primer deploy que migre** y se guarda también fuera de línea: perderla es perder la historia. Nunca es `APP_KEY`, y producción rechaza la clave pública de `.env.example`. La demo tiene la suya. Cómo rotarla: [Seguridad](security.md#cifrado-de-la-historia-clínica).
 
+`DOCUMENT_INDEX_KEY` es la clave del índice ciego por el que se busca el DNI de un profesional (#417, ADR 0032). Se genera con `php artisan document-index:generate-key` y se carga en Dokploy antes del primer deploy; producción rechaza la pública de `.env.example`, y nunca es `APP_KEY` ni la maestra clínica. Perderla no pierde datos: con una nueva, `document-index:rotate` recalcula el índice desde los DNI cifrados. Cómo rotarla: [Seguridad](security.md#índice-ciego-del-dni-del-profesional).
+
 ### Logs y modo debug
 
 - `APP_ENV=production` y `APP_DEBUG=false`: con debug, un error inesperado devuelve la traza (ADR 0024).
@@ -96,7 +98,8 @@ Antes de abrir producción a consultorios reales:
 - [ ] El access log de Traefik apagado (abajo, Observabilidad).
 - [ ] Backups funcionando y una restauración probada (#390).
 - [ ] `CLINICAL_ENCRYPTION_KEY` propia, cargada en Dokploy y guardada fuera de línea (#391).
-- [ ] La demo sin la base, el bucket, la `APP_KEY` ni la `CLINICAL_ENCRYPTION_KEY` de producción.
+- [ ] `DOCUMENT_INDEX_KEY` propia, de `php artisan document-index:generate-key`, cargada en Dokploy (#417).
+- [ ] La demo sin la base, el bucket, la `APP_KEY`, la `CLINICAL_ENCRYPTION_KEY` ni la `DOCUMENT_INDEX_KEY` de producción.
 
 ## Colas
 

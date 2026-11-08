@@ -127,7 +127,7 @@ test('showing a valid token whose email is unknown reports registration is requi
     $response = $this->getJson('/api/v1/invitations/'.$rawToken);
 
     $response->assertOk();
-    expect(array_keys($response->json()))->toEqualCanonicalizing(['email', 'organization_name', 'requires_registration']);
+    expect(array_keys($response->json()))->toEqualCanonicalizing(['email', 'organization_name', 'requires_registration', 'professional', 'document_lookups_left']);
     expect($response->json('email'))->toBe('unknown@example.com');
     expect($response->json('organization_name'))->toBe($invitation->organization?->name);
     expect($response->json('requires_registration'))->toBeTrue();
@@ -144,7 +144,7 @@ test('showing a valid token whose email already belongs to a user reports regist
     $response = $this->getJson('/api/v1/invitations/'.$rawToken);
 
     $response->assertOk();
-    expect(array_keys($response->json()))->toEqualCanonicalizing(['email', 'organization_name', 'requires_registration']);
+    expect(array_keys($response->json()))->toEqualCanonicalizing(['email', 'organization_name', 'requires_registration', 'professional', 'document_lookups_left']);
     expect($response->json('requires_registration'))->toBeFalse();
 });
 
@@ -182,10 +182,11 @@ test('showing an already-accepted token returns the invitation domain error', fu
 test('accepting with an unknown email creates the user and an active membership with the invited roles, in the inviting organization only', function () {
     $organization = Organization::factory()->center()->create();
     $rawToken = Str::random(40);
+    // A professional invitation takes the DNI first (#417, ProfessionalInvitationTest).
     MembershipInvitation::factory()->create([
         'organization_id' => $organization->id,
         'email' => 'newperson@example.com',
-        'roles' => [MembershipRole::Professional],
+        'roles' => [MembershipRole::Staff],
         'token' => hash('sha256', $rawToken),
     ]);
 
@@ -206,7 +207,7 @@ test('accepting with an unknown email creates the user and an active membership 
     expect($memberships->first()->organization_id)->toBe($organization->id);
     expect($memberships->first()->status)->toBe(MembershipStatus::Active);
     expect(array_map(fn (MembershipRole $role): string => $role->value, $memberships->first()->roles))
-        ->toBe(['professional']);
+        ->toBe(['staff']);
 });
 
 test('accepting with an email that already has a user creates only the membership, no duplicate user', function () {
@@ -291,3 +292,25 @@ test('accepting with an expired token returns a Spanish error', function () {
     $response->assertStatus(422);
     expect($response->json('errors.token.0'))->toBe('La invitación no es válida o ya expiró.');
 });
+
+test('an invited email already in the organization, active or not, gets a 409 instead of a second membership', function (MembershipStatus $status) {
+    $membership = Membership::factory()->create(['organization_id' => Organization::factory()->center(), 'status' => $status]);
+    $rawToken = Str::random(40);
+    MembershipInvitation::factory()->create([
+        'organization_id' => $membership->organization_id,
+        'email' => $membership->user?->email,
+        'token' => hash('sha256', $rawToken),
+    ]);
+
+    $this->withHeader('Referer', 'http://localhost:5174')->postJson('/api/v1/invitations/'.$rawToken, [])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', ErrorCode::MembershipsInvitationAlreadyMember->value);
+
+    expect(Membership::withTrashed()->withoutGlobalScope('organization')->where('user_id', $membership->user_id)->count())->toBe(1);
+})->with([MembershipStatus::Active, MembershipStatus::Inactive]);
+
+test('a professional invitation mail says the DNI will be asked, and any other doesn\'t', function (MembershipRole $role, bool $asksForDocument) {
+    $html = (new MembershipInvitationMail(MembershipInvitation::factory()->create(['roles' => [$role]]), 'https://panel.test/invitaciones/token'))->render();
+
+    expect(str_contains($html, 'vas a necesitar tu DNI'))->toBe($asksForDocument);
+})->with([[MembershipRole::Professional, true], [MembershipRole::Staff, false]]);

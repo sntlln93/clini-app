@@ -11,11 +11,15 @@ use App\Data\Memberships\InvitationTokenData;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Memberships\AcceptInvitationRequest;
 use App\Models\User;
+use App\Support\PendingInvitationIdentity;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 /**
  * Fully public: no auth:sanctum, no organization middleware — every failure path returns the same generic message so a caller can never infer whether the email is registered.
+ *
+ * A professional invitation (`professional`) starts with the DNI (#417, `InvitationDocumentLookupController`), and says
+ * how many lookups it has left.
  */
 class InvitationAcceptanceController extends Controller
 {
@@ -31,6 +35,8 @@ class InvitationAcceptanceController extends Controller
             'email' => $invitation->email,
             'organization_name' => $invitation->organization?->name,
             'requires_registration' => ! User::where('email', $invitation->email)->exists(),
+            'professional' => $invitation->isForProfessional(),
+            'document_lookups_left' => $invitation->documentLookupsLeft(),
         ]);
     }
 
@@ -40,7 +46,12 @@ class InvitationAcceptanceController extends Controller
             token: $token,
             name: $request->string('name')->toString() ?: null,
             password: $request->string('password')->toString() ?: null,
+            identity: $request->identity(),
+            code: $request->code(),
+            recoveryCode: $request->recoveryCode(),
         ));
+
+        PendingInvitationIdentity::clear($request);
 
         $user = $membership->user;
 

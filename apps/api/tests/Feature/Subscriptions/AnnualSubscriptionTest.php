@@ -211,8 +211,9 @@ test('a professional joining a yearly subscription reprices its next yearly char
         'token' => hash('sha256', $rawToken),
     ]);
 
+    lookUpInvitationDocument($rawToken)->assertOk();
+
     $this->withHeader('Referer', 'http://localhost:5174')->postJson('/api/v1/invitations/'.$rawToken, [
-        'name' => 'Sexta Profesional',
         'password' => 'a-strong-password',
         'password_confirmation' => 'a-strong-password',
     ])->assertOk();

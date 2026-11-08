@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\Professionals;
 
+use App\Support\DocumentNumberInput;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
- * A DNI as the registry takes it: 7 or 8 digits, written with or without dots or spaces. Null or empty takes it away.
+ * A DNI as the registry takes it: 7 or 8 digits, written with or without dots or spaces. Once loaded it is never taken
+ * away from here (#417).
  */
 class UpdateProfessionalDocumentRequest extends FormRequest
 {
@@ -18,12 +20,8 @@ class UpdateProfessionalDocumentRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        $documentNumber = $this->input('document_number');
-
-        if (is_string($documentNumber)) {
-            $digits = (string) preg_replace('/[\s.]/u', '', $documentNumber);
-
-            $this->merge(['document_number' => $digits === '' ? null : $digits]);
+        if ($this->has('document_number')) {
+            $this->merge(['document_number' => DocumentNumberInput::digits($this->input('document_number'))]);
         }
     }
 
@@ -33,7 +31,7 @@ class UpdateProfessionalDocumentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'document_number' => ['present', 'nullable', 'string', 'regex:/^\d{7,8}$/'],
+            'document_number' => ['required', 'string', DocumentNumberInput::RULE],
         ];
     }
 
@@ -43,14 +41,13 @@ class UpdateProfessionalDocumentRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'document_number.regex' => 'El DNI tiene que tener 7 u 8 números.',
+            'document_number.required' => 'Ingresá tu DNI.',
+            'document_number.regex' => DocumentNumberInput::MESSAGE,
         ];
     }
 
-    public function documentNumber(): ?string
+    public function documentNumber(): string
     {
-        $documentNumber = $this->validated('document_number');
-
-        return is_string($documentNumber) ? $documentNumber : null;
+        return $this->string('document_number')->toString();
     }
 }

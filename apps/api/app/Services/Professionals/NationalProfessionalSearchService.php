@@ -9,6 +9,7 @@ use App\Data\Professionals\RegistryLicenseData;
 use App\Data\Professionals\RegistryProfessionalData;
 use App\Enums\Province;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
+use App\Support\RegistryPersonName;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\PendingRequest;
@@ -23,7 +24,7 @@ use Throwable;
  * It has no API: it is a Drupal form, so a lookup reads the form's page for its `form_build_id` and posts the DNI to
  * it, and the answer comes in the page's HTML as JSON (`Drupal.settings.refepsProfesionales.allItems`). A page with
  * neither that, the «no results» notice nor the form rejecting the DNI is unreadable, never «not found». Only the DNI
- * leaves Clini. A failure keeps the registry unasked for a while, like the national medication search.
+ * leaves Clini; of the answer, only the licenses and the name are kept (#417). A failure keeps the registry unasked for a while, like the national medication search.
  */
 final class NationalProfessionalSearchService implements ProfessionalRegistry
 {
@@ -203,6 +204,7 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
             refepsCode: self::text($item['codigo'] ?? null),
             active: mb_strtoupper(self::text($item['activo'] ?? null) ?? '') === 'SI',
             licenses: $licenses,
+            name: RegistryPersonName::format(self::text($item['nombre'] ?? null), self::text($item['apellido'] ?? null)),
         );
     }
 

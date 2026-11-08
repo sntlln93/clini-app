@@ -82,8 +82,9 @@ test('accepting an invitation re-checks the plan: the professional limit filled 
     ]);
     Membership::factory()->professional()->create(['organization_id' => $owner->organization_id]);
 
+    lookUpInvitationDocument($rawToken)->assertOk();
+
     $this->withHeader('Referer', 'http://localhost:5174')->postJson('/api/v1/invitations/'.$rawToken, [
-        'name' => 'Llegó Tarde',
         'password' => 'a-strong-password',
         'password_confirmation' => 'a-strong-password',
     ])->assertStatus(409)->assertJsonPath('error.code', 'plans.feature_unavailable');

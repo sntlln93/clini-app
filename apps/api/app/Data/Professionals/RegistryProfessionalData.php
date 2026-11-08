@@ -7,8 +7,8 @@ namespace App\Data\Professionals;
 use App\Contracts\Data;
 
 /**
- * A professional as the national registry answers about them (#380). Only what a license check needs: never their
- * name, CUIL or sex, which the registry answers too.
+ * A professional as the national registry answers about them (#380): what a license check needs, and their name, which
+ * becomes the account's (#417, `RegistryPersonName`). Never their CUIL or sex, which the registry answers too.
  */
 final readonly class RegistryProfessionalData implements Data
 {
@@ -19,6 +19,7 @@ final readonly class RegistryProfessionalData implements Data
         public ?string $refepsCode,
         public bool $active,
         public array $licenses,
+        public ?string $name = null,
     ) {}
 
     /**
@@ -28,6 +29,7 @@ final readonly class RegistryProfessionalData implements Data
     {
         return [
             'refepsCode' => $this->refepsCode,
+            'name' => $this->name,
             'active' => $this->active,
             'licenses' => array_map(fn (RegistryLicenseData $license): array => $license->toArray(), $this->licenses),
         ];

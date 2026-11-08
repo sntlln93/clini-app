@@ -8,8 +8,8 @@ use App\Enums\ErrorCode;
 use App\Exceptions\DomainException;
 
 /**
- * The professional already added to Clini a license the registry holds for their DNI (#387, ADR 0038), so the DNI is
- * settled: only support changes it (`user:reset-professional-document`).
+ * The account already has its DNI (#417): it is loaded once, and only support changes it
+ * (`user:reset-professional-document`).
  */
 final class ProfessionalDocumentLockedException extends DomainException
 {

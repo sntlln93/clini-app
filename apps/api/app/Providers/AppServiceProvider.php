@@ -11,6 +11,7 @@ use App\Contracts\ProfessionalRegistry;
 use App\Contracts\SubscriptionGateway;
 use App\Contracts\TwoFactorAuthenticator;
 use App\Http\Middleware\StartSessionWithoutPreviousUrl;
+use App\Models\MembershipInvitation;
 use App\Models\User;
 use App\Services\Auth\Google2FaService;
 use App\Services\ClinicalEncryption\EnvKeyManagementService;
@@ -22,6 +23,7 @@ use App\Services\Professionals\NationalProfessionalSearchService;
 use App\Support\ClinicalEncryption;
 use App\Support\CurrentOrganization;
 use App\Support\PasswordPolicy;
+use App\Support\PendingInvitationIdentity;
 use App\Support\PendingTwoFactorLogin;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Contracts\Cache\Factory as CacheFactory;
@@ -198,6 +200,32 @@ class AppServiceProvider extends ServiceProvider
         // (#380): each one looks the DNI up in the national professional
         // search, whose form isn't ours to load. Keyed by user, never
         // `currentMembership()` (see `patient-lookup`).
+        // Accepting an invitation (#417): a professional one linked to an existing account takes that account's
+        // password and second factor, so it is throttled like a login: per invitation and IP, and per account, so
+        // more invitations (or IPs) never buy more guesses against the same account.
+        RateLimiter::for('invitation-acceptance', function (Request $request): array {
+            $token = $request->route('token');
+            $limits = [Limit::perMinute(5)->by(hash('sha256', is_string($token) ? $token : '').'|'.$request->ip())];
+            $userId = PendingInvitationIdentity::userId($request);
+
+            if ($userId !== null) {
+                $limits[] = Limit::perMinute(5)->by("invitation-account:{$userId}");
+            }
+
+            return $limits;
+        });
+
+        // A professional invitation's DNI lookups (#417): three per invitation, and at most 20 a day per
+        // organization, so reissuing invitations doesn't turn the lookup into a way to probe DNIs.
+        RateLimiter::for('invitation-document-lookup', function (Request $request): Limit {
+            $token = $request->route('token');
+            $organizationId = is_string($token)
+                ? MembershipInvitation::query()->withoutGlobalScope('organization')->where('token', hash('sha256', $token))->value('organization_id')
+                : null;
+
+            return Limit::perDay(20)->by(is_int($organizationId) ? "organization:{$organizationId}" : "ip:{$request->ip()}");
+        });
+
         RateLimiter::for('professional-registry', function (Request $request): Limit {
             $user = $request->user();
 

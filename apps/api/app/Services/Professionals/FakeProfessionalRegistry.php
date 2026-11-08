@@ -8,6 +8,7 @@ use App\Contracts\ProfessionalRegistry;
 use App\Data\Professionals\RegistryLicenseData;
 use App\Data\Professionals\RegistryProfessionalData;
 use App\Enums\Province;
+use App\Support\RegistryPersonName;
 
 /**
  * The registry dev and e2e use (`PROFESSIONAL_REGISTRY=fake`, #387): it answers, without leaving Clini, for the made-up
@@ -18,14 +19,17 @@ use App\Enums\Province;
 final class FakeProfessionalRegistry implements ProfessionalRegistry
 {
     /**
-     * Each DNI's professions as the registry writes them, with their specialty (or none) and their licenses.
+     * Each DNI's name and professions as the registry writes them, with their specialty (or none) and their licenses.
+     * The names are the seeder's, so the seeded accounts keep theirs when their DNI is looked up (#417).
      *
-     * @var list<array{document_number: string, refeps_code: string, professions: list<array{profession: string, specialty: string|null, licenses: list<array{number: string, province: Province, issuer: string}>}>}>
+     * @var list<array{document_number: string, refeps_code: string, given_names: string, surname: string, professions: list<array{profession: string, specialty: string|null, licenses: list<array{number: string, province: Province, issuer: string}>}>}>
      */
     public const array PROFESSIONALS = [
         [
             'document_number' => '99000001',
             'refeps_code' => '541099000001',
+            'given_names' => 'CARLA',
+            'surname' => 'PROFESIONAL',
             'professions' => [[
                 'profession' => 'Médico',
                 'specialty' => 'Pediatría',
@@ -38,11 +42,27 @@ final class FakeProfessionalRegistry implements ProfessionalRegistry
         [
             'document_number' => '99000002',
             'refeps_code' => '541099000002',
+            'given_names' => 'DIEGO',
+            'surname' => 'PROFESIONAL',
             'professions' => [[
                 'profession' => 'Médico',
                 'specialty' => 'Cardiología',
                 'licenses' => [
                     ['number' => '118207', 'province' => Province::CiudadAutonomaDeBuenosAires, 'issuer' => 'MINISTERIO DE SALUD DE LA NACION'],
+                ],
+            ]],
+        ],
+        // No seeded account holds it: the DNI to accept a professional invitation with in dev (#417).
+        [
+            'document_number' => '99000003',
+            'refeps_code' => '541099000003',
+            'given_names' => 'LUCIA',
+            'surname' => 'DE LA FUENTE',
+            'professions' => [[
+                'profession' => 'Médico',
+                'specialty' => 'Clínica Médica',
+                'licenses' => [
+                    ['number' => '131552', 'province' => Province::CiudadAutonomaDeBuenosAires, 'issuer' => 'MINISTERIO DE SALUD DE LA NACION'],
                 ],
             ]],
         ],
@@ -78,6 +98,11 @@ final class FakeProfessionalRegistry implements ProfessionalRegistry
             }
         }
 
-        return [new RegistryProfessionalData(refepsCode: $professional['refeps_code'], active: true, licenses: $licenses)];
+        return [new RegistryProfessionalData(
+            refepsCode: $professional['refeps_code'],
+            active: true,
+            licenses: $licenses,
+            name: RegistryPersonName::format($professional['given_names'], $professional['surname']),
+        )];
     }
 }

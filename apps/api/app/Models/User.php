@@ -7,10 +7,12 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\MembershipStatus;
 use App\Support\CurrentOrganization;
+use App\Support\DocumentIndex;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -22,11 +24,13 @@ use Illuminate\Notifications\Notifiable;
  * `/me` payload unchanged. The `two_factor_*` columns (#357) are written
  * only by the two-factor Actions, the same way, and never leave the API.
  * `document_number` (#380), the professional's DNI, is written only by its
- * Action, encrypted, and read only through its own endpoint; once a license
- * of theirs is in Clini it is locked, and only support changes it (#387).
+ * Actions, encrypted, and read only through its own endpoint; once loaded,
+ * only support changes it (#417). It is searched only by its blind index,
+ * `document_number_index` (`DocumentIndex`), which every write of the DNI
+ * writes with it (`documentNumber()`), so the two never disagree.
  */
 #[Fillable(['name', 'email', 'password', 'email_verification_token', 'email_verification_token_expires_at'])]
-#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step', 'document_number', 'document_checked_at'])]
+#[Hidden(['password', 'remember_token', 'email_verification_token', 'email_verification_token_expires_at', 'blocked_at', 'block_reason', 'two_factor_secret', 'two_factor_recovery_codes', 'two_factor_confirmed_at', 'two_factor_last_used_step', 'document_number', 'document_number_index', 'document_checked_at'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
@@ -35,6 +39,22 @@ class User extends Authenticatable
     private ?Membership $currentMembership = null;
 
     private bool $currentMembershipResolved = false;
+
+    /**
+     * Writing the DNI writes its blind index with it (#417), whatever path writes it: a mutator, not a model event,
+     * since the seeder runs without events.
+     *
+     * @return Attribute<string|null, string|null>
+     */
+    protected function documentNumber(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value): array => [
+                'document_number' => $value === null ? null : $this->castAttributeAsEncryptedString('document_number', $value),
+                'document_number_index' => $value === null ? null : DocumentIndex::of($value),
+            ],
+        );
+    }
 
     /**
      * @return array<string, string>
@@ -89,12 +109,14 @@ class User extends Authenticatable
     }
 
     /**
-     * Whether the DNI is settled (#387): a license the registry holds for it is in Clini, so the professional said it
-     * is theirs. From then on only support changes it (`user:reset-professional-document`).
+     * The account a DNI belongs to (#417): searched by its blind index alone, under every key in use.
+     *
+     * @param  Builder<User>  $query
+     * @return Builder<User>
      */
-    public function hasLockedProfessionalDocument(): bool
+    public function scopeWithDocument(Builder $query, string $documentNumber): Builder
     {
-        return $this->document_number !== null && $this->professionalLicenses()->added()->exists();
+        return $query->whereIn('document_number_index', DocumentIndex::candidates($documentNumber));
     }
 
     /** The user's active membership in the currently active organization (App\Support\CurrentOrganization), memoized per request. */

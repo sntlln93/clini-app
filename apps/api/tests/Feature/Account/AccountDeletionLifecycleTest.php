@@ -31,6 +31,7 @@ use App\Models\User;
 use App\Support\AccountDeletionRules;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Date;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Schema;
 use PragmaRX\Google2FA\Google2FA;
@@ -189,6 +190,7 @@ test('at its date the account loses its personal data and leaves a trace without
         ->and($user->email)->toBe("cuenta-eliminada:{$user->id}")
         ->and($user->email_verified_at)->toBeNull()
         ->and($user->document_number)->toBeNull()
+        ->and(DB::table('users')->where('id', $user->id)->value('document_number_index'))->toBeNull()
         ->and($user->two_factor_secret)->toBeNull()
         ->and($user->two_factor_recovery_codes)->toBeNull()
         ->and($user->remember_token)->toBeNull()

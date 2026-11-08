@@ -24,6 +24,12 @@
         <a href="{{ $acceptanceUrl }}">{{ $acceptanceUrl }}</a>
     </p>
 
+    @if ($professional)
+        <p>
+            Para aceptarla vas a necesitar tu DNI: con él buscamos tu nombre y tus matrículas en el Buscador Nacional de Profesionales de la Salud del Ministerio de Salud.
+        </p>
+    @endif
+
     <p>
         Este enlace vence en 7 días y solo puede usarse una vez.
     </p>

@@ -26,6 +26,7 @@
         <env name="BCRYPT_ROUNDS" value="4"/>
         <!-- The public dev/test master key of the clinical history, the same as .env.example (#391); production refuses it. -->
         <env name="CLINICAL_ENCRYPTION_KEY" value="base64:Z9wcsH2BLtpHrGvaWfsbMdObTX7hq+FLxLNDGoh1K/s="/>
+        <env name="DOCUMENT_INDEX_KEY" value="base64:MDmagDRu2evj8blOAurb30SMlfrwNAUyzKJhtfkbeU8="/>
         <env name="BROADCAST_CONNECTION" value="null"/>
         <env name="CACHE_STORE" value="array"/>
         <env name="DB_DATABASE" value="testing"/>

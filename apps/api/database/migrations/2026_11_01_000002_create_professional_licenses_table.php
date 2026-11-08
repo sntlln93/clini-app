@@ -18,6 +18,9 @@ return new class extends Migration
             // Only to look the user's licenses up in the registry: encrypted (model cast), never searched by, and hidden
             // from every serialization.
             $table->text('document_number')->nullable()->after('email');
+            // Its blind index (#417): an HMAC of the DNI with `DOCUMENT_INDEX_KEY` (`App\Support\DocumentIndex`), the only
+            // way a DNI is searched. Unique: one DNI, one account.
+            $table->string('document_number_index', 64)->nullable()->unique()->after('document_number');
             // When the registry last answered about that DNI, whoever it found (#387): with no license, it found nobody.
             $table->dateTimeTz('document_checked_at')->nullable()->after('document_number');
         });
@@ -61,7 +64,7 @@ return new class extends Migration
         Schema::dropIfExists('professional_licenses');
 
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['document_number', 'document_checked_at']);
+            $table->dropColumn(['document_number', 'document_number_index', 'document_checked_at']);
         });
     }
 };

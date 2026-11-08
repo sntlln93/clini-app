@@ -1,0 +1,155 @@
+import type { ErrorCode } from './error-codes';
+
+/** User-facing Spanish copy for each business-rule code — the only source of UI copy for a `BusinessError`, since the backend's own `message` is never rendered. */
+export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
+    'appointments.service_not_active_for_professional':
+        'El profesional no tiene este servicio activo. Elegí otro servicio o comunicate con el consultorio.',
+    'appointments.slot_taken':
+        'El profesional ya tiene un turno en ese horario.',
+    'appointments.not_cancellable_from_status':
+        'Este turno no se puede cancelar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
+    'appointments.not_reschedulable_from_status':
+        'Este turno no se puede reprogramar porque su estado actual no lo permite. Actualizá la página para ver el estado vigente y las acciones disponibles.',
+    'appointments.status_transition_not_allowed':
+        'El turno no puede pasar a ese estado. Actualizá la página para ver las acciones disponibles según su estado actual.',
+    'memberships.last_active_admin':
+        'La organización debe mantener al menos un miembro activo con rol de propietario o administrador.',
+    'organizations.no_active_membership':
+        'Tu cuenta no tiene una organización activa. Pedí acceso a un administrador.',
+    'patients.not_found':
+        'No encontramos un paciente con ese documento. Revisá que esté bien escrito o creá un paciente nuevo si todavía no está registrado.',
+    'patients.insurance_member_number_taken':
+        'Ese número de afiliado ya está registrado para otro paciente de la misma obra social. Revisá que esté bien escrito.',
+    'memberships.invitation_invalid_or_expired':
+        'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
+    'memberships.invitation_document_not_found':
+        'El Buscador Nacional de Profesionales de la Salud no tiene a nadie con ese DNI. Revisá que esté bien escrito.',
+    'memberships.invitation_account_of_another_person':
+        'Esta cuenta está asociada a otra persona.',
+    'memberships.invitation_already_member':
+        'Tu cuenta ya está en este consultorio. Si la desactivaron, pedile al consultorio que la vuelva a activar.',
+    'memberships.invitation_lookups_exhausted':
+        'Se agotaron las consultas de DNI de esta invitación y venció. Pedile al consultorio que te invite de nuevo.',
+    'memberships.invitation_document_required':
+        'Primero ingresá tu DNI para buscar tus datos.',
+    'memberships.invitation_credentials_invalid':
+        'La contraseña o el código no son correctos.',
+    'auth.email_verification_invalid_or_expired':
+        'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
+    'booking.slot_not_available':
+        'Ese horario ya no está disponible. Elegí otro turno.',
+    'memberships.slug_invalid_format':
+        'El link debe tener entre 3 y 50 caracteres, usando solo minúsculas, números y guiones, sin empezar, terminar ni repetir guiones.',
+    'memberships.slug_taken': 'Ese link ya está en uso. Probá con otro.',
+    'memberships.slug_not_allowed_for_role':
+        'Solo los profesionales pueden tener un link público.',
+    'availability.exception_merge_required':
+        'Esa excepción se combina con otra del mismo tipo. Confirmá la combinación para continuar.',
+    'availability.exception_already_covered':
+        'Ese período ya está incluido en otra excepción del mismo tipo. No hace falta agregarlo.',
+    'availability.exception_type_conflict':
+        'Ese período se cruza con una excepción de otro tipo. Ajustá las fechas o editá la excepción existente.',
+    'holidays.provider_unavailable':
+        'No pudimos obtener los feriados desde la fuente externa. Intentá nuevamente más tarde.',
+    'medications.source_unavailable':
+        'No se pudo consultar el Buscador Nacional de Medicamentos. Escribí el medicamento a mano.',
+    'professionals.registry_unavailable':
+        'No se pudo consultar el Buscador Nacional de Profesionales de la Salud. Probá de nuevo más tarde.',
+    'professionals.document_locked':
+        'Tu DNI ya está cargado y no se puede cambiar desde acá. Para cambiarlo, comunicate con el soporte de Clini.',
+    'professionals.document_not_in_registry':
+        'El Buscador Nacional de Profesionales de la Salud no tiene a nadie con ese DNI. Revisá que esté bien escrito.',
+    'professionals.document_taken':
+        'Ese DNI ya está asociado a otra cuenta de Clini. Si es tuyo, comunicate con el soporte de Clini.',
+    'subscriptions.inactive':
+        'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, medicación indicada y disponibilidad, y para recibir reservas online.',
+    'subscriptions.already_active':
+        'La suscripción del consultorio ya está activa. No hace falta volver a suscribirse.',
+    'subscriptions.gateway_unavailable':
+        'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
+    'subscriptions.webhook_signature_invalid':
+        'La notificación de pago no es válida.',
+    'organizations.suspended':
+        'La organización está suspendida. Comunicate con el soporte de Clini para regularizar la cuenta.',
+    'organizations.already_suspended': 'La organización ya está suspendida.',
+    'organizations.not_suspended': 'La organización no está suspendida.',
+    'booking.organization_unavailable':
+        'Este consultorio no está recibiendo reservas online en este momento.',
+    'booking.link_not_found':
+        'Este link de reservas no existe. Revisá que esté bien escrito o pedile el link correcto al consultorio.',
+    'booking.appointment_unavailable':
+        'Este link ya no muestra el turno: puede haber pasado, o el consultorio lo canceló o lo reprogramó. Si tenés dudas, comunicate con el consultorio.',
+    'auth.user_blocked':
+        'Tu cuenta está bloqueada. Comunicate con el soporte de Clini.',
+    'users.already_blocked': 'El usuario ya está bloqueado.',
+    'users.not_blocked': 'El usuario no está bloqueado.',
+    'users.email_already_verified': 'El correo del usuario ya está verificado.',
+    'subscriptions.grace_extension_not_allowed':
+        'Solo se puede extender el período de gracia de una suscripción en gracia o vencida.',
+    'subscriptions.grace_extension_not_later':
+        'La nueva fecha tiene que ser posterior al fin del período de gracia actual.',
+    'subscriptions.not_cancellable':
+        'La suscripción no tiene cobros activos para cancelar. Actualizá la página para ver su estado vigente.',
+    'plans.feature_unavailable':
+        'Tu plan no incluye esta función. Revisá los planes en Ajustes.',
+    'plans.professional_limit_exceeded':
+        'El plan Gratis incluye un solo profesional activo y tu consultorio tiene más. La agenda queda en solo lectura hasta que pases a Consultorio o desactives profesionales.',
+    'plans.center_assigned':
+        'Tu consultorio está en el plan Centro, que se gestiona con el equipo de Clini.',
+    'plans.assignment_unchanged':
+        'La organización ya tiene ese plan asignado. Actualizá la página para ver su plan vigente.',
+    'plans.subscription_live':
+        'La organización tiene una suscripción que todavía puede cobrar. Primero hay que cancelarla.',
+    'plans.appointment_limit_reached':
+        'Llegaste al límite de turnos del mes que incluye el plan Gratis. Pasá a Consultorio desde Ajustes para seguir cargando turnos.',
+    'contact_requests.status_unchanged':
+        'La consulta ya tiene ese estado. Actualizá la página para ver su estado actual.',
+    'clinical_notes.annulled':
+        'La nota está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
+    'clinical_notes.amendment_unchanged':
+        'La enmienda no cambia el texto ni los diagnósticos actuales de la nota. Corregí alguno o cancelá la enmienda.',
+    'clinical_notes.diagnosis_retired':
+        'Uno de los diagnósticos que agregaste fue dado de baja en el catálogo CIE-10. Quitalo y elegí otro.',
+    'prescriptions.annulled':
+        'La medicación está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
+    'prescriptions.amendment_unchanged':
+        'La enmienda no cambia la medicación registrada. Corregí algún medicamento o cancelá la enmienda.',
+    'prescriptions.allergy_warning':
+        'El paciente tiene una alergia vigente que coincide con esta medicación. Revisala o indicala igual.',
+    'vital_signs.annulled':
+        'La medición está anulada: queda en la historia clínica tal como estaba y ya no se puede enmendar ni anular. Actualizá la página para ver su estado.',
+    'vital_signs.amendment_unchanged':
+        'La enmienda no cambia los valores de la medición. Corregí alguno o cancelá la enmienda.',
+    'medical_history.withdrawn':
+        'El antecedente ya no está vigente: queda en la historia clínica tal como estaba y ya no se puede enmendar ni dar de baja. Actualizá la página para ver su estado.',
+    'medical_history.amendment_unchanged':
+        'La enmienda no cambia el antecedente. Corregí algún dato o cancelá la enmienda.',
+    'medical_history.blood_type_unchanged':
+        'Ese ya es el grupo sanguíneo registrado. Elegí otro o cancelá el cambio.',
+    'clinical_access.reason_required':
+        'No tenés un turno con este paciente cerca de hoy. Para ver su historia clínica o registrar en ella, contá el motivo del acceso.',
+    'clinical_access.reason_not_required':
+        'Ya tenés un turno con este paciente cerca de hoy: su historia clínica está abierta sin indicar un motivo.',
+    'clinical_access.code_invalid':
+        'El código no es válido, ya se usó o venció. Revisalo con el paciente: sirve una sola vez, solo para su turno con vos.',
+    'clinical_access.code_unavailable':
+        'Este turno ya no tiene código: se canceló o reprogramó, o pasó su semana.',
+    'clinical_access.contact_unavailable':
+        'Ese email no puede recibir el código. Elegí uno confirmado del paciente.',
+    'auth.two_factor_already_enabled':
+        'La verificación en dos pasos ya está activada. Actualizá la página para ver su estado.',
+    'auth.two_factor_not_enabled':
+        'La verificación en dos pasos no está activada. Actualizá la página para ver su estado.',
+    'auth.two_factor_setup_missing':
+        'La activación de la verificación en dos pasos venció. Empezá de nuevo.',
+    'auth.two_factor_code_invalid':
+        'El código no es válido o ya se usó. Probá con el código que muestra ahora tu app.',
+    'auth.two_factor_challenge_expired':
+        'El inicio de sesión venció. Ingresá de nuevo tu correo y tu contraseña.',
+    'account.deletion_last_active_admin':
+        'Antes de eliminar tu cuenta, sumá a otra persona como dueña o administradora donde sos la única.',
+    'account.deletion_future_appointments':
+        'Antes de eliminar tu cuenta, reasigná o cancelá los turnos que tenés por atender.',
+    'auth.password_reset_invalid_or_expired':
+        'El enlace para restablecer la contraseña no es válido, ya venció o no corresponde a ese correo. Pedí uno nuevo.',
+};

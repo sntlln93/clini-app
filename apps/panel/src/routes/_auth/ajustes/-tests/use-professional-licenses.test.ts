@@ -81,7 +81,7 @@ describe('license writes', () => {
 
     it.each(WRITES)(
         '%s drops the specialties the licenses back, wherever only a loader reads them',
-        async (_label, write) => {
+        async (label, write) => {
             const queryClient = new QueryClient({
                 defaultOptions: { mutations: { retry: false } },
             });
@@ -89,6 +89,8 @@ describe('license writes', () => {
                 queryClient.setQueryData(queryKey, []);
             }
             queryClient.setQueryData(['memberships', 'professionals'], []);
+            queryClient.setQueryData(['professionals', 'roster'], []);
+            queryClient.setQueryData(['reports', {}], []);
 
             await write(({ children }) =>
                 createElement(
@@ -101,9 +103,40 @@ describe('license writes', () => {
             for (const queryKey of DERIVED_KEYS) {
                 expect(queryClient.getQueryData(queryKey)).toBeUndefined();
             }
+            // Only loading the DNI renames the member (#417): any other list
+            // of members keeps its data.
             expect(
                 queryClient.getQueryData(['memberships', 'professionals']),
-            ).toEqual([]);
+            ).toEqual(label === 'saving the DNI' ? undefined : []);
+            for (const queryKey of [
+                ['professionals', 'roster'],
+                ['reports', {}],
+            ]) {
+                expect(queryClient.getQueryData(queryKey)).toEqual(
+                    label === 'saving the DNI' ? undefined : [],
+                );
+            }
         },
     );
+
+    it('saving the DNI reloads the session, whose name the registry gives', async () => {
+        const queryClient = new QueryClient({
+            defaultOptions: { mutations: { retry: false } },
+        });
+        const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+        await renderHook(() => useUpdateProfessionalDocument(), {
+            wrapper: ({ children }) =>
+                createElement(
+                    QueryClientProvider,
+                    { client: queryClient },
+                    children,
+                ),
+        }).result.current.mutateAsync('30123456');
+
+        expect(invalidate).toHaveBeenCalledWith({
+            queryKey: ['session'],
+            refetchType: 'all',
+        });
+    });
 });
