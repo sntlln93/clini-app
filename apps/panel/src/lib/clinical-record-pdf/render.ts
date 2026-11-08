@@ -1,5 +1,5 @@
-import type { ClinicalRecordDocument } from '@/types/clinical-record';
 import { loadPdfMake } from '@/lib/pdf/pdfmake';
+import type { ClinicalRecordDocument } from '@/types/clinical-record';
 import { brand, brandAssetUrl } from '@clini/brand';
 import { buildClinicalRecordDocument } from './document';
 
