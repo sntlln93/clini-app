@@ -11,6 +11,7 @@ use App\Http\Controllers\Admin\OrganizationPlanController;
 use App\Http\Controllers\Admin\OrganizationSuspensionController;
 use App\Http\Controllers\Admin\OverviewController;
 use App\Http\Controllers\Admin\PlatformAdminController;
+use App\Http\Controllers\Admin\SpecialtyController;
 use App\Http\Controllers\Admin\StatsController;
 use App\Http\Controllers\Admin\SubscriptionController;
 use App\Http\Controllers\Admin\SubscriptionEventController;
@@ -33,6 +34,7 @@ Route::prefix('admin')->middleware('admin.origin')->group(function (): void {
         Route::get('me', [AuthController::class, 'me']);
         Route::get('overview', [OverviewController::class, 'show']);
         Route::get('stats', [StatsController::class, 'show']);
+        Route::get('specialties', [SpecialtyController::class, 'index']);
         Route::get('organizations', [OrganizationController::class, 'index']);
         Route::get('organizations/{organization}', [OrganizationController::class, 'show']);
         Route::post('organizations/{organization}/suspension', [OrganizationSuspensionController::class, 'store']);

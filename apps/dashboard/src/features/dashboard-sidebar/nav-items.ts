@@ -5,6 +5,7 @@ import {
     Inbox,
     LayoutDashboard,
     ScrollText,
+    Stethoscope,
     Users,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -21,6 +22,7 @@ export const navItems: NavItem[] = [
     { label: 'Usuarios', to: '/usuarios', icon: Users },
     { label: 'Suscripciones', to: '/suscripciones', icon: CreditCard },
     { label: 'Estadísticas', to: '/estadisticas', icon: ChartColumn },
+    { label: 'Especialidades', to: '/especialidades', icon: Stethoscope },
     { label: 'Contactos', to: '/contactos', icon: Inbox },
     { label: 'Auditoría', to: '/auditoria', icon: ScrollText },
 ];

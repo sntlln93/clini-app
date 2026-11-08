@@ -515,7 +515,8 @@ Convenciones:
   consultorio.
 - **Invariantes**:
   - El DNI y las matrículas son del `User`, como la credencial de CU-43: viajan con la persona y
-    solo ella los ve y los cambia. Cada matrícula lleva número, provincia y profesión.
+    solo ella los ve y los cambia. Cada matrícula lleva número, provincia y profesión. Los operadores de
+    la plataforma ven solo conteos por profesión y especialidad (#418).
   - La provincia del consultorio la declara quien lo administra; la matrícula que vale en un
     consultorio es la de su provincia. La provincia declarada también decide los feriados
     provinciales (si no hay, sigue la de la dirección, CU-50).

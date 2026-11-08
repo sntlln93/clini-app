@@ -5,12 +5,10 @@ declare(strict_types=1);
 namespace App\Models;
 
 use App\Enums\HealthProfession;
-use App\Enums\ProfessionalLicenseStatus;
 use Database\Factories\SpecialtyFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Query\Builder as QueryBuilder;
 
 /**
  * A specialty of a profession as the national professional registry writes it, or the profession itself when the
@@ -52,13 +50,11 @@ class Specialty extends Model
      */
     public function scopeWithBacking(Builder $query): void
     {
-        $query->addSelect(['backed' => fn (QueryBuilder $backing) => $backing
+        $query->addSelect(['backed' => ProfessionalLicense::query()
+            ->backing()
             ->selectRaw('count(*) > 0')
-            ->from('professional_licenses')
             ->whereColumn('professional_licenses.user_id', 'professional_specialties.user_id')
-            ->whereColumn('professional_licenses.specialty_id', 'specialties.id')
-            ->where('professional_licenses.status', ProfessionalLicenseStatus::Verified->value)
-            ->whereNotNull('professional_licenses.added_at'),
+            ->whereColumn('professional_licenses.specialty_id', 'specialties.id'),
         ])->withCasts(['backed' => 'boolean']);
     }
 
@@ -69,8 +65,7 @@ class Specialty extends Model
     {
         return ProfessionalLicense::query()
             ->select('professional_licenses.specialty_id')
-            ->where('professional_licenses.status', ProfessionalLicenseStatus::Verified)
-            ->whereNotNull('professional_licenses.added_at')
+            ->backing()
             ->whereNotNull('professional_licenses.specialty_id');
     }
 }
