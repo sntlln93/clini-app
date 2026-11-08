@@ -75,8 +75,12 @@ class UpdateProfessionalDocumentAction implements Action
 
                 ProfessionalLicenseSync::apply($user->id, $identity->professionals, $catalog);
             });
-        } catch (UniqueConstraintViolationException) {
-            // Another account took the DNI between the check and the write.
+        } catch (UniqueConstraintViolationException $exception) {
+            // Another account took the DNI between the check and the write; any other violation is unexpected.
+            if (! str_contains($exception->getMessage(), 'document_number_index')) {
+                throw $exception;
+            }
+
             throw new ProfessionalDocumentTakenException($dto->userId);
         }
 

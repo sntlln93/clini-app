@@ -13,7 +13,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
  * Who a professional invitation's DNI found (#417): the registry's name, and the account the membership goes to, by
- * its masked email and whether it asks for a second factor. Never the DNI.
+ * its masked email and whether it already holds this DNI (else it is the invited email's, and takes it). Never the
+ * DNI, nor whether the account has a second factor: the panel offers the code to every existing account.
  *
  * @mixin InvitationIdentityData
  */
@@ -32,7 +33,7 @@ class InvitationIdentityResource extends JsonResource
             'name' => $identity->name,
             'account' => $account === null ? null : [
                 'email' => MaskedEmail::of($account->email),
-                'two_factor' => $account->hasTwoFactorEnabled(),
+                'has_document' => $account->document_number !== null,
             ],
             'document_lookups_left' => MembershipInvitation::query()->find($identity->invitationId)?->documentLookupsLeft() ?? 0,
         ];

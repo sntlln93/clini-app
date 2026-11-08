@@ -50,7 +50,7 @@ class LookUpInvitationDocumentAction implements Action
     {
         $invitation = $this->findValidInvitation->handle(new InvitationTokenData($dto->token));
 
-        if (! $invitation->isForProfessional() || $invitation->documentLookupsLeft() === 0) {
+        if (! $invitation->isForProfessional() || ($invitation->documentLookupsLeft() === 0 && ! $this->foundBefore($invitation, $dto->documentNumber))) {
             throw new InvitationInvalidOrExpiredException($invitation->token);
         }
 
@@ -64,14 +64,26 @@ class LookUpInvitationDocumentAction implements Action
                 ->lockForUpdate()
                 ->first();
 
-            if ($locked === null || $locked->isExpired() || $locked->documentLookupsLeft() === 0) {
+            if ($locked === null || $locked->isExpired()) {
                 return new InvitationInvalidOrExpiredException($invitation->token);
             }
 
-            $locked->document_lookups++;
+            // The DNI that served before is found again for free; any other spends a lookup.
+            $again = $this->foundBefore($locked, $dto->documentNumber);
+
+            if (! $again && $locked->documentLookupsLeft() === 0) {
+                return new InvitationInvalidOrExpiredException($invitation->token);
+            }
+
+            if (! $again) {
+                $locked->document_lookups++;
+            }
+
             $outcome = $this->outcome($locked, $identity, $dto->documentNumber);
 
-            if ($outcome instanceof DomainException && $locked->documentLookupsLeft() === 0) {
+            if ($outcome instanceof InvitationIdentityData) {
+                $locked->found_document_index = DocumentIndex::of($dto->documentNumber);
+            } elseif ($locked->documentLookupsLeft() === 0) {
                 $locked->expires_at = now();
                 $outcome = new InvitationLookupsExhaustedException($locked->id);
             }
@@ -86,6 +98,13 @@ class LookUpInvitationDocumentAction implements Action
         }
 
         return $outcome;
+    }
+
+    private function foundBefore(MembershipInvitation $invitation, string $documentNumber): bool
+    {
+        $found = $invitation->found_document_index;
+
+        return is_string($found) && in_array($found, DocumentIndex::candidates($documentNumber), true);
     }
 
     private function outcome(MembershipInvitation $invitation, ?RegistryIdentityData $identity, string $documentNumber): InvitationIdentityData|DomainException

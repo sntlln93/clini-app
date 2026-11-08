@@ -19,7 +19,7 @@ use Illuminate\Support\Carbon;
  * account its name, and each DNI looked up spends one of `MAX_DOCUMENT_LOOKUPS`.
  */
 #[Fillable(['organization_id', 'email', 'roles', 'token', 'expires_at', 'accepted_at'])]
-#[Hidden(['token'])]
+#[Hidden(['token', 'found_document_index'])]
 class MembershipInvitation extends Model
 {
     public const int MAX_DOCUMENT_LOOKUPS = 3;

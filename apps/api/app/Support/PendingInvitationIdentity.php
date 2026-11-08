@@ -66,6 +66,20 @@ final class PendingInvitationIdentity
         );
     }
 
+    /**
+     * The account the pending identity links to, whatever invitation it is for: the acceptance's throttle keys on it.
+     */
+    public static function userId(Request $request): ?int
+    {
+        if (! $request->hasSession()) {
+            return null;
+        }
+
+        $userId = $request->session()->get(self::SESSION_KEY.'.user_id');
+
+        return is_int($userId) ? $userId : null;
+    }
+
     public static function clear(Request $request): void
     {
         if ($request->hasSession()) {

@@ -150,7 +150,7 @@ test('a DNI with an account links the membership to it, whatever email was invit
     $account = User::factory()->create(['name' => 'Lucía de la Fuente', 'email' => 'lucia@example.com', 'password' => 'the-account-password', 'document_number' => '99000003']);
     [$rawToken, $invitation] = professionalInvitation();
 
-    lookUpInvitationDocument($rawToken)->assertOk()->assertJsonPath('data.account', ['email' => 'l•••@example.com', 'two_factor' => false]);
+    lookUpInvitationDocument($rawToken)->assertOk()->assertJsonPath('data.account', ['email' => 'l•••@example.com', 'has_document' => true]);
 
     // A wrong password spends no lookup.
     acceptInvitation($rawToken, ['password' => 'not-the-password'])
@@ -172,7 +172,8 @@ test('an account with a second factor asks for its code too, and opens no sessio
     $account = User::factory()->withTwoFactor($secret)->create(['password' => 'the-account-password', 'document_number' => '99000003']);
     [$rawToken] = professionalInvitation();
 
-    lookUpInvitationDocument($rawToken)->assertJsonPath('data.account.two_factor', true);
+    // Whether the account has a second factor never leaves the API: the panel offers the code to every account.
+    lookUpInvitationDocument($rawToken)->assertOk()->assertJsonMissingPath('data.account.two_factor');
 
     acceptInvitation($rawToken, ['password' => 'the-account-password'])
         ->assertStatus(409)
@@ -188,7 +189,8 @@ test('the invited email\'s account without a DNI takes it and the registry\'s na
     $account = User::factory()->create(['name' => 'Lu', 'email' => 'nueva@example.com', 'password' => 'the-account-password']);
     [$rawToken] = professionalInvitation();
 
-    lookUpInvitationDocument($rawToken)->assertOk()->assertJsonPath('data.account.email', 'n•••@example.com');
+    lookUpInvitationDocument($rawToken)->assertOk()
+        ->assertJsonPath('data.account', ['email' => 'n•••@example.com', 'has_document' => false]);
     acceptInvitation($rawToken, ['password' => 'the-account-password'])->assertOk();
 
     $account->refresh();
@@ -273,4 +275,65 @@ test('the DNI looked up waits in the session, never in the invitation', function
     lookUpInvitationDocument($rawToken)->assertOk();
 
     expect(json_encode(DB::table('membership_invitations')->where('id', $invitation->id)->first()))->not->toContain('99000003');
+});
+
+test('the acceptance is also throttled per account, so more invitations buy no more guesses against it', function () {
+    $account = User::factory()->create(['password' => 'the-account-password', 'document_number' => '99000003']);
+    $tokens = [];
+
+    foreach (['uno', 'dos'] as $mailbox) {
+        [$tokens[]] = professionalInvitation(['email' => "{$mailbox}@example.com"]);
+    }
+
+    lookUpInvitationDocument($tokens[0])->assertOk();
+
+    foreach (range(1, 5) as $attempt) {
+        acceptInvitation($tokens[0], ['password' => "wrong-{$attempt}"])
+            ->assertStatus(409)
+            ->assertJsonPath('error.code', 'memberships.invitation_credentials_invalid');
+    }
+
+    lookUpInvitationDocument($tokens[1])->assertOk();
+
+    // The second invitation's own bucket is untouched, but the account's is spent.
+    acceptInvitation($tokens[1], ['password' => 'the-account-password'])->assertTooManyRequests();
+    expect(Membership::query()->where('user_id', $account->id)->exists())->toBeFalse();
+});
+
+test('an organization looks up at most 20 DNIs a day, however many invitations it issues', function () {
+    $organization = Organization::factory()->center()->create();
+    $tokens = [];
+
+    foreach (range(1, 7) as $index) {
+        [$tokens[]] = professionalInvitation(['organization_id' => $organization->id, 'email' => "p{$index}@example.com"]);
+    }
+
+    $answered = 0;
+
+    foreach ($tokens as $token) {
+        // Past the per-IP minute limit of the registry, never past the day.
+        $this->travel(61)->seconds();
+
+        foreach (range(1, 3) as $attempt) {
+            $answered += lookUpInvitationDocument($token, '3000000'.$attempt)->status() === 429 ? 0 : 1;
+        }
+    }
+
+    expect($answered)->toBe(20);
+});
+
+test('the DNI that served is found again without spending a lookup, even with none left', function () {
+    [$rawToken, $invitation] = professionalInvitation();
+
+    lookUpInvitationDocument($rawToken, '30000001')->assertStatus(409);
+    lookUpInvitationDocument($rawToken, '30000002')->assertStatus(409);
+    lookUpInvitationDocument($rawToken)->assertOk()->assertJsonPath('data.document_lookups_left', 0);
+
+    // The session is lost (another browser, a timeout): the same DNI finds it again; another is refused.
+    session()->flush();
+    lookUpInvitationDocument($rawToken, '99000001')->assertNotFound();
+    lookUpInvitationDocument($rawToken, '99.000.003')->assertOk()->assertJsonPath('data.name', 'Lucia De La Fuente');
+
+    acceptInvitation($rawToken, NEW_ACCOUNT_PASSWORD)->assertOk();
+    expect($invitation->refresh()->document_lookups)->toBe(3);
 });
