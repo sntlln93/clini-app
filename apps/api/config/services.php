@@ -62,6 +62,12 @@ return [
     'national_professional_search' => [
         'url' => env('NATIONAL_PROFESSIONAL_SEARCH_URL', 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud'),
         'user_agent' => env('NATIONAL_PROFESSIONAL_SEARCH_USER_AGENT', 'Clini/1.0 (validacion de matriculas; +'.env('APP_URL', 'http://localhost').')'),
+        // An outage (#419): minutes until the team is mailed, and where. Without an address, the contact form's
+        // (config/contact.php); without either, no mail.
+        'outage_alert_minutes' => (int) env('NATIONAL_PROFESSIONAL_SEARCH_OUTAGE_ALERT_MINUTES', 15),
+        'alert_email' => env('NATIONAL_PROFESSIONAL_SEARCH_ALERT_EMAIL') ?: null,
+        // The DNI the scheduled probe looks up: well formed and held by nobody, never a real person's.
+        'probe_document' => env('NATIONAL_PROFESSIONAL_SEARCH_PROBE_DOCUMENT') ?: '99999999',
     ],
 
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.

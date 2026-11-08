@@ -19,7 +19,7 @@ final class ProfessionalRegistryUnavailableException extends DomainException
      * @param  string  $step  what failed: the request itself, its status, the form or the response's body
      */
     public function __construct(
-        private readonly string $step,
+        public readonly string $step,
         ?Throwable $previous = null,
     ) {
         parent::__construct('The professional registry is unavailable.', previous: $previous);
