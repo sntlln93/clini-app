@@ -21,8 +21,9 @@ use LogicException;
  * WSAA's access ticket for `wsfe` (#246, ADR 0039): a signed request
  * (TRA, a CMS with the certificate) traded for a token and sign valid 12
  * hours. WSAA refuses another ticket while one is still valid
- * (`coe.alreadyAuthenticated`), so the ticket is cached for its whole life and
- * only one process asks for it at a time. The cache is the database in
+ * (`coe.alreadyAuthenticated`), so the ticket is cached and used for its whole
+ * life (renewed only once it expires) and only one process asks for it at a
+ * time. The cache is the database in
  * deployed environments, so it survives a deploy; the token and sign are
  * credentials, so they are stored encrypted.
  */
@@ -30,17 +31,21 @@ final class ArcaAccessTicket
 {
     public const string SERVICE = 'wsfe';
 
-    private const int TIMEOUT_SECONDS = 20;
+    private const int TIMEOUT_SECONDS = 15;
 
-    /** Renewed this long before it expires, so a call never carries one about to expire. */
-    private const int RENEWAL_MARGIN_SECONDS = 600;
+    /**
+     * Renewed only this close to its expiration (clock skew): WSAA refuses a
+     * new ticket while the old one is valid, so renewing any earlier fails.
+     */
+    private const int EXPIRY_SKEW_SECONDS = 30;
 
     /** The TRA's validity around now: a clock behind ARCA's must not make it future-dated. */
     private const int REQUEST_WINDOW_SECONDS = 600;
 
     private const int LOCK_SECONDS = 60;
 
-    private const int LOCK_WAIT_SECONDS = 30;
+    /** Short: a job that can't get it fails into its own backoff instead of outliving its timeout. */
+    private const int LOCK_WAIT_SECONDS = 5;
 
     private const array URLS = [
         'homologation' => 'https://wsaahomo.afip.gov.ar/ws/services/LoginCms',
@@ -125,7 +130,7 @@ final class ArcaAccessTicket
 
         $ticket = new ArcaAccessTicketData($values['token'], $values['sign'], CarbonImmutable::parse($values['expires_at']));
 
-        return $ticket->expiresAt->subSeconds(self::RENEWAL_MARGIN_SECONDS)->isFuture() ? $ticket : null;
+        return $ticket->expiresAt->subSeconds(self::EXPIRY_SKEW_SECONDS)->isFuture() ? $ticket : null;
     }
 
     private function request(): ArcaAccessTicketData

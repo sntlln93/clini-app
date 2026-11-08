@@ -30,6 +30,13 @@ final class IssueInvoiceJob implements ShouldBeUnique, ShouldQueue
     /** @var array<int, int> */
     public array $backoff = [60, 300, 900, 3600, 3600];
 
+    /**
+     * Above the action's worst case (two short lock waits, WSAA and three
+     * WSFEv1 calls) and below the queue's `retry_after` (90), so a slow ARCA
+     * never has the job picked up twice.
+     */
+    public int $timeout = 85;
+
     /** Seconds the uniqueness holds even if a worker dies mid-job. */
     public int $uniqueFor = 21600;
 

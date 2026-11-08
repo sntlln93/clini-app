@@ -49,9 +49,13 @@ use LogicException;
  */
 final class IssueInvoiceAction implements Action
 {
-    private const int LOCK_SECONDS = 300;
+    /** Longer than IssueInvoiceJob's timeout, so a worker killed mid-call can't leave it held for long. */
+    private const int LOCK_SECONDS = 120;
 
-    private const int LOCK_WAIT_SECONDS = 60;
+    /** Short: another invoice being numbered makes this one retry with its job's backoff. */
+    private const int LOCK_WAIT_SECONDS = 5;
+
+    private const array ISSUER_FIELDS = ['cuit', 'name', 'address', 'vat_condition', 'gross_income', 'activity_start'];
 
     public function __construct(
         private readonly InvoiceIssuer $issuer,
@@ -73,6 +77,9 @@ final class IssueInvoiceAction implements Action
         if ($pointOfSale <= 0) {
             throw new LogicException('INVOICE_POINT_OF_SALE must be the point of sale enabled for web services.');
         }
+
+        // Copied onto the voucher once it is authorized, which can't be undone: never issue one that prints blanks.
+        $this->ensureIssuerData();
 
         $lockKey = "invoices:numbering:{$environment->value}:{$cuit}:{$pointOfSale}:{$type->value}";
 
@@ -96,6 +103,21 @@ final class IssueInvoiceAction implements Action
         $this->notifyOwners($issued);
 
         return $issued;
+    }
+
+    private function ensureIssuerData(): void
+    {
+        foreach (self::ISSUER_FIELDS as $field) {
+            if (trim(Config::string('invoicing.issuer_data.'.$field)) === '') {
+                throw new LogicException('Every INVOICE_ISSUER_* value must be set before an invoice is issued; '.$field.' is empty.');
+            }
+        }
+
+        $activityStart = Config::string('invoicing.issuer_data.activity_start');
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $activityStart, $parts) !== 1 || ! checkdate((int) $parts[2], (int) $parts[3], (int) $parts[1])) {
+            throw new LogicException('INVOICE_ISSUER_ACTIVITY_START must be a Y-m-d date.');
+        }
     }
 
     private function issue(int $invoiceId, InvoiceEnvironment $environment, string $cuit, int $pointOfSale, InvoiceVoucherType $type): ?Invoice

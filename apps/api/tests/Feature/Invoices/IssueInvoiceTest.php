@@ -292,15 +292,28 @@ test('the fake issuer numbers after its own vouchers and makes up a CAE', functi
         ->and(strlen($invoice->cae))->toBe(14);
 });
 
-test('a point of sale or a voucher type Clini cannot use is a configuration error', function (array $config, string $message) {
-    scriptIssuer(new ScriptedInvoiceIssuer);
+test('a configuration Clini cannot issue with stops before reserving a number', function (array $config, string $message) {
+    $issuer = scriptIssuer(new ScriptedInvoiceIssuer);
+    $invoice = Invoice::factory()->create();
     config($config);
 
-    expect(fn () => issueInvoice(Invoice::factory()->create()))->toThrow(LogicException::class, $message);
+    expect(fn () => issueInvoice($invoice))->toThrow(LogicException::class, $message);
+
+    expect($issuer->requested)->toBe([])
+        ->and($invoice->fresh()->number)->toBeNull();
 })->with([
     'no point of sale' => [['invoicing.point_of_sale' => 0], 'INVOICE_POINT_OF_SALE'],
     'factura B' => [['invoicing.voucher_type' => 6], 'INVOICE_VOUCHER_TYPE=6 is not supported'],
+    // The voucher prints them once authorized, which can't be undone.
+    'no issuer name' => [['invoicing.issuer_data.name' => ' '], 'name is empty'],
+    'no address' => [['invoicing.issuer_data.address' => ''], 'address is empty'],
+    'no activity start' => [['invoicing.issuer_data.activity_start' => ''], 'activity_start is empty'],
+    'an impossible activity start' => [['invoicing.issuer_data.activity_start' => '2026-02-30'], 'INVOICE_ISSUER_ACTIVITY_START must be a Y-m-d date'],
 ]);
+
+test('the job ends within its timeout, below the queue\'s retry_after', function () {
+    expect((new IssueInvoiceJob(1))->timeout)->toBeLessThan(config()->integer('queue.connections.database.retry_after'));
+});
 
 test('INVOICE_ISSUER picks the adapter, and production refuses the fake one', function () {
     config(['invoicing.issuer' => 'arca']);

@@ -33,7 +33,8 @@ final class ArcaInvoiceService implements InvoiceIssuer
 {
     private const string NAMESPACE = 'http://ar.gov.afip.dif.FEV1/';
 
-    private const int TIMEOUT_SECONDS = 30;
+    /** Three calls at most per issuance: together with WSAA, within IssueInvoiceJob's timeout. */
+    private const int TIMEOUT_SECONDS = 18;
 
     private const array URLS = [
         'homologation' => 'https://wswhomo.afip.gov.ar/wsfev1/service.asmx',

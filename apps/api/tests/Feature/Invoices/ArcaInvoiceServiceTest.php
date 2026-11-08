@@ -114,15 +114,21 @@ test('the access ticket is reused while valid and stored encrypted', function ()
         ->not->toContain('dG9rZW4tZGUtcHJ1ZWJh');
 });
 
-test('a ticket about to expire is renewed', function () {
+test('the ticket is used until it expires, and only then renewed: WSAA refuses a new one while it is valid', function () {
     fakeArca(['FECompUltimoAutorizado' => 'FECompUltimoAutorizado.xml']);
     $service = app(ArcaInvoiceService::class);
+    $logins = fn () => Http::recorded(fn (Request $request) => str_contains($request->url(), 'LoginCms'));
 
     $service->lastAuthorizedNumber(1, InvoiceVoucherType::FacturaC);
-    Date::setTestNow('2026-10-04 00:45:00'); // Five minutes left: within the renewal margin.
+    Date::setTestNow('2026-10-04 00:49:00'); // A minute left: still valid at WSAA.
     $service->lastAuthorizedNumber(1, InvoiceVoucherType::FacturaC);
 
-    expect(Http::recorded(fn (Request $request) => str_contains($request->url(), 'LoginCms')))->toHaveCount(2);
+    expect($logins())->toHaveCount(1);
+
+    Date::setTestNow('2026-10-04 00:50:00'); // Within the clock skew of its 00:50:00.512 expiration.
+    $service->lastAuthorizedNumber(1, InvoiceVoucherType::FacturaC);
+
+    expect($logins())->toHaveCount(2);
 });
 
 test('WSAA refusing a ticket while another is valid is reported as unavailable, with its fault code', function () {
