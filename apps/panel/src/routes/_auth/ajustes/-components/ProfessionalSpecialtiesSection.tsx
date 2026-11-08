@@ -1,21 +1,18 @@
 import { NoProfessionalsEmptyState } from '@/features/NoProfessionalsEmptyState';
 import type { Membership } from '@/types/membership';
-import type {
-    ProfessionalSpecialty,
-    UserSpecialty,
-} from '@/types/professional';
+import type { ProfessionalSpecialty, Specialty } from '@/types/professional';
 import { useCanManageProfessionalCatalog } from '../-hooks/use-catalog-permissions';
 import { ProfessionalSpecialtyRow } from './ProfessionalSpecialtyRow';
 
 type ProfessionalSpecialtiesSectionProps = {
     professionals: Membership[];
-    credentialsByMembership: Record<number, UserSpecialty[]>;
+    backedByMembership: Record<number, Specialty[]>;
     assignedByMembership: Record<number, ProfessionalSpecialty[]>;
 };
 
 export function ProfessionalSpecialtiesSection({
     professionals,
-    credentialsByMembership,
+    backedByMembership,
     assignedByMembership,
 }: ProfessionalSpecialtiesSectionProps) {
     const canManage = useCanManageProfessionalCatalog();
@@ -27,8 +24,10 @@ export function ProfessionalSpecialtiesSection({
                     Especialidades por profesional
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                    Asigná, para cada profesional, las especialidades con las
-                    que atiende (solo entre las que tiene como credencial).
+                    Elegí, para cada profesional, con qué especialidades atiende
+                    en este consultorio. Solo se pueden elegir las que respalda
+                    una matrícula verificada en el Buscador Nacional de
+                    Profesionales de la Salud.
                 </p>
             </div>
 
@@ -46,10 +45,7 @@ export function ProfessionalSpecialtiesSection({
                             key={membership.id}
                             membership={membership}
                             canManage={canManage(membership)}
-                            credentials={
-                                credentialsByMembership[membership.user.id] ??
-                                []
-                            }
+                            backed={backedByMembership[membership.id] ?? []}
                             assigned={assignedByMembership[membership.id] ?? []}
                         />
                     ))}

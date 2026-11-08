@@ -31,7 +31,6 @@ export function ProfessionalLicenseItem({
     const registryDetails = [
         license.issuer &&
             `Entidad emisora: ${formatLicenseIssuer(license.issuer)}`,
-        license.specialty && `Especialidad: ${license.specialty}`,
         license.refeps_code && `Código REFEPS ${license.refeps_code}`,
         license.checked_at &&
             `Consultada el ${formatDayMonthYear(fromInstant(license.checked_at))}`,
@@ -71,6 +70,12 @@ export function ProfessionalLicenseItem({
             <p className="text-sm text-muted-foreground">
                 {licenseExplanation(license, hasDocument)}
             </p>
+            {license.status === 'verified' && license.specialty && (
+                <p className="text-sm">
+                    Te habilita a atender como:{' '}
+                    <span className="font-medium">{license.specialty}</span>
+                </p>
+            )}
             {registryDetails.length > 0 && (
                 <p className="text-xs text-muted-foreground">
                     {registryDetails.join(' · ')}

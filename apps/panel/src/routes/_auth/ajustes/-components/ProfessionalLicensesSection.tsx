@@ -30,7 +30,9 @@ export function ProfessionalLicensesSection({
                 <p className="text-sm text-muted-foreground">
                     Cargá cada matrícula con su provincia y profesión y la
                     validamos en el Buscador Nacional de Profesionales de la
-                    Salud.{' '}
+                    Salud. Tu profesión y tu especialidad salen de ahí: con las
+                    de tus matrículas verificadas, el consultorio elige con
+                    cuáles atendés.{' '}
                     {organizationProvince
                         ? `En este consultorio vale la de ${provinceLabel(organizationProvince)}.`
                         : 'El consultorio todavía no declaró su provincia: quien lo administra la carga en Ajustes › Consultorio.'}

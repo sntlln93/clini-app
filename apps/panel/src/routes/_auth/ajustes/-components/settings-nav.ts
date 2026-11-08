@@ -24,17 +24,12 @@ export const settingsNav: SecondaryNav = {
             requiresMembership: true,
         },
         {
-            label: 'Mis especialidades',
-            to: '/ajustes/especialidades',
-            // Whoever attends here, or can turn it on for themselves.
-            roles: ['professional'],
-            permissions: ['memberships.manage'],
-        },
-        {
             label: 'Matrículas',
             to: '/ajustes/matriculas',
-            // Only whoever attends patients here holds licenses (#380).
+            // Whoever attends here holds licenses (#380), and whoever can
+            // turn that on for themselves starts here (#286, #387).
             roles: ['professional'],
+            permissions: ['memberships.manage'],
         },
         {
             label: 'Profesionales',

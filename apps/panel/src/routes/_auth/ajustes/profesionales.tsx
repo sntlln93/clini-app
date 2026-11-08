@@ -45,7 +45,7 @@ function ProfesionalesPage() {
     const {
         professionals,
         catalogServices,
-        credentialsByMembership,
+        backedByMembership,
         assignedSpecialtiesByMembership,
         assignedServicesByMembership,
     } = Route.useLoaderData();
@@ -54,7 +54,7 @@ function ProfesionalesPage() {
         <div className="space-y-8">
             <ProfessionalSpecialtiesSection
                 professionals={professionals}
-                credentialsByMembership={credentialsByMembership}
+                backedByMembership={backedByMembership}
                 assignedByMembership={assignedSpecialtiesByMembership}
             />
             <Separator />

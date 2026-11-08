@@ -1,30 +1,53 @@
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { StatusPill } from '@/components/StatusPill';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { Membership } from '@/types/membership';
-import type {
-    ProfessionalSpecialty,
-    UserSpecialty,
-} from '@/types/professional';
+import type { ProfessionalSpecialty, Specialty } from '@/types/professional';
 import { useId, useState } from 'react';
 import { useToggleProfessionalSpecialty } from '../-hooks/use-professional-specialties';
 
 type ProfessionalSpecialtyRowProps = {
     membership: Membership;
     canManage: boolean;
-    credentials: UserSpecialty[];
+    backed: Specialty[];
     assigned: ProfessionalSpecialty[];
 };
+
+type SpecialtyOption = { id: number; name: string; backed: boolean };
+
+// What a verified license backs, plus what the practice already offers and
+// no license backs anymore (#387): it stays offered, marked, until someone
+// takes it off, and can't be offered again until a license backs it.
+function specialtyOptions(
+    backed: Specialty[],
+    assigned: ProfessionalSpecialty[],
+): SpecialtyOption[] {
+    const backedIds = new Set(backed.map((specialty) => specialty.id));
+    const unbacked = assigned
+        .filter((item) => !backedIds.has(item.specialty_id))
+        .map((item) => ({
+            id: item.specialty_id,
+            name: item.specialty_name ?? '—',
+            backed: false,
+        }));
+
+    return [
+        ...backed.map(({ id, name }) => ({ id, name, backed: true })),
+        ...unbacked,
+    ];
+}
 
 export function ProfessionalSpecialtyRow({
     membership,
     canManage,
-    credentials,
+    backed,
     assigned,
 }: ProfessionalSpecialtyRowProps) {
     const checkboxIdPrefix = useId();
     const { assign, remove } = useToggleProfessionalSpecialty(membership.id);
     const [confirmingId, setConfirmingId] = useState<number | null>(null);
+    const options = specialtyOptions(backed, assigned);
 
     function toggle(specialtyId: number, checked: boolean) {
         if (checked) {
@@ -46,40 +69,42 @@ export function ProfessionalSpecialtyRow({
                 {membership.user.name ?? membership.user.email}
             </p>
 
-            {credentials.length === 0 && (
+            {options.length === 0 && (
                 <p className="text-sm text-muted-foreground">
-                    Este profesional todavía no cargó sus especialidades. Pedile
-                    que las marque en Ajustes › Mis especialidades.
+                    Ninguna matrícula verificada de este profesional respalda
+                    una especialidad todavía. Sus especialidades salen de las
+                    matrículas que carga en Ajustes › Matrículas.
                 </p>
             )}
 
-            {credentials.length > 0 && (
+            {options.length > 0 && (
                 <div className="space-y-1.5">
-                    {credentials.map((credential) => {
-                        const checkboxId = `${checkboxIdPrefix}-${credential.specialty_id}`;
+                    {options.map((option) => {
+                        const checkboxId = `${checkboxIdPrefix}-${option.id}`;
+                        const checked = assigned.some(
+                            (item) => item.specialty_id === option.id,
+                        );
                         return (
                             <div
-                                key={credential.specialty_id}
-                                className="flex items-center gap-2 text-sm"
+                                key={option.id}
+                                className="flex flex-wrap items-center gap-2 text-sm"
                             >
                                 <Checkbox
                                     id={checkboxId}
                                     disabled={!canManage}
-                                    checked={assigned.some(
-                                        (item) =>
-                                            item.specialty_id ===
-                                            credential.specialty_id,
-                                    )}
-                                    onCheckedChange={(checked) =>
-                                        toggle(
-                                            credential.specialty_id,
-                                            checked === true,
-                                        )
+                                    checked={checked}
+                                    onCheckedChange={(next) =>
+                                        toggle(option.id, next === true)
                                     }
                                 />
                                 <Label htmlFor={checkboxId}>
-                                    {credential.specialty_name}
+                                    {option.name}
                                 </Label>
+                                {!option.backed && (
+                                    <StatusPill tone="warning">
+                                        Sin respaldo de matrícula
+                                    </StatusPill>
+                                )}
                             </div>
                         );
                     })}
@@ -90,7 +115,7 @@ export function ProfessionalSpecialtyRow({
                 open={confirmingId !== null}
                 onOpenChange={(open) => !open && setConfirmingId(null)}
                 title="Quitar especialidad"
-                description="¿Quitar esta especialidad de este profesional? Podés volver a asignarla cuando quieras."
+                description="¿Quitar esta especialidad de este profesional? Podés volver a elegirla mientras una matrícula verificada la respalde."
                 onConfirm={handleConfirmRemove}
                 isPending={remove.isPending}
             />

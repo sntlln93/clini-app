@@ -5,7 +5,6 @@ import type { Subscription } from '@/types/subscription';
 import { QueryClient } from '@tanstack/react-query';
 import { isRedirect } from '@tanstack/react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Route as EspecialidadesRoute } from '../especialidades';
 import { Route as ProfesionalesRoute } from '../profesionales';
 import { Route as ProteccionDeDatosRoute } from '../proteccion-de-datos';
 import { Route as ReservasRoute } from '../reservas';
@@ -50,10 +49,6 @@ const loadBookings = loaderOf<{
     ownProfessionalMembership: Membership | null;
     organizationSettings: unknown;
 }>(ReservasRoute);
-const loadSpecialties = loaderOf<{
-    isProfessional: boolean;
-    managedOwnMembership: Membership | null;
-}>(EspecialidadesRoute);
 const loadProfessionals = loaderOf<{ professionals: Membership[] }>(
     ProfesionalesRoute,
 );
@@ -138,18 +133,14 @@ function mockApiGet(
         if (url === '/memberships') {
             return Promise.resolve({ data: { data: PROFESSIONALS } });
         }
-        if (url === '/specialties') {
-            return Promise.resolve({ data: { data: [] } });
-        }
         if (url === '/services') {
-            return Promise.resolve({ data: { data: [] } });
-        }
-        if (url.startsWith('/users/') && url.endsWith('/specialties')) {
             return Promise.resolve({ data: { data: [] } });
         }
         if (
             url.startsWith('/memberships/') &&
-            (url.endsWith('/specialties') || url.endsWith('/services'))
+            (url.endsWith('/specialties') ||
+                url.endsWith('/backed-specialties') ||
+                url.endsWith('/services'))
         ) {
             return Promise.resolve({ data: { data: [] } });
         }
@@ -176,6 +167,14 @@ describe('Profesionales tab', () => {
 
         expect(api.get).toHaveBeenCalledWith('/memberships');
         expect(result.professionals).toEqual(PROFESSIONALS);
+        // What each one's licenses back, the only specialties to choose from (#387).
+        expect(api.get).toHaveBeenCalledWith(
+            '/memberships/1/backed-specialties',
+        );
+        expect(api.get).toHaveBeenCalledWith(
+            '/memberships/2/backed-specialties',
+        );
+        expect(api.get).not.toHaveBeenCalledWith('/specialties');
     });
 });
 
@@ -271,55 +270,6 @@ describe('Reservas tab (#239, #283, #291)', () => {
         mockApiGet({ ...ANA, organization: null, membership: null });
 
         await expectRedirectToSettings(loadBookings);
-    });
-});
-
-describe('Mis especialidades tab: attend-patients switch (#286)', () => {
-    it('shows the specialties only to a professional of the practice', async () => {
-        vi.mocked(api.get).mockReset();
-        mockApiGet({
-            ...ANA,
-            permissions: ['memberships.manage'],
-            roles: ['owner'],
-            membership: { ...OWN_MEMBERSHIP, roles: ['owner'] },
-        });
-
-        expect((await loadSpecialties()).isProfessional).toBe(false);
-    });
-
-    it('sends a member who neither attends nor can turn it on back to Ajustes', async () => {
-        vi.mocked(api.get).mockReset();
-        mockApiGet({
-            ...ANA,
-            roles: ['staff'],
-            membership: { ...OWN_MEMBERSHIP, roles: ['staff'] },
-        });
-
-        await expectRedirectToSettings(loadSpecialties);
-    });
-
-    beforeEach(() => {
-        vi.mocked(api.get).mockReset();
-    });
-
-    it('hands the caller their own membership when they manage the team, professional or not', async () => {
-        const ownerOnly = { ...OWN_MEMBERSHIP, roles: ['owner' as const] };
-        mockApiGet({
-            ...ANA,
-            permissions: ['memberships.manage'],
-            roles: ['owner'],
-            membership: ownerOnly,
-        });
-
-        expect((await loadSpecialties()).managedOwnMembership).toEqual(
-            ownerOnly,
-        );
-    });
-
-    it('leaves it out for anyone who cannot edit memberships', async () => {
-        mockApiGet({ ...ANA, roles: ['professional'] });
-
-        expect((await loadSpecialties()).managedOwnMembership).toBeNull();
     });
 });
 

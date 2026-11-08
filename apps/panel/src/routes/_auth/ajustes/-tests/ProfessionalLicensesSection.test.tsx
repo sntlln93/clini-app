@@ -105,7 +105,10 @@ describe('ProfessionalLicensesSection', () => {
         const verified = item('Médico · Córdoba · MP 6789');
         expect(within(verified).getByText('Verificada')).toBeDefined();
         expect(verified.textContent).toContain('Código REFEPS 541030123456');
-        expect(verified.textContent).toContain('Especialidad: Pediatría');
+        // The specialty it backs, from the registry (#387).
+        expect(verified.textContent).toContain(
+            'Te habilita a atender como: Pediatría',
+        );
         expect(verified.textContent).toContain(
             'Entidad emisora: Consejo de Medicos de la Provincia de Cordoba',
         );
@@ -113,6 +116,16 @@ describe('ProfessionalLicensesSection', () => {
         const mismatch = item('Odontólogo · Santa Fe · 4321');
         expect(within(mismatch).getByText('No coincide')).toBeDefined();
         expect(mismatch.textContent).toContain('«Suspendido»');
+    });
+
+    it('names no specialty for a license that isn’t verified, even when the registry gave one', () => {
+        renderSection({
+            licenses: [{ ...MISMATCH, specialty: 'Ortodoncia' }],
+        });
+
+        expect(item('Odontólogo · Santa Fe · 4321').textContent).not.toContain(
+            'Ortodoncia',
+        );
     });
 
     it('marks only the license from the practice province as the one that counts here', () => {

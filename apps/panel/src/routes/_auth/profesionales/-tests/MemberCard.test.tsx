@@ -12,8 +12,13 @@ function buildMembership(overrides: Partial<Membership> = {}): Membership {
         status: 'active',
         slug: null,
         specialties: [
-            { id: 1, name: 'Cardiología' },
-            { id: 2, name: 'Clínica médica' },
+            { id: 1, name: 'Cardiología', profession: 'medico', backed: true },
+            {
+                id: 2,
+                name: 'Clínica médica',
+                profession: 'medico',
+                backed: true,
+            },
         ],
         deleted_at: null,
         created_at: '2026-01-01T00:00:00Z',
@@ -42,12 +47,29 @@ describe('MemberCard', () => {
         screen.getByText('Profesional');
         screen.getByText('Activo');
         screen.getByText('Cardiología, Clínica médica');
+        expect(screen.queryByText(/sin respaldo de matrícula/)).toBeNull();
+    });
+
+    // #387: still offered, but no verified license backs it anymore.
+    it('marks a specialty no license backs anymore', async () => {
+        renderCard({
+            specialties: [
+                {
+                    id: 1,
+                    name: 'Cardiología',
+                    profession: 'medico',
+                    backed: false,
+                },
+            ],
+        });
+
+        await screen.findByText('Cardiología: sin respaldo de matrícula');
     });
 
     it('says when a professional has no specialty yet', async () => {
         renderCard({ specialties: [] });
 
-        await screen.findByText('Sin especialidades cargadas');
+        await screen.findByText('Sin especialidades habilitadas');
     });
 
     it('shows no specialties for staff', async () => {

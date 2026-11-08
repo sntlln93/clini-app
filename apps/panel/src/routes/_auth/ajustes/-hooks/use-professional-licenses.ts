@@ -1,10 +1,16 @@
 import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { withMinimumDuration } from '@/lib/minimum-duration';
+import { discardPageData } from '@/lib/page-data';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type { ProfessionalLicense } from '@/types/professional-license';
-import { queryOptions, useMutation } from '@tanstack/react-query';
+import {
+    queryOptions,
+    useMutation,
+    useQueryClient,
+} from '@tanstack/react-query';
 import { REGISTRY_PROGRESS_MIN_MS } from '../-components/RegistryProgress';
+import { BACKED_SPECIALTIES_KEY } from './use-backed-specialties';
 
 const LICENSES_KEY = ['professional-licenses'];
 const DOCUMENT_KEY = ['professional-document'];
@@ -36,11 +42,21 @@ export type NewProfessionalLicense = {
 };
 
 // Every write reaches the registry and may change any license's status, so
-// each one reloads both reads of the page.
+// each one reloads both reads of the page. A status also decides which
+// specialties the licenses back (#387): Ajustes › Profesionales and the member
+// cards read that only in their loaders (#273).
 function useRefreshLicenses() {
+    const queryClient = useQueryClient();
     const refreshPageData = useRefreshPageData();
 
-    return () => refreshPageData(LICENSES_KEY, DOCUMENT_KEY);
+    return () => {
+        discardPageData(queryClient, BACKED_SPECIALTIES_KEY, [
+            'memberships',
+            'cards',
+        ]);
+
+        return refreshPageData(LICENSES_KEY, DOCUMENT_KEY);
+    };
 }
 
 export function useUpdateProfessionalDocument() {

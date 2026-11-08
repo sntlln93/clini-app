@@ -14,7 +14,14 @@ function specialtiesLabel({ roles, specialties = [] }: Membership) {
 
     return specialties.length > 0
         ? specialties.map((specialty) => specialty.name).join(', ')
-        : 'Sin especialidades cargadas';
+        : 'Sin especialidades habilitadas';
+}
+
+// Still offered here, but no verified license backs it anymore (#387).
+function unbackedSpecialties({ roles, specialties = [] }: Membership) {
+    return roles.includes('professional')
+        ? specialties.filter((specialty) => !specialty.backed)
+        : [];
 }
 
 // The whole card opens the member, as the table's «Editar» does; a member
@@ -22,6 +29,7 @@ function specialtiesLabel({ roles, specialties = [] }: Membership) {
 export function MemberCard({ membership }: { membership: Membership }) {
     const name = membership.user.name ?? membership.user.email ?? '—';
     const specialties = specialtiesLabel(membership);
+    const unbacked = unbackedSpecialties(membership);
     const linked = membership.deleted_at === null;
 
     return (
@@ -54,6 +62,19 @@ export function MemberCard({ membership }: { membership: Membership }) {
                     </div>
                     {specialties && (
                         <p className="text-muted-foreground">{specialties}</p>
+                    )}
+                    {unbacked.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5">
+                            {unbacked.map((specialty) => (
+                                <StatusPill
+                                    key={specialty.id}
+                                    tone="warning"
+                                    className="whitespace-normal"
+                                >
+                                    {specialty.name}: sin respaldo de matrícula
+                                </StatusPill>
+                            ))}
+                        </div>
                     )}
                     <div className="mt-auto">
                         <StatusPill tone={STATUS_TONES[membership.status]}>

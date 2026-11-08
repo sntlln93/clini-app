@@ -110,16 +110,38 @@ describe('Matrículas tab', () => {
         });
 
         expect(await loadLicenses()).toEqual({
+            isProfessional: true,
+            managedOwnMembership: null,
             documentNumber: '30123456',
             licenses: LICENSES,
             organizationProvince: 'cordoba',
         });
     });
 
-    it('sends whoever doesn’t attend patients back to Ajustes, never reading the DNI', async () => {
+    // The «Atiendo pacientes» switch lives here since #387 (#286).
+    it('hands whoever manages the team their own membership, professional or not, and reads no DNI unless they attend', async () => {
+        const owner = membership(['owner']);
         mockApiGet({
             permissions: ['memberships.manage'],
-            membership: membership(['owner']),
+            membership: owner,
+            organization: ORGANIZATION,
+        });
+
+        expect(await loadLicenses()).toEqual({
+            isProfessional: false,
+            managedOwnMembership: owner,
+            documentNumber: null,
+            licenses: [],
+            organizationProvince: 'cordoba',
+        });
+        expect(api.get).not.toHaveBeenCalledWith('/me/professional-document');
+        expect(api.get).not.toHaveBeenCalledWith('/me/licenses');
+    });
+
+    it('sends whoever neither attends patients nor can turn it on back to Ajustes, never reading the DNI', async () => {
+        mockApiGet({
+            permissions: [],
+            membership: membership(['staff']),
             organization: ORGANIZATION,
         });
 

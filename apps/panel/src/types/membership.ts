@@ -1,4 +1,4 @@
-import type { CatalogSpecialty } from './professional';
+import type { Specialty } from './professional';
 
 export type MembershipRole = 'owner' | 'admin' | 'professional' | 'staff';
 
@@ -14,8 +14,9 @@ export type Membership = {
     roles: MembershipRole[];
     status: MembershipStatus;
     slug: string | null;
-    // Only the list (`GET /memberships`) carries them, for the member cards.
-    specialties?: CatalogSpecialty[];
+    // Only the list (`GET /memberships`) carries them, for the member cards,
+    // each saying whether a verified license still backs it (#387).
+    specialties?: (Specialty & { backed: boolean })[];
     deleted_at: string | null;
     created_at: string;
     updated_at: string;
