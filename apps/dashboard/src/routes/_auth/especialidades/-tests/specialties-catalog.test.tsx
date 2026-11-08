@@ -140,11 +140,42 @@ describe('SpecialtiesCatalog', () => {
         ]);
     });
 
-    it('has no accessibility violations', async () => {
+    it('marks the search in the profession and specialty names', () => {
+        render(
+            <SpecialtiesCatalog
+                usage={{ professions: [MEDICO] }}
+                query="CARDIO"
+                onClearSearch={vi.fn()}
+            />,
+        );
+
+        expect(
+            [...document.querySelectorAll('mark')].map(
+                (mark) => mark.textContent,
+            ),
+        ).toEqual(['Cardio']);
+        expect(
+            within(card('Médico')).getByRole('row', { name: /Cardiología/ }),
+        ).toBeDefined();
+
+        render(
+            <SpecialtiesCatalog
+                usage={{ professions: [KINESIOLOGO] }}
+                query="kinesio"
+                onClearSearch={vi.fn()}
+            />,
+        );
+        expect(
+            card('Kinesiólogo').querySelector('[data-slot="card-title"] mark')
+                ?.textContent,
+        ).toBe('Kinesió');
+    });
+
+    it('has no accessibility violations, with the search marked', async () => {
         const { container } = render(
             <SpecialtiesCatalog
                 usage={{ professions: [MEDICO, KINESIOLOGO] }}
-                query=""
+                query="cardio"
                 onClearSearch={vi.fn()}
             />,
         );

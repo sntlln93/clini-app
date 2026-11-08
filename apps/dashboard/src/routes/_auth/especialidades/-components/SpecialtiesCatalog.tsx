@@ -51,6 +51,7 @@ export function SpecialtiesCatalog({
                 <ProfessionCard
                     key={profession.profession}
                     profession={profession}
+                    query={query}
                 />
             ))}
         </div>

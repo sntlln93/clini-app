@@ -1,3 +1,4 @@
+import { HighlightedText } from '@/components/HighlightedText';
 import { StatusPill } from '@/components/StatusPill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatNumber } from '@/lib/format';
@@ -12,8 +13,11 @@ import { SpecialtiesTable } from './SpecialtiesTable';
 /** A profession's licenses by registry answer, and its specialties. */
 export function ProfessionCard({
     profession,
+    query,
 }: {
     profession: CatalogProfession;
+    /** The search the API answered, marked in the names. */
+    query: string;
 }) {
     const { licenses } = profession;
     const reasons = LICENSE_MISMATCH_REASONS.filter(
@@ -24,7 +28,10 @@ export function ProfessionCard({
         <Card className="min-w-0">
             <CardHeader>
                 <CardTitle>
-                    {healthProfessionLabel(profession.profession)}
+                    <HighlightedText
+                        text={healthProfessionLabel(profession.profession)}
+                        query={query}
+                    />
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -66,7 +73,10 @@ export function ProfessionCard({
                         </ul>
                     )}
                 </div>
-                <SpecialtiesTable specialties={profession.specialties} />
+                <SpecialtiesTable
+                    specialties={profession.specialties}
+                    query={query}
+                />
             </CardContent>
         </Card>
     );
