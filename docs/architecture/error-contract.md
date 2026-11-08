@@ -75,6 +75,7 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `holidays.provider_unavailable` | 409 | `CalendariosNacionalesService` | |
 | `medications.source_unavailable` | 503 | `NationalMedicationSearchService` (el Buscador Nacional de Medicamentos no respondió, respondió un error o algo que no es una lista JSON; `FillMedicationCatalogAction` la atrapa y la búsqueda responde con la base, así que no llega al panel, ADR 0031) | |
 | `professionals.registry_unavailable` | 503 | `NationalProfessionalSearchService` (el Buscador Nacional de Profesionales de la Salud no respondió, respondió un error o una página que no es ni resultados ni «sin resultados»; `VerifyProfessionalLicensesAction` la atrapa y deja la matrícula como estaba, así que no llega al panel, ADR 0032) | |
+| `professionals.document_locked` | 409 | `UpdateProfessionalDocumentAction` (el profesional ya agregó a Clini una matrícula de su DNI: solo soporte lo cambia, con `user:reset-professional-document`, ADR 0038) | |
 | `subscriptions.inactive` | 409 | middleware `EnsureSubscriptionActive` (suscripción vencida) | `subscription_status` |
 | `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
 | `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `CancelSubscriptionAction`, `MercadoPagoService` | |

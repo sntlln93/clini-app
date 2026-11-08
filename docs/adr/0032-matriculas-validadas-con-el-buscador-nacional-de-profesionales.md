@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (#380). El reemplazo previsto es el acceso oficial a REFEPS (#379). La emisión de recetas sigue en #314. El ADR 0038 (#387) cambia dos cosas: la especialidad de cada matrícula pasa a ser la fila del catálogo de especialidades que el registro llena (`specialty_id`), que decide con qué especialidades puede atender el profesional, y `NATIONAL_PROFESSIONAL_SEARCH_ENABLED` se reemplaza por la elección de adaptador `PROFESSIONAL_REGISTRY` (`national_search` o `fake`), así que ya no hay un registro «apagado»: donde abajo dice «apagado», ahora solo cabe «pausado» tras una falla. `NATIONAL_PROFESSIONAL_SEARCH_PER_RUN` pasa a llamarse `PROFESSIONAL_REGISTRY_PER_RUN`.
+Aceptado (#380). El reemplazo previsto es el acceso oficial a REFEPS (#379). La emisión de recetas sigue en #314. El ADR 0038 (#387) cambia dos cosas: la especialidad de cada matrícula pasa a ser la fila del catálogo de especialidades que el registro llena (`specialty_id`), que decide con qué especialidades puede atender el profesional, y `NATIONAL_PROFESSIONAL_SEARCH_ENABLED` se reemplaza por la elección de adaptador `PROFESSIONAL_REGISTRY` (`national_search` o `fake`), así que ya no hay un registro «apagado»: donde abajo dice «apagado», ahora solo cabe «pausado» tras una falla. `NATIONAL_PROFESSIONAL_SEARCH_PER_RUN` pasa a llamarse `PROFESSIONAL_REGISTRY_PER_RUN`. Además las matrículas ya no se declaran: salen del registro y el profesional agrega a Clini las suyas, y el DNI queda fijo una vez que agrega la primera (ADR 0038).
 
 ## Contexto
 
