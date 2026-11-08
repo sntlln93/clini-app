@@ -2,7 +2,7 @@
 
 ## Estado
 
-Aceptado (#387). Reemplaza, para las especialidades, el catálogo de la app externa y la credencial elegida libremente del ADR 0005 (las prestaciones siguen como allí). Cambia del ADR 0032 la especialidad de la matrícula, que deja de ser un texto, y el interruptor `NATIONAL_PROFESSIONAL_SEARCH_ENABLED`. La identidad (RENAPER) y el acceso oficial a REFEPS siguen en #379; el nombre del profesional, en #417; las métricas del catálogo, en #418; las caídas del registro, en #419.
+Aceptado (#387). Reemplaza, para las especialidades, el catálogo de la app externa y la credencial elegida libremente del ADR 0005 (las prestaciones siguen como allí). Cambia del ADR 0032 la especialidad de la matrícula, que deja de ser un texto, y el interruptor `NATIONAL_PROFESSIONAL_SEARCH_ENABLED`. La identidad (RENAPER) y el acceso oficial a REFEPS siguen en #379; el nombre del profesional, en #417; las métricas del catálogo, resueltas en #418 (abajo); las caídas del registro, en #419.
 
 ## Contexto
 
@@ -22,7 +22,7 @@ La profesión es el título de grado más la matrícula que habilita a ejercer (
 
 **Perder el respaldo no borra ni bloquea.** La FK compuesta de `professional_specialties` hacia `user_specialties` (que borraba en cascada) se reemplaza por una FK simple a `specialties`. Una especialidad habilitada en un consultorio que ya no respalda ninguna matrícula verificada sigue habilitada: la agenda, la reserva y la historia clínica no cambian. Se puede quitar, pero no volver a elegir hasta que una matrícula la respalde.
 
-**Quién ve la marca «sin respaldo de matrícula».** Quienes pueden ver el listado de profesionales (`memberships.view`): `GET /memberships` dice `backed` por especialidad, y la marcan las tarjetas de /profesionales y Ajustes › Profesionales. Es una excepción acotada al ADR 0032: se expone solo la marca derivada; el DNI, el número, la provincia y el estado de cada matrícula siguen siendo solo de su dueño. El paciente no la ve: la página de reservas no lleva `backed` (y la especialidad nunca sale hacia terceros, ADR 0018).
+**Quién ve la marca «sin respaldo de matrícula».** Quienes pueden ver el listado de profesionales (`memberships.view`): `GET /memberships` dice `backed` por especialidad, y la marcan las tarjetas de /profesionales y Ajustes › Profesionales. Es una excepción acotada al ADR 0032: se expone solo la marca derivada; el DNI, el número, la provincia y el estado de cada matrícula siguen siendo solo de su dueño. El paciente no la ve: la página de reservas no lleva `backed` (y la especialidad nunca sale hacia terceros, ADR 0018). Los operadores de la plataforma la ven solo como conteo (#418, abajo).
 
 **Siempre hay un registro.** `PROFESSIONAL_REGISTRY` elige el adaptador de `ProfessionalRegistry`: `national_search` (el Buscador Nacional de Profesionales de la Salud), el valor por defecto y el de producción, y más adelante `refeps` (#379); y `fake` (`FakeProfessionalRegistry`), que responde sin salir de Clini a los DNIs inventados del fixture del seeder y «nadie» a cualquier otro. Producción rechaza `fake` al resolverlo, como rechaza la clave pública de desarrollo del cifrado clínico. Dev y e2e usan `fake`; Pest corre dos veces, con `fake` y con `national_search` sobre las páginas grabadas. Ya no hay un estado «registro apagado»: lo que queda es la pausa de 5 minutos después de una falla. Qué pasa con una caída larga o un cambio de formato es #419.
 
@@ -34,7 +34,7 @@ La profesión es el título de grado más la matrícula que habilita a ejercer (
 
 ### Decisiones tomadas en la implementación
 
-- **La derivación es una consulta, no una tabla.** El triage hablaba del nivel del profesional (`user_specialties`) derivado de las matrículas; mantener una tabla derivada obligaba a reescribirla en cada verificación, cambio de DNI, matrícula quitada y borrado de cuenta, con el riesgo de que quede desfasada. Se calcula sobre `professional_licenses` (verificadas, con `specialty_id`). #418 cuenta «profesionales que la tienen respaldada» con la misma consulta.
+- **La derivación es una consulta, no una tabla.** El triage hablaba del nivel del profesional (`user_specialties`) derivado de las matrículas; mantener una tabla derivada obligaba a reescribirla en cada verificación, cambio de DNI, matrícula quitada y borrado de cuenta, con el riesgo de que quede desfasada. Se calcula sobre `professional_licenses` (verificadas, con `specialty_id`). #418 cuenta «profesionales que la tienen respaldada» con la misma consulta (`ProfessionalLicense::backing()`, que también usan `backedFor` y `withBacking`).
 - **Las especialidades respaldadas se piden por membresía**, no por usuario: la pantalla que las usa es la del consultorio, y así la autorización es la de ese consultorio (quien elige, o `memberships.view`), sin abrirlas a `catalog.view` (recepción).
 - **El interruptor «Atiendo pacientes en este consultorio»** (#286), que vivía en Mis especialidades, pasa a Ajustes › Matrículas, que ahora ven también quienes pueden activarlo (`memberships.manage`). Atender empieza por cargar las matrículas.
 - **Lo que guarda la matrícula que no coincide.** Si el registro tiene la matrícula pero no la da por habilitada, la fila de su especialidad se guarda igual (como antes el texto), pero no respalda nada: solo cuentan las verificadas y agregadas a Clini.
@@ -56,3 +56,15 @@ La profesión es el título de grado más la matrícula que habilita a ejercer (
 - El catálogo solo tiene las profesiones y especialidades de los profesionales que pasaron por Clini. No es un problema: solo se reserva con los profesionales que existen.
 - En el server de demo los profesionales sembrados tienen matrículas verificadas sin DNI, y la reverificación no los consulta.
 - Un `.env` local de antes de este cambio no tiene `PROFESSIONAL_REGISTRY` y usa `national_search`: hay que agregar `PROFESSIONAL_REGISTRY=fake` (está en `.env.example`).
+
+## Lo que ven los operadores (#418)
+
+El dashboard (`/especialidades`, `GET /admin/specialties`, `App\Support\SpecialtyCatalogUsage`) muestra el catálogo agrupado por profesión con totales de toda la plataforma, sin rango de fechas, sin cruces por plan o provincia y sin detalle por profesional o consultorio. Solo agregados: ningún id de usuario o membresía, nombre, DNI, ni número o provincia de una matrícula (ADR 0032); los conteos se muestran exactos, también los chicos. Qué cuenta cada número:
+
+- **Con respaldo**: usuarios distintos con una matrícula verificada y sumada a Clini que respalda la especialidad, la misma consulta que `backedFor`.
+- **La ofrecen** y **Consultorios**: profesionales y consultorios distintos de las ofertas (`professional_specialties`) que un paciente puede reservar hoy, como la página de reservas: membresía activa con el rol de profesional, de un consultorio no borrado ni suspendido. Una membresía desactivada o suspendida y un consultorio suspendido conservan sus filas, pero no ofrecen nada.
+- **Sin respaldo**: de esas ofertas, las que ya no respalda ninguna matrícula verificada y sumada a Clini, el mismo predicado que la marca del panel.
+- **Matrículas por profesión**: solo las sumadas a Clini (`added_at`), por estado, y las que no coinciden por motivo. Las que el registro trae para un DNI y el profesional no sumó no son suyas en Clini y quedan fuera.
+
+Una profesión aparece si tiene filas en el catálogo o matrículas sumadas; la fila de la profesión sin especialidad va primero.
+

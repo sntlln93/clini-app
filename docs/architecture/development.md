@@ -51,7 +51,7 @@ Los tres montan además `packages/` completo (lectura y escritura, como la app):
 
 ### Dashboard de operación (`apps/dashboard`)
 
-SPA separada para los operadores de la plataforma (no para las clínicas): resumen con KPIs, organizaciones, usuarios, suscripciones, estadísticas y auditoría, con acciones de moderación (suspender/reactivar una organización, bloquear/desbloquear un usuario, verificar un correo a mano, extender un período de gracia). Usa la misma API bajo `/api/v1/admin/*`, con una identidad propia (`platform_admins` + guard de sesión `admin`) — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
+SPA separada para los operadores de la plataforma (no para las clínicas): resumen con KPIs, organizaciones, usuarios, suscripciones, estadísticas, especialidades, contactos y auditoría, con acciones de moderación (suspender/reactivar una organización, bloquear/desbloquear un usuario, verificar un correo a mano, extender un período de gracia). Usa la misma API bajo `/api/v1/admin/*`, con una identidad propia (`platform_admins` + guard de sesión `admin`) — ver [ADR 0010](../adr/0010-identidad-separada-para-operadores-de-plataforma.md).
 
 Para que la API acepte al dashboard en dev, `apps/api/.env` necesita su origen (ya está en `.env.example`; un `.env` copiado antes de este cambio hay que actualizarlo a mano y reiniciar `laravel.test`):
 
