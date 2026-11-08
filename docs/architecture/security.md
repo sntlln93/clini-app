@@ -166,7 +166,7 @@ Navegador (landing, SSR)      ──HTTPS──▶ Traefik ──▶ landing (No
 API ──▶ Resend ──▶ mail del paciente: consultorio, día, hora y dirección; código de acceso (ADR 0018, 0029)
 API ──▶ Mercado Pago: suscripción de la organización (sin pacientes)
 API ──▶ Buscador Nacional de Medicamentos: solo el término, sin el paciente (ADR 0031)
-API ──▶ Buscador Nacional de Profesionales: DNI del profesional (ADR 0032)
+API ──▶ Buscador Nacional de Profesionales: DNI del profesional (ADR 0032); la prueba horaria, un DNI inexistente (#419)
 ```
 
 Ningún dato de pacientes sale hacia un tercero salvo el mail que se le manda al propio paciente. La exportación de la historia se arma en el navegador (ADR 0023).
