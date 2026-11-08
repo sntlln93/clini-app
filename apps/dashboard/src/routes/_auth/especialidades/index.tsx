@@ -25,8 +25,9 @@ function EspecialidadesPage() {
                     El catálogo que llena el registro nacional de profesionales,
                     con totales de toda la plataforma. «Con respaldo»: los
                     profesionales con una matrícula verificada que la respalda.
-                    «La ofrecen» y «Consultorios»: dónde se puede reservar hoy.
-                    «Sin respaldo»: ofertas cuya matrícula ya no la respalda.
+                    «La ofrecen» y «Consultorios»: dónde la muestra hoy la
+                    página de reservas. «Sin respaldo»: ofertas cuya matrícula
+                    ya no la respalda.
                 </p>
             </div>
             <SpecialtiesCatalog usage={usage} />

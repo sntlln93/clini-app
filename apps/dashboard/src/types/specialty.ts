@@ -25,7 +25,7 @@ export type CatalogSpecialty = {
     without_specialty: boolean;
     /** Distinct professionals a verified license in Clini backs it for. */
     backed_professionals: number;
-    /** Distinct professionals a practice offers it with, bookable now. */
+    /** Distinct professionals a practice offers it with, as its booking page lists them. */
     offering_professionals: number;
     offering_organizations: number;
     /** Of those offers, the ones marked «sin respaldo de matrícula». */
