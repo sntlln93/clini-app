@@ -51,7 +51,6 @@ const LICENSES: ProfessionalLicense[] = [
 
 const DOCUMENT = {
     document_number: '30123456',
-    locked: true,
     registry: 'found',
 };
 

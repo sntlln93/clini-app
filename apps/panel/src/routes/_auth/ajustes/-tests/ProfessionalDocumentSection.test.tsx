@@ -29,7 +29,6 @@ function renderSection(
             <ProfessionalDocumentSection
                 document={{
                     document_number: documentNumber,
-                    locked: false,
                     registry: documentNumber === null ? 'unchecked' : 'found',
                     ...overrides,
                 }}
@@ -74,27 +73,8 @@ describe('ProfessionalDocumentSection', () => {
         ).toBe(true);
     });
 
-    it('saves an emptied field as no DNI', async () => {
-        renderSection('30123456');
-
-        fireEvent.change(screen.getByLabelText('DNI'), {
-            target: { value: '' },
-        });
-        fireEvent.click(screen.getByRole('button', { name: 'Guardar' }));
-
-        await waitFor(() =>
-            expect(api.put).toHaveBeenCalledWith('/me/professional-document', {
-                document_number: null,
-            }),
-        );
-    });
-
-    it('has nothing to save while the DNI is the saved one', () => {
-        renderSection('30123456');
-
-        fireEvent.change(screen.getByLabelText('DNI'), {
-            target: { value: '30.123.456' },
-        });
+    it('has nothing to save while the field is empty', () => {
+        renderSection(null);
 
         expect(
             screen
@@ -103,9 +83,9 @@ describe('ProfessionalDocumentSection', () => {
         ).toBe(true);
     });
 
-    // #387: once a license of this DNI is in Clini, only support changes it.
-    it('shows a settled DNI without a way to change it', () => {
-        renderSection('30123456', { locked: true });
+    // #417: loaded once, the DNI and the name it brings are support's to change.
+    it('shows a loaded DNI without a way to change it', () => {
+        renderSection('30123456');
 
         screen.getByText('30123456');
         screen.getByText(/comunicate con el soporte de Clini/);
@@ -113,11 +93,16 @@ describe('ProfessionalDocumentSection', () => {
         expect(screen.queryByRole('button', { name: 'Guardar' })).toBeNull();
     });
 
-    it('says when the registry holds no license for the DNI, and lets it be corrected', () => {
+    it('warns before saving that only support changes it afterwards', () => {
+        renderSection(null);
+
+        screen.getByText(/una vez cargado, tu DNI y tu nombre/);
+    });
+
+    it('says when the registry no longer holds licenses for the DNI', () => {
         renderSection('30123456', { registry: 'not_found' });
 
-        screen.getByText(/no tiene matrículas para este DNI/);
-        expect(screen.getByLabelText('DNI')).toBeDefined();
+        screen.getByText(/ya\s+no tiene matrículas para este DNI/);
     });
 
     it('says nothing about the registry while it hasn’t answered', () => {

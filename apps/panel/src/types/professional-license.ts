@@ -24,11 +24,10 @@ export type ProfessionalLicense = {
 };
 
 /**
- * The professional's DNI (#380): `locked` once a license is in Clini, and
- * whether the registry found anyone under it (#387).
+ * The professional's DNI (#380): loaded once, after which only support changes
+ * it (#417), and whether the registry found anyone under it (#387).
  */
 export type ProfessionalDocument = {
     document_number: string | null;
-    locked: boolean;
     registry: 'unchecked' | 'found' | 'not_found';
 };

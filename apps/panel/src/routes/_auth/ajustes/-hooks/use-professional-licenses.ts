@@ -2,6 +2,7 @@ import { useRefreshPageData } from '@/hooks/use-refresh-page-data';
 import { api } from '@/lib/api';
 import { withMinimumDuration } from '@/lib/minimum-duration';
 import { discardPageData } from '@/lib/page-data';
+import { sessionQueryOptions } from '@/lib/session';
 import { notifyError, notifySuccess } from '@/lib/toast';
 import type {
     ProfessionalDocument,
@@ -36,30 +37,39 @@ export const professionalDocumentQueryOptions = queryOptions({
             .then((response) => response.data.data),
 });
 
-// Every write may change the licenses (a lookup brings the registry's ones,
-// adding one settles the DNI), so each one reloads both reads of the page. A status also decides which
+// Every write may change the licenses (a lookup brings the registry's ones),
+// so each one reloads both reads of the page. A status also decides which
 // specialties the licenses back (#387): Ajustes › Profesionales and the member
-// cards read that only in their loaders (#273).
-function useRefreshLicenses() {
+// cards read that only in their loaders (#273). Loading the DNI also names the
+// account after the registry (#417): the session (the header) and every member
+// list read that name.
+function useRefreshLicenses({ renamed = false } = {}) {
     const queryClient = useQueryClient();
     const refreshPageData = useRefreshPageData();
 
     return () => {
-        discardPageData(queryClient, BACKED_SPECIALTIES_KEY, [
-            'memberships',
-            'cards',
-        ]);
+        discardPageData(
+            queryClient,
+            BACKED_SPECIALTIES_KEY,
+            renamed ? ['memberships'] : ['memberships', 'cards'],
+        );
 
-        return refreshPageData(LICENSES_KEY, DOCUMENT_KEY);
+        return renamed
+            ? refreshPageData(
+                  LICENSES_KEY,
+                  DOCUMENT_KEY,
+                  sessionQueryOptions.queryKey,
+              )
+            : refreshPageData(LICENSES_KEY, DOCUMENT_KEY);
     };
 }
 
 export function useUpdateProfessionalDocument() {
-    const refresh = useRefreshLicenses();
+    const refresh = useRefreshLicenses({ renamed: true });
 
     return useMutation({
-        // A new DNI is looked up right away (RegistryProgress).
-        mutationFn: (documentNumber: string | null) =>
+        // The DNI is looked up right away (RegistryProgress).
+        mutationFn: (documentNumber: string) =>
             withMinimumDuration(
                 api.put('/me/professional-document', {
                     document_number: documentNumber,
