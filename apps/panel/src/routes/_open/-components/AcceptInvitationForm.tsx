@@ -20,6 +20,7 @@ import {
     useInvitationInfo,
 } from '../-hooks/use-accept-invitation';
 import { AcceptInvitationRegistrationFields } from './AcceptInvitationRegistrationFields';
+import { ProfessionalInvitationFlow } from './ProfessionalInvitationFlow';
 
 function infoErrorMessage(error: unknown): string {
     return messageForAppError(mapToAppError(error));
@@ -120,24 +121,44 @@ export function AcceptInvitationForm({
         );
     }
 
+    const header = (
+        <>
+            <div className="space-y-1 text-center">
+                <h1 className="text-2xl tracking-tight">Unirte a Clini</h1>
+                <p className="text-sm text-muted-foreground">
+                    {invitation.organization_name
+                        ? `Te invitaron a sumarte a ${invitation.organization_name} (${invitation.email}).`
+                        : `Te invitaron a sumarte con ${invitation.email}.`}
+                </p>
+            </div>
+
+            {isOtherAccount(sessionEmail, invitation.email) && (
+                <p className="rounded-md border bg-muted p-3 text-sm">
+                    {invitation.professional
+                        ? `Tenés una sesión abierta como ${sessionEmail}; al aceptar vas a ingresar con la cuenta de tu DNI.`
+                        : `Tenés una sesión abierta como ${sessionEmail}; al aceptar vas a ingresar como ${invitation.email}.`}
+                </p>
+            )}
+        </>
+    );
+
+    // A professional invitation starts with the DNI (#417).
+    if (invitation.professional) {
+        return (
+            <div className="space-y-4">
+                {header}
+                <ProfessionalInvitationFlow
+                    token={token}
+                    lookupsLeft={invitation.document_lookups_left}
+                />
+            </div>
+        );
+    }
+
     return (
         <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <div className="space-y-1 text-center">
-                    <h1 className="text-2xl tracking-tight">Unirte a Clini</h1>
-                    <p className="text-sm text-muted-foreground">
-                        {invitation.organization_name
-                            ? `Te invitaron a sumarte a ${invitation.organization_name} (${invitation.email}).`
-                            : `Te invitaron a sumarte con ${invitation.email}.`}
-                    </p>
-                </div>
-
-                {isOtherAccount(sessionEmail, invitation.email) && (
-                    <p className="rounded-md border bg-muted p-3 text-sm">
-                        Tenés una sesión abierta como {sessionEmail}; al aceptar
-                        vas a ingresar como {invitation.email}.
-                    </p>
-                )}
+                {header}
 
                 {form.formState.errors.root && (
                     <div className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">

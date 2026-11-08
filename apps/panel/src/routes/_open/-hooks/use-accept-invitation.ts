@@ -4,16 +4,27 @@ import { sessionQueryOptions } from '@/lib/session';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 
-type InvitationInfo = {
+export type InvitationInfo = {
     email: string;
     organization_name: string | null;
     requires_registration: boolean;
+    /** A professional one starts with the DNI (#417). */
+    professional: boolean;
+    document_lookups_left: number;
 };
 
-type AcceptInvitationPayload = {
+/** Who the DNI found (#417): the registry's name, and the account it links to. */
+export type InvitationIdentity = {
+    name: string;
+    account: { email: string; two_factor: boolean } | null;
+    document_lookups_left: number;
+};
+
+export type AcceptInvitationPayload = {
     name?: string;
     password?: string;
     password_confirmation?: string;
+    code?: string;
 };
 
 export function useInvitationInfo(token: string) {
@@ -24,6 +35,21 @@ export function useInvitationInfo(token: string) {
                 .get<InvitationInfo>(`/invitations/${token}`)
                 .then((response) => response.data),
         retry: false,
+    });
+}
+
+/** Looks the DNI up in the registry; the API keeps what it found for the acceptance. */
+export function useInvitationDocumentLookup(token: string) {
+    return useMutation({
+        mutationFn: (documentNumber: string) =>
+            refreshCsrfCookie().then(() =>
+                api
+                    .post<{ data: InvitationIdentity }>(
+                        `/invitations/${token}/document-lookups`,
+                        { document_number: documentNumber },
+                    )
+                    .then((response) => response.data.data),
+            ),
     });
 }
 
