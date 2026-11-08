@@ -2,8 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Mail\Professionals;
+namespace App\Mail\ExternalSources;
 
+use App\Enums\ExternalSource;
 use Carbon\CarbonImmutable;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -13,10 +14,10 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
 /**
- * Tells the team the national professional registry answers again after an outage it was told of (#419), and how long
- * the outage lasted.
+ * Tells the team an external source answers again after an outage it was told of (#419, #425), and how long the
+ * outage lasted.
  */
-class ProfessionalRegistryRecoveredMail extends Mailable implements ShouldQueue
+class ExternalSourceRecoveredMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
@@ -26,6 +27,7 @@ class ProfessionalRegistryRecoveredMail extends Mailable implements ShouldQueue
     private const string TIMEZONE = 'America/Argentina/Buenos_Aires';
 
     public function __construct(
+        public readonly ExternalSource $source,
         public readonly CarbonImmutable $startedAt,
         public readonly CarbonImmutable $endedAt,
     ) {}
@@ -33,7 +35,7 @@ class ProfessionalRegistryRecoveredMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'El registro nacional de profesionales volvió a responder',
+            subject: "{$this->source->label()} volvió a responder",
         );
     }
 
@@ -42,13 +44,17 @@ class ProfessionalRegistryRecoveredMail extends Mailable implements ShouldQueue
         $minutes = (int) $this->startedAt->diffInMinutes($this->endedAt);
 
         return new Content(
-            view: 'emails.professional-registry-recovered',
+            view: 'emails.external-source-recovered',
             with: [
+                'officialName' => $this->source->officialName(),
                 'since' => self::local($this->startedAt),
                 'until' => self::local($this->endedAt),
                 'duration' => $minutes < 60
                     ? ($minutes === 1 ? '1 minuto' : "{$minutes} minutos")
                     : sprintf('%d h %02d min', intdiv($minutes, 60), $minutes % 60),
+                'recovery' => match ($this->source) {
+                    ExternalSource::ProfessionalRegistry => 'Ya se pueden cargar DNIs y aceptar invitaciones como profesional otra vez.',
+                },
             ],
         );
     }

@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Enums\ErrorCode;
+use App\Enums\ExternalSource;
 use App\Mail\Account\AccountDeletedMail;
 use App\Mail\Account\AccountDeletionCancelledMail;
 use App\Mail\Account\AccountDeletionRequestedMail;
@@ -11,9 +12,9 @@ use App\Mail\Appointments\AppointmentReminderMail;
 use App\Mail\Auth\EmailVerificationMail;
 use App\Mail\Auth\PasswordResetMail;
 use App\Mail\Contact\ContactRequestReceivedMail;
+use App\Mail\ExternalSources\ExternalSourceOutageMail;
+use App\Mail\ExternalSources\ExternalSourceRecoveredMail;
 use App\Mail\Memberships\MembershipInvitationMail;
-use App\Mail\Professionals\ProfessionalRegistryOutageMail;
-use App\Mail\Professionals\ProfessionalRegistryRecoveredMail;
 use App\Models\Appointment;
 use App\Models\ContactRequest;
 use App\Models\MembershipInvitation;
@@ -48,8 +49,8 @@ dataset('mailables', [
     'account deleted' => fn (): Mailable => new AccountDeletedMail('Ana'),
     'account deletion cancelled' => fn (): Mailable => new AccountDeletionCancelledMail('Ana'),
     'account deletion voided' => fn (): Mailable => new AccountDeletionVoidedMail('Ana', ErrorCode::AccountDeletionFutureAppointments, ['Consultorio Oeste']),
-    'professional registry outage' => fn (): Mailable => new ProfessionalRegistryOutageMail(CarbonImmutable::now(), 'response'),
-    'professional registry recovered' => fn (): Mailable => new ProfessionalRegistryRecoveredMail(CarbonImmutable::now()->subHour(), CarbonImmutable::now()),
+    'professional registry outage' => fn (): Mailable => new ExternalSourceOutageMail(ExternalSource::ProfessionalRegistry, CarbonImmutable::now(), 'response'),
+    'professional registry recovered' => fn (): Mailable => new ExternalSourceRecoveredMail(ExternalSource::ProfessionalRegistry, CarbonImmutable::now()->subHour(), CarbonImmutable::now()),
 ]);
 
 dataset('notifications', [

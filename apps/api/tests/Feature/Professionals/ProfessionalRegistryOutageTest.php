@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Enums\ExternalSource;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
-use App\Mail\Professionals\ProfessionalRegistryOutageMail;
-use App\Mail\Professionals\ProfessionalRegistryRecoveredMail;
+use App\Mail\ExternalSources\ExternalSourceOutageMail;
+use App\Mail\ExternalSources\ExternalSourceRecoveredMail;
 use App\Services\Professionals\NationalProfessionalSearchService;
-use App\Support\ProfessionalRegistryOutage;
+use App\Support\ExternalSourceOutage;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
@@ -28,6 +29,11 @@ function registryOutageAnswering(?string &$page): void
     fakeNationalProfessionalSearch(function () use (&$page) {
         return $page === null ? Http::response('', 500) : Http::response($page);
     });
+}
+
+function registryOutage(): ExternalSourceOutage
+{
+    return new ExternalSourceOutage(ExternalSource::ProfessionalRegistry);
 }
 
 function registryOutageLookUp(): void
@@ -58,10 +64,10 @@ test('the first failure starts the outage and a later one doesn\'t move its star
     $page = null;
     registryOutageAnswering($page);
 
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
+    expect(registryOutage()->ongoing())->toBeFalse();
 
     registryOutageLookUp();
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeTrue();
+    expect(registryOutage()->ongoing())->toBeTrue();
 
     // A failure 10 minutes in would mail 15 minutes later if it had restarted the outage.
     $this->travel(10)->minutes();
@@ -69,7 +75,7 @@ test('the first failure starts the outage and a later one doesn\'t move its star
     $this->travel(5)->minutes();
     registryOutageLookUp();
 
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, fn (ProfessionalRegistryOutageMail $mail): bool => $mail->startedAt->equalTo(CarbonImmutable::parse('2026-11-08 13:00:00', 'UTC')));
+    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->startedAt->equalTo(CarbonImmutable::parse('2026-11-08 13:00:00', 'UTC')));
 });
 
 test('nobody is told before the outage reaches the threshold', function () {
@@ -110,7 +116,7 @@ test('the team is told once per outage, with its start and last step', function 
     registryOutageLookUp();
 
     Mail::assertQueuedCount(1);
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, function (ProfessionalRegistryOutageMail $mail): bool {
+    Mail::assertQueued(ExternalSourceOutageMail::class, function (ExternalSourceOutageMail $mail): bool {
         // 13:00 UTC, in Argentina's time.
         $mail->assertSeeInHtml('08/11/2026 10:00')
             ->assertSeeInHtml('puede haber cambiado el formato de la página');
@@ -132,18 +138,18 @@ test('a lookup that can\'t read its page keeps the outage until a page with resu
     $this->artisan('professionals:probe-registry')->assertSuccessful();
     $page = nationalProfessionalSearchFixture('invalid-document.html');
     registryOutageLookUp();
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeTrue();
+    expect(registryOutage()->ongoing())->toBeTrue();
 
     // So the next lookup that fails past the threshold tells the team.
     $page = '<html>resultados con otro formato</html>';
     $this->travel(10)->minutes();
     registryOutageLookUp();
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, fn (ProfessionalRegistryOutageMail $mail): bool => $mail->startedAt->equalTo(CarbonImmutable::parse('2026-11-08 13:00:00', 'UTC')));
+    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->startedAt->equalTo(CarbonImmutable::parse('2026-11-08 13:00:00', 'UTC')));
 
     $page = nationalProfessionalSearchFixture('results.html');
     registryOutageLookUp();
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
-    Mail::assertQueued(ProfessionalRegistryRecoveredMail::class);
+    expect(registryOutage()->ongoing())->toBeFalse();
+    Mail::assertQueued(ExternalSourceRecoveredMail::class);
 });
 
 test('a probe that can\'t read its page doesn\'t wait for results to end the outage', function () {
@@ -154,7 +160,7 @@ test('a probe that can\'t read its page doesn\'t wait for results to end the out
     $page = nationalProfessionalSearchFixture('no-results.html');
     $this->artisan('professionals:probe-registry')->assertSuccessful();
 
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
+    expect(registryOutage()->ongoing())->toBeFalse();
 });
 
 test('an answer the adapter reads ends the outage, and tells the team how long it lasted', function (string $fixture) {
@@ -168,8 +174,8 @@ test('an answer the adapter reads ends the outage, and tells the team how long i
     $page = nationalProfessionalSearchFixture($fixture);
     registryOutageLookUp();
 
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
-    Mail::assertQueued(ProfessionalRegistryRecoveredMail::class, function (ProfessionalRegistryRecoveredMail $mail): bool {
+    expect(registryOutage()->ongoing())->toBeFalse();
+    Mail::assertQueued(ExternalSourceRecoveredMail::class, function (ExternalSourceRecoveredMail $mail): bool {
         $mail->assertSeeInHtml('1 h 25 min')
             ->assertSeeInHtml('08/11/2026 10:00')
             ->assertSeeInHtml('08/11/2026 11:25');
@@ -182,7 +188,7 @@ test('an answer the adapter reads ends the outage, and tells the team how long i
     registryOutageLookUp();
     $this->travel(15)->minutes();
     registryOutageLookUp();
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, 2);
+    Mail::assertQueued(ExternalSourceOutageMail::class, 2);
 })->with(['results.html', 'no-results.html', 'invalid-document.html']);
 
 test('an outage nobody was told of ends without a mail', function () {
@@ -194,7 +200,7 @@ test('an outage nobody was told of ends without a mail', function () {
     $page = nationalProfessionalSearchFixture('no-results.html');
     registryOutageLookUp();
 
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
+    expect(registryOutage()->ongoing())->toBeFalse();
     Mail::assertNothingOutgoing();
 });
 
@@ -209,7 +215,7 @@ test('without the registry\'s own address the mail goes to the contact form\'s, 
     registryOutageLookUp();
     $this->travel(15)->minutes();
     registryOutageLookUp();
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, fn (ProfessionalRegistryOutageMail $mail): bool => $mail->hasTo('contacto@clini.test'));
+    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->hasTo('contacto@clini.test'));
 
     config(['contact.notification_email' => null]);
     $page = nationalProfessionalSearchFixture('no-results.html');
@@ -228,7 +234,7 @@ test('no mail carries a DNI: neither the one looked up nor the probe\'s', functi
     registryOutageLookUp();
 
     Mail::assertQueuedCount(2);
-    foreach ([...Mail::queued(ProfessionalRegistryOutageMail::class), ...Mail::queued(ProfessionalRegistryRecoveredMail::class)] as $mail) {
+    foreach ([...Mail::queued(ExternalSourceOutageMail::class), ...Mail::queued(ExternalSourceRecoveredMail::class)] as $mail) {
         $mail->assertDontSeeInHtml(OUTAGE_LOOKED_UP_DOCUMENT)
             ->assertDontSeeInHtml(OUTAGE_PROBE_DOCUMENT)
             ->assertDontSeeInText(OUTAGE_LOOKED_UP_DOCUMENT)
@@ -252,8 +258,8 @@ test('the probe looks up its DNI even while the registry is paused, and its answ
         ->assertSuccessful();
 
     Http::assertSent(fn (Request $request): bool => $request->method() === 'POST' && $request['dni'] === OUTAGE_PROBE_DOCUMENT);
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
-    Mail::assertQueued(ProfessionalRegistryRecoveredMail::class);
+    expect(registryOutage()->ongoing())->toBeFalse();
+    Mail::assertQueued(ExternalSourceRecoveredMail::class);
 });
 
 test('a failed probe starts the outage, and tells the team once it reaches the threshold', function () {
@@ -263,12 +269,12 @@ test('a failed probe starts the outage, and tells the team once it reaches the t
     $this->artisan('professionals:probe-registry')
         ->expectsOutput('El registro no respondió (status).')
         ->assertFailed();
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeTrue();
+    expect(registryOutage()->ongoing())->toBeTrue();
     Mail::assertNothingOutgoing();
 
     $this->travel(15)->minutes();
     $this->artisan('professionals:probe-registry')->assertFailed();
-    Mail::assertQueued(ProfessionalRegistryOutageMail::class, fn (ProfessionalRegistryOutageMail $mail): bool => $mail->step === 'status');
+    Mail::assertQueued(ExternalSourceOutageMail::class, fn (ExternalSourceOutageMail $mail): bool => $mail->step === 'status');
 });
 
 test('a probe answered with anything but «no results» fails, though the registry answered', function (string $fixture) {
@@ -281,7 +287,7 @@ test('a probe answered with anything but «no results» fails, though the regist
         ->expectsOutput('El registro respondió, pero no «sin resultados»: NATIONAL_PROFESSIONAL_SEARCH_PROBE_DOCUMENT tiene que ser un DNI que nadie tenga.')
         ->assertFailed();
 
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
+    expect(registryOutage()->ongoing())->toBeFalse();
 })->with(['results.html', 'invalid-document.html']);
 
 test('the fake registry is neither probed nor tracked', function () {
@@ -291,7 +297,7 @@ test('the fake registry is neither probed nor tracked', function () {
 
     Http::assertNothingSent();
     Mail::assertNothingOutgoing();
-    expect(app(ProfessionalRegistryOutage::class)->ongoing())->toBeFalse();
+    expect(registryOutage()->ongoing())->toBeFalse();
 });
 
 test('the probe runs hourly, and every 5 minutes during an outage', function () {
