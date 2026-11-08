@@ -36,7 +36,8 @@ class SubscriptionGraceStartedNotification extends Notification implements Shoul
     {
         return (new MailMessage)
             ->subject('No pudimos cobrar tu suscripción a Clini')
-            ->greeting('Hola')
+            ->markdown('notifications::email', ['label' => 'Suscripción', 'eyebrow' => 'Pago pendiente'])
+            ->greeting('¡Hola!')
             ->line("No pudimos procesar el último pago de la suscripción de {$this->organization->name}.")
             ->line('Tenés tiempo hasta el '.$this->graceEndsAt->format('d/m/Y').' para regularizarlo. Hasta entonces, el panel sigue funcionando con normalidad.')
             ->line('Pasado ese plazo, la agenda quedará en modo solo lectura.')

@@ -1,53 +1,26 @@
-{{-- Laravel's notification mail (#236), signed with the brand's name from config/brand.php instead of APP_NAME, in Spanish. --}}
-<x-mail::message>
-{{-- Greeting --}}
-@if (! empty($greeting))
-# {{ $greeting }}
-@else
-@if ($level === 'error')
-# ¡Ups!
-@else
-# Hola
-@endif
-@endif
-
-{{-- Intro Lines --}}
+{{--
+    Laravel's notification mail (#236, #422) on the one mail layout: the greeting is the title, the intro lines the body,
+    the action the button (with its «Si el botón no funciona…» link) and the outro lines the note. A notification names
+    its header label and eyebrow through ->markdown('notifications::email', ['label' => …, 'eyebrow' => …]).
+--}}
+<x-mail::message
+    :title="! empty($greeting) ? $greeting : ($level === 'error' ? '¡Ups!' : '¡Hola!')"
+    :label="$label ?? null"
+    :eyebrow="$eyebrow ?? null"
+    :action-url="$actionUrl ?? null"
+    :action-text="$actionText ?? null"
+>
 @foreach ($introLines as $line)
 {{ $line }}
 
 @endforeach
-
-{{-- Action Button --}}
-@isset($actionText)
-<?php
-    $color = match ($level) {
-        'success', 'error' => $level,
-        default => 'primary',
-    };
-?>
-<x-mail::button :url="$actionUrl" :color="$color">
-{{ $actionText }}
-</x-mail::button>
-@endisset
-
-{{-- Outro Lines --}}
+@if (! empty($salutation))
+{{ $salutation }}
+@endif
+<x-slot:note>
 @foreach ($outroLines as $line)
 {{ $line }}
 
 @endforeach
-
-{{-- Salutation --}}
-@if (! empty($salutation))
-{{ $salutation }}
-@else
-Saludos,<br>
-{{ config('brand.name') }}
-@endif
-
-{{-- Subcopy --}}
-@isset($actionText)
-<x-slot:subcopy>
-Si el botón «{{ $actionText }}» no funciona, copiá y pegá este enlace en tu navegador: <span class="break-all">[{{ $displayableActionUrl }}]({{ $actionUrl }})</span>
-</x-slot:subcopy>
-@endisset
+</x-slot:note>
 </x-mail::message>

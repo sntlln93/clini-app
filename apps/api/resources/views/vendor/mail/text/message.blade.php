@@ -1,26 +1,30 @@
-{{-- Laravel's layout with the brand's name from config/brand.php (#236) instead of APP_NAME, and a Spanish footer. --}}
+@props([
+    'title' => null,
+    'label' => null,
+    'eyebrow' => null,
+    'actionUrl' => null,
+    'actionText' => null,
+    'note' => null,
+])
+{{-- The text part of Laravel's markdown mails, with the same sections as the HTML layout (#422) and its footer. --}}
 <x-mail::layout>
-    {{-- Header --}}
-    <x-slot:header>
-        {{ config('brand.name') }}
-    </x-slot:header>
+<x-slot:header>
+{{ config('brand.name') }}
+</x-slot:header>
+@if (filled($title))
+{{ $title }}
 
-    {{-- Body --}}
-    {{ $slot }}
+@endif
+{{ $slot }}
+@if (filled($actionUrl) && filled($actionText))
 
-    {{-- Subcopy --}}
-    @isset($subcopy)
-        <x-slot:subcopy>
-            <x-mail::subcopy>
-                {{ $subcopy }}
-            </x-mail::subcopy>
-        </x-slot:subcopy>
-    @endisset
+{{ $actionText }}: {{ $actionUrl }}
+@endif
+@if (trim((string) $note) !== '')
 
-    {{-- Footer --}}
-    <x-slot:footer>
-        <x-mail::footer>
-            © {{ date('Y') }} {{ config('brand.name') }}. Todos los derechos reservados.
-        </x-mail::footer>
-    </x-slot:footer>
+{{ $note }}
+@endif
+<x-slot:footer>
+{{ config('brand.name') }} · Más tiempo para atender.
+</x-slot:footer>
 </x-mail::layout>

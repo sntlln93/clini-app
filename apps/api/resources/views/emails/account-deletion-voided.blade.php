@@ -1,14 +1,8 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <title>No pudimos eliminar tu cuenta de Clini</title>
-</head>
-<body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
-    @include('emails.partials.brand-header')
-
-    <p>Hola {{ $name }},</p>
-
+<x-email.layout
+    :title="'¡Hola, '.$name.'!'"
+    label="Tu cuenta"
+    eyebrow="Eliminación no realizada"
+>
     <p>
         Llegó la fecha en que íbamos a eliminar tu cuenta de Clini, pero no pudimos:
         @if ($lastAdmin)
@@ -28,5 +22,4 @@
         @endif
         y volvé a pedirlo desde Ajustes › Protección de datos.
     </p>
-</body>
-</html>
+</x-email.layout>

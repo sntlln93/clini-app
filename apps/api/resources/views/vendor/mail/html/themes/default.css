@@ -1,0 +1,6 @@
+/*
+ * Laravel inlines this theme into every markdown mail. The mail layout (#422,
+ * resources/views/components/email/layout.blade.php) writes its own inline
+ * styles, so this replaces Laravel's theme with nothing: its rules for body,
+ * p, a and h1 would otherwise override the layout's look.
+ */

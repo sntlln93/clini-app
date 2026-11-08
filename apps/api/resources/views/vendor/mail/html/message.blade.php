@@ -1,28 +1,16 @@
-{{-- Laravel's layout with the brand's name from config/brand.php (#236) instead of APP_NAME, and a Spanish footer. --}}
-<x-mail::layout>
-{{-- Header --}}
-<x-slot:header>
-<x-mail::header :url="config('app.url')">
-{{ config('brand.name') }}
-</x-mail::header>
-</x-slot:header>
-
-{{-- Body --}}
-{!! $slot !!}
-
-{{-- Subcopy --}}
-@isset($subcopy)
-<x-slot:subcopy>
-<x-mail::subcopy>
-{!! $subcopy !!}
-</x-mail::subcopy>
-</x-slot:subcopy>
-@endisset
-
-{{-- Footer --}}
-<x-slot:footer>
-<x-mail::footer>
-© {{ date('Y') }} {{ config('brand.name') }}. Todos los derechos reservados.
-</x-mail::footer>
-</x-slot:footer>
-</x-mail::layout>
+@props([
+    'title' => null,
+    'label' => null,
+    'eyebrow' => null,
+    'actionUrl' => null,
+    'actionText' => null,
+    'note' => null,
+])
+{{--
+    Laravel's markdown mails (the notifications, through vendor/notifications/email.blade.php) drawn with the one mail
+    layout (#422) instead of Laravel's: the body and the note are markdown, parsed here.
+--}}
+<x-email.layout :title="$title" :label="$label" :eyebrow="$eyebrow" :action-url="$actionUrl" :action-text="$actionText">
+{!! Illuminate\Mail\Markdown::parse((string) $slot) !!}
+<x-slot:note>{!! trim((string) $note) === '' ? '' : Illuminate\Mail\Markdown::parse((string) $note) !!}</x-slot:note>
+</x-email.layout>
