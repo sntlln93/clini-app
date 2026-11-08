@@ -8,6 +8,7 @@ use App\Enums\ClinicalAccessAction;
 use App\Enums\DocumentType;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
+use App\Enums\ProfessionalLicenseStatus;
 use App\Models\Appointment;
 use App\Models\Availability;
 use App\Models\AvailabilityException;
@@ -25,16 +26,18 @@ use App\Models\Prescription;
 use App\Models\PrescriptionAnnulment;
 use App\Models\PrescriptionItem;
 use App\Models\PrescriptionVersion;
+use App\Models\ProfessionalLicense;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Reminder;
+use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
-use App\Models\UserSpecialty;
 use App\Support\ClinicalNoteDiagnoses;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\OrganizationsSeeder;
 use Database\Seeders\PlatformAdminSeeder;
+use Database\Seeders\ProfessionalRegistrySeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -244,7 +247,7 @@ test('the patient shared by both organizations is a single row linked through th
     expect($organizationSlugs)->toBe(['clinica-modelo', 'consultorio-dos']);
 });
 
-test('every professional membership has specialties and services, credential-backed by user_specialties', function () {
+test('every professional membership has specialties and services, each specialty backed by a verified license', function () {
     $this->seed(DatabaseSeeder::class);
 
     $professionalMemberships = Membership::all()
@@ -259,14 +262,39 @@ test('every professional membership has specialties and services, credential-bac
         expect($specialtyAssignments)->not->toBeEmpty();
         expect($serviceAssignments)->not->toBeEmpty();
 
-        foreach ($specialtyAssignments as $assignment) {
-            $hasCredential = UserSpecialty::where('user_id', $membership->user_id)
-                ->where('specialty_id', $assignment->specialty_id)
-                ->exists();
-
-            expect($hasCredential)->toBeTrue();
-        }
+        expect($specialtyAssignments->pluck('specialty_id')->sort()->values()->all())
+            ->toBe(Specialty::query()->backedFor($membership->user_id)->orderBy('id')->pluck('id')->all());
     }
+});
+
+// No hand-written catalog (#387): the specialties are what the fake registry answers for the seeded DNIs.
+test('the specialties catalog holds only what the registry answers for the seeded professionals', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+
+    expect(Specialty::query()->orderBy('name')->get()->map(fn (Specialty $specialty): array => [$specialty->profession->value, $specialty->name])->all())
+        ->toBe([['medico', 'Cardiología'], ['medico', 'Pediatría']]);
+
+    foreach (ProfessionalRegistrySeeder::DOCUMENT_NUMBERS as $email => $documentNumber) {
+        $user = User::query()->where('email', $email)->sole();
+        $licenses = ProfessionalLicense::query()->where('user_id', $user->id)->get();
+
+        expect($user->document_number)->toBe($documentNumber)
+            ->and($licenses)->not->toBeEmpty()
+            ->and($licenses->every(fn (ProfessionalLicense $license): bool => $license->status === ProfessionalLicenseStatus::Verified && $license->specialty_id !== null))->toBeTrue();
+    }
+});
+
+test('on the production image the seeded professionals get no DNI, so nothing sends one to the real registry', function () {
+    // Run directly: `db:seed` would stop to ask for confirmation in production.
+    $this->app['env'] = 'production';
+
+    $this->app->make(DatabaseSeeder::class)->run();
+
+    $this->app['env'] = 'testing';
+
+    expect(User::query()->whereNotNull('document_number')->exists())->toBeFalse()
+        ->and(ProfessionalLicense::query()->where('status', ProfessionalLicenseStatus::Verified)->exists())->toBeTrue();
 });
 
 test('both AvailabilityExceptionType cases appear among the seeded exceptions', function () {

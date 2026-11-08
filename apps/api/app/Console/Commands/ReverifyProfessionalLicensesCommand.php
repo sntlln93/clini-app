@@ -29,7 +29,7 @@ class ReverifyProfessionalLicensesCommand extends Command
             ->groupBy('user_id')
             ->orderByRaw('min(attempted_at) asc nulls first')
             ->orderBy('user_id')
-            ->limit(Config::integer('services.national_professional_search.per_run'))
+            ->limit(Config::integer('services.professional_registry.per_run'))
             ->get(['user_id'])
             ->map(fn (ProfessionalLicense $license): int => $license->user_id);
 

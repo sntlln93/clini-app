@@ -27,7 +27,7 @@ class ProfessionalLicenseController extends Controller
         /** @var User $user */
         $user = $request->user();
 
-        return ProfessionalLicenseResource::collection($user->professionalLicenses()->orderBy('id')->get());
+        return ProfessionalLicenseResource::collection($user->professionalLicenses()->with('specialty')->orderBy('id')->get());
     }
 
     public function store(StoreProfessionalLicenseRequest $request, RegisterProfessionalLicenseAction $action): JsonResponse

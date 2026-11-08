@@ -25,8 +25,9 @@ use App\Models\MembershipInvitation;
 use App\Models\Patient;
 use App\Models\PatientLookup;
 use App\Models\ProfessionalLicense;
+use App\Models\ProfessionalSpecialty;
+use App\Models\Specialty;
 use App\Models\User;
-use App\Models\UserSpecialty;
 use App\Support\AccountDeletionRules;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Date;
@@ -175,7 +176,7 @@ test('at its date the account loses its personal data and leaves a trace without
         'two_factor_confirmed_at' => null,
     ])->save();
     ProfessionalLicense::factory()->create(['user_id' => $user->id]);
-    UserSpecialty::factory()->create(['user_id' => $user->id]);
+    $offered = ProfessionalSpecialty::factory()->create(['organization_id' => $membership->organization_id, 'membership_id' => $membership->id]);
     $pending = MembershipInvitation::factory()->create(['email' => $email]);
     $accepted = MembershipInvitation::factory()->create(['email' => $email, 'accepted_at' => now()]);
     pendingAccountDeletion($user);
@@ -192,7 +193,8 @@ test('at its date the account loses its personal data and leaves a trace without
         ->and($user->two_factor_recovery_codes)->toBeNull()
         ->and($user->remember_token)->toBeNull()
         ->and(ProfessionalLicense::query()->where('user_id', $user->id)->exists())->toBeFalse()
-        ->and(UserSpecialty::query()->where('user_id', $user->id)->exists())->toBeFalse()
+        ->and(ProfessionalSpecialty::withoutGlobalScope('organization')->whereKey($offered->id)->exists())->toBeFalse()
+        ->and(Specialty::query()->backedFor($user->id)->exists())->toBeFalse()
         ->and(trashedMembership($membership->id))->trashed()->toBeTrue()->slug->toBeNull()
         ->and(MembershipInvitation::withoutGlobalScope('organization')->find($pending->id))->toBeNull()
         ->and(MembershipInvitation::withoutGlobalScope('organization')->find($accepted->id)?->email)->toBe($user->email)

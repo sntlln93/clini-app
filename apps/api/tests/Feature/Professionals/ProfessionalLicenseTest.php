@@ -15,8 +15,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 
 beforeEach(function () {
-    // Off unless a test turns it on, whatever the run's env says (CI runs the suite with it on too).
-    config(['services.national_professional_search.enabled' => false]);
+    // The fake registry unless a test fakes the real one, whatever the run's env says (CI runs the suite with each).
+    config(['services.professional_registry.adapter' => 'fake']);
 });
 
 afterEach(function () {
@@ -99,18 +99,21 @@ test('with the registry failing, a license is kept unverified and the registry p
     Http::assertSentCount(1);
 });
 
-test('with the registry off, or without a DNI, a license is kept unverified without asking anyone', function (bool $enabled, ?string $documentNumber) {
+test('while the registry is paused, or without a DNI, a license is kept unverified without asking anyone', function (bool $paused, ?string $documentNumber) {
     $user = professionalWithDocument($documentNumber);
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
-    config(['services.national_professional_search.enabled' => $enabled]);
+
+    if ($paused) {
+        pauseNationalProfessionalSearch();
+    }
 
     $this->actingAs($user)->postJson('/api/v1/me/licenses', cordobaLicense())
         ->assertCreated()
         ->assertJsonPath('data.status', 'unverified');
     Http::assertNothingSent();
 })->with([
-    'off' => [false, '30123456'],
-    'no DNI' => [true, null],
+    'paused' => [true, '30123456'],
+    'no DNI' => [false, null],
 ]);
 
 test('declaring the same license twice keeps the first and asks the registry once', function () {
@@ -202,12 +205,14 @@ test('a new DNI makes every license unverified and checks them again with it', f
 test('a new DNI the registry can\'t check leaves every license unverified, not with the old answer', function () {
     $user = professionalWithDocument('30123457');
     ProfessionalLicense::factory()->verified()->create(['user_id' => $user->id]);
+    fakeNationalProfessionalSearch(fn () => Http::response('Bad Gateway', 502));
 
     $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])->assertOk();
 
     expect(ProfessionalLicense::query()->sole())
         ->status->toBe(ProfessionalLicenseStatus::Unverified)
         ->refeps_code->toBeNull()
+        ->specialty_id->toBeNull()
         ->checked_at->toBeNull();
 });
 
@@ -244,18 +249,21 @@ test('a professional checks their licenses again on demand', function () {
         ->assertJsonPath('data.0.issuer', 'MINISTERIO DE SALUD DE LA NACION');
 });
 
-test('checking again on demand says so when the registry is off or failing, and changes nothing', function (bool $enabled) {
+test('checking again on demand says so when the registry is paused or failing, and changes nothing', function (bool $paused) {
     $user = professionalWithDocument();
     $license = ProfessionalLicense::factory()->verified()->create(['user_id' => $user->id]);
     fakeNationalProfessionalSearch(fn () => Http::response('Bad Gateway', 502));
-    config(['services.national_professional_search.enabled' => $enabled]);
+
+    if ($paused) {
+        pauseNationalProfessionalSearch();
+    }
 
     $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')
         ->assertStatus(503)
         ->assertJsonPath('error.code', 'professionals.registry_unavailable');
 
     expect($license->refresh()->status)->toBe(ProfessionalLicenseStatus::Verified);
-})->with(['off' => [false], 'failing' => [true]]);
+})->with(['paused' => [true], 'failing' => [false]]);
 
 test('every write that reaches the registry is throttled per user', function () {
     $user = professionalWithDocument();

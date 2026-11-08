@@ -19,7 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * A professional's license, as they declared it, with what the national registry last said about it (#380, ADR 0032).
  * It belongs to the user, not to an organization: the one that counts in a practice is the one from the practice's
  * province. The registry's answer (status, reason, REFEPS code, issuer, specialty, situation, `checked_at`, `attempted_at`) is written
- * only by the verification Action, never mass-assigned.
+ * only by the verification Action, never mass-assigned. A verified license backs its specialty (#387, ADR 0038): the
+ * catalog row of the registry's specialty for its profession, or of the profession itself.
  */
 #[Fillable(['user_id', 'number', 'province', 'profession'])]
 class ProfessionalLicense extends Model
@@ -43,7 +44,7 @@ class ProfessionalLicense extends Model
         'mismatch_reason' => null,
         'refeps_code' => null,
         'issuer' => null,
-        'specialty' => null,
+        'specialty_id' => null,
         'situation' => null,
         'checked_at' => null,
         'attempted_at' => null,
@@ -70,6 +71,14 @@ class ProfessionalLicense extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * @return BelongsTo<Specialty, $this>
+     */
+    public function specialty(): BelongsTo
+    {
+        return $this->belongsTo(Specialty::class);
     }
 
     /**

@@ -22,6 +22,7 @@ use App\Models\AccountDeletion;
 use App\Models\AccountDeletionRequest;
 use App\Models\Membership;
 use App\Models\MembershipInvitation;
+use App\Models\ProfessionalSpecialty;
 use App\Models\User;
 use App\Support\AccountDeletionRules;
 use Illuminate\Support\Facades\DB;
@@ -132,9 +133,9 @@ class CompleteAccountDeletionAction implements Action
             ->where('user_id', $user->id)
             ->update(['slug' => null]);
 
+        // The specialties they backed go with the licenses (#387), and so does what every practice offered them with.
+        ProfessionalSpecialty::withoutGlobalScope('organization')->where('user_id', $user->id)->delete();
         $user->professionalLicenses()->delete();
-        // Also drops the user's specialties in every organization (`professional_specialties` cascades).
-        $user->specialties()->detach();
 
         MembershipInvitation::withoutGlobalScope('organization')
             ->where('email', $email)

@@ -17,6 +17,7 @@ use App\Services\ClinicalEncryption\EnvKeyManagementService;
 use App\Services\Holidays\CalendariosNacionalesService;
 use App\Services\Medications\NationalMedicationSearchService;
 use App\Services\Payments\MercadoPagoService;
+use App\Services\Professionals\FakeProfessionalRegistry;
 use App\Services\Professionals\NationalProfessionalSearchService;
 use App\Support\ClinicalEncryption;
 use App\Support\CurrentOrganization;
@@ -36,6 +37,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Illuminate\Validation\NotPwnedVerifier;
 use Illuminate\Validation\Rules\Password;
+use LogicException;
 use Symfony\Component\HttpFoundation\Response;
 
 class AppServiceProvider extends ServiceProvider
@@ -47,7 +49,6 @@ class AppServiceProvider extends ServiceProvider
         HolidayProvider::class => CalendariosNacionalesService::class,
         KeyManagementService::class => EnvKeyManagementService::class,
         MedicationSource::class => NationalMedicationSearchService::class,
-        ProfessionalRegistry::class => NationalProfessionalSearchService::class,
         SubscriptionGateway::class => MercadoPagoService::class,
         TwoFactorAuthenticator::class => Google2FaService::class,
     ];
@@ -57,6 +58,9 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CurrentOrganization::class);
         // Each data key of the clinical history is decrypted once per process (#391).
         $this->app->singleton(ClinicalEncryption::class);
+
+        // Resolved on each use, so a test can switch adapters through config.
+        $this->app->bind(ProfessionalRegistry::class, fn (Application $app): ProfessionalRegistry => self::professionalRegistry($app));
 
         // Sanctum's stateful pipeline resolves StartSession from the
         // container, so this swaps it everywhere (#358).
@@ -72,6 +76,21 @@ class AppServiceProvider extends ServiceProvider
             $app->make(HttpFactory::class),
             PasswordPolicy::BREACH_CHECK_TIMEOUT_SECONDS,
         ));
+    }
+
+    /**
+     * The registry `PROFESSIONAL_REGISTRY` names (#387, ADR 0038). The fake one would verify made-up licenses, so
+     * production refuses it.
+     */
+    private static function professionalRegistry(Application $app): ProfessionalRegistry
+    {
+        return match (Config::string('services.professional_registry.adapter')) {
+            'national_search' => $app->make(NationalProfessionalSearchService::class),
+            'fake' => $app->isProduction()
+                ? throw new LogicException('PROFESSIONAL_REGISTRY=fake is refused in production: use national_search.')
+                : $app->make(FakeProfessionalRegistry::class),
+            default => throw new LogicException('PROFESSIONAL_REGISTRY must be national_search or fake.'),
+        };
     }
 
     public function boot(): void

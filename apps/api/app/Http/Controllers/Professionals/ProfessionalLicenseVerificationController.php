@@ -13,8 +13,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
 /**
- * Checks the caller's licenses again (#380), as when the registry didn't answer the first time. A registry that is off
- * or failing answers `professionals.registry_unavailable`, so the panel never says it asked when it didn't.
+ * Checks the caller's licenses again (#380), as when the registry didn't answer the first time. A registry that is
+ * paused or failing answers `professionals.registry_unavailable`, so the panel never says it asked when it didn't.
  */
 class ProfessionalLicenseVerificationController extends Controller
 {

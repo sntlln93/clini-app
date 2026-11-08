@@ -52,7 +52,7 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
 
     public function available(): bool
     {
-        return Config::boolean('services.national_professional_search.enabled') && ! Cache::has(self::PAUSED);
+        return ! Cache::has(self::PAUSED);
     }
 
     public function lookUp(string $documentNumber): array

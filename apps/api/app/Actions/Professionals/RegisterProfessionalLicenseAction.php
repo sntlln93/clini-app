@@ -12,7 +12,7 @@ use App\Models\ProfessionalLicense;
 
 /**
  * Adds a license a professional declares and checks it against the registry right away (#380). Declaring the same one
- * twice keeps the first. A registry that is off or failing leaves it unverified, never refused.
+ * twice keeps the first. A registry that is paused or failing leaves it unverified, never refused.
  *
  * @implements Action<ProfessionalLicenseRegistrationData>
  */

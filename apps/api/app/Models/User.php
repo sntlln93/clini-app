@@ -12,7 +12,6 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -77,23 +76,14 @@ class User extends Authenticatable
     }
 
     /**
-     * The user's licenses (#380): like their specialties, they travel with the person, not with an organization.
+     * The user's licenses (#380): they travel with the person, not with an organization, and the verified ones back the
+     * specialties a practice may offer them with (#387, `Specialty::backedFor()`).
      *
      * @return HasMany<ProfessionalLicense, $this>
      */
     public function professionalLicenses(): HasMany
     {
         return $this->hasMany(ProfessionalLicense::class);
-    }
-
-    /**
-     * The user's global credential: specialties they are qualified to practise, independent of any organization.
-     *
-     * @return BelongsToMany<Specialty, $this>
-     */
-    public function specialties(): BelongsToMany
-    {
-        return $this->belongsToMany(Specialty::class, 'user_specialties');
     }
 
     /** The user's active membership in the currently active organization (App\Support\CurrentOrganization), memoized per request. */

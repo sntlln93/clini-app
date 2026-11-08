@@ -33,6 +33,7 @@ class DatabaseSeeder extends Seeder
         $this->call(OrganizationsSeeder::class);
         $this->call(InsuranceProviderSeeder::class);
         $this->call(CatalogSeeder::class);
+        $this->call(ProfessionalRegistrySeeder::class);
         $this->call(Icd10CodeSeeder::class);
         $this->seedAcceptedInsuranceProviders();
 

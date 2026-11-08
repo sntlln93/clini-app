@@ -23,6 +23,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\OrganizationHoliday;
 use App\Models\Patient;
+use App\Models\ProfessionalLicense;
 use App\Models\ProfessionalService;
 use App\Models\ProfessionalSpecialty;
 use App\Models\Province;
@@ -30,11 +31,10 @@ use App\Models\Reminder;
 use App\Models\Service;
 use App\Models\Specialty;
 use App\Models\User;
-use App\Models\UserSpecialty;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
-test('each of the 17 models can be created singly and in a batch via its factory', function (string $modelClass) {
+test('each of the 16 models can be created singly and in a batch via its factory', function (string $modelClass) {
     $single = $modelClass::factory()->create();
     expect($single)->toBeInstanceOf($modelClass);
 
@@ -45,7 +45,6 @@ test('each of the 17 models can be created singly and in a batch via its factory
     Organization::class,
     Membership::class,
     Specialty::class,
-    UserSpecialty::class,
     ProfessionalSpecialty::class,
     Patient::class,
     Service::class,
@@ -283,23 +282,22 @@ test('creating a patient with a duplicate document identity throws a query excep
     ]))->toThrow(QueryException::class);
 });
 
-// Since #21, Specialty is global catalog data; restrictOnDelete blocks a direct delete until every
-// user_specialties link is removed, which cascades to professional_specialties.
-test('deleting a Specialty held as a user credential is blocked at the database level', function () {
-    $userSpecialty = UserSpecialty::factory()->create();
+// The catalog only grows (#387): restrictOnDelete keeps a row that a license or a practice points at.
+test('deleting a Specialty a license or a practice points at is blocked at the database level', function (string $holder) {
+    $specialty = $holder === 'license'
+        ? ProfessionalLicense::factory()->verified()->create()->specialty
+        : ProfessionalSpecialty::factory()->create()->specialty;
 
-    expect(fn () => $userSpecialty->specialty->forceDelete())->toThrow(QueryException::class);
-});
+    ProfessionalLicense::query()->when($holder === 'practice', fn ($query) => $query->update(['specialty_id' => null]));
 
-test('deleting a user_specialties row cascades to its professional_specialties rows', function () {
-    $professionalSpecialty = ProfessionalSpecialty::factory()->create();
+    expect(fn () => $specialty?->delete())->toThrow(QueryException::class);
+})->with(['license', 'practice']);
 
-    UserSpecialty::query()
-        ->where('user_id', $professionalSpecialty->user_id)
-        ->where('specialty_id', $professionalSpecialty->specialty_id)
-        ->delete();
+test('a specialty is unique per profession and folded name', function () {
+    Specialty::factory()->create(['name' => 'Pediatría']);
+    Specialty::factory()->create(['profession' => 'odontologo', 'name' => 'Pediatría']);
 
-    expect(DB::table('professional_specialties')->where('id', $professionalSpecialty->id)->exists())->toBeFalse();
+    expect(fn () => Specialty::factory()->create(['name' => 'PEDIATRIA']))->toThrow(QueryException::class);
 });
 
 test('ProfessionalSpecialty resolves its user relation', function () {
@@ -318,14 +316,4 @@ test('ProfessionalService carries duration_minutes, price_cents and currency', f
     expect($professionalService->duration_minutes)->toBe(45);
     expect($professionalService->price_cents)->toBe(500000);
     expect($professionalService->currency)->toBe('ARS');
-});
-
-test('UserSpecialty resolves its user and specialty relations', function () {
-    $userSpecialty = UserSpecialty::factory()->create();
-
-    expect($userSpecialty->user)->toBeInstanceOf(User::class);
-    expect($userSpecialty->user->id)->toBe($userSpecialty->user_id);
-
-    expect($userSpecialty->specialty)->toBeInstanceOf(Specialty::class);
-    expect($userSpecialty->specialty->id)->toBe($userSpecialty->specialty_id);
 });

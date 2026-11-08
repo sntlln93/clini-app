@@ -118,7 +118,7 @@ test('a sanction runs until its end date, and one without a readable end date co
 
 test('an error, a timeout or a page it can\'t read fails and pauses the registry', function (string $failure) {
     config([
-        'services.national_professional_search.enabled' => true,
+        'services.professional_registry.adapter' => 'national_search',
         'services.national_professional_search.url' => NATIONAL_PROFESSIONAL_SEARCH_URL,
         'services.national_professional_search.user_agent' => 'Clini/test',
     ]);
@@ -158,8 +158,13 @@ test('a failure never logs the DNI looked up', function () {
     expect((new ProfessionalRegistryUnavailableException('response'))->logContext())->toBe(['step' => 'response']);
 });
 
-test('it is off unless turned on', function () {
-    config(['services.national_professional_search.enabled' => false]);
+test('it is available again once its pause is over', function () {
+    pauseNationalProfessionalSearch();
+    $service = app(NationalProfessionalSearchService::class);
 
-    expect(app(NationalProfessionalSearchService::class)->available())->toBeFalse();
+    expect($service->available())->toBeFalse();
+
+    $this->travel(301)->seconds();
+
+    expect($service->available())->toBeTrue();
 });

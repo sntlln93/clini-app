@@ -18,7 +18,9 @@ return new class extends Migration
             $table->foreignId('organization_id')->constrained()->restrictOnDelete();
             $table->foreignId('membership_id');
             $table->foreignId('user_id');
-            $table->foreignId('specialty_id');
+            // One of the specialties the professional's verified licenses back when it is chosen (#387); it stays
+            // when that backing goes, and the panel marks it «sin respaldo de matrícula».
+            $table->foreignId('specialty_id')->constrained()->restrictOnDelete();
 
             $table->unique(['membership_id', 'specialty_id']);
 
@@ -26,8 +28,6 @@ return new class extends Migration
                 ->references(['id', 'organization_id'])->on('memberships')->cascadeOnDelete();
             $table->foreign(['membership_id', 'user_id'])
                 ->references(['id', 'user_id'])->on('memberships')->cascadeOnDelete();
-            $table->foreign(['user_id', 'specialty_id'])
-                ->references(['user_id', 'specialty_id'])->on('user_specialties')->cascadeOnDelete();
         });
     }
 

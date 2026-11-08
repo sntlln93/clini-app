@@ -49,14 +49,19 @@ return [
         'user_agent' => env('NATIONAL_MEDICATION_SEARCH_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
     ],
 
-    // The Ministry of Health's Buscador Nacional de Profesionales de la Salud, which checks professionals' licenses
-    // (#380, ADR 0032). Off unless turned on, so tests, CI and e2e never reach it.
+    // The national registry that checks professionals' licenses (#380, ADR 0032) and gives their professions and
+    // specialties (#387, ADR 0038). There is always one: `national_search`, the Buscador Nacional de Profesionales de
+    // la Salud, in production; `fake` answers the seeder's made-up DNIs without leaving Clini (dev, e2e and one of
+    // CI's Pest runs), and production refuses it.
+    'professional_registry' => [
+        'adapter' => env('PROFESSIONAL_REGISTRY', 'national_search'),
+        // Professionals the daily reverification looks up at most in one run.
+        'per_run' => (int) env('PROFESSIONAL_REGISTRY_PER_RUN', 200),
+    ],
+
     'national_professional_search' => [
-        'enabled' => (bool) env('NATIONAL_PROFESSIONAL_SEARCH_ENABLED', false),
         'url' => env('NATIONAL_PROFESSIONAL_SEARCH_URL', 'https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud'),
         'user_agent' => env('NATIONAL_PROFESSIONAL_SEARCH_USER_AGENT', 'Clini/1.0 (validacion de matriculas; +'.env('APP_URL', 'http://localhost').')'),
-        // Professionals the daily reverification looks up at most in one run.
-        'per_run' => (int) env('NATIONAL_PROFESSIONAL_SEARCH_PER_RUN', 200),
     ],
 
     // SaaS subscription billing (#28). See docs/architecture/subscriptions.md.

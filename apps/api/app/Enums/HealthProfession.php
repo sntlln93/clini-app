@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Enums;
 
+use App\Support\FoldedText;
+
 /**
  * The professions a practice's professional declares a license for (#380). Each label is the exact `profesionReferencia`
  * the Buscador Nacional de Profesionales de la Salud (REFEPS) writes, which a license is matched against: adding a
- * profession is adding a case with its REFEPS label. None of them says who may prescribe medication: that is #314's.
+ * profession is adding a case with its REFEPS label, and a profession the registry answers without a case here never
+ * reaches the specialties catalog (#387). None of them says who may prescribe medication: that is #314's.
  */
 enum HealthProfession: string
 {
@@ -50,5 +53,21 @@ enum HealthProfession: string
             self::TrabajadorSocial => 'Trabajador social',
             self::AcompananteTerapeutico => 'Acompañante terapéutico',
         };
+    }
+
+    /**
+     * The profession whose label is the registry's `profesionReferencia`, folded: null for one Clini doesn't know.
+     */
+    public static function fromRegistryName(string $name): ?self
+    {
+        $folded = FoldedText::fold($name);
+
+        foreach (self::cases() as $profession) {
+            if (FoldedText::fold($profession->label()) === $folded) {
+                return $profession;
+            }
+        }
+
+        return null;
     }
 }

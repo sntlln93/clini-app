@@ -10,7 +10,7 @@ return new class extends Migration
 {
     /**
      * A professional's DNI and licenses, checked against the national registry (#380, ADR 0032). Both belong to the
-     * user, like their specialties: a professional carries them to every organization.
+     * user: a professional carries them to every organization, and so the specialties they back (#387, ADR 0038).
      */
     public function up(): void
     {
@@ -28,12 +28,13 @@ return new class extends Migration
             $table->string('province');
             $table->string('profession');
             // What the registry last said, and when. Only the minimum (no CUIL, sex or name): the REFEPS code, the
-            // issuer, the specialty and the situation; the number, province and profession are the declared ones.
+            // issuer, the specialty and the situation; the number, province and profession are the declared ones. The
+            // specialty is the catalog row of the registry's profession and specialty, or of the profession alone.
             $table->string('status')->default('unverified');
             $table->string('mismatch_reason')->nullable();
             $table->string('refeps_code', 20)->nullable();
             $table->string('issuer')->nullable();
-            $table->string('specialty')->nullable();
+            $table->foreignId('specialty_id')->nullable()->constrained()->restrictOnDelete();
             $table->string('situation')->nullable();
             $table->dateTimeTz('checked_at')->nullable();
             // Last time Clini asked, answered or not: the daily reverification goes oldest attempt first, so a DNI

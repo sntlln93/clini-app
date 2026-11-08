@@ -12,16 +12,18 @@ use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
 use App\Models\ProfessionalLicense;
 use App\Models\User;
 use App\Support\ProfessionalLicenseMatch;
+use App\Support\RegistrySpecialtyCatalog;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
  * Checks every license of a professional against the registry with one lookup of their DNI (#380, ADR 0032). Without
- * a DNI, or with the registry off or failing, nothing changes: a license keeps what the registry last said (unverified
+ * a DNI, or with the registry paused or failing, nothing changes: a license keeps what the registry last said (unverified
  * when it never answered), and nothing in the panel waits on it; only a `strict` check, the professional's own request,
  * says so with `professionals.registry_unavailable`. Every lookup stamps `attempted_at`, answered or not. The lookup
- * runs outside any transaction; its answer is written only if the DNI is still the one looked up.
+ * runs outside any transaction; its answer is written only if the DNI is still the one looked up. Every answer also
+ * fills the specialties catalog (#387), and each license keeps the catalog row it backs while verified.
  *
  * @implements Action<ProfessionalLicenseVerificationData>
  */
@@ -65,6 +67,7 @@ class VerifyProfessionalLicensesAction implements Action
         }
 
         DB::transaction(function () use ($user, $documentNumber, $professionals): void {
+            $catalog = RegistrySpecialtyCatalog::record($professionals);
             $current = User::query()->whereKey($user->id)->lockForUpdate()->first();
 
             if ($current === null || $current->document_number !== $documentNumber) {
@@ -73,13 +76,16 @@ class VerifyProfessionalLicensesAction implements Action
 
             foreach ($this->licenses($user->id) as $license) {
                 $outcome = ProfessionalLicenseMatch::outcome($license->number, $license->province, $license->profession, $professionals);
+                $specialty = $outcome->license === null
+                    ? null
+                    : RegistrySpecialtyCatalog::key($license->profession, RegistrySpecialtyCatalog::name($license->profession, $outcome->license->specialty));
 
                 $license->forceFill([
                     'status' => $outcome->status,
                     'mismatch_reason' => $outcome->mismatchReason,
                     'refeps_code' => $outcome->refepsCode,
                     'issuer' => $outcome->license?->issuer,
-                    'specialty' => $outcome->license?->specialty,
+                    'specialty_id' => $specialty === null ? null : ($catalog[$specialty] ?? null),
                     'situation' => $outcome->license?->situation,
                     'checked_at' => now(),
                 ])->save();
@@ -94,6 +100,6 @@ class VerifyProfessionalLicensesAction implements Action
      */
     private function licenses(int $userId): Collection
     {
-        return ProfessionalLicense::query()->where('user_id', $userId)->orderBy('id')->get();
+        return ProfessionalLicense::query()->with('specialty')->where('user_id', $userId)->orderBy('id')->get();
     }
 }

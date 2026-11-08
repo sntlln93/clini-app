@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Http\Requests\Professionals;
 
 use App\Models\Membership;
-use App\Models\UserSpecialty;
+use App\Models\Specialty;
 use App\Rules\BelongsToCurrentOrganization;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
@@ -44,13 +44,11 @@ class StoreProfessionalSpecialtyRequest extends FormRequest
                         return;
                     }
 
-                    $isInCredential = UserSpecialty::query()
-                        ->where('user_id', $membership->user_id)
-                        ->where('specialty_id', $value)
-                        ->exists();
+                    // Only what a verified license of theirs backs (#387); one that loses it later stays, marked.
+                    $isBacked = Specialty::query()->backedFor($membership->user_id)->whereKey($value)->exists();
 
-                    if (! $isInCredential) {
-                        $fail('El profesional no cuenta con esta especialidad como credencial.');
+                    if (! $isBacked) {
+                        $fail('Ninguna matrícula verificada del profesional respalda esta especialidad.');
                     }
                 },
             ],

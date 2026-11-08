@@ -33,6 +33,15 @@ class ProfessionalSpecialtyPolicy extends OrganizationScopedPolicy
         ]));
     }
 
+    /**
+     * The specialties a professional's verified licenses back (#387): whoever chooses them for the practice, and whoever
+     * sees the practice's professionals with their «sin respaldo de matrícula» mark (ADR 0038).
+     */
+    public function viewBacked(User $user, Membership $membership): bool
+    {
+        return $this->create($user, $membership) || $this->allows($user, Permission::MembershipsView, $membership);
+    }
+
     public function delete(User $user, ProfessionalSpecialty $professionalSpecialty): bool
     {
         return $this->allows($user, Permission::CatalogManage, $professionalSpecialty);

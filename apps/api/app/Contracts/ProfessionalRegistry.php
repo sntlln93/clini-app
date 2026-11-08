@@ -10,7 +10,7 @@ use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
 interface ProfessionalRegistry
 {
     /**
-     * Whether it may be asked now: turned on, and not failing recently.
+     * Whether it may be asked now: not failing recently.
      */
     public function available(): bool;
 

@@ -9,7 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * A license as the professional declared it, and what the registry last said about it (#380).
+ * A license as the professional declared it, and what the registry last said about it (#380): `specialty` is the
+ * catalog row it backs while verified (#387), the registry's specialty or the profession itself.
  *
  * @mixin ProfessionalLicense
  */
@@ -31,7 +32,7 @@ class ProfessionalLicenseResource extends JsonResource
             'mismatch_reason' => $license->mismatch_reason?->value,
             'refeps_code' => $license->refeps_code,
             'issuer' => $license->issuer,
-            'specialty' => $license->specialty,
+            'specialty' => $license->specialty?->name,
             'situation' => $license->situation,
             'checked_at' => $license->checked_at?->toIso8601String(),
         ];
