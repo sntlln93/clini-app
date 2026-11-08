@@ -96,7 +96,7 @@ test('/ajustes opens its first tab, and every tab renders under the secondary na
         'Plan y suscripción',
         'Consultorio',
         'Reservas',
-        'Mis especialidades',
+        'Matrículas',
         'Profesionales',
         'Protección de datos',
     ]);

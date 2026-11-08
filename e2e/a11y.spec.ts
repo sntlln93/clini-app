@@ -33,7 +33,7 @@ for (const colorScheme of ['light', 'dark'] as const) {
         '/ajustes/suscripcion',
         '/ajustes/consultorio',
         '/ajustes/reservas',
-        '/ajustes/especialidades',
+        '/ajustes/matriculas',
         '/ajustes/profesionales',
         '/ajustes/proteccion-de-datos',
     ];

@@ -66,11 +66,12 @@ test('/profesionales shows member cards with their specialties, and the table on
     await expect(cards.getByRole('listitem')).toHaveCount(12);
 
     await scrollToTheEnd(page, 'miembros');
-    // A seeded professional of the practice, with the specialties it attends.
+    // A seeded professional of the practice, with the specialties its
+    // verified licenses back (the fake registry's, #387).
     await expect(
         cards
             .getByRole('listitem')
-            .filter({ hasText: /Medicina General|Cardiología|Dermatología/ })
+            .filter({ hasText: /Pediatría|Cardiología/ })
             .first(),
     ).toBeVisible();
 
