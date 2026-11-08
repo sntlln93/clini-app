@@ -493,16 +493,21 @@ Convenciones:
 
 ### CU-43 · Especialidad del profesional en dos niveles
 
-- **Actor**: dueño que da de alta un profesional con su especialidad.
+- **Actor**: dueño que elige con qué especialidades atiende un profesional en su consultorio.
 - **Invariantes**:
-  - La especialidad es de **dos niveles**: una **credencial global** del `User`
-    (`user_specialties`, viaja con la persona entre organizaciones) y un **subconjunto
-    practicado por membresía/organización** (`professional_specialties`), restringido a esa
-    credencial — el mismo `User` puede tener la credencial pero practicarla solo en algunos
+  - La especialidad es de **dos niveles**: lo que respaldan las **matrículas verificadas** del
+    `User` en el registro nacional de profesionales (viaja con la persona entre
+    organizaciones; no se elige, se deriva de las matrículas, #387, ADR 0038) y un
+    **subconjunto practicado por membresía/organización** (`professional_specialties`) — el
+    mismo `User` puede tener una especialidad respaldada pero practicarla solo en algunos
     consultorios.
-  - Asignar como practicada una especialidad que el profesional no tiene como credencial es
-    un error (422), no un estado válido.
-  - El catálogo de especialidades es **global** (ver CU-15): no crece por organización.
+  - Asignar como practicada una especialidad que no respalda una matrícula verificada del
+    profesional es un error (422), no un estado válido.
+  - Si la matrícula deja de estar verificada, lo ya practicado sigue (no se borra ni bloquea
+    la agenda, la reserva ni la historia clínica) con la marca «sin respaldo de matrícula»,
+    que ve quien ve el listado de profesionales y nunca el paciente.
+  - El catálogo de especialidades es **global** y solo lo llena el registro (profesión y
+    especialidad como las escribe REFEPS): no crece por organización ni se edita.
 
 ### CU-57 · Matrícula del profesional y provincia del consultorio *(issue #380)*
 
