@@ -35,5 +35,7 @@ export const brand = {
         ogImage: { file: 'og-image.placeholder.png', width: 1200, height: 630 },
         /** Published for the API's mails, which read its URL from config/brand.php. */
         mailLogo: 'logotype-mail.placeholder.png',
+        /** The isotype in the circle atop every mail (#422), as a PNG: mail clients show no SVG. Same as mailLogo. */
+        mailIcon: 'isotype-mail.placeholder.png',
     },
 } as const;
