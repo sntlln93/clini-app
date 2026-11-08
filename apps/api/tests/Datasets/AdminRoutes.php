@@ -9,6 +9,7 @@ dataset('admin_routes', [
     'me' => ['get', '/api/v1/admin/me'],
     'overview' => ['get', '/api/v1/admin/overview'],
     'stats' => ['get', '/api/v1/admin/stats'],
+    'specialties' => ['get', '/api/v1/admin/specialties'],
     'organizations index' => ['get', '/api/v1/admin/organizations'],
     'organizations show' => ['get', '/api/v1/admin/organizations/{organization}'],
     'organizations suspend' => ['post', '/api/v1/admin/organizations/{organization}/suspension'],
