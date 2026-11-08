@@ -1,11 +1,13 @@
 import { ListSkeleton } from '@/components/ListSkeleton';
 import { RouteErrorState } from '@/features/error-page/RouteErrorState';
+import { invoicesQueryOptions } from '@/lib/invoices';
 import { titleHead } from '@/lib/page-title';
 import { planQueryOptions, usePlan } from '@/lib/plan';
 import { sessionQueryOptions } from '@/lib/session';
 import { subscriptionQueryOptions, useSubscription } from '@/lib/subscription';
 import { createFileRoute, redirect } from '@tanstack/react-router';
 import { z } from 'zod';
+import { InvoicesSection } from './-components/InvoicesSection';
 import { SubscriptionSection } from './-components/SubscriptionSection';
 import { useCheckoutReturn } from './-hooks/use-checkout-return';
 
@@ -27,7 +29,8 @@ export const Route = createFileRoute('/_auth/ajustes/suscripcion')({
             throw redirect({ to: '/ajustes', replace: true });
         }
 
-        const [subscription, plan] = await Promise.all([
+        const isOwner = (session.roles ?? []).includes('owner');
+        const [subscription, plan, invoices] = await Promise.all([
             context.queryClient.ensureQueryData({
                 ...subscriptionQueryOptions,
                 revalidateIfStale: true,
@@ -36,13 +39,16 @@ export const Route = createFileRoute('/_auth/ajustes/suscripcion')({
                 ...planQueryOptions,
                 revalidateIfStale: true,
             }),
+            // The invoices are the owner's alone (#246): nobody else asks.
+            isOwner
+                ? context.queryClient.ensureQueryData({
+                      ...invoicesQueryOptions,
+                      revalidateIfStale: true,
+                  })
+                : Promise.resolve([]),
         ]);
 
-        return {
-            subscription,
-            plan,
-            isOwner: (session.roles ?? []).includes('owner'),
-        };
+        return { subscription, plan, invoices, isOwner };
     },
     pendingComponent: () => <ListSkeleton />,
     errorComponent: RouteErrorState,
@@ -53,6 +59,7 @@ function SuscripcionPage() {
     const {
         subscription: loaderSubscription,
         plan: loaderPlan,
+        invoices,
         isOwner,
     } = Route.useLoaderData();
     // The loader may resolve with a stale cached value while it revalidates
@@ -69,11 +76,17 @@ function SuscripcionPage() {
     );
 
     return (
-        <SubscriptionSection
-            subscription={subscription}
-            plan={plan}
-            isOwner={isOwner}
-            confirmingPayment={confirmingPayment}
-        />
+        <div className="space-y-8">
+            <SubscriptionSection
+                subscription={subscription}
+                plan={plan}
+                isOwner={isOwner}
+                confirmingPayment={confirmingPayment}
+            />
+            {/* A practice that never paid through the panel (Free, or Centro, billed outside it) has nothing to list. */}
+            {isOwner && (subscription !== null || invoices.length > 0) && (
+                <InvoicesSection invoices={invoices} />
+            )}
+        </div>
     );
 }
