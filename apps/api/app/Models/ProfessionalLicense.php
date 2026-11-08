@@ -78,6 +78,17 @@ class ProfessionalLicense extends Model
     }
 
     /**
+     * The ones that back their specialty (#387, ADR 0038): verified by the registry and added to Clini.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeBacking(Builder $query): void
+    {
+        $query->where('professional_licenses.status', ProfessionalLicenseStatus::Verified)
+            ->whereNotNull('professional_licenses.added_at');
+    }
+
+    /**
      * Never answered by the registry, or answered longer ago than `REVERIFY_AFTER_DAYS`.
      *
      * @param  Builder<self>  $query
