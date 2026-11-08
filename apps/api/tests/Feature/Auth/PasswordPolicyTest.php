@@ -61,12 +61,30 @@ function passwordEntryPoints(): array
             MembershipInvitation::factory()->create([
                 'organization_id' => Organization::factory()->center()->create()->id,
                 'email' => 'nueva@example.com',
-                'roles' => [MembershipRole::Professional],
+                'roles' => [MembershipRole::Staff],
                 'token' => hash('sha256', $token),
             ]);
 
             $response = fromPanel()->postJson("/api/v1/invitations/{$token}", [
                 'name' => 'Nueva',
+                'password' => $password,
+                'password_confirmation' => $password,
+            ]);
+
+            return policyOutcome($response);
+        }],
+        // A new account named by the registry (#417).
+        'professional invitation acceptance' => [function (string $password): array {
+            $token = Str::random(40);
+            MembershipInvitation::factory()->create([
+                'organization_id' => Organization::factory()->center()->create()->id,
+                'email' => 'nueva@example.com',
+                'roles' => [MembershipRole::Professional],
+                'token' => hash('sha256', $token),
+            ]);
+            lookUpInvitationDocument($token)->assertOk();
+
+            $response = fromPanel()->postJson("/api/v1/invitations/{$token}", [
                 'password' => $password,
                 'password_confirmation' => $password,
             ]);

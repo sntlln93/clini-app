@@ -198,6 +198,14 @@ class AppServiceProvider extends ServiceProvider
         // (#380): each one looks the DNI up in the national professional
         // search, whose form isn't ours to load. Keyed by user, never
         // `currentMembership()` (see `patient-lookup`).
+        // Accepting an invitation (#417): a professional one linked to an existing account takes that account's
+        // password, so it is throttled like a login, per invitation and IP.
+        RateLimiter::for('invitation-acceptance', function (Request $request): Limit {
+            $token = $request->route('token');
+
+            return Limit::perMinute(5)->by(hash('sha256', is_string($token) ? $token : '').'|'.$request->ip());
+        });
+
         RateLimiter::for('professional-registry', function (Request $request): Limit {
             $user = $request->user();
 

@@ -38,6 +38,7 @@ class MembershipInvitationMail extends Mailable
             with: [
                 'organizationName' => $this->invitation->organization?->name,
                 'acceptanceUrl' => $this->acceptanceUrl,
+                'professional' => $this->invitation->isForProfessional(),
             ],
         );
     }
