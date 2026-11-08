@@ -19,6 +19,9 @@ Schedule::command('holidays:sync')->monthly()->withoutOverlapping();
 
 Schedule::command('subscriptions:expire-grace')->daily()->withoutOverlapping();
 
+// Invoices of subscription charges still pending after their own job's retries (#246).
+Schedule::command('invoices:issue-pending')->hourly()->withoutOverlapping();
+
 // Professionals' licenses, checked again against the national registry (#380).
 Schedule::command('professionals:reverify-licenses')->daily()->withoutOverlapping();
 

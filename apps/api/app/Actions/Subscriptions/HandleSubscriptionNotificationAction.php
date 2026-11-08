@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Actions\Subscriptions;
 
+use App\Actions\Invoices\RecordChargeInvoiceAction;
 use App\Contracts\Action;
 use App\Contracts\Data;
 use App\Contracts\SubscriptionGateway;
+use App\Data\Invoices\ChargeInvoiceData;
 use App\Data\Subscriptions\ProviderPaymentData;
 use App\Data\Subscriptions\ProviderSubscriptionData;
 use App\Data\Subscriptions\SubscriptionNotificationData;
@@ -17,6 +19,7 @@ use App\Enums\SubscriptionPaymentOutcome;
 use App\Enums\SubscriptionStatus;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Exceptions\Subscriptions\WebhookSignatureInvalidException;
+use App\Jobs\Invoices\IssueInvoiceJob;
 use App\Jobs\Subscriptions\SyncSubscriptionAmountJob;
 use App\Models\Organization;
 use App\Models\Subscription;
@@ -50,6 +53,10 @@ use Illuminate\Support\Facades\Notification;
  * is synced (SyncSubscriptionAmountJob, after commit). A row with no stored
  * amount predates per-professional pricing and is left alone.
  *
+ * Every approved charge of a known subscription records its invoice, once
+ * per charge, and queues its issuance after commit (#246, ADR 0039): ARCA
+ * never delays nor fails the subscription's own update.
+ *
  * @implements Action<SubscriptionNotificationData>
  */
 final class HandleSubscriptionNotificationAction implements Action
@@ -58,6 +65,7 @@ final class HandleSubscriptionNotificationAction implements Action
         private readonly SubscriptionGateway $gateway,
         private readonly OrganizationPlan $plans,
         private readonly PracticePricing $pricing,
+        private readonly RecordChargeInvoiceAction $recordChargeInvoice,
     ) {}
 
     /**
@@ -172,6 +180,8 @@ final class HandleSubscriptionNotificationAction implements Action
         }
 
         if ($resource instanceof ProviderPaymentData) {
+            $this->recordInvoice($subscription, $resource);
+
             return $this->applyPayment($subscription, $resource);
         }
 
@@ -254,6 +264,15 @@ final class HandleSubscriptionNotificationAction implements Action
         $subscription->save();
 
         return null;
+    }
+
+    private function recordInvoice(Subscription $subscription, ProviderPaymentData $payment): void
+    {
+        $invoice = $this->recordChargeInvoice->handle(new ChargeInvoiceData($subscription, $this->gateway->provider(), $payment));
+
+        if ($invoice !== null) {
+            IssueInvoiceJob::dispatch($invoice->id);
+        }
     }
 
     private function syncAmountIfStale(Subscription $subscription): void

@@ -69,6 +69,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
     'subscriptions.webhook_signature_invalid':
         'La notificación de pago no es válida.',
+    'invoices.issuer_unavailable': 'No pudimos comunicarnos con ARCA. Intentá nuevamente más tarde.',
+    'invoices.voucher_rejected': 'ARCA rechazó la factura. Intentá nuevamente más tarde.',
     // Operator-facing copy for the platform-moderation codes; the three that
     // describe a clinic user's own state reuse the panel's wording.
     'organizations.suspended':

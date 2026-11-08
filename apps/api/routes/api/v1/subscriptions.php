@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Subscriptions\InvoiceController;
 use App\Http\Controllers\Subscriptions\PlanController;
 use App\Http\Controllers\Subscriptions\SubscriptionController;
 use App\Http\Controllers\Subscriptions\SubscriptionReturnController;
@@ -17,4 +18,6 @@ Route::middleware(['clinic.origin', 'auth:sanctum', 'not-blocked', 'organization
     Route::get('subscription', [SubscriptionController::class, 'show']);
     Route::post('subscription', [SubscriptionController::class, 'store']);
     Route::delete('subscription', [SubscriptionController::class, 'destroy']);
+    // Not behind `subscription.active`: an expired or cancelled practice still reads its invoices.
+    Route::get('subscription/invoices', [InvoiceController::class, 'index']);
 });

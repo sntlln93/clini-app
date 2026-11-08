@@ -69,6 +69,8 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'No pudimos comunicarnos con Mercado Pago. Intentá nuevamente en unos minutos.',
     'subscriptions.webhook_signature_invalid':
         'La notificación de pago no es válida.',
+    'invoices.issuer_unavailable': 'No pudimos comunicarnos con ARCA. Intentá nuevamente más tarde.',
+    'invoices.voucher_rejected': 'ARCA rechazó la factura. Intentá nuevamente más tarde.',
     'organizations.suspended':
         'La organización está suspendida. Comunicate con el soporte de Clini para regularizar la cuenta.',
     'organizations.already_suspended': 'La organización ya está suspendida.',

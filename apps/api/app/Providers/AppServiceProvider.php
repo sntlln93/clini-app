@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Contracts\HolidayProvider;
+use App\Contracts\InvoiceIssuer;
 use App\Contracts\KeyManagementService;
 use App\Contracts\MedicationSource;
 use App\Contracts\ProfessionalRegistry;
@@ -16,6 +17,8 @@ use App\Models\User;
 use App\Services\Auth\Google2FaService;
 use App\Services\ClinicalEncryption\EnvKeyManagementService;
 use App\Services\Holidays\CalendariosNacionalesService;
+use App\Services\Invoicing\ArcaInvoiceService;
+use App\Services\Invoicing\FakeInvoiceIssuer;
 use App\Services\Medications\NationalMedicationSearchService;
 use App\Services\Payments\MercadoPagoService;
 use App\Services\Professionals\FakeProfessionalRegistry;
@@ -63,6 +66,7 @@ class AppServiceProvider extends ServiceProvider
 
         // Resolved on each use, so a test can switch adapters through config.
         $this->app->bind(ProfessionalRegistry::class, fn (Application $app): ProfessionalRegistry => self::professionalRegistry($app));
+        $this->app->bind(InvoiceIssuer::class, fn (Application $app): InvoiceIssuer => self::invoiceIssuer($app));
 
         // Sanctum's stateful pipeline resolves StartSession from the
         // container, so this swaps it everywhere (#358).
@@ -92,6 +96,21 @@ class AppServiceProvider extends ServiceProvider
                 ? throw new LogicException('PROFESSIONAL_REGISTRY=fake is refused in production: use national_search.')
                 : $app->make(FakeProfessionalRegistry::class),
             default => throw new LogicException('PROFESSIONAL_REGISTRY must be national_search or fake.'),
+        };
+    }
+
+    /**
+     * The invoice issuer `INVOICE_ISSUER` names (#246, ADR 0039). The fake one
+     * authorizes vouchers ARCA never saw, so production refuses it.
+     */
+    private static function invoiceIssuer(Application $app): InvoiceIssuer
+    {
+        return match (Config::string('invoicing.issuer')) {
+            'arca' => $app->make(ArcaInvoiceService::class),
+            'fake' => $app->isProduction()
+                ? throw new LogicException('INVOICE_ISSUER=fake is refused in production: use arca.')
+                : $app->make(FakeInvoiceIssuer::class),
+            default => throw new LogicException('INVOICE_ISSUER must be arca or fake.'),
         };
     }
 

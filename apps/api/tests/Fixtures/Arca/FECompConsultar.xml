@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+ <soap:Body>
+  <FECompConsultarResponse xmlns="http://ar.gov.afip.dif.FEV1/">
+   <FECompConsultarResult>
+    <ResultGet>
+     <Concepto>2</Concepto>
+     <DocTipo>99</DocTipo>
+     <DocNro>0</DocNro>
+     <CbteDesde>42</CbteDesde>
+     <CbteHasta>42</CbteHasta>
+     <CbteFch>20261003</CbteFch>
+     <ImpTotal>15000</ImpTotal>
+     <ImpTotConc>0</ImpTotConc>
+     <ImpNeto>15000</ImpNeto>
+     <ImpOpEx>0</ImpOpEx>
+     <ImpTrib>0</ImpTrib>
+     <ImpIVA>0</ImpIVA>
+     <FchServDesde>20261003</FchServDesde>
+     <FchServHasta>20261102</FchServHasta>
+     <FchVtoPago>20261003</FchVtoPago>
+     <MonId>PES</MonId>
+     <MonCotiz>1</MonCotiz>
+     <Resultado>A</Resultado>
+     <CodAutorizacion>76401234567890</CodAutorizacion>
+     <EmisionTipo>CAE</EmisionTipo>
+     <FchVto>20261013</FchVto>
+     <FchProceso>20261003100512</FchProceso>
+     <PtoVta>1</PtoVta>
+     <CbteTipo>11</CbteTipo>
+    </ResultGet>
+   </FECompConsultarResult>
+  </FECompConsultarResponse>
+ </soap:Body>
+</soap:Envelope>
