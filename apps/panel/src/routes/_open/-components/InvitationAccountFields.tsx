@@ -1,5 +1,6 @@
 import type { Control } from 'react-hook-form';
 
+import { Button } from '@/components/ui/button';
 import {
     FormControl,
     FormDescription,
@@ -21,6 +22,8 @@ export type InvitationAccountValues = {
 type InvitationAccountFieldsProps = {
     control: Control<InvitationAccountValues>;
     account: InvitationIdentity['account'];
+    useRecoveryCode: boolean;
+    onToggleRecoveryCode: () => void;
 };
 
 // A new account chooses its password; an existing one proves it is the
@@ -28,6 +31,8 @@ type InvitationAccountFieldsProps = {
 export function InvitationAccountFields({
     control,
     account,
+    useRecoveryCode,
+    onToggleRecoveryCode,
 }: InvitationAccountFieldsProps) {
     return (
         <>
@@ -82,26 +87,45 @@ export function InvitationAccountFields({
                 />
             )}
 
-            {account?.two_factor && (
+            {account && (
                 <FormField
                     control={control}
                     name="code"
                     render={({ field }) => (
                         <FormItem>
-                            <FormLabel>Código de verificación</FormLabel>
+                            <FormLabel>
+                                {useRecoveryCode
+                                    ? 'Código de recuperación'
+                                    : 'Código de verificación'}
+                            </FormLabel>
                             <FormControl
                                 render={
                                     <Input
-                                        inputMode="numeric"
+                                        inputMode={
+                                            useRecoveryCode ? 'text' : 'numeric'
+                                        }
                                         autoComplete="one-time-code"
                                         {...field}
                                     />
                                 }
                             />
                             <FormDescription>
-                                El que muestra tu app de autenticación.
+                                {useRecoveryCode
+                                    ? 'Uno de los que guardaste al activar la verificación en dos pasos.'
+                                    : 'Solo si tu cuenta tiene la verificación en dos pasos: el que muestra tu app.'}
                             </FormDescription>
                             <FormMessage />
+                            <Button
+                                type="button"
+                                variant="link"
+                                size="sm"
+                                className="px-0"
+                                onClick={onToggleRecoveryCode}
+                            >
+                                {useRecoveryCode
+                                    ? 'Usar el código de la app'
+                                    : 'Usar un código de recuperación'}
+                            </Button>
                         </FormItem>
                     )}
                 />

@@ -143,13 +143,16 @@ describe('professional invitation', () => {
         );
     });
 
-    it('asks an existing account for its password and its code, by its masked email', async () => {
+    it('asks an existing account for its password and, if it has one, its code, by its masked email', async () => {
         vi.mocked(api.post)
             .mockResolvedValueOnce({
                 data: {
                     data: {
                         name: 'Lucia De La Fuente',
-                        account: { email: 'l•••@clini.app', two_factor: true },
+                        account: {
+                            email: 'l•••@clini.app',
+                            has_document: true,
+                        },
                         document_lookups_left: 2,
                     },
                 },
@@ -208,5 +211,111 @@ describe('professional invitation', () => {
 
         await screen.findByText(/Se agotaron las consultas de DNI/);
         expect(screen.queryByLabelText('DNI')).toBeNull();
+    });
+
+    it('sends a recovery code when the invitee switches to one', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({
+                data: {
+                    data: {
+                        name: 'Lucia De La Fuente',
+                        account: {
+                            email: 'l•••@clini.app',
+                            has_document: true,
+                        },
+                        document_lookups_left: 2,
+                    },
+                },
+            })
+            .mockResolvedValueOnce({ data: { message: 'ok' } });
+        renderInvitation();
+        await screen.findByLabelText('DNI');
+        lookUp('99000003');
+
+        fireEvent.change(
+            await screen.findByLabelText('Contraseña de tu cuenta'),
+            { target: { value: 'mi-clave' } },
+        );
+        fireEvent.click(
+            screen.getByRole('button', {
+                name: 'Usar un código de recuperación',
+            }),
+        );
+        fireEvent.change(screen.getByLabelText('Código de recuperación'), {
+            target: { value: 'abcde-fghjk' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Aceptar invitación' }),
+        );
+
+        await waitFor(() =>
+            expect(api.post).toHaveBeenLastCalledWith(`/invitations/${TOKEN}`, {
+                password: 'mi-clave',
+                recovery_code: 'abcde-fghjk',
+            }),
+        );
+    });
+
+    it('tells the invited email’s account it takes this DNI, not that it already has it', async () => {
+        vi.mocked(api.post).mockResolvedValueOnce({
+            data: {
+                data: {
+                    name: 'Lucia De La Fuente',
+                    account: { email: 'l•••@clini.app', has_document: false },
+                    document_lookups_left: 2,
+                },
+            },
+        });
+        renderInvitation();
+        await screen.findByLabelText('DNI');
+        lookUp('99000003');
+
+        await screen.findByText(/con el mail invitado/);
+        expect(screen.queryByText(/con este DNI/)).toBeNull();
+    });
+
+    it('goes back to the DNI saying why when what it found is gone', async () => {
+        vi.mocked(api.post)
+            .mockResolvedValueOnce({
+                data: {
+                    data: {
+                        name: 'Lucia De La Fuente',
+                        account: null,
+                        document_lookups_left: 2,
+                    },
+                },
+            })
+            .mockRejectedValueOnce(
+                businessError('memberships.invitation_document_required'),
+            );
+        renderInvitation();
+        await screen.findByLabelText('DNI');
+        lookUp('99000003');
+
+        fireEvent.change(await screen.findByLabelText('Contraseña'), {
+            target: { value: 'secreta-larga-123' },
+        });
+        fireEvent.change(screen.getByLabelText('Confirmar contraseña'), {
+            target: { value: 'secreta-larga-123' },
+        });
+        fireEvent.click(
+            screen.getByRole('button', { name: 'Crear cuenta y unirme' }),
+        );
+
+        await screen.findByText(
+            'Primero ingresá tu DNI para buscar tus datos.',
+        );
+        screen.getByLabelText('DNI');
+        screen.getByText('Te quedan 2 consultas.');
+    });
+
+    it('ties the lookups left to the DNI field', async () => {
+        renderInvitation();
+        const input = await screen.findByLabelText('DNI');
+
+        const hint = document.getElementById(
+            input.getAttribute('aria-describedby') ?? '',
+        );
+        expect(hint?.textContent).toBe('Te quedan 3 consultas.');
     });
 });

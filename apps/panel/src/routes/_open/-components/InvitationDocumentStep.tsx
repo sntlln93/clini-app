@@ -13,6 +13,8 @@ import {
 type InvitationDocumentStepProps = {
     token: string;
     lookupsLeft: number;
+    /** Why the invitee is back at the DNI, if they were sent back. */
+    notice?: string | null;
     onFound: (identity: InvitationIdentity) => void;
 };
 
@@ -24,6 +26,10 @@ const CLOSING_CODES = new Set([
 ]);
 
 function lookupsLeftCopy(left: number) {
+    if (left === 0) {
+        return 'Ya no te quedan consultas: solo podés volver a ingresar el DNI que encontramos.';
+    }
+
     return left === 1 ? 'Te queda 1 consulta.' : `Te quedan ${left} consultas.`;
 }
 
@@ -32,9 +38,12 @@ function lookupsLeftCopy(left: number) {
 export function InvitationDocumentStep({
     token,
     lookupsLeft,
+    notice = null,
     onFound,
 }: InvitationDocumentStepProps) {
     const inputId = useId();
+    const errorId = `${inputId}-error`;
+    const hintId = `${inputId}-hint`;
     const [value, setValue] = useState('');
     const { mutate, isPending, error } = useInvitationDocumentLookup(token);
     const appError = error ? mapToAppError(error) : null;
@@ -58,7 +67,10 @@ export function InvitationDocumentStep({
 
     if (closed) {
         return (
-            <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+            <p
+                role="alert"
+                className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+            >
                 {messageForAppError(appError)}
             </p>
         );
@@ -71,8 +83,19 @@ export function InvitationDocumentStep({
                 matrículas los buscamos en el Buscador Nacional de Profesionales
                 de la Salud del Ministerio de Salud.
             </p>
+            {notice && !appError && (
+                <p
+                    role="status"
+                    className="rounded-md border bg-muted p-3 text-sm"
+                >
+                    {notice}
+                </p>
+            )}
             {appError && !fieldError && (
-                <p className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
+                <p
+                    role="alert"
+                    className="rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive"
+                >
                     {messageForAppError(appError)}
                 </p>
             )}
@@ -86,12 +109,17 @@ export function InvitationDocumentStep({
                     placeholder="Sin puntos"
                     value={value}
                     aria-invalid={fieldError ? true : undefined}
+                    aria-describedby={
+                        fieldError ? `${errorId} ${hintId}` : hintId
+                    }
                     onChange={(event) => setValue(event.target.value)}
                 />
                 {fieldError && (
-                    <p className="text-sm text-destructive">{fieldError}</p>
+                    <p id={errorId} className="text-sm text-destructive">
+                        {fieldError}
+                    </p>
                 )}
-                <p className="text-sm text-muted-foreground">
+                <p id={hintId} className="text-sm text-muted-foreground">
                     {lookupsLeftCopy(left)}
                 </p>
             </div>

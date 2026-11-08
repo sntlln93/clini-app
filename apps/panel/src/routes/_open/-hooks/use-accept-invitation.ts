@@ -16,7 +16,8 @@ export type InvitationInfo = {
 /** Who the DNI found (#417): the registry's name, and the account it links to. */
 export type InvitationIdentity = {
     name: string;
-    account: { email: string; two_factor: boolean } | null;
+    /** `has_document`: the account already holds this DNI; else it is the invited email's, and takes it. */
+    account: { email: string; has_document: boolean } | null;
     document_lookups_left: number;
 };
 
@@ -25,6 +26,7 @@ export type AcceptInvitationPayload = {
     password?: string;
     password_confirmation?: string;
     code?: string;
+    recovery_code?: string;
 };
 
 export function useInvitationInfo(token: string) {

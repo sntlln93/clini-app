@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useId } from 'react';
+import { useId, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -8,6 +8,7 @@ import { Form } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { mapToAppError } from '@/lib/api-errors';
+import { messageForAppError } from '@/lib/error-codes';
 import { applyFormErrors, extractFormErrors } from '@/lib/form-errors';
 import {
     newPasswordSchema,
@@ -28,9 +29,8 @@ function buildSchema(identity: InvitationIdentity) {
         return z.object({
             password: z.string().min(1, 'Ingresá tu contraseña.'),
             password_confirmation: z.string(),
-            code: identity.account.two_factor
-                ? z.string().min(1, 'Ingresá el código de tu app.')
-                : z.string(),
+            // Only an account with a second factor needs it; the API says so.
+            code: z.string(),
         });
     }
 
@@ -46,11 +46,17 @@ function buildSchema(identity: InvitationIdentity) {
         });
 }
 
+// What the DNI found is gone: it has to be looked up again.
+const RESTART_CODES = new Set([
+    'memberships.invitation_document_required',
+    'professionals.document_taken',
+]);
+
 type InvitationAccountStepProps = {
     token: string;
     identity: InvitationIdentity;
-    /** Back to the DNI: what it found is gone (another account took it meanwhile). */
-    onRestart: () => void;
+    /** Back to the DNI, saying why: what it found is gone (another account took it meanwhile). */
+    onRestart: (reason: string) => void;
 };
 
 // The second step of a professional invitation (#417): the registry's name,
@@ -62,6 +68,7 @@ export function InvitationAccountStep({
     onRestart,
 }: InvitationAccountStepProps) {
     const nameId = useId();
+    const [useRecoveryCode, setUseRecoveryCode] = useState(false);
     const { mutateAsync } = useAcceptInvitation(token);
     const form = useForm<InvitationAccountValues>({
         resolver: zodResolver(buildSchema(identity)),
@@ -74,7 +81,11 @@ export function InvitationAccountStep({
                 identity.account
                     ? {
                           password: values.password,
-                          ...(values.code ? { code: values.code } : {}),
+                          ...(values.code
+                              ? useRecoveryCode
+                                  ? { recovery_code: values.code }
+                                  : { code: values.code }
+                              : {}),
                       }
                     : {
                           password: values.password,
@@ -86,9 +97,9 @@ export function InvitationAccountStep({
 
             if (
                 appError.kind === 'business' &&
-                appError.code === 'memberships.invitation_document_required'
+                RESTART_CODES.has(appError.code)
             ) {
-                onRestart();
+                onRestart(messageForAppError(appError));
                 return;
             }
 
@@ -96,6 +107,7 @@ export function InvitationAccountStep({
                 password: 'password',
                 password_confirmation: 'password_confirmation',
                 code: 'code',
+                recovery_code: 'code',
             });
         }
     }
@@ -123,9 +135,9 @@ export function InvitationAccountStep({
 
                 {identity.account && (
                     <p className="rounded-md border bg-muted p-3 text-sm">
-                        Ya tenés una cuenta en Clini con este DNI (
-                        {identity.account.email}). Ingresá su contraseña para
-                        sumar este consultorio a esa cuenta.
+                        {identity.account.has_document
+                            ? `Ya tenés una cuenta en Clini con este DNI (${identity.account.email}). Ingresá su contraseña para sumar este consultorio a esa cuenta.`
+                            : `Ya tenés una cuenta en Clini con el mail invitado (${identity.account.email}). Ingresá su contraseña para cargarle este DNI y sumar este consultorio; su nombre pasa a ser el del Buscador.`}
                     </p>
                 )}
 
@@ -138,6 +150,10 @@ export function InvitationAccountStep({
                 <InvitationAccountFields
                     control={form.control}
                     account={identity.account}
+                    useRecoveryCode={useRecoveryCode}
+                    onToggleRecoveryCode={() =>
+                        setUseRecoveryCode((current) => !current)
+                    }
                 />
 
                 <Button

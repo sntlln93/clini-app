@@ -89,6 +89,8 @@ describe('license writes', () => {
                 queryClient.setQueryData(queryKey, []);
             }
             queryClient.setQueryData(['memberships', 'professionals'], []);
+            queryClient.setQueryData(['professionals', 'roster'], []);
+            queryClient.setQueryData(['reports', {}], []);
 
             await write(({ children }) =>
                 createElement(
@@ -106,6 +108,14 @@ describe('license writes', () => {
             expect(
                 queryClient.getQueryData(['memberships', 'professionals']),
             ).toEqual(label === 'saving the DNI' ? undefined : []);
+            for (const queryKey of [
+                ['professionals', 'roster'],
+                ['reports', {}],
+            ]) {
+                expect(queryClient.getQueryData(queryKey)).toEqual(
+                    label === 'saving the DNI' ? undefined : [],
+                );
+            }
         },
     );
 

@@ -41,8 +41,8 @@ export const professionalDocumentQueryOptions = queryOptions({
 // so each one reloads both reads of the page. A status also decides which
 // specialties the licenses back (#387): Ajustes › Profesionales and the member
 // cards read that only in their loaders (#273). Loading the DNI also names the
-// account after the registry (#417): the session (the header) and every member
-// list read that name.
+// account after the registry (#417): the session (the header), every member
+// list, the professional roster and the reports read that name.
 function useRefreshLicenses({ renamed = false } = {}) {
     const queryClient = useQueryClient();
     const refreshPageData = useRefreshPageData();
@@ -51,7 +51,9 @@ function useRefreshLicenses({ renamed = false } = {}) {
         discardPageData(
             queryClient,
             BACKED_SPECIALTIES_KEY,
-            renamed ? ['memberships'] : ['memberships', 'cards'],
+            ...(renamed
+                ? [['memberships'], ['professionals'], ['reports']]
+                : [['memberships', 'cards']]),
         );
 
         return renamed

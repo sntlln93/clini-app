@@ -10,20 +10,26 @@ type ProfessionalInvitationFlowProps = {
 
 // A professional invitation (#417): the DNI first, then the account the
 // registry's name goes to. Going back to the DNI happens only when what it
-// found is gone, and spends another lookup.
+// found is gone, saying why; the same DNI is found again without spending a
+// lookup.
 export function ProfessionalInvitationFlow({
     token,
     lookupsLeft,
 }: ProfessionalInvitationFlowProps) {
     const [identity, setIdentity] = useState<InvitationIdentity | null>(null);
     const [left, setLeft] = useState(lookupsLeft);
+    const [notice, setNotice] = useState<string | null>(null);
 
     if (identity === null) {
         return (
             <InvitationDocumentStep
                 token={token}
                 lookupsLeft={left}
-                onFound={setIdentity}
+                notice={notice}
+                onFound={(found) => {
+                    setNotice(null);
+                    setIdentity(found);
+                }}
             />
         );
     }
@@ -32,8 +38,9 @@ export function ProfessionalInvitationFlow({
         <InvitationAccountStep
             token={token}
             identity={identity}
-            onRestart={() => {
+            onRestart={(reason) => {
                 setLeft(identity.document_lookups_left);
+                setNotice(reason);
                 setIdentity(null);
             }}
         />
