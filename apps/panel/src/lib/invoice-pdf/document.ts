@@ -2,6 +2,7 @@ import { formatInvoiceDate } from '@/lib/invoices';
 import type { Invoice, InvoiceVoucher } from '@/types/invoice';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { BORDER, box, field, heading, money, MUTED, TEXT } from './blocks';
+import { brandBand, brandFooter, type InvoiceLetterhead } from './branding';
 
 const MARGIN = 40;
 
@@ -132,10 +133,11 @@ function testNotice(voucher: InvoiceVoucher): Content[] {
 /**
  * The PDF of an issued subscription invoice (#246): a factura C to a final
  * consumer, with everything ARCA requires printed, built in the browser
- * from what the API answers (ADR 0023).
+ * from what the API answers (ADR 0023), under Clini's brand.
  */
 export function buildInvoiceDocument(
     invoice: IssuedInvoice,
+    letterhead: InvoiceLetterhead,
 ): TDocumentDefinitions {
     const { voucher } = invoice;
 
@@ -148,7 +150,9 @@ export function buildInvoiceDocument(
         },
         defaultStyle: { fontSize: 9, color: TEXT, lineHeight: 1.2 },
         styles: { muted: { color: MUTED } },
+        footer: brandFooter(letterhead),
         content: [
+            brandBand(letterhead),
             ...testNotice(voucher),
             heading(voucher),
             period(invoice),

@@ -1,7 +1,13 @@
 import { buildInvoice, buildPendingInvoice } from '@/tests/fixtures/invoice';
 import type { Content } from 'pdfmake/interfaces';
 import { describe, expect, it } from 'vitest';
+import type { InvoiceLetterhead } from './branding';
 import { buildInvoiceDocument, isIssued, type IssuedInvoice } from './document';
+
+const LETTERHEAD: InvoiceLetterhead = {
+    brandName: 'Clini',
+    logoSvg: '<svg id="logo"></svg>',
+};
 
 /** Every string a piece of pdfmake content prints, in order. */
 function textOf(content: unknown): string {
@@ -56,10 +62,9 @@ function issued(...args: Parameters<typeof buildInvoice>): IssuedInvoice {
 }
 
 function printed(invoice: IssuedInvoice = issued()): string {
-    return textOf(buildInvoiceDocument(invoice).content as Content).replace(
-        /\s+/g,
-        ' ',
-    );
+    return textOf(
+        buildInvoiceDocument(invoice, LETTERHEAD).content as Content,
+    ).replace(/\s+/g, ' ');
 }
 
 describe('buildInvoiceDocument', () => {
@@ -95,7 +100,7 @@ describe('buildInvoiceDocument', () => {
     });
 
     it('carries the CAE and the RG 4892 QR that checks it against ARCA', () => {
-        const document = buildInvoiceDocument(issued());
+        const document = buildInvoiceDocument(issued(), LETTERHEAD);
         const qr = nodesOf(document.content).find((node) => 'qr' in node);
 
         expect(qr?.qr).toBe('https://www.arca.gob.ar/fe/qr/?p=eyJ2ZXIiOjF9');
@@ -109,6 +114,30 @@ describe('buildInvoiceDocument', () => {
         expect(printed(issued({}, { fiscally_valid: false }))).toContain(
             'Comprobante de prueba: sin validez fiscal.',
         );
+    });
+});
+
+describe('the brand on the invoice', () => {
+    it('heads the voucher with the logotype and signs every page with the brand', () => {
+        const document = buildInvoiceDocument(issued(), LETTERHEAD);
+        const nodes = nodesOf(document.content);
+        const footer = (document.footer as () => unknown)();
+
+        expect(nodes.find((node) => 'svg' in node)?.svg).toBe(
+            '<svg id="logo"></svg>',
+        );
+        expect(textOf(footer)).toContain('Clini');
+    });
+
+    it('names the brand when the logotype could not be read', () => {
+        const document = buildInvoiceDocument(issued(), {
+            brandName: 'Clini',
+            logoSvg: null,
+        });
+        const nodes = nodesOf(document.content);
+
+        expect(nodes.some((node) => 'svg' in node)).toBe(false);
+        expect(textOf((document.content as Content[])[0]).trim()).toBe('Clini');
     });
 });
 
