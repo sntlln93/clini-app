@@ -16,12 +16,18 @@ enum ExternalSource: string
     case ProfessionalRegistry = 'professional_registry';
 
     /**
+     * The Buscador Nacional de Medicamentos (ADR 0031).
+     */
+    case MedicationSearch = 'medication_search';
+
+    /**
      * Where its outage lives in the cache.
      */
     public function outageKey(): string
     {
         return match ($this) {
             self::ProfessionalRegistry => 'professionals:national-professional-search:outage',
+            self::MedicationSearch => 'medications:national-medication-search:outage',
         };
     }
 
@@ -32,6 +38,7 @@ enum ExternalSource: string
     {
         return match ($this) {
             self::ProfessionalRegistry => 'services.national_professional_search',
+            self::MedicationSearch => 'services.national_medication_search',
         };
     }
 
@@ -42,6 +49,7 @@ enum ExternalSource: string
     {
         return match ($this) {
             self::ProfessionalRegistry => 'El registro nacional de profesionales',
+            self::MedicationSearch => 'El buscador nacional de medicamentos',
         };
     }
 
@@ -52,6 +60,7 @@ enum ExternalSource: string
     {
         return match ($this) {
             self::ProfessionalRegistry => 'Buscador Nacional de Profesionales de la Salud',
+            self::MedicationSearch => 'Buscador Nacional de Medicamentos',
         };
     }
 }

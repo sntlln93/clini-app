@@ -6,7 +6,9 @@ namespace App\Services\Medications;
 
 use App\Contracts\MedicationSource;
 use App\Data\Medications\MedicationProductData;
+use App\Enums\ExternalSource;
 use App\Exceptions\Medications\MedicationSourceUnavailableException;
+use App\Support\ExternalSourceOutage;
 use App\Support\MedicationComposition;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
@@ -20,7 +22,7 @@ use Throwable;
  * undocumented (#379 asks for a documented one). One POST per term answers every product whose name, drug, laboratory
  * or troquel contains it, without pagination. Only the term leaves Clini, never anything about a patient or a
  * professional. A failure keeps the source unasked for a while, so a slow or broken source doesn't slow every search
- * down.
+ * down, and starts or extends an outage that the first answer it reads ends (#425).
  */
 final class NationalMedicationSearchService implements MedicationSource
 {
@@ -33,12 +35,54 @@ final class NationalMedicationSearchService implements MedicationSource
 
     private const string PAUSED = 'medications:national-medication-search:paused';
 
+    private readonly ExternalSourceOutage $outage;
+
+    public function __construct()
+    {
+        $this->outage = new ExternalSourceOutage(ExternalSource::MedicationSearch);
+    }
+
     public function available(): bool
     {
         return Config::boolean('services.national_medication_search.enabled') && ! Cache::has(self::PAUSED);
     }
 
     public function search(string $term): array
+    {
+        $products = $this->products($term);
+        $this->outage->answered(withResults: $products !== []);
+
+        return $products;
+    }
+
+    /**
+     * The scheduled check (#425): searches a term that always has products, paused or not, and says how many it read.
+     * A readable answer without any is a failure too, since it may be a new format whose rows this adapter can't read:
+     * the outage it starts or extends only ends with products, never with a search that finds none.
+     *
+     * @throws MedicationSourceUnavailableException
+     */
+    public function probe(string $term): int
+    {
+        $products = $this->products($term);
+
+        if ($products === []) {
+            throw $this->pausing(new MedicationSourceUnavailableException('response'), needsResults: true);
+        }
+
+        $this->outage->answered(withResults: true);
+
+        return count($products);
+    }
+
+    /**
+     * Every product the source answers for the term.
+     *
+     * @return list<MedicationProductData>
+     *
+     * @throws MedicationSourceUnavailableException
+     */
+    private function products(string $term): array
     {
         try {
             $response = Http::acceptJson()
@@ -69,9 +113,13 @@ final class NationalMedicationSearchService implements MedicationSource
         return $products;
     }
 
-    private function pausing(MedicationSourceUnavailableException $exception): MedicationSourceUnavailableException
+    /**
+     * @param  bool  $needsResults  the probe read an answer without products
+     */
+    private function pausing(MedicationSourceUnavailableException $exception, bool $needsResults = false): MedicationSourceUnavailableException
     {
         Cache::put(self::PAUSED, true, self::PAUSE_SECONDS);
+        $this->outage->failed($exception->step, $needsResults);
 
         return $exception;
     }

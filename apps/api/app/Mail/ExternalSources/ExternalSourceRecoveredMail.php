@@ -54,6 +54,7 @@ class ExternalSourceRecoveredMail extends Mailable implements ShouldQueue
                     : sprintf('%d h %02d min', intdiv($minutes, 60), $minutes % 60),
                 'recovery' => match ($this->source) {
                     ExternalSource::ProfessionalRegistry => 'Ya se pueden cargar DNIs y aceptar invitaciones como profesional otra vez.',
+                    ExternalSource::MedicationSearch => 'La búsqueda de medicamentos vuelve a sumar al catálogo lo que todavía no tiene.',
                 },
             ],
         );

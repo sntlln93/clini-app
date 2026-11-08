@@ -51,6 +51,8 @@ dataset('mailables', [
     'account deletion voided' => fn (): Mailable => new AccountDeletionVoidedMail('Ana', ErrorCode::AccountDeletionFutureAppointments, ['Consultorio Oeste']),
     'professional registry outage' => fn (): Mailable => new ExternalSourceOutageMail(ExternalSource::ProfessionalRegistry, CarbonImmutable::now(), 'response'),
     'professional registry recovered' => fn (): Mailable => new ExternalSourceRecoveredMail(ExternalSource::ProfessionalRegistry, CarbonImmutable::now()->subHour(), CarbonImmutable::now()),
+    'medication search outage' => fn (): Mailable => new ExternalSourceOutageMail(ExternalSource::MedicationSearch, CarbonImmutable::now(), 'response'),
+    'medication search recovered' => fn (): Mailable => new ExternalSourceRecoveredMail(ExternalSource::MedicationSearch, CarbonImmutable::now()->subHour(), CarbonImmutable::now()),
 ]);
 
 dataset('notifications', [

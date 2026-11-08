@@ -47,6 +47,10 @@ return [
         'enabled' => (bool) env('NATIONAL_MEDICATION_SEARCH_ENABLED', false),
         'url' => env('NATIONAL_MEDICATION_SEARCH_URL', 'https://cnpm.msal.gov.ar'),
         'user_agent' => env('NATIONAL_MEDICATION_SEARCH_USER_AGENT', 'Clini/1.0 (catalogo de medicamentos; +'.env('APP_URL', 'http://localhost').')'),
+        // An outage (#425): minutes until the team is mailed, at the contact form's address (config/contact.php).
+        'outage_alert_minutes' => 15,
+        // The term the scheduled probe searches: one that always has products, so an answer without any is a failure.
+        'probe_term' => 'amoxicilina',
     ],
 
     // The national registry that checks professionals' licenses (#380, ADR 0032) and gives their professions and

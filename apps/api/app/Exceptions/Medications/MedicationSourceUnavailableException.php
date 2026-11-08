@@ -19,7 +19,7 @@ final class MedicationSourceUnavailableException extends DomainException
      * @param  string  $step  what failed: the request itself, its status or the response's body
      */
     public function __construct(
-        private readonly string $step,
+        public readonly string $step,
         ?Throwable $previous = null,
     ) {
         parent::__construct('The medication source is unavailable.', previous: $previous);

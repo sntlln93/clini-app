@@ -64,6 +64,7 @@ class ExternalSourceOutageMail extends Mailable implements ShouldQueue
             'form' => 'la página no trae el formulario de búsqueda',
             default => match ($this->source) {
                 ExternalSource::ProfessionalRegistry => 'la respuesta no es ni resultados ni «sin resultados»: puede haber cambiado el formato de la página',
+                ExternalSource::MedicationSearch => 'la respuesta no es una lista de productos que Clini pueda leer, o la prueba no trajo ninguno: puede haber cambiado su formato',
             },
         };
     }
@@ -75,6 +76,7 @@ class ExternalSourceOutageMail extends Mailable implements ShouldQueue
     {
         return match ($this->source) {
             ExternalSource::ProfessionalRegistry => 'Mientras siga así, nadie puede cargar su DNI ni aceptar una invitación como profesional, y las matrículas no se reverifican.',
+            ExternalSource::MedicationSearch => 'Mientras siga así, la búsqueda de medicamentos solo sugiere lo que el catálogo de Clini ya tiene: un medicamento que nadie buscó antes no aparece al indicarlo.',
         };
     }
 
