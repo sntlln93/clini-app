@@ -139,6 +139,23 @@ test('fetchPayment reads the charge date from debit_date, falling back to date_c
     'unparseable' => [['debit_date' => 'not a date'], null],
 ]);
 
+test('fetchPayment reads what the charge collected, in cents, and its currency (#246)', function (array $payload, ?int $cents, ?string $currency) {
+    Http::fake([
+        'api.mercadopago.com/authorized_payments/7001' => Http::response(array_merge(['id' => 7001, 'preapproval_id' => 'pre-1'], $payload)),
+    ]);
+
+    $payment = app(MercadoPagoService::class)->fetchPayment('7001');
+
+    expect($payment->amountCents)->toBe($cents)
+        ->and($payment->currency)->toBe($currency);
+})->with([
+    'whole pesos' => [['transaction_amount' => 15000, 'currency_id' => 'ARS'], 1500000, 'ARS'],
+    'with cents' => [['transaction_amount' => 18500.5, 'currency_id' => 'ARS'], 1850050, 'ARS'],
+    'binary float' => [['transaction_amount' => 1234.57, 'currency_id' => 'ARS'], 123457, 'ARS'],
+    'none' => [[], null, null],
+    'not a number' => [['transaction_amount' => 'mucho', 'currency_id' => 7], null, null],
+]);
+
 test('a non-2xx provider response throws SubscriptionGatewayUnavailableException', function () {
     Http::fake([
         'api.mercadopago.com/preapproval/pre-1' => Http::response(['message' => 'boom'], 500),
