@@ -171,10 +171,10 @@ Todo se hace online con clave fiscal nivel 3, sin escribir ni llamar a nadie.
 
    ```bash
    openssl genrsa -out clini-homo.key 2048
-   openssl req -new -key clini-homo.key -subj "/C=AR/O=<Razón social>/CN=clini-homologacion/serialNumber=CUIT <CUIT sin guiones>" -out clini-homo.csr
+   openssl req -new -key clini-homo.key -subj "/C=AR/O=<Razón social>/CN=clinihomologacion/serialNumber=CUIT <CUIT sin guiones>" -out clini-homo.csr
    ```
 
-2. **Certificado de homologación** — en el portal de ARCA, adherir el servicio «WSASS - Autogestión Certificados Homologación» en el Administrador de Relaciones de Clave Fiscal. En WSASS, «Nuevo Certificado»: pegar el CSR y guardar el certificado que devuelve como `clini-homo.crt`.
+2. **Certificado de homologación** — en el portal de ARCA, adherir el servicio «WSASS - Autogestión Certificados Homologación» en el Administrador de Relaciones de Clave Fiscal. En WSASS, «Nuevo Certificado»: el nombre simbólico (alias) solo acepta letras y números (`clinihomologacion`, igual que el CN del CSR); pegar el CSR y guardar el certificado que devuelve como `clini-homo.crt`.
 3. **Autorización** — en WSASS, «Crear autorización a servicio»: el certificado (por su alias), el CUIT representado y el servicio `wsfe`.
 4. **Punto de venta** — homologación acepta cualquier punto de venta numérico (por ejemplo `1`); no hace falta darlo de alta.
 5. **Configurar** `apps/api/.env` y reiniciar `laravel.test` y `queue`:
@@ -193,7 +193,7 @@ Todo se hace online con clave fiscal nivel 3, sin escribir ni llamar a nadie.
 
 ### Producción
 
-1. **Certificado** — generar otra clave y otro CSR (`CN=clini-produccion`) y subir el CSR en «Administración de Certificados Digitales» (servicio adherido con clave fiscal nivel 3). Descargar el certificado.
+1. **Certificado** — generar otra clave y otro CSR (`CN=cliniproduccion`) y subir el CSR en «Administración de Certificados Digitales» (servicio adherido con clave fiscal nivel 3). Descargar el certificado.
 2. **Relación** — en el «Administrador de Relaciones de Clave Fiscal», «Nueva relación»: ARCA → WebServices → «Facturación Electrónica» (`wsfe`), con el certificado como representante (computador fiscal).
 3. **Punto de venta** — en «ABM de puntos de venta», dar de alta uno con el sistema «RECE / Factura Electrónica – Web Services» y el domicilio del emisor. Ese número va en `INVOICE_POINT_OF_SALE` y no lo usa ningún otro sistema de facturación: si otro emite en el mismo punto de venta, la numeración choca.
 4. **Dokploy** — `INVOICE_ISSUER=arca`, `ARCA_ENVIRONMENT=production`, el CUIT, el punto de venta, `ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` (base64 de cada PEM) y los datos fiscales `INVOICE_ISSUER_*`. La clave privada no sale de Dokploy.
