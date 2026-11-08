@@ -9,6 +9,7 @@ use App\Data\Professionals\RegistryLicenseData;
 use App\Data\Professionals\RegistryProfessionalData;
 use App\Enums\Province;
 use App\Exceptions\Professionals\ProfessionalRegistryUnavailableException;
+use App\Support\ProfessionalRegistryOutage;
 use App\Support\RegistryPersonName;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\Client\ConnectionException;
@@ -24,7 +25,8 @@ use Throwable;
  * It has no API: it is a Drupal form, so a lookup reads the form's page for its `form_build_id` and posts the DNI to
  * it, and the answer comes in the page's HTML as JSON (`Drupal.settings.refepsProfesionales.allItems`). A page with
  * neither that, the «no results» notice nor the form rejecting the DNI is unreadable, never «not found». Only the DNI
- * leaves Clini; of the answer, only the licenses and the name are kept (#417). A failure keeps the registry unasked for a while, like the national medication search.
+ * leaves Clini; of the answer, only the licenses and the name are kept (#417). A failure keeps the registry unasked for a while, like the national medication search,
+ * and starts or extends an outage that the first answer it reads ends (#419).
  */
 final class NationalProfessionalSearchService implements ProfessionalRegistry
 {
@@ -51,6 +53,10 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
      */
     private const string TIMEZONE = 'America/Argentina/Buenos_Aires';
 
+    public function __construct(
+        private readonly ProfessionalRegistryOutage $outage,
+    ) {}
+
     public function available(): bool
     {
         return ! Cache::has(self::PAUSED);
@@ -58,21 +64,7 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
 
     public function lookUp(string $documentNumber): array
     {
-        $formBuildId = $this->formBuildId($this->page(fn () => $this->client()->get($this->url())));
-
-        $page = $this->page(fn () => $this->client()->asForm()->post($this->url(), [
-            'searchBy' => 'dni',
-            'dni' => $documentNumber,
-            'matricula' => '',
-            'apellidonombre' => '',
-            'form_build_id' => $formBuildId,
-            'form_id' => self::FORM_ID,
-            'op' => 'Consultar',
-            // The form's honeypot: a person leaves it empty.
-            'tarro_de_miel' => '',
-        ]));
-
-        $items = $this->items($page);
+        $items = $this->items($this->answer($documentNumber));
         $professionals = [];
 
         foreach ($items as $item) {
@@ -84,6 +76,40 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
         }
 
         return $professionals;
+    }
+
+    /**
+     * The scheduled check (#419): looks up a DNI nobody holds, paused or not, and says whether the page reads «no
+     * results», as it must. Results or a rejected DNI are an answer too (they end an outage), just not the expected one.
+     *
+     * @throws ProfessionalRegistryUnavailableException
+     */
+    public function probe(string $documentNumber): bool
+    {
+        $page = $this->answer($documentNumber);
+        $this->items($page, probing: true);
+
+        return $this->readsNoResults($page);
+    }
+
+    /**
+     * The page the form answers for the DNI.
+     */
+    private function answer(string $documentNumber): string
+    {
+        $formBuildId = $this->formBuildId($this->page(fn () => $this->client()->get($this->url())));
+
+        return $this->page(fn () => $this->client()->asForm()->post($this->url(), [
+            'searchBy' => 'dni',
+            'dni' => $documentNumber,
+            'matricula' => '',
+            'apellidonombre' => '',
+            'form_build_id' => $formBuildId,
+            'form_id' => self::FORM_ID,
+            'op' => 'Consultar',
+            // The form's honeypot: a person leaves it empty.
+            'tarro_de_miel' => '',
+        ]));
     }
 
     private function client(): PendingRequest
@@ -134,24 +160,39 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
     }
 
     /**
+     * Any page read here is an answer, which ends an outage; but an outage a lookup opened on a page it couldn't read
+     * (perhaps a results page in a new format) only ends with results, never with the probe's «no results» (#419).
+     *
+     * @param  bool  $probing  whether the DNI is the probe's, which nobody holds
      * @return array<mixed>
      */
-    private function items(string $page): array
+    private function items(string $page, bool $probing = false): array
     {
         if (preg_match('/refepsProfesionales\.allItems\s*=\s*(\[.*?\]);\s*(?:Drupal\.|<\/script>)/s', $page, $match) === 1) {
             $items = $this->decoded($match[1]);
 
             if (is_array($items) && array_is_list($items)) {
+                $this->outage->answered(withResults: true);
+
                 return $items;
             }
-        } elseif (str_contains($page, self::NO_RESULTS) && ! str_contains($page, 'messages error')) {
+        } elseif ($this->readsNoResults($page)) {
+            $this->outage->answered();
+
             return [];
         } elseif (str_contains($page, 'messages error') && str_contains($page, self::INVALID_DOCUMENT)) {
             // The registry holds nobody under a DNI it won't even search.
+            $this->outage->answered();
+
             return [];
         }
 
-        throw $this->pausing(new ProfessionalRegistryUnavailableException('response'));
+        throw $this->pausing(new ProfessionalRegistryUnavailableException('response'), unreadableLookUp: ! $probing);
+    }
+
+    private function readsNoResults(string $page): bool
+    {
+        return str_contains($page, self::NO_RESULTS) && ! str_contains($page, 'messages error');
     }
 
     private function decoded(string $json): mixed
@@ -163,9 +204,13 @@ final class NationalProfessionalSearchService implements ProfessionalRegistry
         }
     }
 
-    private function pausing(ProfessionalRegistryUnavailableException $exception): ProfessionalRegistryUnavailableException
+    /**
+     * @param  bool  $unreadableLookUp  a professional's lookup answered with a page this adapter can't read
+     */
+    private function pausing(ProfessionalRegistryUnavailableException $exception, bool $unreadableLookUp = false): ProfessionalRegistryUnavailableException
     {
         Cache::put(self::PAUSED, true, self::PAUSE_SECONDS);
+        $this->outage->failed($exception->step, $unreadableLookUp);
 
         return $exception;
     }
