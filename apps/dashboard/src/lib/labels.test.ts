@@ -2,6 +2,7 @@ import { MEMBERSHIP_ROLES, MEMBERSHIP_STATUSES } from '@/types/admin';
 import { AUDIT_ACTIONS, AUDIT_SUBJECT_TYPES } from '@/types/audit';
 import { CONTACT_REQUEST_STATUSES } from '@/types/contact-request';
 import { ACTIVITY_KINDS } from '@/types/overview';
+import { LICENSE_MISMATCH_REASONS } from '@/types/specialty';
 import {
     APPOINTMENT_ORIGINS,
     APPOINTMENT_STATUSES,
@@ -18,6 +19,7 @@ import {
     AUDIT_SUBJECT_LABELS,
     CONTACT_REQUEST_STATUS_LABELS,
     GRACE_REASON_LABELS,
+    LICENSE_MISMATCH_LABELS,
     MEMBERSHIP_ROLE_LABELS,
     MEMBERSHIP_STATUS_LABELS,
     REMINDER_CHANNEL_LABELS,
@@ -43,6 +45,11 @@ const CASES: Array<[string, readonly string[], Record<string, string>]> = [
         'contact request status',
         CONTACT_REQUEST_STATUSES,
         CONTACT_REQUEST_STATUS_LABELS,
+    ],
+    [
+        'license mismatch reason',
+        LICENSE_MISMATCH_REASONS,
+        LICENSE_MISMATCH_LABELS,
     ],
 ];
 

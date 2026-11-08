@@ -4,6 +4,7 @@ import type { AdminAuditAction, AuditSubjectType } from '@/types/audit';
 import type { ContactRequestStatus } from '@/types/contact-request';
 import type { OrganizationPlan } from '@/types/organization';
 import type { ActivityKind } from '@/types/overview';
+import type { LicenseMismatchReason } from '@/types/specialty';
 import type {
     AppointmentOrigin,
     AppointmentStatus,
@@ -125,4 +126,12 @@ export const ACTIVITY_KIND_LABELS: Record<ActivityKind, string> = {
     organization_created: 'Nueva organización',
     user_registered: 'Nuevo usuario',
     subscription_event: 'Evento de suscripción',
+};
+
+// Why the registry doesn't back a license (#380), short for a breakdown.
+export const LICENSE_MISMATCH_LABELS: Record<LicenseMismatchReason, string> = {
+    not_found: 'No figura en el registro',
+    inactive: 'Profesional inactivo',
+    sanctioned: 'Sanción vigente',
+    not_enabled: 'No habilitada',
 };
