@@ -22,6 +22,18 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
         'Ese número de afiliado ya está registrado para otro paciente de la misma obra social. Revisá que esté bien escrito.',
     'memberships.invitation_invalid_or_expired':
         'La invitación no es válida o ya expiró. Pedile a quien te invitó que te envíe una nueva.',
+    'memberships.invitation_document_not_found':
+        'El Buscador Nacional de Profesionales de la Salud no tiene a nadie con ese DNI. Revisá que esté bien escrito.',
+    'memberships.invitation_account_of_another_person':
+        'Esta cuenta está asociada a otra persona.',
+    'memberships.invitation_already_member':
+        'Tu cuenta ya está en este consultorio. Si la desactivaron, pedile al consultorio que la vuelva a activar.',
+    'memberships.invitation_lookups_exhausted':
+        'Se agotaron las consultas de DNI de esta invitación y venció. Pedile al consultorio que te invite de nuevo.',
+    'memberships.invitation_document_required':
+        'Primero ingresá tu DNI para buscar tus datos.',
+    'memberships.invitation_credentials_invalid':
+        'La contraseña o el código no son correctos.',
     'auth.email_verification_invalid_or_expired':
         'El enlace de verificación no es válido o ya venció. Podés seguir usando tu cuenta con normalidad; iniciá sesión de nuevo si es necesario.',
     'booking.slot_not_available':
@@ -44,7 +56,11 @@ export const ERROR_CODE_MESSAGES: Record<ErrorCode, string> = {
     'professionals.registry_unavailable':
         'No se pudo consultar el Buscador Nacional de Profesionales de la Salud. Probá de nuevo más tarde.',
     'professionals.document_locked':
-        'Tu DNI ya está validado y no se puede cambiar desde acá. Para cambiarlo, comunicate con el soporte de Clini.',
+        'Tu DNI ya está cargado y no se puede cambiar desde acá. Para cambiarlo, comunicate con el soporte de Clini.',
+    'professionals.document_not_in_registry':
+        'El Buscador Nacional de Profesionales de la Salud no tiene a nadie con ese DNI. Revisá que esté bien escrito.',
+    'professionals.document_taken':
+        'Ese DNI ya está asociado a otra cuenta de Clini. Si es tuyo, comunicate con el soporte de Clini.',
     'subscriptions.inactive':
         'La suscripción del consultorio no está activa: la agenda está en modo solo lectura. Regularizá el pago desde Ajustes para volver a crear o modificar turnos, notas clínicas, medicación indicada y disponibilidad, y para recibir reservas online.',
     'subscriptions.already_active':

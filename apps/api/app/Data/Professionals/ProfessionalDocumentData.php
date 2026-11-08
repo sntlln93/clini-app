@@ -7,13 +7,13 @@ namespace App\Data\Professionals;
 use App\Contracts\Data;
 
 /**
- * The DNI a professional declares to have their licenses checked (#380); null takes it away.
+ * The DNI a user loads into their account (#380, #417), once: the registry gives the account its name and licenses.
  */
 final readonly class ProfessionalDocumentData implements Data
 {
     public function __construct(
         public int $userId,
-        public ?string $documentNumber,
+        public string $documentNumber,
     ) {}
 
     /**
@@ -25,7 +25,6 @@ final readonly class ProfessionalDocumentData implements Data
     {
         return [
             'userId' => $this->userId,
-            'hasDocumentNumber' => $this->documentNumber !== null,
         ];
     }
 }

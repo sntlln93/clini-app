@@ -56,18 +56,37 @@ test('a lookup reads the form, posts only the DNI to it, as Clini, and reads eve
             new RegistryLicenseData('MP 6789', Province::Cordoba, 'Médico', 'Medicina General y/o Medicina de Familia', 'MEDICOS DE LA PROVINCIA DE CORDOBA, Consejo de', 'Habilitado', false),
             new RegistryLicenseData('4321', Province::BuenosAires, 'Odontólogo', null, 'ODONTOLOGOS DISTRITO I, Colegio de', 'Habilitado', false),
         ],
+        // «ANA LAURA» «PRUEBA»: the account's name (#417).
+        name: 'Ana Laura Prueba',
     )]);
 });
 
-test('what the registry answers about the person beyond their licenses never reaches Clini', function () {
+test('what the registry answers about the person beyond their licenses and name never reaches Clini', function () {
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
     $answer = json_encode(array_map(fn (RegistryProfessionalData $professional) => $professional->toArray(), app(NationalProfessionalSearchService::class)->lookUp('30123456')));
 
-    expect($answer)->not->toContain('PRUEBA')
-        ->not->toContain('ANA LAURA')
-        ->not->toContain('27301234565');
+    expect($answer)->not->toContain('27301234565')
+        ->not->toContain('"F"')
+        ->not->toContain('sexo')
+        ->not->toContain('PRUEBA');
 });
+
+test('the registry\'s name is written «Nombre Apellido», each word capitalized, particles included', function (?string $givenNames, ?string $surname, ?string $name) {
+    $item = nationalProfessionalSearchItem();
+    $item['nombre'] = $givenNames;
+    $item['apellido'] = $surname;
+    fakeNationalProfessionalSearch(nationalProfessionalSearchResults([$item]));
+
+    expect(app(NationalProfessionalSearchService::class)->lookUp('30123456')[0]->name)->toBe($name);
+})->with([
+    'particles' => ['MARIA DEL CARMEN', 'DE LA FUENTE', 'Maria Del Carmen De La Fuente'],
+    'accents and spaces' => ['  JOSÉ  ÁNGEL ', 'NÚÑEZ', 'José Ángel Núñez'],
+    'hyphenated' => ['ANA', 'PÉREZ-GÓMEZ', 'Ana Pérez-Gómez'],
+    'already mixed' => ['juan', 'mcDonald', 'Juan Mcdonald'],
+    'surname only' => [null, 'PRUEBA', 'Prueba'],
+    'none' => [null, null, null],
+]);
 
 test('a page saying it found nobody is an empty answer, not a failure', function () {
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));

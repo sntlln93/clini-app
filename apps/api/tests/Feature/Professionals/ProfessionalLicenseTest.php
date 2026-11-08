@@ -10,6 +10,7 @@ use App\Models\ProfessionalLicense;
 use App\Models\ProfessionalSpecialty;
 use App\Models\User;
 use App\Support\CurrentOrganization;
+use App\Support\DocumentIndex;
 use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
@@ -102,19 +103,21 @@ test('a license whose province or profession Clini doesn\'t know is left out', f
         ->assertJsonPath('data.0.number', '1');
 });
 
-test('with the registry failing, a new DNI is kept unchecked and the registry pauses', function () {
+test('with the registry failing, no DNI is loaded and the registry pauses', function () {
     $user = professionalWithDocument(null);
     fakeNationalProfessionalSearch(fn () => throw new ConnectionException('cURL error 28: Operation timed out'));
 
+    // Without the registry no DNI is loaded (#417): there is no name to give the account.
     $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])
-        ->assertOk()
-        ->assertJsonPath('data.registry', 'unchecked');
+        ->assertStatus(503)
+        ->assertJsonPath('error.code', 'professionals.registry_unavailable');
 
-    // Paused: checking again doesn't even read the form (the fake records only the first form read; the post that
+    // Paused: trying again doesn't even read the form (the fake records only the first form read; the post that
     // timed out never got a response).
-    $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertStatus(503);
+    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])->assertStatus(503);
     Http::assertSentCount(1);
-    expect(ProfessionalLicense::query()->count())->toBe(0);
+    expect($user->refresh()->document_number)->toBeNull()
+        ->and(ProfessionalLicense::query()->count())->toBe(0);
 });
 
 test('without a DNI nothing is asked', function () {
@@ -182,8 +185,10 @@ test('taking out a license the registry no longer holds removes it', function ()
     expect(ProfessionalLicense::query()->count())->toBe(0);
 });
 
-test('a professional reads and sets their own DNI, written with or without dots', function () {
+test('a professional reads and loads their own DNI, written with or without dots, and takes the registry\'s name', function () {
     $user = professionalWithDocument(null);
+    $user->forceFill(['name' => 'Anita'])->save();
+    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
     $this->actingAs($user)->getJson('/api/v1/me/professional-document')
         ->assertOk()
@@ -191,10 +196,17 @@ test('a professional reads and sets their own DNI, written with or without dots'
 
     $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30.123.456'])
         ->assertOk()
-        ->assertJsonPath('data.document_number', '30123456');
+        ->assertJsonPath('data.document_number', '30123456')
+        ->assertJsonPath('data.registry', 'found');
 
-    // Encrypted at rest.
-    expect(DB::table('users')->where('id', $user->id)->value('document_number'))->not->toContain('30123456');
+    // «ANA LAURA» «PRUEBA» in the recorded answer (#417).
+    expect($user->refresh()->name)->toBe('Ana Laura Prueba');
+
+    // Encrypted at rest, and searched only by its blind index.
+    $stored = DB::table('users')->where('id', $user->id)->first(['document_number', 'document_number_index']);
+    expect($stored->document_number)->not->toContain('30123456')
+        ->and($stored->document_number_index)->toBe(hash_hmac('sha256', '30123456', (string) base64_decode(substr((string) config('document_index.key'), 7))))
+        ->and(ProfessionalLicense::query()->where('user_id', $user->id)->count())->toBe(3);
 });
 
 test('a DNI is validated', function (mixed $documentNumber) {
@@ -210,51 +222,60 @@ test('the DNI never leaves the API anywhere but its own endpoint', function () {
     expect($user->toArray())->not->toHaveKey('document_number');
 });
 
-test('a new DNI drops what the registry held for the old one and looks the new one up', function () {
-    $user = professionalWithDocument('30123457');
-    ProfessionalLicense::factory()->verified()->offered()->create(['user_id' => $user->id, 'number' => '555', 'province' => Province::SantaFe]);
-    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
-
-    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])
-        ->assertOk()
-        ->assertJsonPath('data.registry', 'found')
-        ->assertJsonPath('data.locked', false);
-
-    expect(ProfessionalLicense::query()->pluck('number')->all())->toEqualCanonicalizing(['123456', '4321', 'MP 6789'])
-        ->and(ProfessionalLicense::query()->added()->exists())->toBeFalse();
-});
-
-test('a DNI the registry holds nobody under says so, and stays open to correction', function () {
+test('a DNI the registry holds nobody under is not kept, and the name stays', function (string $page) {
     $user = professionalWithDocument(null);
-    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('no-results.html'));
+    $user->forceFill(['name' => 'Anita'])->save();
+    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture($page));
 
     $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])
-        ->assertOk()
-        ->assertJsonPath('data.registry', 'not_found')
-        ->assertJsonPath('data.locked', false);
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', 'professionals.document_not_in_registry');
 
-    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123457'])->assertOk();
-    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => null])
-        ->assertOk()
-        ->assertJsonPath('data.document_number', null)
-        ->assertJsonPath('data.registry', 'unchecked');
-});
+    expect($user->refresh()->document_number)->toBeNull()
+        ->and($user->name)->toBe('Anita');
+})->with(['no results' => ['no-results.html'], 'invalid DNI' => ['invalid-document.html']]);
 
-test('once a license is in Clini the DNI is locked, and only support changes it', function (?string $documentNumber) {
+test('a DNI is loaded only once, and only support changes it', function () {
     $user = professionalWithDocument();
-    $license = ProfessionalLicense::factory()->verified()->create(['user_id' => $user->id]);
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
-    $this->actingAs($user)->getJson('/api/v1/me/professional-document')->assertJsonPath('data.locked', true);
-
-    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => $documentNumber])
+    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123457'])
         ->assertStatus(409)
         ->assertJsonPath('error.code', 'professionals.document_locked');
 
-    expect($user->refresh()->document_number)->toBe('30123456')
-        ->and($license->refresh()->exists)->toBeTrue();
+    expect($user->refresh()->document_number)->toBe('30123456');
     Http::assertNothingSent();
-})->with(['another DNI' => ['30123457'], 'none' => [null]]);
+});
+
+test('taking the DNI away is no longer the user\'s', function () {
+    $this->actingAs(professionalWithDocument())->putJson('/api/v1/me/professional-document', ['document_number' => null])
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('document_number');
+});
+
+test('a DNI another account holds is a 409, under the current key and, while rotating, under the previous one', function (bool $rotating) {
+    $previousKey = 'base64:'.base64_encode(str_repeat('p', 32));
+
+    if ($rotating) {
+        config(['document_index.key' => $previousKey]);
+    }
+
+    $other = professionalWithDocument();
+
+    if ($rotating) {
+        config(['document_index.key' => DocumentIndex::DEVELOPMENT_KEY, 'document_index.previous_key' => $previousKey]);
+    }
+
+    $user = professionalWithDocument(null);
+    fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
+
+    $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30.123.456'])
+        ->assertStatus(409)
+        ->assertJsonPath('error.code', 'professionals.document_taken');
+
+    expect($user->refresh()->document_number)->toBeNull()
+        ->and($other->refresh()->document_number)->toBe('30123456');
+})->with(['current key' => [false], 'previous key' => [true]]);
 
 test('support takes a settled DNI and its licenses away, and the practice keeps what it offered', function () {
     $user = professionalWithDocument();

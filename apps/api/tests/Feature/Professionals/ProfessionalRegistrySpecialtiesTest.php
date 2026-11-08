@@ -25,7 +25,7 @@ afterEach(function () {
     app(CurrentOrganization::class)->set(null);
 });
 
-function registryProfessional(string $documentNumber = '30123456'): User
+function registryProfessional(?string $documentNumber = '30123456'): User
 {
     $user = Membership::factory()->professional()->create()->user;
     $user->forceFill(['document_number' => $documentNumber])->save();
@@ -59,22 +59,25 @@ test('a registry answer adds its professions and specialties to the catalog, and
 });
 
 test('every way the registry is asked fills the catalog', function (string $path) {
-    $user = registryProfessional($path === 'a new DNI' ? '30123457' : '30123456');
-    // In Clini, but for a new DNI only what the registry held for the old one: otherwise the DNI would be locked.
-    ProfessionalLicense::factory()
-        ->state(['added_at' => $path === 'a new DNI' ? null : now()])
-        ->create(['user_id' => $user->id, 'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires]);
+    // Loading a DNI (#417) starts from an account without one: its licenses come with it.
+    $user = registryProfessional($path === 'loading the DNI' ? null : '30123456');
+
+    if ($path !== 'loading the DNI') {
+        ProfessionalLicense::factory()->state(['added_at' => now()])
+            ->create(['user_id' => $user->id, 'number' => '123456', 'province' => Province::CiudadAutonomaDeBuenosAires]);
+    }
+
     fakeNationalProfessionalSearch(nationalProfessionalSearchFixture('results.html'));
 
     match ($path) {
-        'a new DNI' => $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])->assertOk(),
+        'loading the DNI' => $this->actingAs($user)->putJson('/api/v1/me/professional-document', ['document_number' => '30123456'])->assertOk(),
         'on demand' => $this->actingAs($user)->postJson('/api/v1/me/licenses/verification')->assertOk(),
         'the daily reverification' => $this->artisan('professionals:reverify-licenses')->assertSuccessful(),
     };
 
     expect(specialtiesCatalog())->toHaveCount(2)
         ->and(ProfessionalLicense::query()->where('number', '123456')->sole()->specialty?->name)->toBe('Medicina General y/o Medicina de Familia');
-})->with(['a new DNI', 'on demand', 'the daily reverification']);
+})->with(['loading the DNI', 'on demand', 'the daily reverification']);
 
 test('the same specialty written another way is the same row, kept as first written', function () {
     $first = registryProfessional('30000001');

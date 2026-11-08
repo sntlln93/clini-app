@@ -33,7 +33,9 @@ use App\Models\Reminder;
 use App\Models\Specialty;
 use App\Models\Subscription;
 use App\Models\User;
+use App\Services\Professionals\FakeProfessionalRegistry;
 use App\Support\ClinicalNoteDiagnoses;
+use App\Support\RegistryPersonName;
 use Database\Seeders\DatabaseSeeder;
 use Database\Seeders\OrganizationsSeeder;
 use Database\Seeders\PlatformAdminSeeder;
@@ -280,6 +282,9 @@ test('the specialties catalog holds only what the registry answers for the seede
         $licenses = ProfessionalLicense::query()->where('user_id', $user->id)->get();
 
         expect($user->document_number)->toBe($documentNumber)
+            // Found by its blind index (#417), and named as the fake registry names them.
+            ->and(User::query()->withDocument($documentNumber)->sole()->id)->toBe($user->id)
+            ->and(RegistryPersonName::of((new FakeProfessionalRegistry)->lookUp($documentNumber)))->toBe($user->name)
             ->and($licenses)->not->toBeEmpty()
             ->and($licenses->every(fn (ProfessionalLicense $license): bool => $license->status === ProfessionalLicenseStatus::Verified && $license->specialty_id !== null))->toBeTrue();
     }

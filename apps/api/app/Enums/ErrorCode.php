@@ -19,6 +19,12 @@ enum ErrorCode: string
     case PatientsNotFound = 'patients.not_found';
     case PatientsInsuranceMemberNumberTaken = 'patients.insurance_member_number_taken';
     case MembershipsInvitationInvalidOrExpired = 'memberships.invitation_invalid_or_expired';
+    case MembershipsInvitationDocumentNotFound = 'memberships.invitation_document_not_found';
+    case MembershipsInvitationAccountOfAnotherPerson = 'memberships.invitation_account_of_another_person';
+    case MembershipsInvitationAlreadyMember = 'memberships.invitation_already_member';
+    case MembershipsInvitationLookupsExhausted = 'memberships.invitation_lookups_exhausted';
+    case MembershipsInvitationDocumentRequired = 'memberships.invitation_document_required';
+    case MembershipsInvitationCredentialsInvalid = 'memberships.invitation_credentials_invalid';
     case AuthEmailVerificationInvalidOrExpired = 'auth.email_verification_invalid_or_expired';
     case BookingSlotNotAvailable = 'booking.slot_not_available';
     case MembershipsSlugInvalidFormat = 'memberships.slug_invalid_format';
@@ -31,6 +37,8 @@ enum ErrorCode: string
     case MedicationsSourceUnavailable = 'medications.source_unavailable';
     case ProfessionalsRegistryUnavailable = 'professionals.registry_unavailable';
     case ProfessionalsDocumentLocked = 'professionals.document_locked';
+    case ProfessionalsDocumentNotInRegistry = 'professionals.document_not_in_registry';
+    case ProfessionalsDocumentTaken = 'professionals.document_taken';
     case SubscriptionsInactive = 'subscriptions.inactive';
     case SubscriptionsAlreadyActive = 'subscriptions.already_active';
     case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';
