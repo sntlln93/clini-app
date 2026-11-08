@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 /**
  * One entry of the ICD-10 catalog (#324, ADR 0020): global, read-only
- * reference data the external catalog app owns, like specialties. A
+ * reference data the external catalog app owns, like services. A
  * retired code is soft-deleted so the diagnoses that used it keep pointing
  * at it.
  */

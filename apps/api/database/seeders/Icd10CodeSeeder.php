@@ -10,7 +10,7 @@ use Illuminate\Database\Seeder;
 /**
  * A handful of common ICD-10 codes, dev/test only. In production the
  * catalog is owned and loaded by the external catalog app (ADR 0020), like
- * specialties. Idempotent via firstOrCreate on the code, retired codes
+ * services. Idempotent via firstOrCreate on the code, retired codes
  * included, so a re-seed never resurrects, duplicates or rewrites a row.
  */
 class Icd10CodeSeeder extends Seeder
