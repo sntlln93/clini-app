@@ -42,7 +42,8 @@ class AppointmentLimitApproachingNotification extends Notification implements Sh
 
         return (new MailMessage)
             ->subject("Ya cargaste {$this->appointments} de los {$this->appointmentLimit} turnos de {$month}")
-            ->greeting('Hola')
+            ->markdown('notifications::email', ['label' => 'Tu plan', 'eyebrow' => 'Límite de turnos'])
+            ->greeting('¡Hola!')
             ->line("{$this->organization->name} ya tiene {$this->appointments} turnos en {$month}. El plan Gratis incluye hasta {$this->appointmentLimit} turnos por mes.")
             ->line("Al llegar a {$this->appointmentLimit} no vas a poder cargar más turnos para ese mes, ni desde el panel ni por la reserva online.")
             ->line('Pasá a Consultorio para tener turnos sin límite. No perdés nada de lo que ya cargaste.')

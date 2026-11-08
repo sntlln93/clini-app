@@ -73,6 +73,14 @@ describe('@clini/brand', () => {
         expect(pngSize(appleTouchIcon)).toEqual({ width: 180, height: 180 });
     });
 
+    it('draws the mail icon as a square PNG, shown at 32px in the mails', () => {
+        // Mail clients show no SVG (#422); 96px keeps it sharp at 3x.
+        expect(pngSize(brand.assets.mailIcon)).toEqual({
+            width: 96,
+            height: 96,
+        });
+    });
+
     it('adds the head links to index.html', () => {
         const transformIndexHtml = cliniBrand({ appName: 'Clini' })
             .transformIndexHtml as unknown as () => Array<{
@@ -153,7 +161,7 @@ describe('@clini/brand', () => {
         });
     });
 
-    it("points the API's default mail logo at the manifest's file", () => {
+    it("points the API's default mail logo and icon at the manifest's files", () => {
         if (!existsSync(BRAND_CONFIG_PATH)) {
             if (process.env.CI === 'true') {
                 throw new Error(
@@ -164,8 +172,9 @@ describe('@clini/brand', () => {
             return;
         }
 
-        expect(readFileSync(BRAND_CONFIG_PATH, 'utf-8')).toContain(
-            `'${brandAssetUrl(brand.assets.mailLogo)}'`,
-        );
+        const config = readFileSync(BRAND_CONFIG_PATH, 'utf-8');
+
+        expect(config).toContain(`'${brandAssetUrl(brand.assets.mailLogo)}'`);
+        expect(config).toContain(`'${brandAssetUrl(brand.assets.mailIcon)}'`);
     });
 });

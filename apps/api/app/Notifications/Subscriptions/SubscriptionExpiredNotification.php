@@ -34,7 +34,8 @@ class SubscriptionExpiredNotification extends Notification implements ShouldQueu
     {
         return (new MailMessage)
             ->subject('Tu suscripción a Clini venció')
-            ->greeting('Hola')
+            ->markdown('notifications::email', ['label' => 'Suscripción', 'eyebrow' => 'Suscripción vencida'])
+            ->greeting('¡Hola!')
             ->line("Terminó el período de gracia de la suscripción de {$this->organization->name} sin que se registrara el pago.")
             ->line('La agenda quedó en modo solo lectura: podés consultar los turnos existentes, pero no crear ni modificar turnos, notas clínicas, medicación indicada ni disponibilidad, y la reserva online queda pausada.')
             ->line('Regularizá el pago para volver a usar el panel con normalidad.')

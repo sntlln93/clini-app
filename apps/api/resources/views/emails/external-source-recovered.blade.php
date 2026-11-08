@@ -1,19 +1,15 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="utf-8">
-    <title>{{ $officialName }} volvió a responder</title>
-</head>
-<body style="font-family: sans-serif; color: #1f2937; line-height: 1.5;">
-    @include('emails.partials.brand-header')
-
-    <p>El {{ $officialName }} volvió a responder el <strong>{{ $until }}</strong> (hora de Argentina).</p>
-
-    <p>
-        <strong>Caído desde:</strong> {{ $since }}<br>
-        <strong>Duración:</strong> {{ $duration }}
-    </p>
+<x-email.layout
+    :title="'El '.$officialName.' volvió a responder'"
+    label="Monitoreo"
+    eyebrow="Fuente externa recuperada"
+    note-title="La caída"
+>
+    <p>Volvió a responder el <strong>{{ $until }}</strong> (hora de Argentina).</p>
 
     <p>{{ $recovery }}</p>
-</body>
-</html>
+
+    <x-slot:note>
+        <strong>Caído desde:</strong> {{ $since }}<br>
+        <strong>Duración:</strong> {{ $duration }}
+    </x-slot:note>
+</x-email.layout>

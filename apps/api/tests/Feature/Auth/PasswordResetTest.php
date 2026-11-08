@@ -245,7 +245,7 @@ test('the mail is in Spanish and links to the reset page', function () {
     $html = (new PasswordResetMail('Ana Pérez', 'https://panel.example/restablecer-contrasena/abc'))->render();
 
     expect($html)
-        ->toContain('Hola Ana Pérez,')
+        ->toContain('¡Hola, Ana Pérez!')
         ->toContain('href="https://panel.example/restablecer-contrasena/abc"')
         ->toContain('vence en 60 minutos y solo puede usarse una vez');
 });
