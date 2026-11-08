@@ -90,7 +90,7 @@ test('store of the same pair twice is idempotent', function () {
     )->toBe(1);
 });
 
-test('store on a membership belonging to another organization returns 422', function () {
+test('store on a membership belonging to another organization is forbidden', function () {
     $owner = Membership::factory()->owner()->create();
     $otherOrgMembership = Membership::factory()->create();
     $specialty = Specialty::factory()->create();
@@ -100,9 +100,30 @@ test('store on a membership belonging to another organization returns 422', func
         'specialty_id' => $specialty->id,
     ]);
 
-    $response->assertStatus(422);
-    $response->assertJsonValidationErrors('membership_id');
+    $response->assertForbidden();
+    expect(ProfessionalSpecialty::query()->count())->toBe(0);
 });
+
+// #387: the 422 says what a professional's licenses back, so only who may choose for them reaches it.
+test('whoever can\'t choose for a membership learns nothing of what its licenses back', function (string $actor, bool $backed) {
+    $organization = Organization::factory()->create();
+    $target = Membership::factory()->professional()->create(['organization_id' => $organization->id]);
+    $specialty = Specialty::factory()->create();
+
+    if ($backed) {
+        backSpecialty($target->user_id, $specialty);
+    }
+
+    $caller = match ($actor) {
+        'staff' => Membership::factory()->staff()->create(['organization_id' => $organization->id]),
+        'another professional' => Membership::factory()->professional()->create(['organization_id' => $organization->id]),
+        'an owner elsewhere' => Membership::factory()->owner()->create(),
+    };
+
+    $this->actingAs($caller->user)->postJson("/api/v1/memberships/{$target->id}/specialties", ['specialty_id' => $specialty->id])
+        ->assertForbidden()
+        ->assertJsonMissingPath('errors');
+})->with(['staff', 'another professional', 'an owner elsewhere'])->with(['backed' => [true], 'unbacked' => [false]]);
 
 test('an owner membership can assign a specialty on any member membership', function () {
     $organization = Organization::factory()->create();

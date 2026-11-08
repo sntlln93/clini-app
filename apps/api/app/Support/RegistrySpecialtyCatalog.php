@@ -48,7 +48,9 @@ final class RegistrySpecialtyCatalog
             return [];
         }
 
-        // Two answers may race to add the same row: the second one keeps the first one's.
+        // Two answers may race to add the same row: the second one keeps the first one's. In key order, so two
+        // transactions adding the same rows wait on each other instead of deadlocking.
+        ksort($rows);
         Specialty::query()->insertOrIgnore(array_values($rows));
 
         $ids = [];

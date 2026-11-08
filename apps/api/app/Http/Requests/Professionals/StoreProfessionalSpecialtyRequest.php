@@ -5,16 +5,25 @@ declare(strict_types=1);
 namespace App\Http\Requests\Professionals;
 
 use App\Models\Membership;
+use App\Models\ProfessionalSpecialty;
 use App\Models\Specialty;
 use App\Rules\BelongsToCurrentOrganization;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Facades\Gate;
 
 class StoreProfessionalSpecialtyRequest extends FormRequest
 {
+    /**
+     * Before the rules: whether a verified license backs a specialty comes from the professional's licenses (#387), so
+     * a 422 against a 403 must never tell whoever can't choose for that membership, here or elsewhere, what they back.
+     */
     public function authorize(): bool
     {
-        return true;
+        $membership = $this->route('membership');
+
+        return $membership instanceof Membership
+            && Gate::allows('create', [ProfessionalSpecialty::class, $membership]);
     }
 
     protected function prepareForValidation(): void
