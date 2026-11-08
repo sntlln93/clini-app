@@ -26,7 +26,7 @@ afterEach(function () {
     Date::setTestNow();
 });
 
-function arcaVoucher(int $number = 42, int $amountCents = 1500000): VoucherRequestData
+function arcaVoucher(int $number = 2, int $amountCents = 1500000): VoucherRequestData
 {
     return new VoucherRequestData(
         pointOfSale: 1,
@@ -59,7 +59,7 @@ function wsfeRequest(string $operation): ?Request
 test('the last authorized number is read from FECompUltimoAutorizado', function () {
     fakeArca(['FECompUltimoAutorizado' => 'FECompUltimoAutorizado.xml']);
 
-    expect(app(ArcaInvoiceService::class)->lastAuthorizedNumber(1, InvoiceVoucherType::FacturaC))->toBe(41);
+    expect(app(ArcaInvoiceService::class)->lastAuthorizedNumber(1, InvoiceVoucherType::FacturaC))->toBe(1);
 
     $request = wsfeRequest('FECompUltimoAutorizado');
     expect($request->url())->toBe('https://wswhomo.afip.gov.ar/wsfev1/service.asmx')
@@ -147,20 +147,20 @@ test('WSAA refusing a ticket while another is valid is reported as unavailable, 
 test('a voucher is requested as a factura C for services to a final consumer, in pesos and without VAT', function () {
     fakeArca(['FECAESolicitar' => 'FECAESolicitar-approved.xml']);
 
-    $authorized = app(ArcaInvoiceService::class)->authorize(arcaVoucher(amountCents: 1500050));
+    $authorized = app(ArcaInvoiceService::class)->authorize(arcaVoucher(2, amountCents: 1500050));
 
     expect($authorized)->toEqual(new AuthorizedVoucherData(
-        number: 42,
-        cae: '76401234567890',
-        caeExpiresOn: CarbonImmutable::parse('2026-10-13'),
-        issuedOn: CarbonImmutable::parse('2026-10-03'),
+        number: 2,
+        cae: '86451064433459',
+        caeExpiresOn: CarbonImmutable::parse('2026-11-18'),
+        issuedOn: CarbonImmutable::parse('2026-11-08'),
         amountCents: 1500050,
     ));
 
     $body = wsfeRequest('FECAESolicitar')->body();
     expect($body)->toContain('<ar:FeCabReq><ar:CantReg>1</ar:CantReg><ar:PtoVta>1</ar:PtoVta><ar:CbteTipo>11</ar:CbteTipo></ar:FeCabReq>')
         ->and($body)->toContain('<ar:Concepto>2</ar:Concepto><ar:DocTipo>99</ar:DocTipo><ar:DocNro>0</ar:DocNro>')
-        ->and($body)->toContain('<ar:CbteDesde>42</ar:CbteDesde><ar:CbteHasta>42</ar:CbteHasta><ar:CbteFch>20261003</ar:CbteFch>')
+        ->and($body)->toContain('<ar:CbteDesde>2</ar:CbteDesde><ar:CbteHasta>2</ar:CbteHasta><ar:CbteFch>20261003</ar:CbteFch>')
         ->and($body)->toContain('<ar:ImpTotal>15000.50</ar:ImpTotal><ar:ImpTotConc>0</ar:ImpTotConc><ar:ImpNeto>15000.50</ar:ImpNeto>')
         ->and($body)->toContain('<ar:ImpOpEx>0</ar:ImpOpEx><ar:ImpTrib>0</ar:ImpTrib><ar:ImpIVA>0</ar:ImpIVA>')
         ->and($body)->toContain('<ar:FchServDesde>20261003</ar:FchServDesde><ar:FchServHasta>20261102</ar:FchServHasta><ar:FchVtoPago>20261003</ar:FchVtoPago>')
@@ -170,12 +170,20 @@ test('a voucher is requested as a factura C for services to a final consumer, in
         ->and($body)->not->toContain('CanMisMonExt');
 });
 
+test('an authorization for another number than the one asked for is not taken as this voucher\'s', function () {
+    fakeArca(['FECAESolicitar' => 'FECAESolicitar-approved.xml']);
+
+    expect(fn () => app(ArcaInvoiceService::class)->authorize(arcaVoucher(3)))
+        ->toThrow(fn (InvoiceIssuerUnavailableException $exception) => expect($exception->providerCode)->toBe('unexpected_number'));
+});
+
 test('a rejected voucher throws with its observations', function () {
     fakeArca(['FECAESolicitar' => 'FECAESolicitar-rejected.xml']);
 
-    expect(fn () => app(ArcaInvoiceService::class)->authorize(arcaVoucher()))
+    // A skipped number: ARCA answers 10016 in the result's errors, not in the detail's observations.
+    expect(fn () => app(ArcaInvoiceService::class)->authorize(arcaVoucher(6)))
         ->toThrow(function (InvoiceVoucherRejectedException $exception) {
-            expect($exception->number)->toBe(42)
+            expect($exception->number)->toBe(6)
                 ->and($exception->observations)->toHaveCount(1)
                 ->and($exception->observations[0])->toStartWith('10016: El numero o fecha del comprobante');
         });
@@ -196,16 +204,16 @@ test('a token WSFEv1 no longer takes is dropped, so the next call asks WSAA agai
 test('an authorized voucher is found by its number', function () {
     fakeArca(['FECompConsultar' => 'FECompConsultar.xml']);
 
-    expect(app(ArcaInvoiceService::class)->findAuthorized(1, InvoiceVoucherType::FacturaC, 42))->toEqual(new AuthorizedVoucherData(
-        number: 42,
-        cae: '76401234567890',
-        caeExpiresOn: CarbonImmutable::parse('2026-10-13'),
-        issuedOn: CarbonImmutable::parse('2026-10-03'),
+    expect(app(ArcaInvoiceService::class)->findAuthorized(1, InvoiceVoucherType::FacturaC, 1))->toEqual(new AuthorizedVoucherData(
+        number: 1,
+        cae: '86451064432343',
+        caeExpiresOn: CarbonImmutable::parse('2026-11-18'),
+        issuedOn: CarbonImmutable::parse('2026-11-08'),
         amountCents: 1500000,
     ));
 
     expect(wsfeRequest('FECompConsultar')->body())
-        ->toContain('<ar:FeCompConsReq><ar:CbteTipo>11</ar:CbteTipo><ar:CbteNro>42</ar:CbteNro><ar:PtoVta>1</ar:PtoVta></ar:FeCompConsReq>');
+        ->toContain('<ar:FeCompConsReq><ar:CbteTipo>11</ar:CbteTipo><ar:CbteNro>1</ar:CbteNro><ar:PtoVta>1</ar:PtoVta></ar:FeCompConsReq>');
 });
 
 test('a number never authorized is not found', function () {

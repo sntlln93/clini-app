@@ -98,6 +98,11 @@ final class ArcaInvoiceService implements InvoiceIssuer
         $result = $detail !== null ? ArcaSoap::text($xpath, 'Resultado', $detail) : null;
         $cae = $detail !== null ? ArcaSoap::text($xpath, 'CAE', $detail) : null;
 
+        // An authorization is only this voucher's when it names the number asked for.
+        if ($result === 'A' && $cae !== null && ArcaSoap::text($xpath, 'CbteDesde', $detail) !== (string) $voucher->number) {
+            throw new InvoiceIssuerUnavailableException('FECAESolicitar', 'unexpected_number');
+        }
+
         if ($result === 'A' && $cae !== null) {
             return new AuthorizedVoucherData(
                 number: $voucher->number,
