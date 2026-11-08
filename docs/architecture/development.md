@@ -29,6 +29,8 @@ El `npm install` de arriba no hace falta para que nada *corra* — `panel`, `das
 
 Un `apps/api/.env` copiado antes de #391 no tiene `CLINICAL_ENCRYPTION_KEY`, la maestra que cifra la historia clínica: copiá esa línea de `.env.example` (una clave pública, solo para datos sintéticos) y corré `migrate:fresh --seed`. Sin ella, migrar falla en vez de guardar la historia en claro.
 
+Uno copiado antes de #417 no tiene `DOCUMENT_INDEX_KEY`, la clave del índice ciego del DNI del profesional: copiá esa línea de `.env.example` (también pública, solo para datos sintéticos), reiniciá `laravel.test` y corré `migrate:fresh --seed`. Sin ella, el seeder falla al cargar los DNI de los profesionales. Para aceptar en dev una invitación como profesional, el registro `fake` responde por el DNI `99000003`, que ninguna cuenta del fixture tiene.
+
 Esto levanta seis servicios en la red `sail`:
 
 | Servicio      | URL                     | Descripción                        |

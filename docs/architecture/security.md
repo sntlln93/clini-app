@@ -58,12 +58,12 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 | Tabla `password_reset_tokens` | Email y hash (bcrypt) del token de recuperación de contraseña; uno por email, vence a los 60 minutos y se borra al usarse, al eliminarse la cuenta o, vencido, en la limpieza diaria (`auth:clear-resets`, #389) | Contacto | Titular | La API |
 | Tablas `jobs` y `failed_jobs` | Payloads de los mails en cola (cifrados si llevan datos que no son modelos) y excepciones; una semana | Contacto | Titular | La API |
 | Bucket R2 (`media`) | Logos de las organizaciones; uno reemplazado o quitado sigue `MEDIA_DELETION_RETENTION_DAYS` días (35) antes de borrarse (#410) | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
-| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, `CLINICAL_ENCRYPTION_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
+| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, `CLINICAL_ENCRYPTION_KEY`, `DOCUMENT_INDEX_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
 | Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, recuperación de contraseña (#389), avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
 | Have I Been Pwned (Pwned Passwords) | Recibe los primeros 5 caracteres del SHA-1 de cada contraseña que se elige, nunca la contraseña ni el hash completo (k-anonimato, #389). Si no responde en 5 segundos, la contraseña pasa | Ninguno | — | La API |
 | Buscador Nacional de Medicamentos | Recibe solo el término buscado, de un medicamento o de la sustancia de una alergia (ADR 0031, #383) | Ninguno | — | La API |
-| Buscador Nacional de Profesionales | Recibe el DNI del profesional (ADR 0032); se guarda lo mínimo, y de cada respuesta solo pasan al catálogo de especialidades la profesión y la especialidad, sin nada de la persona. Se guardan las matrículas que el registro tiene para el DNI, también las que el profesional no agregó a Clini, con los mismos campos mínimos (ADR 0038). En dev y e2e responde el adaptador `fake`, que no sale de Clini | Identificatorios del profesional | Titular | La API |
+| Buscador Nacional de Profesionales | Recibe el DNI del profesional (ADR 0032), cargado en Ajustes o al aceptar una invitación como profesional (#417, tres DNI por invitación); se guarda lo mínimo, más el nombre, que pasa a ser el de la cuenta (#417), y de cada respuesta solo pasan al catálogo de especialidades la profesión y la especialidad, sin nada de la persona. Se guardan las matrículas que el registro tiene para el DNI, también las que el profesional no agregó a Clini, con los mismos campos mínimos (ADR 0038). En dev y e2e responde el adaptador `fake`, que no sale de Clini | Identificatorios del profesional | Titular | La API |
 | Repositorio y GitHub Actions | Código, secrets de CI (sin datos reales) | Ninguno | Titular | Colaboradores del repo |
 | Backups | Pendientes (#390) | Todas | Titular | Pendiente (#390) |
 | Equipos de los consultorios | La memoria de los SPAs, sin persistencia, y los archivos de la historia que exporta el profesional (PDF o JSON, ADR 0023) | Todas | El consultorio (#317) | Sus usuarios |
@@ -74,6 +74,7 @@ Pueden saltear los controles de la aplicación:
 
 - **Root del servidor y acceso a Postgres** (titular): puede leer todo y desactivar los triggers de solo agregado. Solo se entra para operar o diagnosticar, y cada acceso se anota en el [registro de operación](#registro-de-operación).
 - **Quien tiene `APP_KEY`**: descifra la sesión, los payloads de jobs, el DNI del profesional, los secretos 2FA y los códigos de acceso. Vive solo en las variables de Dokploy. Su resguardo va en #390.
+- **Quien tiene `DOCUMENT_INDEX_KEY` y la base**: puede averiguar qué cuenta tiene un DNI dado, probando el HMAC de cada DNI posible (unos 10⁸) contra el índice; sin la clave, el índice no dice nada. Vive solo en las variables de Dokploy, aparte de `APP_KEY` y de la maestra clínica. Ver [Índice ciego del DNI del profesional](#índice-ciego-del-dni-del-profesional).
 - **Quien tiene `CLINICAL_ENCRYPTION_KEY`** (la maestra clínica, #391) **y la base**: descifra el texto libre de la historia clínica. Vive solo en las variables de Dokploy, aparte de `APP_KEY`. Ver [Cifrado de la historia clínica](#cifrado-de-la-historia-clínica).
 - **Quien mergea a `main`**: despliega código arbitrario. Todo cambio pasa por un PR con los 5 checks ([Control de cambios](#c-control-de-cambios)).
 - **Cuentas de Cloudflare, Resend, Mercado Pago y GitHub** (titular): con segundo factor activado en cada proveedor.
@@ -221,7 +222,7 @@ Si alguna vez hiciera falta trabajar con datos reales fuera de producción, ese 
 
 Ya cifrado en la base con `APP_KEY`:
 
-- el DNI del profesional (`users.document_number`, ADR 0032), con el cast `encrypted`;
+- el DNI del profesional (`users.document_number`, ADR 0032), con el cast `encrypted`; se busca solo por su índice ciego, con una clave propia (#417, abajo);
 - el secreto y los códigos de recuperación del TOTP (ADR 0026), con el cast;
 - el código de acceso del paciente (`patient_access_codes.code`, ADR 0029), con el cast;
 - el payload de la sesión (desde #358), con `SESSION_ENCRYPT`;
@@ -240,6 +241,23 @@ Los tokens de invitación y de verificación de correo se guardan como `sha256`.
 | Signos vitales | Numéricos | **Quedan en claro.** No son texto libre y cifrarlos les quita el tipo. |
 
 El cifrado del disco y de los volúmenes del servidor es del proveedor (#379). R2 cifra los objetos en reposo por defecto.
+
+### Índice ciego del DNI del profesional
+
+Desde #417 ([ADR 0032](../adr/0032-matriculas-validadas-con-el-buscador-nacional-de-profesionales.md)) un DNI pertenece a una sola cuenta, y la cuenta toma el nombre que da el registro:
+
+- `users.document_number_index` es el HMAC-SHA256 del DNI normalizado (dígitos, sin ceros a la izquierda) con `DOCUMENT_INDEX_KEY` (`App\Support\DocumentIndex`). Es único en la base y es la única forma de buscar un DNI; el DNI sigue cifrado con `APP_KEY`. Nunca un hash sin clave (#322).
+- La clave es propia: `base64:` y 32 bytes al azar, de `php artisan document-index:generate-key`. Se rechaza vacía, corta, igual a `APP_KEY` o a la maestra clínica, y la pública de `.env.example`, `phpunit.xml` y e2e en producción. Sin ella no se escribe ni se busca un DNI.
+- **Límite de consultas.** Una invitación como profesional admite tres DNI: cada uno que el registro responde cuenta, se encuentre o no, y con la tercera que no sirve la invitación vence. La consulta y la carga en Ajustes pasan además por `throttle:professional-registry` (10 por minuto por usuario o IP), y la aceptación con la contraseña de una cuenta existente por `throttle:invitation-acceptance` (5 por minuto por invitación e IP). Entre la consulta y la aceptación el DNI espera en la sesión cifrada, nunca en la invitación.
+- **Qué revela.** Quien tiene una invitación de profesional y prueba un DNI sabe si tiene cuenta en Clini y su mail enmascarado (`m•••@dominio`); el nombre y las matrículas ya los publica el Buscador. Lo acota el límite de arriba.
+
+**Rotar la clave del índice** (si se filtró o por calendario):
+
+1. Generar una nueva con `php artisan document-index:generate-key`.
+2. En Dokploy, poner la nueva en `DOCUMENT_INDEX_KEY` y la vieja en `DOCUMENT_INDEX_PREVIOUS_KEY`, y redesplegar. Mientras estén las dos, cada búsqueda prueba ambas, así que un DNI ya cargado no se repite en otra cuenta.
+3. Correr `php artisan document-index:rotate` en el contenedor de la API. Recalcula el índice de todas las cuentas con la nueva, descifrando cada DNI, en una sola transacción con las filas bloqueadas: si falla a mitad, quedan todos como estaban, nunca mezclados. Las claves salen del entorno, nunca de argumentos (quedarían en el historial de la shell), y la salida dice solo cuántas cuentas recalculó, nunca un DNI.
+4. Quitar `DOCUMENT_INDEX_PREVIOUS_KEY` y redesplegar. La vieja se destruye: el índice no se recalcula desde ella, y no hace falta para leer backups (el DNI se descifra con `APP_KEY`).
+5. Anotarlo en el [registro de operación](#registro-de-operación).
 
 ### Cifrado de la historia clínica
 

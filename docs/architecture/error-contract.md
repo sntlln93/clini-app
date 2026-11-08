@@ -16,7 +16,7 @@ Decisiones y motivación en [ADR 0009](../adr/0009-contrato-de-errores-de-domini
 }
 ```
 
-- `code`: contrato público, formato `<módulo>.<regla>`, uno de los 48 valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`, con la copy en `error-code-messages.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`, ídem); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
+- `code`: contrato público, formato `<módulo>.<regla>`, uno de los valores de `App\Enums\ErrorCode` (tabla abajo). Agregarlo o renombrarlo requiere actualizar en el mismo cambio **los dos** catálogos espejo — el del panel (`apps/panel/src/lib/error-codes.ts`, con la copy en `error-code-messages.ts`) y el del dashboard de operación (`apps/dashboard/src/lib/error-codes.ts`, ídem); el test de paridad de cada app (`src/lib/error-code-parity.test.ts`, conjunto exacto) lo garantiza. Corre con `CI=true`: dentro de los contenedores `panel`/`dashboard` `apps/api` no está montado y el test se saltea.
 - `message`: el mensaje de la excepción, en inglés, para desarrolladores (va al log y al stack trace). **Nunca se muestra en la UI** — cada frontend resuelve la copy en español por `code` desde su propio catálogo (`ERROR_CODE_MESSAGES` en `error-code-messages.ts`). El dashboard reusa la copy del panel salvo en los códigos de moderación, donde la redacta para el operador.
 - `context`: lo que `publicContext()` de la excepción concreta decidió exponer. `{}` por defecto; las excepciones que exponen algo están marcadas en la tabla.
 
@@ -48,6 +48,12 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `appointments.status_transition_not_allowed` | 409 | `TransitionAppointmentStatusAction` | |
 | `memberships.last_active_admin` | 409 | `DeactivateMembershipAction` y `UpdateMembershipAction` (misma clase, misma regla) | |
 | `memberships.invitation_invalid_or_expired` | 404 | `FindValidInvitationAction` | |
+| `memberships.invitation_document_not_found` | 409 | `LookUpInvitationDocumentAction` (el registro no tiene a nadie con el DNI de una invitación como profesional; gasta una consulta, #417, ADR 0032) | `document_lookups_left` |
+| `memberships.invitation_account_of_another_person` | 409 | `LookUpInvitationDocumentAction`, `AcceptInvitationAction` (la cuenta del mail invitado tiene otro DNI; gasta una consulta) | `document_lookups_left` |
+| `memberships.invitation_already_member` | 409 | `LookUpInvitationDocumentAction`, `AcceptInvitationAction` (la cuenta ya es miembro del consultorio, activa o desactivada) | `document_lookups_left` |
+| `memberships.invitation_lookups_exhausted` | 409 | `LookUpInvitationDocumentAction` (la tercera consulta tampoco sirvió: la invitación venció) | |
+| `memberships.invitation_document_required` | 409 | `AcceptInvitationAction` (una invitación como profesional se acepta después de consultar el DNI en esta sesión, o lo que encontró cambió) | |
+| `memberships.invitation_credentials_invalid` | 409 | `AcceptInvitationAction` (contraseña o segundo factor equivocados de la cuenta a la que se vincula; no gasta consultas) | |
 | `memberships.slug_invalid_format` | 409 | `SetMembershipSlugAction` | |
 | `memberships.slug_taken` | 409 | `SetMembershipSlugAction` | |
 | `memberships.slug_not_allowed_for_role` | 409 | `SetMembershipSlugAction` | |
@@ -75,7 +81,9 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `holidays.provider_unavailable` | 409 | `CalendariosNacionalesService` | |
 | `medications.source_unavailable` | 503 | `NationalMedicationSearchService` (el Buscador Nacional de Medicamentos no respondió, respondió un error o algo que no es una lista JSON; `FillMedicationCatalogAction` la atrapa y la búsqueda responde con la base, así que no llega al panel, ADR 0031) | |
 | `professionals.registry_unavailable` | 503 | `NationalProfessionalSearchService` (el Buscador Nacional de Profesionales de la Salud no respondió, respondió un error o una página que no es ni resultados ni «sin resultados»; `VerifyProfessionalLicensesAction` la atrapa y deja la matrícula como estaba, así que no llega al panel, ADR 0032) | |
-| `professionals.document_locked` | 409 | `UpdateProfessionalDocumentAction` (el profesional ya agregó a Clini una matrícula de su DNI: solo soporte lo cambia, con `user:reset-professional-document`, ADR 0038) | |
+| `professionals.document_locked` | 409 | `UpdateProfessionalDocumentAction` (la cuenta ya tiene su DNI: se carga una sola vez y solo soporte lo cambia, con `user:reset-professional-document`, #417) | |
+| `professionals.document_not_in_registry` | 409 | `UpdateProfessionalDocumentAction` (el registro no tiene a nadie con ese DNI, o no da su nombre: no se guarda, #417) | |
+| `professionals.document_taken` | 409 | `UpdateProfessionalDocumentAction`, `AcceptInvitationAction` (otra cuenta tiene el DNI, buscado por su índice ciego, #417) | |
 | `subscriptions.inactive` | 409 | middleware `EnsureSubscriptionActive` (suscripción vencida) | `subscription_status` |
 | `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
 | `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `CancelSubscriptionAction`, `MercadoPagoService` | |
