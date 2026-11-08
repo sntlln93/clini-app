@@ -14,6 +14,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Event;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -92,9 +93,25 @@ test('the pause doesn\'t change', function () {
     medicationOutageSearch();
     expect($service->available())->toBeFalse();
 
-    $this->travel(5)->minutes();
+    $this->travel(299)->seconds();
+    expect($service->available())->toBeFalse();
+
+    $this->travel(1)->seconds();
     expect($service->available())->toBeTrue()
         ->and(medicationOutage()->ongoing())->toBeTrue();
+});
+
+test('each failure keeps its step as the outage\'s last one', function () {
+    $body = null;
+    medicationOutageAnswering($body);
+    $step = fn (): mixed => Cache::get(ExternalSource::MedicationSearch->outageKey())['step'] ?? null;
+
+    medicationOutageSearch();
+    expect($step())->toBe('status');
+
+    $body = '<html>otra cosa</html>';
+    medicationOutageSearch();
+    expect($step())->toBe('response');
 });
 
 test('nobody is told before the outage reaches the threshold', function () {
@@ -299,19 +316,30 @@ test('a probe answered without a valid product fails, and only products end the 
     'rows without a GTIN' => ['[{"PRODUCTO": "TRIFAMOX 500", "CODIGO": "7795378001089"}]'],
 ]);
 
-test('with the source off nothing is probed nor tracked', function () {
+test('with the source off nothing is probed nor tracked, and an outage from before is forgotten silently', function () {
+    $body = null;
+    medicationOutageAnswering($body);
+    medicationOutageSearch();
+    $this->travel(15)->minutes();
+    medicationOutageSearch();
+    Mail::assertQueuedCount(1);
     config(['services.national_medication_search.enabled' => false]);
 
     $this->artisan('medications:probe-source')
         ->expectsOutput('El buscador de medicamentos está apagado: no hay nada que probar.')
         ->assertSuccessful();
 
-    Http::assertNothingSent();
-    Mail::assertNothingOutgoing();
+    Http::assertSentCount(2);
+    Mail::assertQueuedCount(1);
     expect(medicationOutage()->ongoing())->toBeFalse();
+
+    // Turned back on, the next failure starts a new outage instead of mailing one from before.
+    config(['services.national_medication_search.enabled' => true]);
+    medicationOutageSearch();
+    Mail::assertQueuedCount(1);
 });
 
-test('the probe runs hourly, and every 5 minutes during an outage, only with the source on', function () {
+test('the probe runs hourly, and every 5 minutes during an outage', function () {
     $probe = collect(app(Schedule::class)->events())
         ->first(fn (Event $event): bool => str_contains((string) $event->command, 'medications:probe-source'));
     $due = fn (string $at): bool => $this->travelTo(CarbonImmutable::parse($at, 'UTC'), fn (): bool => $probe->isDue(app()) && $probe->filtersPass(app()));
@@ -326,8 +354,4 @@ test('the probe runs hourly, and every 5 minutes during an outage, only with the
 
     expect($due('2026-11-08 14:05:00'))->toBeTrue()
         ->and($due('2026-11-08 14:07:00'))->toBeFalse();
-
-    config(['services.national_medication_search.enabled' => false]);
-    expect($due('2026-11-08 14:00:00'))->toBeFalse()
-        ->and($due('2026-11-08 14:05:00'))->toBeFalse();
 });

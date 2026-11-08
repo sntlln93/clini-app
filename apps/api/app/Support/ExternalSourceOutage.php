@@ -35,6 +35,15 @@ final readonly class ExternalSourceOutage
     }
 
     /**
+     * Forgets a recorded outage without telling anyone: a source turned off isn't down, and turning it back on mustn't
+     * pick up an outage from before.
+     */
+    public function clear(): void
+    {
+        $this->transition(fn (): bool => Cache::forget($this->source->outageKey()));
+    }
+
+    /**
      * A failure: starts the outage unless one is recorded, keeps its last step, and mails the team the first time the
      * outage reaches the threshold.
      *

@@ -7,7 +7,6 @@ use App\Models\ContactRequest;
 use App\Support\ExternalSourceOutage;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -30,10 +29,10 @@ Schedule::command('professionals:probe-registry')
     ->withoutOverlapping();
 
 // The national medication search, probed hourly and every 5 minutes during an outage, so its start and end are seen without traffic (#425).
+// With the search off the command only forgets an outage recorded before.
 Schedule::command('medications:probe-source')
     ->everyFiveMinutes()
-    ->when(fn (): bool => Config::boolean('services.national_medication_search.enabled')
-        && (now()->minute < 5 || (new ExternalSourceOutage(ExternalSource::MedicationSearch))->ongoing()))
+    ->when(fn (): bool => now()->minute < 5 || (new ExternalSourceOutage(ExternalSource::MedicationSearch))->ongoing())
     ->withoutOverlapping();
 
 // Clinic users' own account deletions whose grace period ended (#384).
