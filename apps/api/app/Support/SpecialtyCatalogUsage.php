@@ -20,9 +20,10 @@ use Illuminate\Support\Collection;
  * no user, membership, DNI or license number leaves this class (ADR 0032, ADR 0038).
  *
  * - Backed professionals: distinct users whose verified license in Clini backs the specialty (`Specialty::backedFor()`).
- * - Offers: a practice's specialty for one of its professionals (`professional_specialties`) that a patient can book
- *   right now: an active professional membership of a live, unsuspended practice. A deactivated membership or a
- *   suspended practice keeps its rows but offers nothing.
+ * - Offers: a practice's specialty for one of its professionals (`professional_specialties`) as the public booking page
+ *   lists it: an active professional membership of a live, unsuspended practice. A deactivated membership or a
+ *   suspended practice keeps its rows but offers nothing. An expired subscription still counts: its page still lists
+ *   them, it only takes no bookings until the owner pays.
  * - Unbacked offers: those no verified license of the professional backs anymore (the panel's «sin respaldo de
  *   matrícula», `Specialty::withBacking()`).
  * - Licenses: only the ones professionals added to Clini; the rest are just what the registry holds for a DNI.

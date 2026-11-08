@@ -92,7 +92,7 @@ test('a backed professional is a distinct user with a verified license added to 
     expect(specialtyRow('Cardiología')['backed_professionals'])->toBe(2);
 });
 
-test('an offer counts only while a patient could book it: an active professional of a live, unsuspended practice', function () {
+test('an offer counts only as the booking page lists it: an active professional of a live, unsuspended practice', function () {
     $cardiology = catalogSpecialty('Cardiología');
     $first = Organization::factory()->create();
     $second = Organization::factory()->create();
