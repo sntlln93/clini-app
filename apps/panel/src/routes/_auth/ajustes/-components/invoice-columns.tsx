@@ -31,7 +31,7 @@ function DownloadButton({
             size="sm"
             disabled={downloadingId !== null}
             onClick={() => download(invoice)}
-            aria-label={`Descargar la factura ${invoice.voucher.formatted_number}`}
+            aria-label={`PDF de la factura ${invoice.voucher.formatted_number}`}
         >
             {downloading ? (
                 <Spinner data-icon="inline-start" aria-hidden />

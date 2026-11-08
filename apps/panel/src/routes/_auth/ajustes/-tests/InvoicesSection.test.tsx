@@ -41,13 +41,17 @@ describe('InvoicesSection', () => {
     beforeEach(() => vi.clearAllMocks());
 
     it("lists each charge's voucher, date, period and total", () => {
-        renderSection([buildPendingInvoice(), buildInvoice()]);
+        renderSection([
+            buildPendingInvoice(),
+            buildInvoice({}, { issued_on: '2026-10-05' }),
+        ]);
 
         const rows = screen.getAllByRole('row');
         expect(plainText(rows[1])).toContain('En emisión');
         expect(within(rows[1]).queryByRole('button')).toBeNull();
         expect(plainText(rows[2])).toContain('Factura C 00001-00000012');
-        expect(plainText(rows[2])).toContain('03/10/2026');
+        const cells = within(rows[2]).getAllByRole('cell');
+        expect(plainText(cells[1])).toBe('05/10/2026');
         expect(plainText(rows[2])).toContain('03/10/2026 al 02/11/2026');
         expect(plainText(rows[2])).toContain('$ 18.500,50');
     });
@@ -60,7 +64,7 @@ describe('InvoicesSection', () => {
 
         fireEvent.click(
             screen.getByRole('button', {
-                name: 'Descargar la factura C 00001-00000012',
+                name: 'PDF de la factura C 00001-00000012',
             }),
         );
 
@@ -78,7 +82,7 @@ describe('InvoicesSection', () => {
         renderSection([buildInvoice()]);
 
         fireEvent.click(
-            screen.getByRole('button', { name: /Descargar la factura/ }),
+            screen.getByRole('button', { name: /PDF de la factura/ }),
         );
 
         await waitFor(() =>

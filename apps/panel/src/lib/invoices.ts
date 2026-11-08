@@ -3,7 +3,11 @@ import { fromCalendarDate } from '@/lib/datetime';
 import type { Invoice } from '@/types/invoice';
 import { queryOptions } from '@tanstack/react-query';
 
-/** The subscription's invoices (#246), newest charge first; the owner's only. */
+/**
+ * The subscription's invoices (#246), newest charge first; the owner's only.
+ * The key nests under the subscription's, so every refresh of the
+ * subscription (back from the checkout, a cancellation) refreshes them too.
+ */
 export const invoicesQueryOptions = queryOptions({
     queryKey: ['subscription', 'invoices'],
     queryFn: () =>
