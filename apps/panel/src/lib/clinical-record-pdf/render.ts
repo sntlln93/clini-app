@@ -1,4 +1,5 @@
 import type { ClinicalRecordDocument } from '@/types/clinical-record';
+import { loadPdfMake } from '@/lib/pdf/pdfmake';
 import { brand, brandAssetUrl } from '@clini/brand';
 import { buildClinicalRecordDocument } from './document';
 
@@ -37,20 +38,11 @@ async function loadLogo(): Promise<string | null> {
 
 /**
  * Builds the PDF of one patient's clinical history in the browser (ADR 0023).
- * pdfmake and its fonts weigh about 2 MB, so they load only when a PDF is
- * asked for, in a chunk of their own.
  */
 export async function renderClinicalRecordPdf(
     record: ClinicalRecordDocument,
 ): Promise<Blob> {
-    const [pdfMakeModule, fontsModule, logoSvg] = await Promise.all([
-        import('pdfmake/build/pdfmake'),
-        import('pdfmake/build/vfs_fonts'),
-        loadLogo(),
-    ]);
-    // Both are UMD bundles: Vite hands their exports back as `default`.
-    const pdfMake = pdfMakeModule.default;
-    pdfMake.addVirtualFileSystem(fontsModule.default);
+    const [pdfMake, logoSvg] = await Promise.all([loadPdfMake(), loadLogo()]);
 
     return pdfMake
         .createPdf(
