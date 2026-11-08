@@ -61,18 +61,61 @@ test('an empty catalog lists no profession', function () {
         ->assertExactJson(['data' => ['professions' => []]]);
 });
 
-test('the catalog is grouped by profession in the enum order, the profession row first and the rest by name', function () {
+test('the catalog is grouped by profession alphabetically, the profession row first and the rest by name', function () {
     catalogSpecialty('Psicólogo', HealthProfession::Psicologo);
     catalogSpecialty('Pediatría');
     catalogSpecialty('Médico');
     catalogSpecialty('Cardiología');
+    catalogSpecialty('Kinesiólogo', HealthProfession::Kinesiologo);
 
     $professions = actingAsAdmin()->getJson('/api/v1/admin/specialties')->assertOk()->json('data.professions');
 
-    expect(array_column($professions, 'profession'))->toBe(['medico', 'psicologo'])
-        ->and(array_column($professions[0]['specialties'], 'name'))->toBe(['Médico', 'Cardiología', 'Pediatría'])
-        ->and(array_column($professions[0]['specialties'], 'without_specialty'))->toBe([true, false, false])
-        ->and($professions[1]['specialties'][0]['without_specialty'])->toBeTrue();
+    // The enum order would put Médico first.
+    expect(array_column($professions, 'profession'))->toBe(['kinesiologo', 'medico', 'psicologo'])
+        ->and(array_column($professions[1]['specialties'], 'name'))->toBe(['Médico', 'Cardiología', 'Pediatría'])
+        ->and(array_column($professions[1]['specialties'], 'without_specialty'))->toBe([true, false, false])
+        ->and($professions[2]['specialties'][0]['without_specialty'])->toBeTrue();
+});
+
+test('a search keeps only the specialties whose name contains it, whatever its case or accents', function () {
+    catalogSpecialty('Médico');
+    catalogSpecialty('Cardiología');
+    catalogSpecialty('Cardiología infantil');
+    catalogSpecialty('Pediatría');
+    catalogSpecialty('Psicólogo', HealthProfession::Psicologo);
+    ProfessionalLicense::factory()->verified()->create();
+
+    $professions = actingAsAdmin()->getJson('/api/v1/admin/specialties?q=CARDIOLOGIA')->assertOk()->json('data.professions');
+
+    expect(array_column($professions, 'profession'))->toBe(['medico'])
+        ->and(array_column($professions[0]['specialties'], 'name'))->toBe(['Cardiología', 'Cardiología infantil'])
+        // The license counts are the profession's, whatever the search.
+        ->and($professions[0]['licenses']['verified'])->toBe(1);
+});
+
+test('a search that matches a profession keeps it whole, even with licenses and no catalog row yet', function () {
+    catalogSpecialty('Médico');
+    catalogSpecialty('Pediatría');
+    ProfessionalLicense::factory()->create(['profession' => HealthProfession::Kinesiologo]);
+
+    $professions = actingAsAdmin()->getJson('/api/v1/admin/specialties?q='.rawurlencode('  médi '))->assertOk()->json('data.professions');
+    expect(array_column($professions, 'profession'))->toBe(['medico'])
+        ->and(array_column($professions[0]['specialties'], 'name'))->toBe(['Médico', 'Pediatría']);
+
+    $professions = actingAsAdmin()->getJson('/api/v1/admin/specialties?q=kinesio')->assertOk()->json('data.professions');
+    expect(array_column($professions, 'profession'))->toBe(['kinesiologo'])
+        ->and($professions[0]['specialties'])->toBe([]);
+});
+
+test('a search with no match lists no profession, and an overlong one is rejected', function () {
+    catalogSpecialty('Cardiología');
+
+    actingAsAdmin()->getJson('/api/v1/admin/specialties?q=traumatologia')
+        ->assertOk()
+        ->assertExactJson(['data' => ['professions' => []]]);
+    actingAsAdmin()->getJson('/api/v1/admin/specialties?q='.str_repeat('a', 101))
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors('q');
 });
 
 test('a backed professional is a distinct user with a verified license added to clini', function () {

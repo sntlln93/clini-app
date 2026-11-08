@@ -27,12 +27,16 @@ use Illuminate\Support\Collection;
  * - Unbacked offers: those no verified license of the professional backs anymore (the panel's «sin respaldo de
  *   matrícula», `Specialty::withBacking()`).
  * - Licenses: only the ones professionals added to Clini; the rest are just what the registry holds for a DNI.
+ *
+ * Professions go alphabetically, and a search term (folded, so neither case nor accents count) keeps a profession whose
+ * name contains it whole, and otherwise only its specialties whose name contains it.
  */
 class SpecialtyCatalogUsage
 {
-    public function summarize(): SpecialtyCatalogUsageData
+    public function summarize(?string $term = null): SpecialtyCatalogUsageData
     {
-        $specialties = Specialty::query()->orderBy('folded_name')->orderBy('id')->get(['id', 'profession', 'name']);
+        $term = FoldedText::fold(trim($term ?? ''));
+        $specialties = Specialty::query()->orderBy('folded_name')->orderBy('id')->get(['id', 'profession', 'name', 'folded_name']);
         $backed = $this->countsBySpecialty(
             ProfessionalLicense::query()->backing()->whereNotNull('specialty_id'),
             'count(distinct user_id)',
@@ -54,9 +58,13 @@ class SpecialtyCatalogUsage
         $licenses = $this->licensesByProfession();
 
         $professions = [];
-        foreach (HealthProfession::cases() as $profession) {
+        foreach ($this->alphabeticalProfessions() as $profession) {
             $rows = $specialties->filter(fn (Specialty $specialty): bool => $specialty->profession === $profession);
-            if ($rows->isEmpty() && ! isset($licenses[$profession->value])) {
+            $professionMatches = str_contains(FoldedText::fold($profession->label()), $term);
+            if (! $professionMatches) {
+                $rows = $rows->filter(fn (Specialty $specialty): bool => str_contains($specialty->folded_name, $term));
+            }
+            if ($rows->isEmpty() && ! ($professionMatches && isset($licenses[$profession->value]))) {
                 continue;
             }
 
@@ -85,6 +93,20 @@ class SpecialtyCatalogUsage
         }
 
         return new SpecialtyCatalogUsageData(professions: $professions);
+    }
+
+    /**
+     * @return list<HealthProfession>
+     */
+    private function alphabeticalProfessions(): array
+    {
+        $professions = HealthProfession::cases();
+        usort($professions, fn (HealthProfession $a, HealthProfession $b): int => strcmp(
+            FoldedText::fold($a->label()),
+            FoldedText::fold($b->label()),
+        ));
+
+        return $professions;
     }
 
     /**
