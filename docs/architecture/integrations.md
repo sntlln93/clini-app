@@ -23,6 +23,10 @@ Evaluado como canal complementario, no reemplazo del email. Casos de uso previst
 
 Suscripción SaaS por organización (cobro recurrente, webhook, período de gracia, modo solo lectura): ver [subscriptions.md](subscriptions.md). Los avisos de gracia/vencimiento salen hoy solo por mail; Web Push queda como seguimiento.
 
+## ARCA (facturación electrónica)
+
+Factura C de cada cobro aprobado de la suscripción, autorizada directo con los web services de ARCA (WSAA + WSFEv1), sin intermediario: ver [subscriptions.md](subscriptions.md#facturación-electrónica-246-adr-0039) y [ADR 0039](../adr/0039-factura-c-de-la-suscripcion-emitida-directo-con-arca.md).
+
 ## SMS
 
 Se evaluó un sistema propio sobre dispositivos Android (técnicamente viable). Conclusión actual: no debería ser un pilar del sistema — depende de hardware y operadoras, incrementa complejidad operativa, escala peor que las alternativas. Si se implementa, sería como canal opcional, no core.
