@@ -45,6 +45,7 @@ test('the owner reads the subscription\'s invoices, newest charge first, with wh
             'charged_at' => '2026-09-03T13:00:00+00:00',
             'service_from' => '2026-10-03',
             'service_to' => '2026-11-02',
+            'annual_discount_percent' => null,
             'voucher' => [
                 'letter' => 'C',
                 'type_code' => 11,
@@ -77,6 +78,14 @@ test('the QR follows RG 4892: ARCA\'s URL with the voucher as base64 JSON, numbe
     expect($url)->toStartWith('https://www.arca.gob.ar/fe/qr/?p=');
     $json = base64_decode(substr($url, strlen('https://www.arca.gob.ar/fe/qr/?p=')), true);
     expect($json)->toBe('{"ver":1,"fecha":"2026-10-03","cuit":20111111112,"ptoVta":1,"tipoCmp":11,"nroCmp":12,"importe":15000,"moneda":"PES","ctz":1,"tipoDocRec":99,"nroDocRec":0,"tipoCodAut":"E","codAut":90000100000012}');
+});
+
+test('an annual invoice says the discount it got', function () {
+    [$owner, $issued] = ownerWithInvoices();
+    $issued->forceFill(['annual_discount_percent' => 40])->save();
+
+    $this->actingAs($owner->user)->getJson('/api/v1/subscription/invoices')
+        ->assertJsonPath('data.1.annual_discount_percent', 40);
 });
 
 test('only a voucher from ARCA\'s production services reads as fiscally valid', function () {

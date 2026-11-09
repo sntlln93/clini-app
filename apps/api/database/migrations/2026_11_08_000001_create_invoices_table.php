@@ -37,6 +37,10 @@ return new class extends Migration
             $table->date('service_from');
             $table->date('service_to');
             $table->string('description');
+            // The annual discount an annual charge got, printed as a note under
+            // its line; null when monthly, or when the charge doesn't match
+            // the discounted price (the discount can't be told apart then).
+            $table->unsignedTinyInteger('annual_discount_percent')->nullable();
             // InvoiceEnvironment, InvoiceVoucherType and the issuer, as they
             // were when the number was reserved.
             $table->string('environment')->nullable();

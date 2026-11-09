@@ -11,6 +11,8 @@ use App\Enums\InvoiceStatus;
 use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionPaymentOutcome;
 use App\Models\Invoice;
+use App\Support\OrganizationPlan;
+use App\Support\PracticePricing;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Log;
 
@@ -27,7 +29,11 @@ use Illuminate\Support\Facades\Log;
  *
  * The service period starts on the charge's billing date (in Argentina) and
  * covers the months the subscription charges for. The amount is what the
- * provider charged, never the plan's price.
+ * provider charged, never the plan's price. An annual charge keeps the
+ * annual discount it got, printed as a note under its line, only when it is
+ * exactly the discounted price for the practice's active professionals:
+ * otherwise (the price or the team changed since) the discount can't be told
+ * apart, and the invoice claims none.
  *
  * @implements Action<ChargeInvoiceData>
  */
@@ -35,6 +41,11 @@ final class RecordChargeInvoiceAction implements Action
 {
     /** The only currency a factura C to a final consumer is issued in here. */
     private const string CURRENCY = 'ARS';
+
+    public function __construct(
+        private readonly PracticePricing $pricing,
+        private readonly OrganizationPlan $plans,
+    ) {}
 
     /**
      * @param  ChargeInvoiceData  $dto
@@ -85,7 +96,21 @@ final class RecordChargeInvoiceAction implements Action
             'service_from' => $serviceFrom->toDateString(),
             'service_to' => $serviceFrom->addMonthsNoOverflow($billing->months())->subDay()->toDateString(),
             'description' => self::description($billing),
+            'annual_discount_percent' => $this->annualDiscountPercent($billing, $subscription->organization_id, $payment->amountCents),
         ]);
+    }
+
+    private function annualDiscountPercent(SubscriptionBilling $billing, int $organizationId, int $amountCents): ?int
+    {
+        $percent = $this->pricing->annualDiscountPercent();
+
+        if ($billing !== SubscriptionBilling::Annual || $percent === 0) {
+            return null;
+        }
+
+        $discounted = $this->pricing->amount($this->plans->activeProfessionals($organizationId), $billing) * 100;
+
+        return $amountCents === $discounted ? $percent : null;
     }
 
     private static function description(SubscriptionBilling $billing): string

@@ -155,7 +155,30 @@ test('an annual charge covers twelve months', function () {
     expect($invoice->service_from->toDateString())->toBe('2026-01-31')
         ->and($invoice->service_to->toDateString())->toBe('2027-01-30')
         ->and($invoice->amount_cents)->toBe(10800000)
-        ->and($invoice->description)->toBe('Suscripción anual a Clini, plan Consultorio');
+        ->and($invoice->description)->toBe('Suscripción anual a Clini, plan Consultorio')
+        // $ 15.000 a month, 40 % off, for a year: exactly what was charged.
+        ->and($invoice->annual_discount_percent)->toBe(40);
+});
+
+test('an annual charge that is not the discounted price claims no discount', function () {
+    Queue::fake([IssueInvoiceJob::class]);
+    // The price changed since the checkout: the discount can't be told apart.
+    fakeCharge('7001', overrides: ['transaction_amount' => 120000]);
+    chargedSubscription()->forceFill(['billing' => 'annual'])->save();
+
+    postChargeNotification('7001', '9001')->assertOk();
+
+    expect(Invoice::withoutGlobalScope('organization')->sole()->annual_discount_percent)->toBeNull();
+});
+
+test('a monthly charge has no annual discount', function () {
+    Queue::fake([IssueInvoiceJob::class]);
+    fakeCharge('7001', overrides: ['transaction_amount' => 15000]);
+    chargedSubscription();
+
+    postChargeNotification('7001', '9001')->assertOk();
+
+    expect(Invoice::withoutGlobalScope('organization')->sole()->annual_discount_percent)->toBeNull();
 });
 
 test('the service period starts on the charge\'s day in Argentina', function () {
