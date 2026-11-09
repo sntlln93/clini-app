@@ -81,7 +81,7 @@ services:
             - pgsql
             - mailpit
     mailpit:
-        image: 'axllent/mailpit:v1.32.0'
+        image: 'axllent/mailpit:v1.33.0'
         ports:
             - '${FORWARD_MAILPIT_PORT:-1025}:1025'
             - '${FORWARD_MAILPIT_DASHBOARD_PORT:-8025}:8025'
