@@ -99,6 +99,21 @@ describe('buildInvoiceDocument', () => {
         expect(text).toContain('Importe total: $ 18.500,50');
     });
 
+    it('notes the annual discount under the line of an annual charge, and nothing on a monthly one', () => {
+        expect(
+            printed(
+                issued({
+                    description: 'Suscripción anual a Clini, plan Consultorio',
+                    amount_cents: 10800000,
+                    annual_discount_percent: 40,
+                }),
+            ),
+        ).toContain(
+            'Suscripción anual a Clini, plan Consultorio Pago anual, con 40 % de descuento sobre el precio mensual',
+        );
+        expect(printed()).not.toContain('descuento');
+    });
+
     it('carries the CAE and the RG 4892 QR that checks it against ARCA', () => {
         const document = buildInvoiceDocument(issued(), LETTERHEAD);
         const qr = nodesOf(document.content).find((node) => 'qr' in node);

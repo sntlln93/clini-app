@@ -44,5 +44,10 @@ export type Invoice = {
     /** The period the charge covers, calendar dates (YYYY-MM-DD). */
     service_from: string;
     service_to: string;
+    /**
+     * The annual discount an annual charge got, printed under its line; null
+     * when monthly, or when the charge isn't the discounted price.
+     */
+    annual_discount_percent: number | null;
     voucher: InvoiceVoucher | null;
 };

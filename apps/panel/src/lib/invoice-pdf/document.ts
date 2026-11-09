@@ -40,6 +40,25 @@ function receiver(): Content {
     });
 }
 
+/** The line's description, with the annual discount it got under it (#246). */
+function description(invoice: IssuedInvoice): Content {
+    const discount = invoice.annual_discount_percent;
+
+    return discount === null
+        ? invoice.description
+        : {
+              stack: [
+                  invoice.description,
+                  {
+                      text: `Pago anual, con ${discount} % de descuento sobre el precio mensual`,
+                      style: 'muted',
+                      fontSize: 8,
+                      margin: [0, 2, 0, 0],
+                  },
+              ],
+          };
+}
+
 function items(invoice: IssuedInvoice): Content {
     const amount = money(invoice.amount_cents);
 
@@ -56,7 +75,7 @@ function items(invoice: IssuedInvoice): Content {
                     { text: 'Subtotal', bold: true, alignment: 'right' },
                 ],
                 [
-                    invoice.description,
+                    description(invoice),
                     { text: '1', alignment: 'right' },
                     { text: amount, alignment: 'right' },
                     { text: amount, alignment: 'right' },
