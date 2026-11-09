@@ -45,8 +45,19 @@ describe('service price conversion', () => {
         '15.000.5',
         '1,2,3',
         '$ 15000',
+        // Past 2^53 cents: a number no longer exact to the cent.
+        '90071992547410',
+        '1.000.000.000.000.000',
     ])('rejects "%s" as a price', (pesos) => {
         expect(pesosInputToCents(pesos)).toBeUndefined();
+    });
+
+    it.each([
+        // $ 25.000.000, past what a 32-bit integer holds in cents.
+        ['25.000.000', 2_500_000_000],
+        ['90071992547409,91', Number.MAX_SAFE_INTEGER],
+    ])('takes "%s", a large price, exactly', (pesos, cents) => {
+        expect(pesosInputToCents(pesos)).toBe(cents);
     });
 
     it.each([0, 99, 5050, 1999, 1500000, 1500050])(

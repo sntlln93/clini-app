@@ -21,7 +21,7 @@ const GROUPED_PESOS = /^\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/;
 const PLAIN_PESOS = /^\d+(?:,\d{1,2})?$/;
 const DOT_DECIMAL_PESOS = /^\d+\.\d{1,2}$/;
 
-/** `null` for an empty field (no price), `undefined` when the value isn't a non-negative es-AR amount. */
+/** `null` for an empty field (no price), `undefined` when the value isn't a non-negative es-AR amount the API can hold exactly. */
 export function pesosInputToCents(value: string): number | null | undefined {
     const trimmed = value.trim();
     if (trimmed === '') {
@@ -39,7 +39,11 @@ export function pesosInputToCents(value: string): number | null | undefined {
         return undefined;
     }
 
-    return Math.round(Number(normalized) * 100);
+    const cents = Math.round(Number(normalized) * 100);
+
+    // Beyond 2^53 a number is no longer exact to the cent (nor does the API
+    // take it): too large is as invalid as malformed.
+    return Number.isSafeInteger(cents) ? cents : undefined;
 }
 
 /** e.g. 1500000 → "$ 15.000,00". */
