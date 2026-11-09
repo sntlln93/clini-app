@@ -193,11 +193,33 @@ Todo se hace online con clave fiscal nivel 3, sin escribir ni llamar a nadie.
 
 ### Producción
 
-1. **Certificado** — generar otra clave y otro CSR (`CN=cliniproduccion`) y subir el CSR en «Administración de Certificados Digitales» (servicio adherido con clave fiscal nivel 3). Descargar el certificado.
-2. **Relación** — en el «Administrador de Relaciones de Clave Fiscal», «Nueva relación»: ARCA → WebServices → «Facturación Electrónica» (`wsfe`), con el certificado como representante (computador fiscal).
-3. **Punto de venta** — en «ABM de puntos de venta», dar de alta uno con el sistema «RECE / Factura Electrónica – Web Services» y el domicilio del emisor. Ese número va en `INVOICE_POINT_OF_SALE` y no lo usa ningún otro sistema de facturación: si otro emite en el mismo punto de venta, la numeración choca.
-4. **Dokploy** — `INVOICE_ISSUER=arca`, `ARCA_ENVIRONMENT=production`, el CUIT, el punto de venta, `ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` (base64 de cada PEM) y los datos fiscales `INVOICE_ISSUER_*`. La clave privada no sale de Dokploy.
-5. El certificado vence (habitualmente a los 2 años): renovarlo antes, con un CSR nuevo, y actualizar `ARCA_CERTIFICATE`.
+Todo es nuevo: el certificado de homologación (WSASS) no sirve contra los servidores de producción, y la clave tampoco se reutiliza, para que filtrarse una no comprometa la otra. Con clave fiscal nivel 3 del titular del CUIT:
+
+1. **Clave y CSR** — en una máquina de confianza, fuera del repo:
+
+   ```bash
+   openssl genrsa -out clini-prod.key 2048
+   openssl req -new -key clini-prod.key -subj "/C=AR/O=<Razón social>/CN=cliniproduccion/serialNumber=CUIT <CUIT sin guiones>" -out clini-prod.csr
+   ```
+
+2. **Certificado** — en «Administración de Certificados Digitales» (no WSASS): agregar el alias `cliniproduccion` (solo letras y números), subir el CSR y descargar el certificado (`clini-prod.crt`).
+3. **Relación** — en el «Administrador de Relaciones de Clave Fiscal», «Nueva relación»: ARCA → WebServices → «Facturación Electrónica» (`wsfe`), con ese certificado como representante (computador fiscal).
+4. **Punto de venta** — en «ABM de puntos de venta», dar de alta uno con el sistema «RECE / Factura Electrónica – Web Services» y el domicilio del emisor. Ese número va en `INVOICE_POINT_OF_SALE` y lo usa solo Clini: si otro sistema emite en el mismo punto de venta, la numeración choca.
+5. **Dokploy** (variables de la app API) — `INVOICE_ISSUER=arca` (o sin definir: es el default), `ARCA_ENVIRONMENT=production`, `INVOICE_POINT_OF_SALE`, `INVOICE_ISSUER_CUIT` (el del certificado), `ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` (`base64 -i <archivo> | tr -d '\n'`, cada uno en una línea) y los datos fiscales reales que imprime la factura: `INVOICE_ISSUER_NAME` (razón social), `INVOICE_ISSUER_ADDRESS` (domicilio comercial), `INVOICE_ISSUER_VAT_CONDITION` (`Responsable Monotributo`), `INVOICE_ISSUER_GROSS_INCOME` (Ingresos Brutos) e `INVOICE_ISSUER_ACTIVITY_START` (`AAAA-MM-DD`). Sin todos los datos fiscales la emisión se frena antes de pedir el CAE y las facturas quedan pendientes.
+6. **Verificar el primer comprobante real** — después del primer cobro aprobado, la factura tiene que pasar a emitida en minutos (con el worker y el scheduler de la imagen corriendo), con `environment = production` y sin la leyenda de prueba en el PDF. Escanear su QR, o cargar su CAE en la «Constatación de comprobantes» de ARCA, tiene que mostrarla como válida. Si queda pendiente, el log del worker dice por qué (`provider_code`, `provider_message`).
+
+**Qué guardar y dónde**
+
+| Archivo | Qué es | Dónde |
+|---|---|---|
+| `clini-prod.key` | La clave privada: con ella cualquiera emite comprobantes a nombre del titular | Las variables de Dokploy y un resguardo cifrado fuera de línea (un gestor de contraseñas). Nunca en el repo, por chat ni en la máquina después de cargarla |
+| `clini-prod.crt` | El certificado (público) | Junto a la clave: hace falta para renovar |
+| `clini-prod.csr` | El pedido de certificado | Se puede borrar una vez emitido el certificado |
+| `clini-homo.key` / `.crt` | Clave y certificado de homologación | Solo para dev, la demo o un staging contra homologación |
+
+Si la clave de producción se pierde o se filtra: generar otra, pedir un certificado nuevo, rehacer la relación con `wsfe`, revocar el anterior en «Administración de Certificados Digitales» y actualizar las dos variables en Dokploy. Las facturas ya emitidas no se tocan.
+
+**Renovación** — el certificado vence (habitualmente a los 2 años; la fecha está en el propio certificado: `openssl x509 -enddate -noout -in clini-prod.crt`). Antes de esa fecha: un CSR nuevo con la misma clave o una nueva, el certificado nuevo en el mismo alias y `ARCA_CERTIFICATE` (y `ARCA_PRIVATE_KEY`, si cambió) en Dokploy. Vencido, WSAA lo rechaza (`cms.cert.expired`) y las facturas quedan pendientes hasta renovarlo.
 
 ## Variables de entorno (`apps/api/.env`)
 

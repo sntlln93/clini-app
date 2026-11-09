@@ -83,6 +83,10 @@ El checklist de la Res. AAIP 47/2018 contra el estado del proyecto está en [Seg
 
 `DOCUMENT_INDEX_KEY` es la clave del índice ciego por el que se busca el DNI de un profesional (#417, ADR 0032). Se genera con `php artisan document-index:generate-key` y se carga en Dokploy antes del primer deploy; producción rechaza la pública de `.env.example`, y nunca es `APP_KEY` ni la maestra clínica. Perderla no pierde datos: con una nueva, `document-index:rotate` recalcula el índice desde los DNI cifrados. Cómo rotarla: [Seguridad](security.md#índice-ciego-del-dni-del-profesional).
 
+### Certificado de ARCA
+
+`ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` autentican a Clini ante ARCA para emitir las facturas de la suscripción (#246, [ADR 0039](../adr/0039-factura-c-de-la-suscripcion-emitida-directo-con-arca.md)). Producción tiene su propio certificado, tramitado en «Administración de Certificados Digitales» con la clave fiscal del titular; la demo y cualquier staging usan uno de homologación (WSASS) con `ARCA_ENVIRONMENT=homologation`. La clave privada vive en las variables de Dokploy y en un resguardo cifrado fuera de línea, nunca en el repo; con ella cualquiera emite comprobantes a nombre del titular. El certificado vence: anotar la fecha y renovarlo antes. Pasos, qué guardar y renovación: [subscriptions.md](subscriptions.md#producción).
+
 ### Logs y modo debug
 
 - `APP_ENV=production` y `APP_DEBUG=false`: con debug, un error inesperado devuelve la traza (ADR 0024).
@@ -101,7 +105,11 @@ Antes de abrir producción a consultorios reales:
 - [ ] `CLINICAL_ENCRYPTION_KEY` propia, cargada en Dokploy y guardada fuera de línea (#391).
 - [ ] `DOCUMENT_INDEX_KEY` propia, de `php artisan document-index:generate-key`, cargada en Dokploy (#417).
 - [ ] La demo sin la base, el bucket, la `APP_KEY`, la `CLINICAL_ENCRYPTION_KEY` ni la `DOCUMENT_INDEX_KEY` de producción.
-- [ ] Certificado de ARCA de producción asociado a `wsfe`, punto de venta «RECE / Factura Electrónica – Web Services» dado de alta y `ARCA_*`/`INVOICE_*` cargados en Dokploy (#246). La demo, con el certificado de homologación.
+- [ ] Certificado de ARCA de producción (clave nueva, no la de homologación) asociado a `wsfe`, y un punto de venta «RECE / Factura Electrónica – Web Services» exclusivo de Clini (#246).
+- [ ] En Dokploy: `ARCA_ENVIRONMENT=production`, `ARCA_CERTIFICATE`, `ARCA_PRIVATE_KEY`, `INVOICE_POINT_OF_SALE`, `INVOICE_ISSUER_CUIT` y los datos fiscales `INVOICE_ISSUER_*` completos; sin `INVOICE_ISSUER=fake`.
+- [ ] La clave privada de ARCA guardada cifrada fuera de línea, y la fecha de vencimiento del certificado agendada.
+- [ ] El primer cobro real emitido con `environment = production` y validado con el QR o la «Constatación de comprobantes» de ARCA.
+- [ ] La demo con el certificado de homologación, nunca el de producción.
 
 ## Colas
 
