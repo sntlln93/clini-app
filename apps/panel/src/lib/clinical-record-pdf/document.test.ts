@@ -1,4 +1,5 @@
 import { setPracticeTimeZone } from '@/lib/datetime';
+import { PDF_COLORS, PDF_FONT } from '@/lib/pdf/theme';
 import { buildClinicalRecord } from '@/tests/fixtures/clinical-record';
 import type {
     Content,
@@ -8,20 +9,27 @@ import type {
     NodeQueries,
 } from 'pdfmake/interfaces';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-    buildClinicalRecordDocument,
-    keepTitlesWithContent,
-    type Letterhead,
-} from './document';
+import { statusChip } from './appointments';
+import type { ClinicalRecordLetterhead } from './branding';
+import { buildClinicalRecordDocument, keepTitlesWithContent } from './document';
 
-const LOGO = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" id="logo"></svg>';
+const ISOTYPE = '<svg xmlns="http://www.w3.org/2000/svg" id="isotype"></svg>';
+const LETTERHEAD: ClinicalRecordLetterhead = {
+    brandName: 'Clini',
+    logoSvg: LOGO,
+    isotypeSvg: ISOTYPE,
+};
 const PAGE: ContextPageSize = {
     width: 595.28,
     height: 841.89,
     orientation: 'portrait',
 };
 
-/** Every string a piece of pdfmake content prints, in order. */
+/**
+ * Every string a piece of pdfmake content prints, in order: a block per
+ * line, and the runs of one text inline, as pdfmake sets them.
+ */
 function textOf(content: unknown): string {
     if (typeof content === 'string' || typeof content === 'number') {
         return String(content);
@@ -35,6 +43,10 @@ function textOf(content: unknown): string {
         const node = content as Record<string, unknown>;
         const table = node.table as { body?: unknown } | undefined;
 
+        if (Array.isArray(node.text)) {
+            return node.text.map(textOf).join('');
+        }
+
         return [node.text, node.stack, node.columns, node.ul, table?.body]
             .filter((part) => part !== undefined)
             .map(textOf)
@@ -44,9 +56,7 @@ function textOf(content: unknown): string {
     return '';
 }
 
-function render(
-    letterhead: Letterhead = { brandName: 'Clini', logoSvg: LOGO },
-) {
+function render(letterhead: ClinicalRecordLetterhead = LETTERHEAD) {
     return buildClinicalRecordDocument(buildClinicalRecord(), letterhead);
 }
 
@@ -59,49 +69,94 @@ describe('buildClinicalRecordDocument', () => {
     afterEach(() => setPracticeTimeZone(null));
 
     // dompdf's PDF said «Página 1 de 0»: a CSS counter can't count the pages.
-    it('numbers every page out of the real total', () => {
-        const footer = textOf(atPage(render().footer, 2, 3));
+    it('numbers every page out of the real total, beside the brand', () => {
+        const footer = atPage(render().footer, 2, 3);
 
-        expect(footer).toContain('Página 2 de 3');
-        expect(footer).toContain(
+        expect(textOf(footer)).toContain('Generada con Clini · Página 2 de 3');
+        expect(textOf(footer)).toContain(
             'Historia clínica de Paciente Compartido · Consultorio Norte',
         );
+        expect(JSON.stringify(footer)).toContain(JSON.stringify(ISOTYPE));
     });
 
-    it('opens every page with the brand letterhead and the practice', () => {
+    it('names the brand in the footer when its isotype could not be read', () => {
+        const footer = atPage(
+            render({ ...LETTERHEAD, isotypeSvg: null }).footer,
+            1,
+            1,
+        );
+
+        expect(JSON.stringify(footer)).not.toContain('"svg"');
+        expect(textOf(footer)).toContain('Generada con Clini · Página 1 de 1');
+    });
+
+    // #432: the practice names every page; Clini's brand accompanies it.
+    it('opens every page with the brand, the practice and whose history it is, over a rule in the brand teal', () => {
         const header = atPage(render().header, 1, 3);
 
         expect(JSON.stringify(header)).toContain(JSON.stringify(LOGO));
         expect(textOf(header)).toContain('Consultorio Norte');
+        expect(textOf(header)).toContain(
+            'Historia clínica · Paciente Compartido',
+        );
+        expect(JSON.stringify(header)).toContain(
+            `"lineColor":"${PDF_COLORS.primary}"`,
+        );
     });
 
     it('names the brand when its logotype could not be read', () => {
         const header = atPage(
-            render({ brandName: 'Clini', logoSvg: null }).header,
+            render({ ...LETTERHEAD, logoSvg: null }).header,
             1,
             1,
         );
 
         expect(JSON.stringify(header)).not.toContain('"svg"');
         expect(textOf(header)).toContain('Clini');
+        expect(textOf(header)).toContain('Consultorio Norte');
+    });
+
+    it('is set in the theme’s typeface and colors, and says the brand made it', () => {
+        const document = render();
+
+        expect(document.defaultStyle?.font).toBe(PDF_FONT);
+        expect(document.defaultStyle?.color).toBe(PDF_COLORS.text);
+        expect(document.styles?.section?.color).toBe(PDF_COLORS.primary);
+        expect(document.info).toMatchObject({
+            creator: 'Clini',
+            producer: 'Clini',
+        });
+    });
+
+    it('opens with the practice, the title, the patient and the notice, its closing sentence in bold', () => {
+        const [practice, title, patient, notice] = render()
+            .content as Content[];
+
+        expect(textOf(practice)).toBe('Consultorio Norte');
+        expect(textOf(title)).toBe('Historia clínica');
+        expect(textOf(patient)).toBe('Paciente Compartido · DNI 30111222');
+        expect(textOf(notice)).toBe(
+            'Generada el 20/10/2026 10:30 por Dra. Exportadora. Este documento no es una receta.',
+        );
+        expect(JSON.stringify(notice)).toContain(
+            '{"text":"Este documento no es una receta.","bold":true}',
+        );
     });
 
     it('holds every act with its author, time and reason, in the practice zone', () => {
         const text = textOf(render().content);
 
-        expect(text).toContain(
-            'Generada el 20/10/2026 10:30 por Dra. Exportadora. Este documento no es una receta.',
-        );
         expect(text).toContain('DNI 30111222');
         expect(text).toContain('14/03/1990');
         // 13:00 UTC is 10:00 in Buenos Aires.
         expect(text).toContain(
             '01/09/2026 10:00 · Dra. Exportadora · Consulta',
         );
-        expect(text).toContain('Completado · Motivo: Control');
+        expect(text).toContain('Motivo: Control');
+        expect(text).toContain('Completado');
         expect(text).toContain('Versión 1, Dra. Exportadora, 01/09/2026 10:20');
         expect(text).toContain(
-            'Enmienda (versión 2), Dra. Exportadora, 02/09/2026 09:00 · Motivo: Faltaba un dato.',
+            'Enmienda · versión 2\nDra. Exportadora, 02/09/2026 09:00 · Motivo: Faltaba un dato.',
         );
         expect(text).toContain('Nota enmendada.');
         expect(text).toContain(
@@ -111,13 +166,13 @@ describe('buildClinicalRecordDocument', () => {
             'Anulada el 11/09/2026 07:00 por Dr. Colega. Motivo: Paciente equivocado.',
         );
         expect(text).toContain(
-            'Ibuprofeno, Comprimidos 400 mg · 1 cada 8 h · Cantidad: 2',
+            'Ibuprofeno, Comprimidos 400 mg\n1 cada 8 h · Cantidad: 2',
         );
         expect(text).toContain(
             'Anulada el 08/09/2026 09:00 por Dra. Exportadora. Motivo: Terminó el tratamiento.',
         );
         // Every author's medication, as the notes (#359).
-        expect(text).toContain('Paracetamol · Si hay fiebre · Cantidad: 1');
+        expect(text).toContain('Paracetamol\nSi hay fiebre · Cantidad: 1');
         expect(text).toContain('Versión 1, Dr. Colega, 10/09/2026 12:20');
     });
 
@@ -125,15 +180,15 @@ describe('buildClinicalRecordDocument', () => {
         const text = textOf(render().content);
 
         expect(text).toContain(
-            'Medición\n · tomada por Dra. Exportadora el 01/09/2026 10:10',
+            'Medición · tomada por Dra. Exportadora el 01/09/2026 10:10',
         );
         expect(text).toContain(
-            'Peso: 80 kg · Altura: 180 cm · IMC: 24,7 kg/m²',
+            'Peso\n80 kg\n\nAltura\n180 cm\n\nIMC\n24,7 kg/m²',
         );
         expect(text).toContain(
-            'Enmienda (versión 2), Dra. Exportadora, 01/09/2026 10:20 · Motivo: Balanza mal calibrada.',
+            'Dra. Exportadora, 01/09/2026 10:20 · Motivo: Balanza mal calibrada.',
         );
-        expect(text).toContain('Peso: 78,5 kg');
+        expect(text).toContain('Peso\n78,5 kg');
         expect(text).toContain('O+ · Dr. Colega, 10/09/2026 12:25');
         expect(text).toContain('Penicilina · Urticaria · Severidad grave');
         expect(text).toContain(
@@ -149,12 +204,59 @@ describe('buildClinicalRecordDocument', () => {
         const text = textOf(
             buildClinicalRecordDocument(
                 buildClinicalRecord({ blood_types: [], medical_history: [] }),
-                { brandName: 'Clini', logoSvg: LOGO },
+                LETTERHEAD,
             ).content,
         );
 
-        expect(text).toContain('Grupo sanguíneo: sin registrar.');
+        expect(text).toContain('Grupo sanguíneo\nSin registrar.');
         expect(text).not.toContain('Alergias');
+    });
+
+    // #432: the panel's status map, cancelled and rescheduled struck through.
+    it('marks each appointment with its status, as the panel colors it', () => {
+        const record = buildClinicalRecord();
+        const [appointment] = record.appointments;
+        const cancelled = {
+            ...appointment,
+            id: 77,
+            status: 'cancelled' as const,
+            cancelled_at: '2026-09-03T12:00:00Z',
+            cancellation_reason: 'Viaje',
+            clinical_notes: [],
+            prescriptions: [],
+            vital_signs: [],
+        };
+        const text = textOf(
+            buildClinicalRecordDocument(
+                { ...record, appointments: [cancelled, appointment] },
+                LETTERHEAD,
+            ).content,
+        );
+
+        expect(text).toContain(
+            'Motivo: Control · Cancelado el 03/09/2026 09:00 (Viaje)',
+        );
+        expect(statusChip('no_show')).toMatchObject({
+            table: {
+                body: [[{ text: 'Ausente', color: PDF_COLORS.statusNoShow }]],
+            },
+        });
+        expect(statusChip('cancelled')).toMatchObject({
+            table: {
+                body: [
+                    [
+                        {
+                            text: 'Cancelado',
+                            color: PDF_COLORS.statusScheduled,
+                            decoration: 'lineThrough',
+                        },
+                    ],
+                ],
+            },
+        });
+        expect(JSON.stringify(statusChip('completed'))).not.toContain(
+            'lineThrough',
+        );
     });
 
     it('says which medication was indicated despite an allergy warning, and the trail its confirmation (#362)', () => {
@@ -174,10 +276,7 @@ describe('buildClinicalRecordDocument', () => {
         ];
 
         const text = textOf(
-            buildClinicalRecordDocument(record, {
-                brandName: 'Clini',
-                logoSvg: LOGO,
-            }).content,
+            buildClinicalRecordDocument(record, LETTERHEAD).content,
         );
 
         expect(text).toContain('Indicada pese a un aviso de alergia.');
@@ -215,7 +314,7 @@ describe('buildClinicalRecordDocument', () => {
                         appointment_id: null,
                     })),
                 },
-                { brandName: 'Clini', logoSvg: LOGO },
+                LETTERHEAD,
             ).content,
         );
         const outside = text.slice(text.indexOf('Fuera de un turno\n'));
@@ -235,7 +334,7 @@ describe('buildClinicalRecordDocument', () => {
         const text = textOf(
             buildClinicalRecordDocument(
                 buildClinicalRecord({ appointments: [], access_log: [] }),
-                { brandName: 'Clini', logoSvg: LOGO },
+                LETTERHEAD,
             ).content,
         );
 

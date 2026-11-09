@@ -1,10 +1,12 @@
 import { OUTSIDE_APPOINTMENT_LABEL } from '@/lib/clinical-record-target';
+import { card } from '@/lib/pdf/blocks';
 import type { ClinicalRecordOutsideAppointments } from '@/types/clinical-record';
 import type { Content } from 'pdfmake/interfaces';
 import { noteBlock, prescriptionBlock, vitalSignBlock } from './records';
+import { sectionTitle } from './sections';
 
 // What was recorded outside an appointment (#382, ADR 0037), after the
-// appointments, in a group of its own; left out when there is nothing, so an
+// appointments, in a card of its own; left out when there is nothing, so an
 // export without such records reads as before.
 export function outsideAppointmentsSection(
     records: ClinicalRecordOutsideAppointments,
@@ -20,11 +22,12 @@ export function outsideAppointmentsSection(
     }
 
     return [
-        { text: OUTSIDE_APPOINTMENT_LABEL, style: 'section', headlineLevel: 1 },
+        sectionTitle(OUTSIDE_APPOINTMENT_LABEL),
         {
             text: 'Registrado desde la ficha del paciente, sin un turno.',
-            style: 'muted',
+            style: 'meta',
+            margin: [0, -3, 0, 8],
         },
-        { style: 'appointment', stack: blocks },
+        card({ stack: blocks }, [0, 0, 0, 10]),
     ];
 }
