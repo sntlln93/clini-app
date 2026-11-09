@@ -72,6 +72,25 @@ export function cardRow(
     };
 }
 
+/**
+ * A card of rows, each apart from the next by a thin rule, as a list in a
+ * card reads in the SPA.
+ */
+export function cardRows(
+    rows: Content[],
+    margin: Margin = [0, 0, 0, 12],
+): Content {
+    return {
+        margin,
+        table: { widths: ['*'], body: rows.map((row) => [cardCell(row)]) },
+        layout: {
+            ...cardLayout,
+            paddingTop: () => 10,
+            paddingBottom: () => 10,
+        },
+    };
+}
+
 /** Columns on the soft surface, spanning the width: a band of facts. */
 export function band(
     cells: Content[],

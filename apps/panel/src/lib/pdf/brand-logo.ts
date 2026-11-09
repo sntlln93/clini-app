@@ -14,15 +14,12 @@ function isSvg(response: Response, body: string): boolean {
 }
 
 /**
- * The manifest's light logotype, for a PDF's letterhead. The panel serves the
- * manifest's files itself, so it is a same-origin read. Null when it can't be
- * read: the PDF names the brand instead.
+ * One of the manifest's SVG files. The panel serves the manifest's files
+ * itself, so it is a same-origin read. Null when it can't be read.
  */
-export async function loadBrandLogo(): Promise<string | null> {
+async function loadBrandSvg(file: string): Promise<string | null> {
     try {
-        const response = await fetch(
-            brandAssetUrl(brand.assets.logotype.light),
-        );
+        const response = await fetch(brandAssetUrl(file));
 
         if (!response.ok) {
             return null;
@@ -34,4 +31,20 @@ export async function loadBrandLogo(): Promise<string | null> {
     } catch {
         return null;
     }
+}
+
+/**
+ * The manifest's light logotype, for a PDF's letterhead. Null when it can't
+ * be read: the PDF names the brand instead.
+ */
+export function loadBrandLogo(): Promise<string | null> {
+    return loadBrandSvg(brand.assets.logotype.light);
+}
+
+/**
+ * The manifest's light isotype, for the brand mark of a PDF's footer. Null
+ * when it can't be read: the footer names the brand alone.
+ */
+export function loadBrandIsotype(): Promise<string | null> {
+    return loadBrandSvg(brand.assets.isotype.light);
 }
