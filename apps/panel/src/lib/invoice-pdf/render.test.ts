@@ -6,6 +6,7 @@ import { renderInvoicePdf } from './render';
 
 const pdfMake = vi.hoisted(() => ({
     addVirtualFileSystem: vi.fn(),
+    addFonts: vi.fn(),
     createPdf: vi.fn(),
 }));
 
@@ -39,9 +40,17 @@ describe('renderInvoicePdf', () => {
         expect(pdfMake.addVirtualFileSystem).toHaveBeenCalledWith({
             'Roboto.ttf': '',
         });
+        // Outfit, the theme's typeface, beside pdfmake's own.
+        expect(pdfMake.addFonts).toHaveBeenCalledWith({
+            Outfit: expect.objectContaining({
+                normal: 'Outfit-Regular.woff',
+                bold: 'Outfit-Medium.woff',
+            }),
+        });
         const document = pdfMake.createPdf.mock
             .calls[0][0] as TDocumentDefinitions;
         expect(document.info?.title).toBe('Factura C 00001-00000012');
+        expect(document.defaultStyle?.font).toBe('Outfit');
         // The brand's logotype, as the panel serves it.
         expect(fetch).toHaveBeenCalledWith(
             expect.stringMatching(/^\/brand\/.+\.svg$/),

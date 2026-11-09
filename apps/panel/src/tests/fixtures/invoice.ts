@@ -15,6 +15,7 @@ export function buildInvoice(
         service_from: '2026-10-03',
         service_to: '2026-11-02',
         annual_discount_percent: null,
+        annual_list_amount_cents: null,
         voucher: {
             letter: 'C',
             type_code: 11,
