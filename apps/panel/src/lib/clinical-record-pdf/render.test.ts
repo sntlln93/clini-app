@@ -1,4 +1,5 @@
 import { buildClinicalRecord } from '@/tests/fixtures/clinical-record';
+import { brand, brandAssetUrl } from '@clini/brand';
 import type { DynamicContent, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderClinicalRecordPdf } from './render';
@@ -41,6 +42,21 @@ describe('renderClinicalRecordPdf', () => {
         );
     }
 
+    /** The footer of the document handed to pdfmake. */
+    function drawnFooter(): string {
+        const document = pdfMake.createPdf.mock
+            .calls[0][0] as TDocumentDefinitions;
+        const footer = document.footer as DynamicContent;
+
+        return JSON.stringify(
+            footer(1, 1, {
+                width: 595.28,
+                height: 841.89,
+                orientation: 'portrait',
+            }),
+        );
+    }
+
     it('draws the record with the fonts and the logotype the panel serves', async () => {
         const fetch = vi.fn(() =>
             Promise.resolve(new Response('<svg id="logo"></svg>')),
@@ -55,9 +71,22 @@ describe('renderClinicalRecordPdf', () => {
             'Roboto.ttf': '',
         });
         expect(fetch).toHaveBeenCalledWith(
-            expect.stringMatching(/^\/brand\/.+\.svg$/),
+            brandAssetUrl(brand.assets.logotype.light),
+        );
+        expect(fetch).toHaveBeenCalledWith(
+            brandAssetUrl(brand.assets.isotype.light),
         );
         expect(drawnHeader()).toContain('svg id=\\"logo\\"');
+        expect(drawnFooter()).toContain('svg id=\\"logo\\"');
+        expect(drawnFooter()).toContain('Generada con');
+
+        const document = pdfMake.createPdf.mock
+            .calls[0][0] as TDocumentDefinitions;
+        expect(document.defaultStyle?.font).toBe('Outfit');
+        expect(document.info).toMatchObject({
+            creator: brand.name,
+            producer: brand.name,
+        });
     });
 
     // The download still happens, with the brand named instead.
@@ -71,6 +100,8 @@ describe('renderClinicalRecordPdf', () => {
 
         expect(drawnHeader()).not.toContain('"svg"');
         expect(drawnHeader()).toContain('Clini');
+        expect(drawnFooter()).not.toContain('"svg"');
+        expect(drawnFooter()).toContain('Generada con');
     });
 
     // nginx answers a missing brand file with index.html and a 200.

@@ -1,10 +1,11 @@
 import { formatInvoiceDate } from '@/lib/invoices';
 import { band, card, fact } from '@/lib/pdf/blocks';
+import type { Letterhead } from '@/lib/pdf/letterhead';
 import { PDF_COLORS, PDF_FONT } from '@/lib/pdf/theme';
 import type { Invoice, InvoiceVoucher } from '@/types/invoice';
 import type { Content, TDocumentDefinitions } from 'pdfmake/interfaces';
 import { heading, parties } from './blocks';
-import { invoiceFooter, type InvoiceLetterhead } from './branding';
+import { invoiceFooter } from './branding';
 import { detail } from './detail';
 
 const MARGIN = 40;
@@ -88,7 +89,7 @@ function authorization(voucher: InvoiceVoucher): Content {
  */
 export function buildInvoiceDocument(
     invoice: IssuedInvoice,
-    letterhead: InvoiceLetterhead,
+    letterhead: Letterhead,
 ): TDocumentDefinitions {
     const { voucher } = invoice;
 

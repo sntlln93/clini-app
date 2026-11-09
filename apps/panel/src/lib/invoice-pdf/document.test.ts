@@ -1,11 +1,11 @@
+import type { Letterhead } from '@/lib/pdf/letterhead';
 import { PDF_COLORS, PDF_FONT } from '@/lib/pdf/theme';
 import { buildInvoice, buildPendingInvoice } from '@/tests/fixtures/invoice';
 import type { Content } from 'pdfmake/interfaces';
 import { describe, expect, it } from 'vitest';
-import type { InvoiceLetterhead } from './branding';
 import { buildInvoiceDocument, isIssued, type IssuedInvoice } from './document';
 
-const LETTERHEAD: InvoiceLetterhead = {
+const LETTERHEAD: Letterhead = {
     brandName: 'Clini',
     logoSvg: '<svg id="logo"></svg>',
 };
