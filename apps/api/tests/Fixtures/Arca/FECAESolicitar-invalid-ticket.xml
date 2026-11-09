@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+ <soap:Body>
+  <FECAESolicitarResponse xmlns="http://ar.gov.afip.dif.FEV1/">
+   <FECAESolicitarResult>
+    <Errors>
+     <Err>
+      <Code>600</Code>
+      <Msg>ValidacionDeToken: No validaron las fechas del token GenTime, ExpTime, NowUTC: 1759495800 (10/3/2026 12:50:00 PM), 1759539000 (10/4/2026 12:50:00 AM), 10/4/2026 1:05:00 AM</Msg>
+     </Err>
+    </Errors>
+   </FECAESolicitarResult>
+  </FECAESolicitarResponse>
+ </soap:Body>
+</soap:Envelope>

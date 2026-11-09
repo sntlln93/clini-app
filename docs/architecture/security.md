@@ -53,14 +53,15 @@ Este checklist se revisa en cada release que agregue un proveedor, un almacén d
 
 | Activo | Qué guarda o procesa | Categoría | Responsable | Quién accede |
 |---|---|---|---|---|
-| Postgres de producción | Todo el modelo (`der.dbml`): pacientes, contactos, turnos, historia clínica (su texto libre, cifrado con la maestra clínica desde #391), usuarios, logs de acceso | Identificatorios, contacto, **salud** | Titular | La API, y el titular por la terminal de Dokploy |
+| Postgres de producción | Todo el modelo (`der.dbml`): pacientes, contactos, turnos, historia clínica (su texto libre, cifrado con la maestra clínica desde #391), usuarios, logs de acceso, facturas de la suscripción (#246) | Identificatorios, contacto, **salud** | Titular | La API, y el titular por la terminal de Dokploy |
 | Tabla `sessions` | Payload de la sesión, cifrado con `APP_KEY` desde #358; `ip_address` y `user_agent` en claro; 120 minutos | Identificatorios mínimos | Titular | La API |
 | Tabla `password_reset_tokens` | Email y hash (bcrypt) del token de recuperación de contraseña; uno por email, vence a los 60 minutos y se borra al usarse, al eliminarse la cuenta o, vencido, en la limpieza diaria (`auth:clear-resets`, #389) | Contacto | Titular | La API |
 | Tablas `jobs` y `failed_jobs` | Payloads de los mails en cola (cifrados si llevan datos que no son modelos) y excepciones; una semana | Contacto | Titular | La API |
 | Bucket R2 (`media`) | Logos de las organizaciones; uno reemplazado o quitado sigue `MEDIA_DELETION_RETENTION_DAYS` días (35) antes de borrarse (#410) | Sin datos de pacientes | Titular | La API (token de R2) y el titular (cuenta de Cloudflare) |
-| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, `CLINICAL_ENCRYPTION_KEY`, `DOCUMENT_INDEX_KEY`, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
-| Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, recuperación de contraseña (#389), avisos de plan y suscripción, y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
+| Servidor de Dokploy | Las cuatro apps, Postgres, las variables (`APP_KEY`, `CLINICAL_ENCRYPTION_KEY`, `DOCUMENT_INDEX_KEY`, el certificado y la clave de ARCA, credenciales) y los logs de los contenedores | Todas | Titular y proveedor (#379) | El titular (root y panel de Dokploy) |
+| Resend | Mails al paciente: recordatorio y código de acceso (ADR 0018: sin profesional, servicio ni nada clínico). Mails a usuarios: invitaciones, verificación, recuperación de contraseña (#389), avisos de plan y suscripción (también la factura emitida, #246), y la eliminación de la cuenta (pedido, cancelación, eliminación y anulación, #384). Aviso de consultas de contacto (datos del interesado) | Contacto | Titular (DPA en #379) | La API (`RESEND_API_KEY`) |
 | Mercado Pago | Suscripción de la organización | Datos del pagador | Titular | La API |
+| ARCA (WSAA + WSFEv1) | Autoriza la factura C de cada cobro de la suscripción (#246, ADR 0039): recibe el CUIT del emisor, el punto de venta, el número, el importe y las fechas. El receptor es siempre consumidor final, así que no recibe datos de la organización ni de pacientes. En dev, CI y e2e responde el adaptador `fake`, que no sale de Clini | Fiscales del emisor | Titular | La API (certificado y clave privada de ARCA) |
 | Have I Been Pwned (Pwned Passwords) | Recibe los primeros 5 caracteres del SHA-1 de cada contraseña que se elige, nunca la contraseña ni el hash completo (k-anonimato, #389). Si no responde en 5 segundos, la contraseña pasa | Ninguno | — | La API |
 | Buscador Nacional de Medicamentos | Recibe solo el término buscado, de un medicamento o de la sustancia de una alergia (ADR 0031, #383) | Ninguno | — | La API |
 | Buscador Nacional de Profesionales | Recibe el DNI del profesional (ADR 0032), cargado en Ajustes o al aceptar una invitación como profesional (#417, tres DNI por invitación); se guarda lo mínimo, más el nombre, que pasa a ser el de la cuenta (#417), y de cada respuesta solo pasan al catálogo de especialidades la profesión y la especialidad, sin nada de la persona. Se guardan las matrículas que el registro tiene para el DNI, también las que el profesional no agregó a Clini, con los mismos campos mínimos (ADR 0038). En dev y e2e responde el adaptador `fake`, que no sale de Clini | Identificatorios del profesional | Titular | La API |
@@ -78,6 +79,7 @@ Pueden saltear los controles de la aplicación:
 - **Quien tiene `CLINICAL_ENCRYPTION_KEY`** (la maestra clínica, #391) **y la base**: descifra el texto libre de la historia clínica. Vive solo en las variables de Dokploy, aparte de `APP_KEY`. Ver [Cifrado de la historia clínica](#cifrado-de-la-historia-clínica).
 - **Quien mergea a `main`**: despliega código arbitrario. Todo cambio pasa por un PR con los 5 checks ([Control de cambios](#c-control-de-cambios)).
 - **Cuentas de Cloudflare, Resend, Mercado Pago y GitHub** (titular): con segundo factor activado en cada proveedor.
+- **Quien tiene el certificado de ARCA y su clave** (`ARCA_CERTIFICATE`, `ARCA_PRIVATE_KEY`): emite comprobantes a nombre del titular. Viven solo en las variables de Dokploy; la clave fiscal que los gestiona es del titular (#246).
 - **Operadores de plataforma** (dashboard): no leen la historia clínica (ArchTest) y toda mutación suya queda registrada. Ver B.2.3.
 
 ### Registro de operación
@@ -165,6 +167,7 @@ Navegador (reserva anónima)   ──HTTPS──▶ Traefik ──▶ API       
 Navegador (landing, SSR)      ──HTTPS──▶ Traefik ──▶ landing (Node) ··· sin datos; su formulario hace POST a la API
 API ──▶ Resend ──▶ mail del paciente: consultorio, día, hora y dirección; código de acceso (ADR 0018, 0029)
 API ──▶ Mercado Pago: suscripción de la organización (sin pacientes)
+API ──▶ ARCA (WSAA, WSFEv1): factura C de cada cobro de la suscripción, a consumidor final (sin pacientes ni datos de la organización, ADR 0039)
 API ──▶ Buscador Nacional de Medicamentos: solo el término, sin el paciente (ADR 0031); la prueba horaria, un término fijo (#425)
 API ──▶ Buscador Nacional de Profesionales: DNI del profesional (ADR 0032); la prueba horaria, un DNI inexistente (#419)
 ```

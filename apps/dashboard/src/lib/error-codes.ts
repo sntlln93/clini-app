@@ -39,6 +39,8 @@ export type ErrorCode =
     | 'subscriptions.already_active'
     | 'subscriptions.gateway_unavailable'
     | 'subscriptions.webhook_signature_invalid'
+    | 'invoices.issuer_unavailable'
+    | 'invoices.voucher_rejected'
     | 'organizations.suspended'
     | 'organizations.already_suspended'
     | 'organizations.not_suspended'

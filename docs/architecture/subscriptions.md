@@ -1,6 +1,6 @@
 # Suscripción SaaS con Mercado Pago
 
-> Issues #28, #241 (cancelación desde el panel) y #240 (pago anual). Cobro recurrente, mensual o anual, de la suscripción de cada organización, con período de gracia ante un cobro fallido y modo solo lectura al vencer.
+> Issues #28, #241 (cancelación desde el panel), #240 (pago anual) y #246 (factura C de cada cobro). Cobro recurrente, mensual o anual, de la suscripción de cada organización, con período de gracia ante un cobro fallido y modo solo lectura al vencer.
 
 ## Piezas
 
@@ -15,6 +15,7 @@
 | Restricción | middlewares `subscription.active` (`EnsureSubscriptionActive`: vencida o límite de profesionales) y `plan.feature` (`EnsurePlanIncludes`) |
 | Vencimiento | comando diario `subscriptions:expire-grace` (`routes/console.php`) |
 | Avisos | `SubscriptionGraceStartedNotification`, `SubscriptionExpiredNotification` (mail, en cola, a los dueños) |
+| Facturas (#246, ADR 0039) | `invoices`, `App\Contracts\InvoiceIssuer` (`ArcaInvoiceService` o `FakeInvoiceIssuer`), `RecordChargeInvoiceAction`, `IssueInvoiceAction`, `IssueInvoiceJob`, comando horario `invoices:issue-pending`, `InvoiceIssuedNotification` |
 
 ## Planes (#237, ADR 0014)
 
@@ -79,6 +80,7 @@ Consultorio se puede pagar por año con un descuento sobre el precio mensual.
   - Resultado: `status = cancelled`, `cancelled_at = ahora`, `next_payment_at = null`, sin gracia, y `access_ends_at` = la próxima fecha de cobro **si estaba `active` y esa fecha todavía no pasó** (el período que ya pagó). Se toma la más tardía entre la guardada y la del preapproval recién consultado, porque la guardada se atrasa hasta que llega el webhook del cobro de la renovación (el webhook `cancelled` hace lo mismo con la fecha del recurso); si no (gracia o vencida, que deben el período en curso, o sin fecha de renovación), null y queda en solo lectura de inmediato.
   - Corre en una transacción con lock sobre la organización y su suscripción, en el mismo orden que el checkout. El webhook `cancelled` que llega después encuentra la fila ya cancelada y conserva las dos fechas.
 - `GET /api/v1/subscription/return` — público (sin sesión): es el `back_url` del checkout. Responde 302 a `<FRONTEND_URL>/ajustes?suscripcion=retorno` (el primer origen de `cors.allowed_origins`, igual que los links de los mails). Ignora todos los parámetros que agrega Mercado Pago (p. ej. `preapproval_id`) y cualquier otro: el destino es fijo, así que no es un open redirect, y el estado de la suscripción lo define solo el webhook, nunca este redirect.
+- `GET /api/v1/subscription/invoices` — **solo dueño** (403 para el resto). Las facturas de la organización, del cobro más reciente al más viejo, con las pendientes: `id`, `status` (`pending` o `issued`), `description`, `amount_cents`, `currency`, `charged_at`, `service_from`, `service_to`, `annual_discount_percent` y `voucher` (null mientras está pendiente; si no, `letter`, `type_code`, `point_of_sale`, `number`, `formatted_number`, `issued_on`, `payment_due_on`, `cae`, `cae_expires_on`, `qr_url`, `fiscally_valid` e `issuer`). No pasa por `subscription.active`: una organización vencida o cancelada sigue leyendo sus facturas.
 - `POST /api/v1/webhooks/mercadopago` — público (sin sesión ni CSRF), `throttle:120,1`. Ver abajo.
 
 ## Webhook
@@ -94,6 +96,7 @@ Consultorio se puede pagar por año con un descuento sobre el precio mensual.
      - El resto no cambia el estado.
      - Todo preapproval aplicado guarda su `next_payment_date` en `next_payment_at`, haya o no transición (uno `cancelled` lo deja en null: no hay próximo cobro).
    - `subscription_authorized_payment`:
+     - Todo pago `approved` de una suscripción conocida registra su factura (ver Facturación electrónica), aunque sea un cobro tardío que ya no cambia el estado: la plata se cobró igual.
      - Pago `approved` → `active` (limpia la gracia, setea `last_payment_at` y refresca `next_payment_at` consultando el preapproval del cobro; si esa consulta da 404 o falla, se conserva el valor guardado y el pago se aplica igual — la fecha es informativa). Si la fila local está `cancelled`, solo la activa cuando el preapproval cobrado **no** está cancelado en Mercado Pago (el de reemplazo tras volver a suscribirse). Excepción: un cobro tardío del preapproval cancelado nunca la revive — la cancelación es definitiva para ese preapproval.
      - `rejected`/`cancelled` o estado `recycling` → si estaba `active`, pasa a `grace` con `grace_ends_at = ahora + 7 días` y avisa a los dueños; una gracia en curso **no** se extiende.
      - **Orden** — las notificaciones pueden llegar fuera de orden (un reenvío tras un 5xx) y el resultado de un cobro viejo es definitivo, así que se compara la fecha del cobro (`debit_date`, o `date_created`; igual en todos sus reintentos) con la del último pago/fallo registrado: un `approved` anterior al último fallo se ignora, y un fallo no posterior al último pago también. `last_payment_at`/`last_payment_failed_at` guardan esa fecha del cobro.
@@ -140,6 +143,84 @@ Un operador de la plataforma puede extender la gracia desde el dashboard de oper
 
 **Vuelta del checkout** — con `?suscripcion=retorno` Ajustes refresca la suscripción y, mientras siga `pending` (el webhook puede llegar después que el navegador), muestra «Estamos confirmando tu pago con Mercado Pago…» y vuelve a consultar cada 5 s, hasta 2 minutos. Cuando deja de estar `pending` (o se agota la espera) saca el parámetro de la URL.
 
+## Facturación electrónica (#246, ADR 0039)
+
+Cada pago aprobado de la suscripción, mensual o anual, tiene su **factura C** electrónica, autorizada por ARCA (ex AFIP) con sus web services: WSAA para la autenticación y WSFEv1 (`wsfe`) para emitir. El emisor es monotributista, así que la factura es C para cualquier cliente, y el receptor es siempre **consumidor final** (`DocTipo` 99, `DocNro` 0, `CondicionIVAReceptorId` 5): no se pide ni se guarda ningún dato fiscal del cliente.
+
+1. **Registro** — el webhook de un pago `approved` escribe la factura `pending` dentro de su propia transacción, con la fila de la suscripción bloqueada (`RecordChargeInvoiceAction`). `invoices` es única por `(provider, provider_payment_id)`, y todas las notificaciones del mismo cobro esperan ese lock, así que un cobro tiene una sola factura aunque Mercado Pago lo notifique varias veces. El importe es el que cobró Mercado Pago (`transaction_amount`, en centavos), nunca el precio guardado del plan. Un cobro anual guarda el descuento anual que tuvo (`annual_discount_percent`), y el PDF lo anota bajo la línea («Pago anual, con 40 % de descuento sobre el precio mensual»), solo si el monto cobrado es exactamente el precio anual con descuento para los profesionales activos: si el precio o el equipo cambiaron desde el checkout, el descuento no se puede reconstruir y la factura no promete ninguno. Un pago aprobado sin importe en pesos no se factura y deja un `error` en el log (con ids) para revisarlo a mano.
+2. **Período** — `Concepto` 2 (servicios): `FchServDesde` es el día del cobro (`debit_date`) en Argentina y `FchServHasta` el día anterior al mismo día del mes siguiente (o del año siguiente, si es anual). `CbteFch` es el día de la emisión y `FchVtoPago` el día del cobro, salvo que sea anterior a la emisión (WSFEv1 rechaza un vencimiento anterior al comprobante, error 10036): entonces es el día de la emisión.
+3. **Emisión** — después del commit se encola `IssueInvoiceJob` (6 intentos, backoff de 1 minuto a 1 hora, timeout de 85 segundos: por debajo del `retry_after` de 90 de la cola, con esperas de lock cortas y timeouts de 15 y 18 segundos para WSAA y WSFEv1), que corre `IssueInvoiceAction`. Antes de reservar un número exige todos los datos fiscales del emisor (`INVOICE_ISSUER_*`, con el inicio de actividades como fecha válida): un comprobante autorizado no se deshace, y no puede imprimirse en blanco. La suscripción nunca espera a ARCA ni falla por ARCA. Con un lock por entorno, CUIT, punto de venta y tipo, la acción consulta `FECompUltimoAutorizado`, **reserva** el número siguiente en la factura antes de pedirlo y pide el CAE con `FECAESolicitar`. Si la respuesta se pierde (timeout), el intento siguiente consulta `FECompConsultar` con el número reservado y, si ARCA ya lo autorizó con el mismo importe, lo adopta en vez de pedir otro. Un rechazo (`Resultado` R) libera el número. Así la numeración no se repite ni deja huecos.
+4. **Rezagadas** — `invoices:issue-pending` (cada hora) vuelve a encolar las facturas que siguen pendientes 3 horas después de creadas. Cubre ARCA caído más tiempo que el backoff, un ticket que WSAA todavía no renueva o el emisor sin configurar. El job es único por factura, así que no se apila sobre uno que sigue reintentando.
+5. **Ticket de acceso** — `ArcaAccessTicket` firma el TRA (`loginTicketRequest` para `wsfe`, válido ±10 minutos) como CMS con el certificado (`openssl_cms_sign`, sin `ext-soap`: el SOAP se arma a mano y viaja por el cliente `Http`) y cambia el CMS por un token y un sign que valen 12 horas. Se guardan cifrados (`Crypt`) en la caché, que en los entornos desplegados es la base de datos, y se usa hasta que vence (con 30 segundos de margen por el reloj): WSAA rechaza otro ticket mientras haya uno vigente (`coe.alreadyAuthenticated`), así que renovarlo antes falla. Un lock evita dos pedidos a la vez. Un error 600/601 de WSFEv1 descarta el ticket guardado.
+6. **Aviso** — emitida la factura, `InvoiceIssuedNotification` avisa por mail a los dueños con el número, el CAE y el total, y enlaza a Ajustes. Va sin adjunto (ADR 0023).
+7. **Panel** — Ajustes → Plan y suscripción → «Facturas», solo para el dueño y solo si la organización tiene o tuvo una suscripción. El PDF se arma en el navegador con pdfmake (`src/lib/invoice-pdf/`) a partir de lo que devuelve la API, con el QR de la RG 4892 (`qr_url`, armado por la API: `https://www.arca.gob.ar/fe/qr/?p=<JSON en base64>`). Va bajo la marca de Clini (el logotipo del manifiesto de `@clini/brand` arriba, con una línea en su teal, y el nombre al pie); el contenido fiscal no cambia. Un comprobante de homologación o del emisor falso dice «Comprobante de prueba: sin validez fiscal».
+
+Los datos fiscales del emisor que imprime la factura (razón social, domicilio, condición frente al IVA, Ingresos Brutos, inicio de actividades) salen de la configuración y se copian en la factura al emitirla (`invoices.issuer`): un cambio posterior no reescribe las ya emitidas.
+
+### Adaptador (`INVOICE_ISSUER`)
+
+`arca` (por defecto) habla con ARCA. `fake` autoriza con un CAE inventado sin salir de Clini (dev, CI y e2e; sus comprobantes quedan marcados `fake`) y producción lo rechaza al resolverlo. `ARCA_ENVIRONMENT` apunta el adaptador `arca` a homologación (`wsaahomo`, `wswhomo`) o a producción (`wsaa`, `servicios1`). Cada entorno tiene su propio certificado, CUIT y punto de venta: cada despliegue carga uno solo. El servidor demo corre la imagen de producción, así que usa `arca` contra homologación.
+
+Los tests nunca llegan a ARCA: `tests/Fixtures/Arca/` tiene sus respuestas SOAP (por ahora armadas con la forma que documentan los manuales, con datos inventados; ver su README) y `tests/TestCase.php` falla ante cualquier request sin fake.
+
+### Probar contra la homologación de ARCA
+
+Todo se hace online con clave fiscal nivel 3, sin escribir ni llamar a nadie.
+
+1. **Clave y CSR** — generar la clave privada y el pedido de certificado, con el CUIT del emisor:
+
+   ```bash
+   openssl genrsa -out clini-homo.key 2048
+   openssl req -new -key clini-homo.key -subj "/C=AR/O=<Razón social>/CN=clinihomologacion/serialNumber=CUIT <CUIT sin guiones>" -out clini-homo.csr
+   ```
+
+2. **Certificado de homologación** — en el portal de ARCA, adherir el servicio «WSASS - Autogestión Certificados Homologación» en el Administrador de Relaciones de Clave Fiscal. En WSASS, «Nuevo Certificado»: el nombre simbólico (alias) solo acepta letras y números (`clinihomologacion`, igual que el CN del CSR); pegar el CSR y guardar el certificado que devuelve como `clini-homo.crt`.
+3. **Autorización** — en WSASS, «Crear autorización a servicio»: el certificado (por su alias), el CUIT representado y el servicio `wsfe`.
+4. **Punto de venta** — homologación acepta cualquier punto de venta numérico (por ejemplo `1`); no hace falta darlo de alta.
+5. **Configurar** `apps/api/.env` y reiniciar `laravel.test` y `queue`:
+
+   ```dotenv
+   INVOICE_ISSUER=arca
+   ARCA_ENVIRONMENT=homologation
+   INVOICE_POINT_OF_SALE=1
+   INVOICE_ISSUER_CUIT=<CUIT del certificado>
+   ARCA_CERTIFICATE=<base64 -i clini-homo.crt | tr -d '\n'>
+   ARCA_PRIVATE_KEY=<base64 -i clini-homo.key | tr -d '\n'>
+   ```
+
+6. **Emitir** — con el sandbox de Mercado Pago armado (sección siguiente), un pago aprobado genera la factura. Sin pasar por Mercado Pago: crear una fila `pending` en `invoices` (o reusar una del seeder) y correr `apps/api/vendor/bin/sail artisan tinker --execute 'App\Jobs\Invoices\IssueInvoiceJob::dispatchSync(<id>)'`. La factura queda `issued` con el CAE de homologación, y el QR del PDF apunta a ARCA (que no valida comprobantes de homologación).
+7. **Grabar los fixtures** — reemplazar cada archivo de `tests/Fixtures/Arca/` por la respuesta real de homologación (token y sign tachados) y correr la suite.
+
+### Producción
+
+Todo es nuevo: el certificado de homologación (WSASS) no sirve contra los servidores de producción, y la clave tampoco se reutiliza, para que filtrarse una no comprometa la otra. Con clave fiscal nivel 3 del titular del CUIT:
+
+1. **Clave y CSR** — en una máquina de confianza, fuera del repo:
+
+   ```bash
+   openssl genrsa -out clini-prod.key 2048
+   openssl req -new -key clini-prod.key -subj "/C=AR/O=<Razón social>/CN=cliniproduccion/serialNumber=CUIT <CUIT sin guiones>" -out clini-prod.csr
+   ```
+
+2. **Certificado** — en «Administración de Certificados Digitales» (no WSASS): agregar el alias `cliniproduccion` (solo letras y números), subir el CSR y descargar el certificado (`clini-prod.crt`).
+3. **Relación** — en el «Administrador de Relaciones de Clave Fiscal», «Nueva relación»: ARCA → WebServices → «Facturación Electrónica» (`wsfe`), con ese certificado como representante (computador fiscal).
+4. **Punto de venta** — en «ABM de puntos de venta», dar de alta uno con el sistema «RECE / Factura Electrónica – Web Services» y el domicilio del emisor. Ese número va en `INVOICE_POINT_OF_SALE` y lo usa solo Clini: si otro sistema emite en el mismo punto de venta, la numeración choca.
+5. **Dokploy** (variables de la app API) — `INVOICE_ISSUER=arca` (o sin definir: es el default), `ARCA_ENVIRONMENT=production`, `INVOICE_POINT_OF_SALE`, `INVOICE_ISSUER_CUIT` (el del certificado), `ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` (`base64 -i <archivo> | tr -d '\n'`, cada uno en una línea) y los datos fiscales reales que imprime la factura: `INVOICE_ISSUER_NAME` (razón social), `INVOICE_ISSUER_ADDRESS` (domicilio comercial), `INVOICE_ISSUER_VAT_CONDITION` (`Responsable Monotributo`), `INVOICE_ISSUER_GROSS_INCOME` (Ingresos Brutos) e `INVOICE_ISSUER_ACTIVITY_START` (`AAAA-MM-DD`). Sin todos los datos fiscales la emisión se frena antes de pedir el CAE y las facturas quedan pendientes.
+6. **Verificar el primer comprobante real** — después del primer cobro aprobado, la factura tiene que pasar a emitida en minutos (con el worker y el scheduler de la imagen corriendo), con `environment = production` y sin la leyenda de prueba en el PDF. Escanear su QR, o cargar su CAE en la «Constatación de comprobantes» de ARCA, tiene que mostrarla como válida. Si queda pendiente, el log del worker dice por qué (`provider_code`, `provider_message`).
+
+**Qué guardar y dónde**
+
+| Archivo | Qué es | Dónde |
+|---|---|---|
+| `clini-prod.key` | La clave privada: con ella cualquiera emite comprobantes a nombre del titular | Las variables de Dokploy y un resguardo cifrado fuera de línea (un gestor de contraseñas). Nunca en el repo, por chat ni en la máquina después de cargarla |
+| `clini-prod.crt` | El certificado (público) | Junto a la clave: hace falta para renovar |
+| `clini-prod.csr` | El pedido de certificado | Se puede borrar una vez emitido el certificado |
+| `clini-homo.key` / `.crt` | Clave y certificado de homologación | Solo para dev, la demo o un staging contra homologación |
+
+Si la clave de producción se pierde o se filtra: generar otra, pedir un certificado nuevo, rehacer la relación con `wsfe`, revocar el anterior en «Administración de Certificados Digitales» y actualizar las dos variables en Dokploy. Las facturas ya emitidas no se tocan.
+
+**Renovación** — el certificado vence (habitualmente a los 2 años; la fecha está en el propio certificado: `openssl x509 -enddate -noout -in clini-prod.crt`). Antes de esa fecha: un CSR nuevo con la misma clave o una nueva, el certificado nuevo en el mismo alias y `ARCA_CERTIFICATE` (y `ARCA_PRIVATE_KEY`, si cambió) en Dokploy. Vencido, WSAA lo rechaza (`cms.cert.expired`) y las facturas quedan pendientes hasta renovarlo.
+
 ## Variables de entorno (`apps/api/.env`)
 
 | Variable | Qué es |
@@ -155,6 +236,13 @@ Un operador de la plataforma puede extender la gracia desde el dashboard de oper
 | `PLAN_FREE_MONTHLY_APPOINTMENT_LIMIT` | Turnos por mes del plan Gratis (ej. `40`); `0` por defecto, sin límite. |
 | `PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD` | Turnos del mes desde los que se avisa a los dueños (ej. `35`); `0` por defecto, sin aviso. Solo vale por debajo del límite. |
 | `MERCADOPAGO_BACK_URL` | URL a la que Mercado Pago devuelve al pagador. Por defecto `${APP_URL}/api/v1/subscription/return`, la ruta de la API que redirige al panel (`/ajustes?suscripcion=retorno`); se puede sobrescribir. Mercado Pago exige una URL `https` pública. |
+| `INVOICE_ISSUER` | Adaptador de facturación (#246): `arca` (por defecto) o `fake` (dev, CI y e2e; producción lo rechaza). |
+| `INVOICE_VOUCHER_TYPE` | Tipo de comprobante de ARCA; `11` (factura C), el único admitido. |
+| `INVOICE_POINT_OF_SALE` | Punto de venta habilitado para web services. |
+| `INVOICE_ISSUER_CUIT` | CUIT del emisor, 11 dígitos sin guiones; el mismo del certificado. |
+| `INVOICE_ISSUER_NAME`, `INVOICE_ISSUER_ADDRESS`, `INVOICE_ISSUER_VAT_CONDITION`, `INVOICE_ISSUER_GROSS_INCOME`, `INVOICE_ISSUER_ACTIVITY_START` | Datos fiscales que imprime la factura: razón social, domicilio comercial, condición frente al IVA (`Responsable Monotributo` por defecto), Ingresos Brutos e inicio de actividades (`AAAA-MM-DD`). |
+| `ARCA_ENVIRONMENT` | `homologation` (por defecto) o `production`. |
+| `ARCA_CERTIFICATE`, `ARCA_PRIVATE_KEY` | Certificado y clave privada sin contraseña, cada uno en base64 de su PEM. Nunca en el repositorio. |
 
 Nunca commitear valores reales: `.env.example` los deja vacíos.
 
@@ -187,5 +275,6 @@ Nunca commitear valores reales: `.env.example` los deja vacíos.
 - Cambiar de frecuencia con la suscripción activa (ver Pago anual) y el reintegro de la parte no usada de un año cancelado.
 - Funciones exclusivas de Centro (#243 a #245). Los reportes (#242) están en [reports.md](reports.md).
 - Precio de Centro: se cobra por fuera de la plataforma y no se modela.
+- Facturas: factura A o B (requiere un emisor inscripto en IVA), facturar a la organización con CUIT y razón social, notas de crédito por reintegros, gestión del certificado desde el panel, avisar al equipo cuando ARCA está caído (como #424/#427; hoy solo se reintenta) y mostrar las facturas a los operadores en el dashboard.
 - Encuesta de motivo de baja (#241 la deja fuera) y aviso por mail de la cancelación.
 - Volver a suscribirse durante el período pago de una cancelación crea un preapproval nuevo que cobra desde la autorización, sin descontar los días que quedaban (`auto_recurring.start_date` no se usa).

@@ -43,6 +43,8 @@ enum ErrorCode: string
     case SubscriptionsAlreadyActive = 'subscriptions.already_active';
     case SubscriptionsGatewayUnavailable = 'subscriptions.gateway_unavailable';
     case SubscriptionsWebhookSignatureInvalid = 'subscriptions.webhook_signature_invalid';
+    case InvoicesIssuerUnavailable = 'invoices.issuer_unavailable';
+    case InvoicesVoucherRejected = 'invoices.voucher_rejected';
     case OrganizationsSuspended = 'organizations.suspended';
     case OrganizationsAlreadySuspended = 'organizations.already_suspended';
     case OrganizationsNotSuspended = 'organizations.not_suspended';

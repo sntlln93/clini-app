@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { buildInvoice } from '@/tests/fixtures/invoice';
 import { buildPlan } from '@/tests/fixtures/plan';
 import type { Membership } from '@/types/membership';
 import type { Subscription } from '@/types/subscription';
@@ -78,6 +79,7 @@ const ANA = {
 const LOGO = { logo_url: 'http://localhost:8080/api/v1/booking/x/logo?v=1' };
 
 const PLAN = buildPlan('practice');
+const INVOICES = [buildInvoice()];
 
 const CATALOG = [
     { id: 1, name: 'OSDE' },
@@ -114,6 +116,9 @@ function mockApiGet(
     vi.mocked(api.get).mockImplementation((url: string) => {
         if (url === '/me') {
             return Promise.resolve({ data: session });
+        }
+        if (url === '/subscription/invoices') {
+            return Promise.resolve({ data: { data: INVOICES } });
         }
         if (url === '/subscription') {
             return Promise.resolve({ data: { data: subscription } });
@@ -183,14 +188,26 @@ describe('Plan y suscripción tab', () => {
         vi.mocked(api.get).mockReset();
     });
 
-    it('returns the subscription, the plan and whether the caller is the owner', async () => {
+    it('returns the subscription, the plan, its invoices and whether the caller is the owner', async () => {
         mockApiGet({ ...ANA, roles: ['owner'] }, GRACE_SUBSCRIPTION);
 
         expect(await loadSubscription()).toMatchObject({
             subscription: GRACE_SUBSCRIPTION,
             plan: PLAN,
+            invoices: INVOICES,
             isOwner: true,
         });
+    });
+
+    // The invoices are the owner's alone (#246): the API refuses anyone else.
+    it('never requests the invoices for a member who is not the owner', async () => {
+        mockApiGet({ ...ANA, roles: ['admin'] }, GRACE_SUBSCRIPTION);
+
+        expect(await loadSubscription()).toMatchObject({
+            invoices: [],
+            isOwner: false,
+        });
+        expect(api.get).not.toHaveBeenCalledWith('/subscription/invoices');
     });
 
     it('sends a caller without an active membership back to Ajustes, never requesting /subscription', async () => {

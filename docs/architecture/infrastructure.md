@@ -22,6 +22,7 @@ Variables de la API que dependen de los frontends (pestaña **Environment** de l
 - `CONTACT_RETENTION_DAYS` — días que se guarda una consulta cerrada antes de que `model:prune` (diario, en el scheduler) la borre. Default 180; `0` las guarda para siempre. Las consultas abiertas no se borran.
 - `NATIONAL_MEDICATION_SEARCH_ENABLED` — `true` para que el catálogo de medicamentos consulte el Buscador Nacional de Medicamentos cuando no tiene un término ([ADR 0031](../adr/0031-catalogo-de-medicamentos-desde-el-buscador-nacional.md)). Default `false`: el campo «Medicamento» sugiere solo lo que ya está en la base. Opcionales: `NATIONAL_MEDICATION_SEARCH_URL` (default `https://cnpm.msal.gov.ar`) y `NATIONAL_MEDICATION_SEARCH_USER_AGENT` (default `Clini/1.0 (catalogo de medicamentos; +APP_URL)`).
 - `PROFESSIONAL_REGISTRY` — el registro con el que se validan las matrículas de los profesionales al cargarlas y en la reverificación diaria, y del que salen su profesión y sus especialidades ([ADR 0032](../adr/0032-matriculas-validadas-con-el-buscador-nacional-de-profesionales.md), [ADR 0038](../adr/0038-especialidades-tomadas-del-registro-nacional-de-profesionales.md)). Default `national_search`, el Buscador Nacional de Profesionales de la Salud: en producción no se setea. `fake` responde a los DNIs inventados del seeder sin salir de Clini (dev y e2e) y producción lo rechaza. Opcionales: `NATIONAL_PROFESSIONAL_SEARCH_URL` (default `https://www.argentina.gob.ar/salud/buscador-nacional-de-profesionales-de-la-salud`), `NATIONAL_PROFESSIONAL_SEARCH_USER_AGENT` (default `Clini/1.0 (validacion de matriculas; +APP_URL)`), `PROFESSIONAL_REGISTRY_PER_RUN` (profesionales que consulta como mucho cada corrida diaria; default `200`). Las caídas del registro (#419) y del Buscador de Medicamentos (#425) se avisan por mail a `CONTACT_NOTIFICATION_EMAIL` (sin ella no se avisa); el umbral y lo que busca cada prueba son valores fijos de `config/services.php`, no variables de entorno.
+- `INVOICE_ISSUER` — quién autoriza la factura C de cada cobro de la suscripción ([ADR 0039](../adr/0039-factura-c-de-la-suscripcion-emitida-directo-con-arca.md)). Default `arca`, los web services de ARCA: en producción no se setea. `fake` autoriza con un CAE inventado sin salir de Clini (dev, CI y e2e) y producción lo rechaza. Con `arca`: `ARCA_ENVIRONMENT` (`homologation` o `production`), `ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` (base64 de cada PEM), `INVOICE_POINT_OF_SALE`, `INVOICE_ISSUER_CUIT` y los datos fiscales `INVOICE_ISSUER_NAME`, `INVOICE_ISSUER_ADDRESS`, `INVOICE_ISSUER_VAT_CONDITION`, `INVOICE_ISSUER_GROSS_INCOME`, `INVOICE_ISSUER_ACTIVITY_START`. La demo corre la imagen de producción: usa `arca` contra homologación. Pasos para tramitar cada certificado: [subscriptions.md](subscriptions.md#facturación-electrónica-246-adr-0039).
 
 - `FRONTEND_URL` — orígenes con CORS + credenciales, separados por coma. **El panel siempre primero**: el primer elemento es la URL base de los links de los mails (invitaciones, verificación de correo, retorno de la suscripción). Después, el origen del dashboard y el de la landing (que solo lo necesita para el `POST /api/v1/contact` de su formulario de contacto).
 - `SANCTUM_STATEFUL_DOMAINS` — host(s) de los dos frontends con sesión (`panel.tu-dominio.com,dashboard.tu-dominio.com`), para que los dos reciban la sesión por cookie. **Nunca la landing**: su formulario de contacto es un pedido sin sesión ni CSRF (ADR 0011).
@@ -82,6 +83,10 @@ El checklist de la Res. AAIP 47/2018 contra el estado del proyecto está en [Seg
 
 `DOCUMENT_INDEX_KEY` es la clave del índice ciego por el que se busca el DNI de un profesional (#417, ADR 0032). Se genera con `php artisan document-index:generate-key` y se carga en Dokploy antes del primer deploy; producción rechaza la pública de `.env.example`, y nunca es `APP_KEY` ni la maestra clínica. Perderla no pierde datos: con una nueva, `document-index:rotate` recalcula el índice desde los DNI cifrados. Cómo rotarla: [Seguridad](security.md#índice-ciego-del-dni-del-profesional).
 
+### Certificado de ARCA
+
+`ARCA_CERTIFICATE` y `ARCA_PRIVATE_KEY` autentican a Clini ante ARCA para emitir las facturas de la suscripción (#246, [ADR 0039](../adr/0039-factura-c-de-la-suscripcion-emitida-directo-con-arca.md)). Producción tiene su propio certificado, tramitado en «Administración de Certificados Digitales» con la clave fiscal del titular; la demo y cualquier staging usan uno de homologación (WSASS) con `ARCA_ENVIRONMENT=homologation`. La clave privada vive en las variables de Dokploy y en un resguardo cifrado fuera de línea, nunca en el repo; con ella cualquiera emite comprobantes a nombre del titular. El certificado vence: anotar la fecha y renovarlo antes. Pasos, qué guardar y renovación: [subscriptions.md](subscriptions.md#producción).
+
 ### Logs y modo debug
 
 - `APP_ENV=production` y `APP_DEBUG=false`: con debug, un error inesperado devuelve la traza (ADR 0024).
@@ -100,6 +105,11 @@ Antes de abrir producción a consultorios reales:
 - [ ] `CLINICAL_ENCRYPTION_KEY` propia, cargada en Dokploy y guardada fuera de línea (#391).
 - [ ] `DOCUMENT_INDEX_KEY` propia, de `php artisan document-index:generate-key`, cargada en Dokploy (#417).
 - [ ] La demo sin la base, el bucket, la `APP_KEY`, la `CLINICAL_ENCRYPTION_KEY` ni la `DOCUMENT_INDEX_KEY` de producción.
+- [ ] Certificado de ARCA de producción (clave nueva, no la de homologación) asociado a `wsfe`, y un punto de venta «RECE / Factura Electrónica – Web Services» exclusivo de Clini (#246).
+- [ ] En Dokploy: `ARCA_ENVIRONMENT=production`, `ARCA_CERTIFICATE`, `ARCA_PRIVATE_KEY`, `INVOICE_POINT_OF_SALE`, `INVOICE_ISSUER_CUIT` y los datos fiscales `INVOICE_ISSUER_*` completos; sin `INVOICE_ISSUER=fake`.
+- [ ] La clave privada de ARCA guardada cifrada fuera de línea, y la fecha de vencimiento del certificado agendada.
+- [ ] El primer cobro real emitido con `environment = production` y validado con el QR o la «Constatación de comprobantes» de ARCA.
+- [ ] La demo con el certificado de homologación, nunca el de producción.
 
 ## Colas
 

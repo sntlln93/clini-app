@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
     {
         $this->call(PlatformAdminSeeder::class);
         $this->call(OrganizationsSeeder::class);
+        $this->call(InvoicesSeeder::class);
         $this->call(InsuranceProviderSeeder::class);
         $this->call(CatalogSeeder::class);
         $this->call(ProfessionalRegistrySeeder::class);

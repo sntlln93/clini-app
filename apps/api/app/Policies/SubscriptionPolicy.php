@@ -28,6 +28,14 @@ class SubscriptionPolicy
         return $this->isOwner($user);
     }
 
+    /**
+     * The subscription's invoices (#246): the owner's, who pays it.
+     */
+    public function viewInvoices(User $user): bool
+    {
+        return $this->isOwner($user);
+    }
+
     private function isOwner(User $user): bool
     {
         $membership = $user->currentMembership();

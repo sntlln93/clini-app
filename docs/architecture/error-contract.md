@@ -88,6 +88,8 @@ Panel: `apps/panel/src/lib/api-errors.ts` es el único archivo que conoce axios 
 | `subscriptions.already_active` | 409 | `StartSubscriptionCheckoutAction` | |
 | `subscriptions.gateway_unavailable` | 409 | `StartSubscriptionCheckoutAction`, `CancelSubscriptionAction`, `MercadoPagoService` | |
 | `subscriptions.webhook_signature_invalid` | 401 | `HandleSubscriptionNotificationAction` | |
+| `invoices.issuer_unavailable` | 503 | `ArcaInvoiceService`, `ArcaAccessTicket` (ARCA no respondió, respondió un SOAP fault o una lista de errores, o algo que no es el XML esperado; se lanza dentro de `IssueInvoiceJob`, que reintenta, así que no llega al panel, ADR 0039) | |
+| `invoices.voucher_rejected` | 409 | `ArcaInvoiceService` (ARCA rechazó el comprobante, `Resultado` R: no hay CAE y el número queda libre; también dentro de `IssueInvoiceJob`, ADR 0039) | |
 | `subscriptions.grace_extension_not_allowed` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `subscription_status` |
 | `subscriptions.grace_extension_not_later` | 409 | `ExtendSubscriptionGraceAction` (dashboard) | `current_grace_ends_at` |
 | `subscriptions.not_cancellable` | 409 | `CancelSubscriptionAction` | `subscription_status` (null sin suscripción) |

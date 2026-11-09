@@ -18,9 +18,11 @@ use App\Mail\ExternalSources\ExternalSourceRecoveredMail;
 use App\Mail\Memberships\MembershipInvitationMail;
 use App\Models\Appointment;
 use App\Models\ContactRequest;
+use App\Models\Invoice;
 use App\Models\MembershipInvitation;
 use App\Models\Organization;
 use App\Models\User;
+use App\Notifications\Invoices\InvoiceIssuedNotification;
 use App\Notifications\Plans\AppointmentLimitApproachingNotification;
 use App\Notifications\Subscriptions\SubscriptionExpiredNotification;
 use App\Notifications\Subscriptions\SubscriptionGraceStartedNotification;
@@ -109,6 +111,7 @@ function mailableCases(): array
 function notificationCases(): array
 {
     return [
+        InvoiceIssuedNotification::class => [fn (): Notification => new InvoiceIssuedNotification(Invoice::factory()->issued(12)->create()), '/ajustes/suscripcion', ['Factura emitida', 'Emitimos la factura C 00001-00000012', '$ 15.000,00', 'CAE: 90000100000012', 'Ver mis facturas']],
         AppointmentLimitApproachingNotification::class => [fn (): Notification => new AppointmentLimitApproachingNotification(Organization::factory()->create(['name' => 'Consultorio Dos']), CarbonImmutable::parse('2026-11-01'), 32, 40), '/ajustes/suscripcion', ['Límite de turnos', 'Consultorio Dos ya tiene 32 turnos en noviembre de 2026', 'Pasar a Consultorio']],
         SubscriptionExpiredNotification::class => [fn (): Notification => new SubscriptionExpiredNotification(Organization::factory()->create(['name' => 'Consultorio Dos'])), '/ajustes/suscripcion', ['Suscripción vencida', 'suscripción de Consultorio Dos sin que se registrara el pago', 'Regularizar el pago']],
         SubscriptionGraceStartedNotification::class => [fn (): Notification => new SubscriptionGraceStartedNotification(Organization::factory()->create(['name' => 'Consultorio Dos']), CarbonImmutable::parse('2026-11-15')), '/ajustes/suscripcion', ['Pago pendiente', 'suscripción de Consultorio Dos', '15/11/2026', 'Regularizar el pago']],

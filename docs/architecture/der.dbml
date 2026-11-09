@@ -542,6 +542,44 @@ Table subscription_events {
   Note: 'Idempotency log of verified provider webhook notifications: a redelivered notification id is a no-op.'
 }
 
+Table invoices {
+  id bigint [pk, increment]
+  organization_id bigint [not null]
+  subscription_id bigint [null]
+  provider varchar [not null]
+  provider_payment_id varchar [not null]
+  status varchar [not null, note: 'InvoiceStatus: pending | issued']
+  amount_cents bigint [not null]
+  currency varchar(3) [not null]
+  charged_at timestamptz [not null]
+  service_from date [not null]
+  service_to date [not null]
+  description varchar [not null]
+  annual_discount_percent smallint [null, note: 'Annual discount an annual charge got, printed under its line; null when monthly or when the charge is not the discounted price']
+  environment varchar [null, note: 'InvoiceEnvironment: production | homologation | fake']
+  issuer_cuit varchar [null]
+  point_of_sale integer [null]
+  voucher_type smallint [null, note: 'ARCA CbteTipo; 11 = factura C']
+  number bigint [null, note: 'Reserved before asking ARCA, kept once authorized']
+  issued_on date [null]
+  payment_due_on date [null]
+  cae varchar [null]
+  cae_expires_on date [null]
+  issued_at timestamptz [null]
+  issuer json [null, note: 'Issuer fiscal data printed on the voucher, copied when issued']
+  created_at timestamptz [not null]
+  updated_at timestamptz [not null]
+
+  indexes {
+    (provider, provider_payment_id) [unique]
+    (environment, issuer_cuit, point_of_sale, voucher_type, number) [unique]
+    (organization_id, charged_at)
+    (status, created_at)
+  }
+
+  Note: 'One electronic invoice (factura C to a final consumer) per approved subscription charge (#246, ADR 0039).'
+}
+
 Table platform_admins {
   id bigint [pk, increment]
   name varchar [not null]
@@ -648,3 +686,5 @@ Ref: appointment_limit_warnings.organization_id > organizations.id [delete: casc
 Ref: subscription_events.subscription_id > subscriptions.id [delete: set null]
 Ref: admin_audit_logs.platform_admin_id > platform_admins.id [delete: restrict]
 Ref: contact_requests.handled_by_id > platform_admins.id [delete: set null]
+Ref: invoices.organization_id > organizations.id [delete: restrict]
+Ref: invoices.subscription_id > subscriptions.id [delete: set null]

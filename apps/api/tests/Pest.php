@@ -25,6 +25,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Client\Request as HttpRequest;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
@@ -407,4 +408,59 @@ function fakeNationalProfessionalSearch(string|Closure $results): void
     Http::fake(['www.argentina.gob.ar/*' => fn (HttpRequest $request) => $request->method() === 'GET'
         ? Http::response(nationalProfessionalSearchFixture('form.html'))
         : (is_string($results) ? Http::response($results) : $results($request))]);
+}
+
+/**
+ * A recorded-shape ARCA answer (tests/Fixtures/Arca, #246).
+ */
+function arcaFixture(string $name): string
+{
+    return (string) file_get_contents(__DIR__."/Fixtures/Arca/{$name}");
+}
+
+/**
+ * Points the invoice issuer at ARCA (`arca`) with a throwaway self-signed
+ * certificate, generated once per run: never a real one.
+ */
+function configureArca(string $environment = 'homologation'): void
+{
+    static $credentials = null;
+
+    if ($credentials === null) {
+        $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+        $csr = openssl_csr_new(['commonName' => 'clini-test', 'serialNumber' => 'CUIT 20111111112'], $key);
+        $certificate = openssl_csr_sign($csr, null, $key, 1);
+        openssl_x509_export($certificate, $certificatePem);
+        openssl_pkey_export($key, $keyPem);
+        $credentials = ['certificate' => base64_encode($certificatePem), 'private_key' => base64_encode($keyPem)];
+    }
+
+    config([
+        'invoicing.issuer' => 'arca',
+        'invoicing.arca.environment' => $environment,
+        'invoicing.arca.certificate' => $credentials['certificate'],
+        'invoicing.arca.private_key' => $credentials['private_key'],
+    ]);
+}
+
+/**
+ * Fakes ARCA: WSAA answers `$login` and each WSFEv1 operation (by its
+ * SOAPAction) the fixture or response given for it.
+ *
+ * @param  array<string, string|Closure>  $operations  operation => fixture name, or a closure building the response
+ */
+function fakeArca(array $operations, string $login = 'loginCms.xml'): void
+{
+    $answer = fn (string|Closure $fixture, HttpRequest $request) => $fixture instanceof Closure
+        ? $fixture($request)
+        : Http::response(arcaFixture($fixture), str_contains($fixture, 'already-authenticated') ? 500 : 200);
+
+    Http::fake([
+        '*afip.gov.ar/ws/services/LoginCms' => fn (HttpRequest $request) => $answer($login, $request),
+        '*afip.gov.ar/wsfev1/service.asmx' => function (HttpRequest $request) use ($operations, $answer) {
+            $operation = Str::afterLast(trim($request->header('SOAPAction')[0] ?? '', '"'), '/');
+
+            return $answer($operations[$operation] ?? throw new LogicException("Unexpected WSFEv1 operation {$operation}."), $request);
+        },
+    ]);
 }

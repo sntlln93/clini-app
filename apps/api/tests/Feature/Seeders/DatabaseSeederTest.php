@@ -6,6 +6,8 @@ use App\Enums\AppointmentStatus;
 use App\Enums\AvailabilityExceptionType;
 use App\Enums\ClinicalAccessAction;
 use App\Enums\DocumentType;
+use App\Enums\InvoiceEnvironment;
+use App\Enums\InvoiceStatus;
 use App\Enums\MembershipRole;
 use App\Enums\MembershipStatus;
 use App\Enums\ProfessionalLicenseStatus;
@@ -18,6 +20,7 @@ use App\Models\ClinicalNoteAnnulment;
 use App\Models\ClinicalNoteDiagnosis;
 use App\Models\ClinicalNoteVersion;
 use App\Models\Icd10Code;
+use App\Models\Invoice;
 use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\Patient;
@@ -37,6 +40,7 @@ use App\Services\Professionals\FakeProfessionalRegistry;
 use App\Support\ClinicalNoteDiagnoses;
 use App\Support\RegistryPersonName;
 use Database\Seeders\DatabaseSeeder;
+use Database\Seeders\InvoicesSeeder;
 use Database\Seeders\OrganizationsSeeder;
 use Database\Seeders\PlatformAdminSeeder;
 use Database\Seeders\ProfessionalRegistrySeeder;
@@ -60,6 +64,7 @@ test('re-seeding leaves every fixture table with identical row counts', function
         'appointments' => Appointment::withTrashed()->count(),
         'reminders' => Reminder::count(),
         'icd10_codes' => Icd10Code::withTrashed()->count(),
+        'invoices' => Invoice::count(),
     ];
 
     $countsBefore = $countRows();
@@ -514,6 +519,30 @@ test('the platform operator is never seeded in production', function () {
 
     $this->app['env'] = 'testing';
     expect(PlatformAdmin::query()->count())->toBe(0);
+});
+
+test('consultorio-dos has two invoices issued by the fake issuer and one pending, idempotently', function () {
+    $this->seed(DatabaseSeeder::class);
+    $this->seed(DatabaseSeeder::class);
+
+    $organization = Organization::query()->where('slug', OrganizationsSeeder::ORGANIZATION_B_SLUG)->sole();
+    $invoices = Invoice::query()->orderBy('charged_at')->get();
+
+    expect($invoices)->toHaveCount(3)
+        ->and($invoices->pluck('organization_id')->unique()->all())->toBe([$organization->id])
+        ->and($invoices->pluck('status')->all())->toBe([InvoiceStatus::Issued, InvoiceStatus::Issued, InvoiceStatus::Pending])
+        ->and($invoices->pluck('number')->all())->toBe([1, 2, null])
+        ->and($invoices->pluck('environment')->filter()->unique()->all())->toBe([InvoiceEnvironment::Fake]);
+});
+
+test('invoices are never seeded in production', function () {
+    // Run directly: `db:seed` would stop to ask for confirmation in production.
+    $this->app['env'] = 'production';
+
+    $this->app->make(InvoicesSeeder::class)->run();
+
+    $this->app['env'] = 'testing';
+    expect(Invoice::query()->count())->toBe(0);
 });
 
 test('julian.staff is seeded with the documented second factor, idempotently', function () {

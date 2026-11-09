@@ -46,5 +46,14 @@
         <env name="PLAN_FREE_APPOINTMENT_WARNING_THRESHOLD" value="0"/>
         <env name="NATIONAL_MEDICATION_SEARCH_ENABLED" value="false"/>
         <env name="PROFESSIONAL_REGISTRY" value="fake"/>
+        <env name="INVOICE_ISSUER" value="fake"/>
+        <env name="INVOICE_VOUCHER_TYPE" value="11"/>
+        <env name="INVOICE_POINT_OF_SALE" value="1"/>
+        <env name="INVOICE_ISSUER_CUIT" value="20111111112"/>
+        <env name="INVOICE_ISSUER_NAME" value="Emisor de prueba"/>
+        <env name="INVOICE_ISSUER_ADDRESS" value="Calle Falsa 123, CABA"/>
+        <env name="INVOICE_ISSUER_GROSS_INCOME" value="20111111112"/>
+        <env name="INVOICE_ISSUER_ACTIVITY_START" value="2026-01-01"/>
+        <env name="ARCA_ENVIRONMENT" value="homologation"/>
     </php>
 </phpunit>
