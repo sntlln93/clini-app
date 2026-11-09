@@ -82,7 +82,13 @@ export function cardRows(
 ): Content {
     return {
         margin,
-        table: { widths: ['*'], body: rows.map((row) => [cardCell(row)]) },
+        table: {
+            widths: ['*'],
+            body: rows.map((row) => [cardCell(row)]),
+            // A row is one short item: split at a page's foot, it would leave
+            // an empty row there and its content on the next page.
+            dontBreakRows: true,
+        },
         layout: {
             ...cardLayout,
             paddingTop: () => 10,

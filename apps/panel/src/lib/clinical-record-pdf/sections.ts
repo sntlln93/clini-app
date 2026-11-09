@@ -143,8 +143,10 @@ export function accessLogSection(
                   style: 'trail',
                   table: {
                       headerRows: 1,
-                      // Never a heading alone at a page's foot: entries are one line.
+                      // Entries are one line: neither the heading row alone at a page's foot
+                      // nor a row split across two pages.
                       keepWithHeaderRows: 1,
+                      dontBreakRows: true,
                       widths: TRAIL_WIDTHS,
                       body: [
                           ['Fecha y hora', 'Profesional', 'Acción'].map(

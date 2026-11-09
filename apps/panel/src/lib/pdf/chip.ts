@@ -23,6 +23,8 @@ export function chip(
     return {
         table: {
             widths: ['auto'],
+            // Never split at a page's foot, its fill on two pages.
+            dontBreakRows: true,
             body: [
                 [
                     {
