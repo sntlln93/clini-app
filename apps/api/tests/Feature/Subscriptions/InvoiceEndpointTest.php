@@ -46,6 +46,7 @@ test('the owner reads the subscription\'s invoices, newest charge first, with wh
             'service_from' => '2026-10-03',
             'service_to' => '2026-11-02',
             'annual_discount_percent' => null,
+            'annual_list_amount_cents' => null,
             'voucher' => [
                 'letter' => 'C',
                 'type_code' => 11,
@@ -82,10 +83,11 @@ test('the QR follows RG 4892: ARCA\'s URL with the voucher as base64 JSON, numbe
 
 test('an annual invoice says the discount it got', function () {
     [$owner, $issued] = ownerWithInvoices();
-    $issued->forceFill(['annual_discount_percent' => 40])->save();
+    $issued->forceFill(['annual_discount_percent' => 40, 'annual_list_amount_cents' => 18000000])->save();
 
     $this->actingAs($owner->user)->getJson('/api/v1/subscription/invoices')
-        ->assertJsonPath('data.1.annual_discount_percent', 40);
+        ->assertJsonPath('data.1.annual_discount_percent', 40)
+        ->assertJsonPath('data.1.annual_list_amount_cents', 18000000);
 });
 
 test('only a voucher from ARCA\'s production services reads as fiscally valid', function () {

@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property array{cuit: string, name: string, address: string, vat_condition: string, gross_income: string, activity_start: string}|null $issuer
  */
-#[Fillable(['organization_id', 'subscription_id', 'provider', 'provider_payment_id', 'status', 'amount_cents', 'currency', 'charged_at', 'service_from', 'service_to', 'description', 'annual_discount_percent', 'environment', 'issuer_cuit', 'point_of_sale', 'voucher_type', 'number', 'issued_on', 'payment_due_on', 'cae', 'cae_expires_on', 'issued_at', 'issuer'])]
+#[Fillable(['organization_id', 'subscription_id', 'provider', 'provider_payment_id', 'status', 'amount_cents', 'currency', 'charged_at', 'service_from', 'service_to', 'description', 'annual_discount_percent', 'annual_list_amount_cents', 'environment', 'issuer_cuit', 'point_of_sale', 'voucher_type', 'number', 'issued_on', 'payment_due_on', 'cae', 'cae_expires_on', 'issued_at', 'issuer'])]
 class Invoice extends Model
 {
     /** @use HasFactory<InvoiceFactory> */
@@ -43,6 +43,7 @@ class Invoice extends Model
             'service_from' => 'immutable_date',
             'service_to' => 'immutable_date',
             'annual_discount_percent' => 'integer',
+            'annual_list_amount_cents' => 'integer',
             'environment' => InvoiceEnvironment::class,
             'point_of_sale' => 'integer',
             'voucher_type' => InvoiceVoucherType::class,
