@@ -14,6 +14,7 @@ use App\Enums\SubscriptionPaymentOutcome;
 use App\Enums\SubscriptionStatus;
 use App\Exceptions\Subscriptions\SubscriptionGatewayUnavailableException;
 use App\Models\Subscription;
+use App\Support\Cents;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use Illuminate\Http\Client\ConnectionException;
@@ -122,7 +123,7 @@ final class MercadoPagoService implements SubscriptionGateway
             providerSubscriptionId: $preapprovalId !== null ? $this->scalarString($preapprovalId) : null,
             outcome: $this->paymentOutcome($payload),
             chargedAt: $this->chargeDate($payload),
-            amountCents: $this->amountCents($payload['transaction_amount'] ?? null),
+            amountCents: Cents::fromAmount($payload['transaction_amount'] ?? null),
             currency: is_string($payload['currency_id'] ?? null) ? $payload['currency_id'] : null,
         );
     }
@@ -325,20 +326,6 @@ final class MercadoPagoService implements SubscriptionGateway
     private function chargeDate(array $payload): ?CarbonImmutable
     {
         return $this->parseDate($payload['debit_date'] ?? $payload['date_created'] ?? null);
-    }
-
-    /**
-     * `transaction_amount` is the charge's amount in currency units, a JSON
-     * number with up to two decimals; kept in cents so no float reaches an
-     * invoice. Null when absent or not a number.
-     */
-    private function amountCents(mixed $amount): ?int
-    {
-        if (! is_int($amount) && ! is_float($amount) && ! (is_string($amount) && is_numeric($amount))) {
-            return null;
-        }
-
-        return (int) round((float) $amount * 100);
     }
 
     /**

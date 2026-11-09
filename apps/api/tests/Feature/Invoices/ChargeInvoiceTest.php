@@ -239,6 +239,8 @@ test('an approved charge without an amount in pesos activates the subscription b
 })->with([
     'no amount' => [['transaction_amount' => null]],
     'another currency' => [['currency_id' => 'USD']],
+    // Beyond what the panel reads exactly: never a wrapped or imprecise amount.
+    'an amount too large to hold in cents' => [['transaction_amount' => 1.0e14]],
 ]);
 
 test('the invoice issuer is never resolved by the webhook itself', function () {

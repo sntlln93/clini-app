@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('billing')->default('monthly');
             // Amount of each charge (per month or per year, by `billing`)
             // last set at the provider, in whole pesos.
-            $table->unsignedInteger('amount')->nullable();
+            $table->unsignedBigInteger('amount')->nullable();
             $table->timestampsTz();
 
             $table->index(['status', 'grace_ends_at']);
