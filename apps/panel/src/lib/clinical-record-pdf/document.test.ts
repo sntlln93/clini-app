@@ -12,6 +12,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { statusChip } from './appointments';
 import type { ClinicalRecordLetterhead } from './branding';
 import { buildClinicalRecordDocument, keepTitlesWithContent } from './document';
+import { PAGE_CHROME } from './nodes';
 
 const LOGO = '<svg xmlns="http://www.w3.org/2000/svg" id="logo"></svg>';
 const ISOTYPE = '<svg xmlns="http://www.w3.org/2000/svg" id="isotype"></svg>';
@@ -54,6 +55,27 @@ function textOf(content: unknown): string {
     }
 
     return '';
+}
+
+/** Every node of a piece of content that prints a text of its own. */
+function textNodes(content: unknown): Record<string, unknown>[] {
+    if (Array.isArray(content)) {
+        return content.flatMap(textNodes);
+    }
+
+    if (!content || typeof content !== 'object') {
+        return [];
+    }
+
+    const node = content as Record<string, unknown>;
+    const table = node.table as { body?: unknown } | undefined;
+
+    return [
+        ...(node.text !== undefined && !Array.isArray(node.text) ? [node] : []),
+        ...[node.text, node.stack, node.columns, table?.body].flatMap((part) =>
+            Array.isArray(part) ? textNodes(part) : [],
+        ),
+    ];
 }
 
 function render(letterhead: ClinicalRecordLetterhead = LETTERHEAD) {
@@ -259,6 +281,104 @@ describe('buildClinicalRecordDocument', () => {
         );
     });
 
+    // #432: a title never ends a page alone, whatever the page holds.
+    it('keeps each title with what it titles, never with the page’s header and footer', () => {
+        const record = buildClinicalRecord();
+        const [withRecords] = record.appointments;
+        const plain = {
+            ...withRecords,
+            id: 50,
+            clinical_notes: [],
+            prescriptions: [],
+            vital_signs: [],
+        };
+        const document = buildClinicalRecordDocument(
+            {
+                ...record,
+                appointments: [plain, withRecords],
+                outside_appointments: {
+                    clinical_notes: withRecords.clinical_notes,
+                    prescriptions: [],
+                    vital_signs: [],
+                },
+            },
+            LETTERHEAD,
+        );
+        const json = (content: unknown) => JSON.stringify(content);
+        const content = (document.content as Content[]).flat();
+        const subtitles = content.filter(
+            (node) =>
+                typeof node === 'object' &&
+                'style' in node &&
+                node.style === 'meta',
+        );
+
+        // The sections' subtitles move with their titles.
+        expect(subtitles).toHaveLength(2);
+        expect(subtitles).toEqual(
+            subtitles.map(() => expect.objectContaining({ headlineLevel: 1 })),
+        );
+        // An appointment with records keeps its heading with them; one
+        // without is a plain row, never pushed ahead of the next.
+        const cards = content.filter((node) =>
+            json(node).includes('Motivo: Control'),
+        );
+        const [rows, card] = cards as unknown as Record<string, unknown>[];
+        expect(json(rows)).not.toContain('headlineLevel');
+        const [{ stack: inCard }] = (
+            card.table as { body: { stack: { stack: Content[] }[] }[][] }
+        ).body[0][0].stack;
+        const [heading] = inCard;
+        expect(textNodes(heading).length).toBeGreaterThan(0);
+        expect(textNodes(heading)).toEqual(
+            textNodes(heading).map(() =>
+                expect.objectContaining({ headlineLevel: 2 }),
+            ),
+        );
+        // The header's and footer's nodes are marked as the page's own.
+        for (const chrome of [
+            atPage(document.header, 1, 2),
+            atPage(document.footer, 1, 2),
+        ]) {
+            expect(textNodes(chrome)).toEqual(
+                textNodes(chrome).map(() =>
+                    expect.objectContaining({ style: PAGE_CHROME }),
+                ),
+            );
+        }
+    });
+
+    it('never leaves the trail’s heading row alone at a page’s foot', () => {
+        const trail = (render().content as Content[]).at(-1);
+
+        expect(trail).toMatchObject({
+            table: { headerRows: 1, keepWithHeaderRows: 1 },
+        });
+    });
+
+    // Outfit's Latin cut has no «≥» nor Greek: they would print as nothing.
+    it('sets in pdfmake’s own typeface the free text Outfit can’t draw', () => {
+        const record = buildClinicalRecord();
+        const [note] = record.appointments[0].clinical_notes;
+        note.versions[0].body = 'PA ≥ 140, iniciar β-bloqueante.';
+        record.patient.name = 'Zoë Παπαδοπούλου';
+        const document = buildClinicalRecordDocument(record, LETTERHEAD);
+        const json = JSON.stringify(document.content);
+
+        expect(json).toContain(
+            '"text":"PA ≥ 140, iniciar β-bloqueante.","preserveLeadingSpaces":true,"font":"Roboto"',
+        );
+        expect(json).toContain(
+            '{"text":"Zoë Παπαδοπούλου","margin":[0,2,0,0],"font":"Roboto"}',
+        );
+        expect(JSON.stringify(atPage(document.header, 1, 1))).toContain(
+            '"text":"Historia clínica · Zoë Παπαδοπούλου","fontSize":9,"color":"#5a6b6c","style":"pageChrome","font":"Roboto"',
+        );
+        expect(json).not.toContain(
+            '"text":"Nota enmendada.","preserveLeadingSpaces":true,"font"',
+        );
+    });
+
     it('says which medication was indicated despite an allergy warning, and the trail its confirmation (#362)', () => {
         const record = buildClinicalRecord();
         const [warned] = record.appointments.flatMap(
@@ -346,8 +466,13 @@ describe('buildClinicalRecordDocument', () => {
 });
 
 describe('keepTitlesWithContent', () => {
-    const node = (headlineLevel?: number, stack = false): Node => ({
+    const node = (
+        headlineLevel?: number,
+        stack = false,
+        style?: string,
+    ): Node => ({
         headlineLevel,
+        style,
         pageNumbers: [1],
         pages: 1,
         stack,
@@ -384,6 +509,17 @@ describe('keepTitlesWithContent', () => {
             keepTitlesWithContent(
                 node(1),
                 queries([node(undefined, true), node(2)]),
+            ),
+        ).toBe(true);
+    });
+
+    // pdfmake lists the header's and footer's nodes among the following
+    // ones on every page: counted as content, no title would ever move.
+    it('moves a title followed on the page only by the header and footer', () => {
+        expect(
+            keepTitlesWithContent(
+                node(1),
+                queries([node(undefined, false, PAGE_CHROME)]),
             ),
         ).toBe(true);
     });

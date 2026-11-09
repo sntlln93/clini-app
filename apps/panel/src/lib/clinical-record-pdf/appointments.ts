@@ -5,6 +5,7 @@ import { PDF_COLORS } from '@/lib/pdf/theme';
 import type { AppointmentStatus } from '@/types/appointment';
 import type { ClinicalRecordAppointment } from '@/types/clinical-record';
 import type { Content } from 'pdfmake/interfaces';
+import { asHeadline } from './nodes';
 import {
     at,
     nameOf,
@@ -142,7 +143,8 @@ function appointmentCards(
             card(
                 {
                     stack: [
-                        appointmentRow(appointment),
+                        // Kept with its first record (`keepTitlesWithContent`).
+                        asHeadline(appointmentRow(appointment)),
                         ...appointment.clinical_notes.map(noteBlock),
                         ...appointment.prescriptions.map(prescriptionBlock),
                         ...appointment.vital_signs.map(vitalSignBlock),

@@ -25,6 +25,15 @@ export function sectionTitle(text: string): Content {
     return { text, style: 'section', headlineLevel: 1 };
 }
 
+/**
+ * The line under a section's title. A title too, for
+ * `keepTitlesWithContent`: plain text would count as the section's content
+ * and leave the title and itself alone at a page's foot.
+ */
+export function sectionSubtitle(text: string): Content {
+    return { text, style: 'meta', margin: [0, -3, 0, 8], headlineLevel: 1 };
+}
+
 /** A label over its value. */
 export function field(label: string, value: string): Content {
     return {
@@ -125,17 +134,17 @@ export function accessLogSection(
 ): Content[] {
     return [
         sectionTitle('Registro de accesos'),
-        {
-            text: 'Quién leyó, escribió, enmendó, anuló o exportó esta historia, y cuándo.',
-            style: 'meta',
-            margin: [0, -3, 0, 8],
-        },
+        sectionSubtitle(
+            'Quién leyó, escribió, enmendó, anuló o exportó esta historia, y cuándo.',
+        ),
         entries.length === 0
             ? { text: 'No hay accesos registrados.', style: 'muted' }
             : {
                   style: 'trail',
                   table: {
                       headerRows: 1,
+                      // Never a heading alone at a page's foot: entries are one line.
+                      keepWithHeaderRows: 1,
                       widths: TRAIL_WIDTHS,
                       body: [
                           ['Fecha y hora', 'Profesional', 'Acción'].map(

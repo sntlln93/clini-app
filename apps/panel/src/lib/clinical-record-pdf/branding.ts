@@ -1,6 +1,7 @@
 import { brandMark, type Letterhead } from '@/lib/pdf/letterhead';
 import { PDF_COLORS } from '@/lib/pdf/theme';
 import type { Content, DynamicContent } from 'pdfmake/interfaces';
+import { asPageChrome } from './nodes';
 
 // Clini's brand on the history (#432): it accompanies the practice, which
 // every page still names, and never takes its place. Clini is the
@@ -43,7 +44,7 @@ export function clinicalRecordHeader(
     patient: string,
     letterhead: ClinicalRecordLetterhead,
 ): Content {
-    return {
+    return asPageChrome({
         margin: [SIDE_MARGIN, 26, SIDE_MARGIN, 0],
         stack: [
             {
@@ -69,7 +70,7 @@ export function clinicalRecordHeader(
             },
             { margin: [0, 9, 0, 0], stack: [rule(1.5, PDF_COLORS.primary)] },
         ],
-    };
+    });
 }
 
 /**
@@ -82,46 +83,47 @@ export function clinicalRecordFooter(
     patient: string,
     letterhead: ClinicalRecordLetterhead,
 ): DynamicContent {
-    return (currentPage, pageCount) => ({
-        margin: [SIDE_MARGIN, 14, SIDE_MARGIN, 0],
-        stack: [
-            rule(0.75, PDF_COLORS.border),
-            {
-                margin: [0, 8, 0, 0],
-                fontSize: 8,
-                color: PDF_COLORS.muted,
-                columnGap: 4,
-                columns: [
-                    {
-                        width: '*',
-                        text: `Historia clínica de ${patient} · ${organization}`,
-                        margin: [0, 0, 8, 0],
-                    },
-                    ...(letterhead.isotypeSvg
-                        ? [
-                              {
-                                  width: 8,
-                                  margin: [0, 1.5, 0, 0] as Margin,
-                                  svg: letterhead.isotypeSvg,
-                                  fit: [8, 8] as [number, number],
-                              },
-                          ]
-                        : []),
-                    {
-                        width: 'auto',
-                        noWrap: true,
-                        text: [
-                            'Generada con ',
-                            {
-                                text: letterhead.brandName,
-                                bold: true,
-                                color: PDF_COLORS.primary,
-                            },
-                            ` · Página ${currentPage} de ${pageCount}`,
-                        ],
-                    },
-                ],
-            },
-        ],
-    });
+    return (currentPage, pageCount) =>
+        asPageChrome({
+            margin: [SIDE_MARGIN, 14, SIDE_MARGIN, 0],
+            stack: [
+                rule(0.75, PDF_COLORS.border),
+                {
+                    margin: [0, 8, 0, 0],
+                    fontSize: 8,
+                    color: PDF_COLORS.muted,
+                    columnGap: 4,
+                    columns: [
+                        {
+                            width: '*',
+                            text: `Historia clínica de ${patient} · ${organization}`,
+                            margin: [0, 0, 8, 0],
+                        },
+                        ...(letterhead.isotypeSvg
+                            ? [
+                                  {
+                                      width: 8,
+                                      margin: [0, 1.5, 0, 0] as Margin,
+                                      svg: letterhead.isotypeSvg,
+                                      fit: [8, 8] as [number, number],
+                                  },
+                              ]
+                            : []),
+                        {
+                            width: 'auto',
+                            noWrap: true,
+                            text: [
+                                'Generada con ',
+                                {
+                                    text: letterhead.brandName,
+                                    bold: true,
+                                    color: PDF_COLORS.primary,
+                                },
+                                ` · Página ${currentPage} de ${pageCount}`,
+                            ],
+                        },
+                    ],
+                },
+            ],
+        });
 }

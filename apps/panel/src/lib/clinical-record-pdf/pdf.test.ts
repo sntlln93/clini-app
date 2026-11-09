@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import type { ClinicalRecordLetterhead } from './branding';
-import { buildClinicalRecordDocument } from './document';
+import { buildClinicalRecordDocument, keepTitlesWithContent } from './document';
 
 /** A PDF's bytes as Latin-1 text: its dictionaries are plain ASCII. */
 function textOf(buffer: Uint8Array): string {
@@ -78,4 +78,46 @@ describe('the clinical record drawn by pdfmake', () => {
         },
         30_000,
     );
+
+    // Before #432 the header's and footer's nodes counted as what followed a
+    // title, so no title ever moved. Pushed down row by row, the heading of
+    // an appointment with records reaches a page's foot and moves to the
+    // next page with its card, inside the card's table.
+    it('moves an appointment’s heading that would end a page alone', async () => {
+        const pdfMake = await loadPdfMake();
+        const moved: number[] = [];
+
+        for (let rows = 0; rows <= 8; rows += 1) {
+            const record = buildClinicalRecord();
+            const [appointment] = record.appointments;
+            record.appointments = [
+                ...Array.from({ length: rows }, (_, index) => ({
+                    ...appointment,
+                    id: 100 + index,
+                    clinical_notes: [],
+                    prescriptions: [],
+                    vital_signs: [],
+                })),
+                ...record.appointments,
+            ];
+            const document = buildClinicalRecordDocument(record, {
+                brandName: brand.name,
+                logoSvg: null,
+                isotypeSvg: null,
+            });
+            document.pageBreakBefore = (node, queries) => {
+                const moves = keepTitlesWithContent(node, queries);
+
+                if (moves && node.headlineLevel === 2 && node.columns) {
+                    moved.push(rows);
+                }
+
+                return moves;
+            };
+
+            await pdfMake.createPdf(document).getBuffer();
+        }
+
+        expect(moved.length).toBeGreaterThan(0);
+    }, 60_000);
 });

@@ -1,4 +1,5 @@
 import { band } from '@/lib/pdf/blocks';
+import { withFallbackFont } from '@/lib/pdf/glyphs';
 import { PDF_COLORS, PDF_FONT } from '@/lib/pdf/theme';
 import type { ClinicalRecordDocument } from '@/types/clinical-record';
 import type {
@@ -15,6 +16,7 @@ import {
     SIDE_MARGIN,
     type ClinicalRecordLetterhead,
 } from './branding';
+import { PAGE_CHROME } from './nodes';
 import { outsideAppointmentsSection } from './outside-appointments';
 import { at, nameOf } from './records';
 import { accessLogSection, documentOf, patientSection } from './sections';
@@ -23,10 +25,12 @@ import { accessLogSection, documentOf, patientSection } from './sections';
 const NOT_A_PRESCRIPTION = 'Este documento no es una receta.';
 
 /**
- * Moves a section's title to the next page when nothing of what it titles
- * would follow it on this one. Another title, or a stack wrapping it,
- * doesn't count: pdfmake checks each node only once, so a title followed
- * only by another title that moves would otherwise stay behind alone.
+ * Moves a title (a section's, an appointment's heading, a subtitle) to the
+ * next page when nothing of what it titles would follow it on this one.
+ * Another title, a stack wrapping it, and the page's header and footer,
+ * which pdfmake also lists among the following nodes, don't count: pdfmake
+ * checks each node only once, so a title followed only by another title
+ * that moves would otherwise stay behind alone.
  */
 export function keepTitlesWithContent(
     node: Node,
@@ -36,7 +40,9 @@ export function keepTitlesWithContent(
         node.headlineLevel !== undefined &&
         getFollowingNodesOnPage().every(
             (following) =>
-                following.stack || following.headlineLevel !== undefined,
+                following.style === PAGE_CHROME ||
+                following.stack ||
+                following.headlineLevel !== undefined,
         )
     );
 }
@@ -107,6 +113,7 @@ export function buildClinicalRecordDocument(
 ): TDocumentDefinitions {
     const organization = record.export.organization ?? '';
     const patient = record.patient.name;
+    const footer = clinicalRecordFooter(organization, patient, letterhead);
 
     return {
         pageSize: 'A4',
@@ -116,17 +123,23 @@ export function buildClinicalRecordDocument(
             creator: letterhead.brandName,
             producer: letterhead.brandName,
         },
-        header: () => clinicalRecordHeader(organization, patient, letterhead),
-        footer: clinicalRecordFooter(organization, patient, letterhead),
+        header: () =>
+            withFallbackFont(
+                clinicalRecordHeader(organization, patient, letterhead),
+            ),
+        footer: (currentPage, pageCount, pageSize) =>
+            withFallbackFont(
+                footer(currentPage, pageCount, pageSize) as Content,
+            ),
         pageBreakBefore: keepTitlesWithContent,
-        content: [
+        content: withFallbackFont([
             ...cover(record, organization),
             ...patientSection(record.patient),
             ...backgroundSection(record.blood_types, record.medical_history),
             ...appointmentsSection(record.appointments),
             ...outsideAppointmentsSection(record.outside_appointments),
             ...accessLogSection(record.access_log),
-        ],
+        ]),
         defaultStyle: {
             font: PDF_FONT,
             fontSize: 10,
