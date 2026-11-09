@@ -555,6 +555,7 @@ Table invoices {
   service_from date [not null]
   service_to date [not null]
   description varchar [not null]
+  annual_discount_percent smallint [null, note: 'Annual discount an annual charge got, printed under its line; null when monthly or when the charge is not the discounted price']
   environment varchar [null, note: 'InvoiceEnvironment: production | homologation | fake']
   issuer_cuit varchar [null]
   point_of_sale integer [null]
