@@ -6,6 +6,7 @@ use App\Models\Membership;
 use App\Models\Organization;
 use App\Models\ProfessionalService;
 use App\Models\Service;
+use App\Support\Cents;
 use App\Support\CurrentOrganization;
 use Illuminate\Support\Facades\DB;
 
@@ -257,3 +258,29 @@ test('a guest gets 401 on index, store, update and destroy', function () {
     ])->assertStatus(401);
     $this->deleteJson("/api/v1/memberships/{$membership->id}/services/{$professionalService->service_id}")->assertStatus(401);
 });
+
+test('a service price past what a 32-bit integer holds is kept', function () {
+    $membership = Membership::factory()->create();
+    $service = Service::factory()->create();
+
+    // $ 25.000.000: past int4's 2.147.483.647 cents.
+    $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/services", [
+        'service_id' => $service->id,
+        'duration_minutes' => 30,
+        'price_cents' => 2_500_000_000,
+    ])->assertCreated();
+
+    expect(DB::table('professional_services')->where('membership_id', $membership->id)->value('price_cents'))->toBe(2_500_000_000);
+});
+
+test('a service price beyond what the panel reads exactly returns 422', function (string $method) {
+    $membership = Membership::factory()->create();
+    $service = Service::factory()->create();
+    $professionalService = ProfessionalService::factory()->create(['membership_id' => $membership->id, 'organization_id' => $membership->organization_id, 'service_id' => $service->id]);
+
+    $response = $method === 'store'
+        ? $this->actingAs($membership->user)->postJson("/api/v1/memberships/{$membership->id}/services", ['service_id' => $service->id, 'duration_minutes' => 30, 'price_cents' => Cents::MAX_EXACT + 1])
+        : $this->actingAs($membership->user)->patchJson("/api/v1/memberships/{$membership->id}/services/{$service->id}", ['service_id' => $service->id, 'duration_minutes' => 30, 'price_cents' => Cents::MAX_EXACT + 1]);
+
+    $response->assertStatus(422)->assertJsonValidationErrors('price_cents');
+})->with(['store', 'update']);

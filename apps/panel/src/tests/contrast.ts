@@ -106,5 +106,17 @@ export function createPalette(css: string) {
         return (lighter + 0.05) / (darker + 0.05);
     }
 
-    return { contrast };
+    /** A color expression as an opaque `#rrggbb`, a translucent one over the page background. */
+    function hex(theme: Theme, expression: ColorExpression): string {
+        const [r, g, b] = resolve(
+            theme,
+            expression,
+            token(theme, 'background'),
+        );
+        return `#${[r, g, b]
+            .map((channel) => Math.round(channel).toString(16).padStart(2, '0'))
+            .join('')}`;
+    }
+
+    return { contrast, hex };
 }

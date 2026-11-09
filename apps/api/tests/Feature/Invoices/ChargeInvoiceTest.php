@@ -157,7 +157,37 @@ test('an annual charge covers twelve months', function () {
         ->and($invoice->amount_cents)->toBe(10800000)
         ->and($invoice->description)->toBe('Suscripción anual a Clini, plan Consultorio')
         // $ 15.000 a month, 40 % off, for a year: exactly what was charged.
-        ->and($invoice->annual_discount_percent)->toBe(40);
+        ->and($invoice->annual_discount_percent)->toBe(40)
+        // Twelve undiscounted months: the PDF says the year saved $ 72.000 (#431).
+        ->and($invoice->annual_list_amount_cents)->toBe(18000000);
+});
+
+test('an annual charge keeps the list price of the professionals it was charged for', function () {
+    Queue::fake([IssueInvoiceJob::class]);
+    // Seven active professionals: $ 25.000 a month, $ 15.000 with the discount.
+    fakeCharge('7001', overrides: ['transaction_amount' => 180000]);
+    $subscription = chargedSubscription();
+    $subscription->forceFill(['billing' => 'annual'])->save();
+    Membership::factory()->professional()->count(7)->create(['organization_id' => $subscription->organization_id]);
+
+    postChargeNotification('7001', '9001')->assertOk();
+
+    expect(Invoice::withoutGlobalScope('organization')->sole()->annual_list_amount_cents)->toBe(30000000);
+});
+
+test('an annual list price too large to read exactly is not kept, and the invoice claims no discount', function () {
+    Queue::fake([IssueInvoiceJob::class]);
+    // A month of 7.5 trillion pesos: the discounted year in cents still fits
+    // in 2^53, and the charge is exactly it, but the list year doesn't.
+    config(['plans.practice.base_amount' => 7_506_000_000_000]);
+    fakeCharge('7001', overrides: ['transaction_amount' => 54_043_200_000_000]);
+    chargedSubscription()->forceFill(['billing' => 'annual'])->save();
+
+    postChargeNotification('7001', '9001')->assertOk();
+
+    $invoice = Invoice::withoutGlobalScope('organization')->sole();
+    expect($invoice->annual_discount_percent)->toBeNull()
+        ->and($invoice->annual_list_amount_cents)->toBeNull();
 });
 
 test('an annual charge that is not the discounted price claims no discount', function () {
@@ -168,7 +198,9 @@ test('an annual charge that is not the discounted price claims no discount', fun
 
     postChargeNotification('7001', '9001')->assertOk();
 
-    expect(Invoice::withoutGlobalScope('organization')->sole()->annual_discount_percent)->toBeNull();
+    $invoice = Invoice::withoutGlobalScope('organization')->sole();
+    expect($invoice->annual_discount_percent)->toBeNull()
+        ->and($invoice->annual_list_amount_cents)->toBeNull();
 });
 
 test('a monthly charge has no annual discount', function () {
@@ -178,7 +210,9 @@ test('a monthly charge has no annual discount', function () {
 
     postChargeNotification('7001', '9001')->assertOk();
 
-    expect(Invoice::withoutGlobalScope('organization')->sole()->annual_discount_percent)->toBeNull();
+    $invoice = Invoice::withoutGlobalScope('organization')->sole();
+    expect($invoice->annual_discount_percent)->toBeNull()
+        ->and($invoice->annual_list_amount_cents)->toBeNull();
 });
 
 test('the service period starts on the charge\'s day in Argentina', function () {
@@ -239,6 +273,8 @@ test('an approved charge without an amount in pesos activates the subscription b
 })->with([
     'no amount' => [['transaction_amount' => null]],
     'another currency' => [['currency_id' => 'USD']],
+    // Beyond what the panel reads exactly: never a wrapped or imprecise amount.
+    'an amount too large to hold in cents' => [['transaction_amount' => 1.0e14]],
 ]);
 
 test('the invoice issuer is never resolved by the webhook itself', function () {

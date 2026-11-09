@@ -41,6 +41,10 @@ return new class extends Migration
             // its line; null when monthly, or when the charge doesn't match
             // the discounted price (the discount can't be told apart then).
             $table->unsignedTinyInteger('annual_discount_percent')->nullable();
+            // The year at list price (twelve undiscounted months, in cents),
+            // so the PDF can say how much the discount saved (#431). Set with
+            // the discount, under the same condition; bigint like the amount.
+            $table->unsignedBigInteger('annual_list_amount_cents')->nullable();
             // InvoiceEnvironment, InvoiceVoucherType and the issuer, as they
             // were when the number was reserved.
             $table->string('environment')->nullable();

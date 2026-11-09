@@ -49,5 +49,10 @@ export type Invoice = {
      * when monthly, or when the charge isn't the discounted price.
      */
     annual_discount_percent: number | null;
+    /**
+     * The year at list price (twelve undiscounted months), in cents: set with
+     * `annual_discount_percent`, so the PDF says what the discount saved.
+     */
+    annual_list_amount_cents: number | null;
     voucher: InvoiceVoucher | null;
 };

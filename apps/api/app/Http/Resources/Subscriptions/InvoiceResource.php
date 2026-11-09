@@ -48,6 +48,7 @@ class InvoiceResource extends JsonResource
             'service_from' => $serviceFrom->toDateString(),
             'service_to' => $serviceTo->toDateString(),
             'annual_discount_percent' => $invoice->annual_discount_percent,
+            'annual_list_amount_cents' => $invoice->annual_list_amount_cents,
             'voucher' => $status === InvoiceStatus::Issued ? $this->voucher($invoice) : null,
         ];
     }

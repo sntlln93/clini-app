@@ -11,6 +11,7 @@ use App\Enums\InvoiceStatus;
 use App\Enums\SubscriptionBilling;
 use App\Enums\SubscriptionPaymentOutcome;
 use App\Models\Invoice;
+use App\Support\Cents;
 use App\Support\OrganizationPlan;
 use App\Support\PracticePricing;
 use Carbon\CarbonImmutable;
@@ -30,8 +31,9 @@ use Illuminate\Support\Facades\Log;
  * The service period starts on the charge's billing date (in Argentina) and
  * covers the months the subscription charges for. The amount is what the
  * provider charged, never the plan's price. An annual charge keeps the
- * annual discount it got, printed as a note under its line, only when it is
- * exactly the discounted price for the practice's active professionals:
+ * annual discount it got and the year at list price, printed as a note
+ * under its line with what it saved, only when it is exactly the discounted
+ * price for the practice's active professionals:
  * otherwise (the price or the team changed since) the discount can't be told
  * apart, and the invoice claims none.
  *
@@ -96,21 +98,46 @@ final class RecordChargeInvoiceAction implements Action
             'service_from' => $serviceFrom->toDateString(),
             'service_to' => $serviceFrom->addMonthsNoOverflow($billing->months())->subDay()->toDateString(),
             'description' => self::description($billing),
-            'annual_discount_percent' => $this->annualDiscountPercent($billing, $subscription->organization_id, $payment->amountCents),
+            ...$this->annualDiscount($billing, $subscription->organization_id, $payment->amountCents),
         ]);
     }
 
-    private function annualDiscountPercent(SubscriptionBilling $billing, int $organizationId, int $amountCents): ?int
+    /**
+     * The discount an annual charge got and the year at list price (twelve
+     * undiscounted months), so the PDF can say how much it saved (#431): both
+     * or neither, only when the charge is exactly the discounted price. A
+     * list price too large for the panel to read exactly (or for PHP's int to
+     * hold) is bounded out before any product, and the invoice then claims
+     * nothing.
+     *
+     * @return array{annual_discount_percent: ?int, annual_list_amount_cents: ?int}
+     */
+    private function annualDiscount(SubscriptionBilling $billing, int $organizationId, int $amountCents): array
     {
+        $none = ['annual_discount_percent' => null, 'annual_list_amount_cents' => null];
         $percent = $this->pricing->annualDiscountPercent();
 
         if ($billing !== SubscriptionBilling::Annual || $percent === 0) {
-            return null;
+            return $none;
         }
 
-        $discounted = $this->pricing->amount($this->plans->activeProfessionals($organizationId), $billing) * 100;
+        $professionals = $this->plans->activeProfessionals($organizationId);
+        $monthly = $this->pricing->monthlyAmount($professionals);
+        $centsPerMonth = $billing->months() * 100;
 
-        return $amountCents === $discounted ? $percent : null;
+        // The discounted year is never above the list one: bounding the
+        // list price bounds both products.
+        if ($monthly > intdiv(Cents::MAX_EXACT, $centsPerMonth)) {
+            return $none;
+        }
+
+        if ($amountCents !== $this->pricing->amount($professionals, $billing) * 100) {
+            return $none;
+        }
+
+        $listCents = $monthly * $centsPerMonth;
+
+        return ['annual_discount_percent' => $percent, 'annual_list_amount_cents' => $listCents];
     }
 
     private static function description(SubscriptionBilling $billing): string

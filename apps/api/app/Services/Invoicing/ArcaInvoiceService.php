@@ -13,6 +13,7 @@ use App\Exceptions\Invoices\InvoiceIssuerUnavailableException;
 use App\Exceptions\Invoices\InvoiceVoucherRejectedException;
 use App\Support\ArcaAccessTicket;
 use App\Support\ArcaSoap;
+use App\Support\Cents;
 use Carbon\CarbonImmutable;
 use Carbon\Exceptions\InvalidFormatException;
 use DOMNode;
@@ -140,9 +141,9 @@ final class ArcaInvoiceService implements InvoiceIssuer
         $this->ensureNoErrors($xpath, 'FECompConsultar');
         $found = ArcaSoap::nodes($xpath, 'FECompConsultarResult/ResultGet')[0] ?? null;
         $cae = $found !== null ? ArcaSoap::text($xpath, 'CodAutorizacion', $found) : null;
-        $total = $found !== null ? ArcaSoap::text($xpath, 'ImpTotal', $found) : null;
+        $total = $found !== null ? Cents::fromAmount(ArcaSoap::text($xpath, 'ImpTotal', $found)) : null;
 
-        if ($found === null || $cae === null || $total === null || ! is_numeric($total) || ArcaSoap::text($xpath, 'Resultado', $found) !== 'A') {
+        if ($found === null || $cae === null || $total === null || ArcaSoap::text($xpath, 'Resultado', $found) !== 'A') {
             return null;
         }
 
@@ -151,7 +152,7 @@ final class ArcaInvoiceService implements InvoiceIssuer
             cae: $cae,
             caeExpiresOn: $this->answeredDate($xpath, 'FchVto', $found, 'FECompConsultar'),
             issuedOn: $this->answeredDate($xpath, 'CbteFch', $found, 'FECompConsultar'),
-            amountCents: (int) round((float) $total * 100),
+            amountCents: $total,
         );
     }
 

@@ -5,6 +5,7 @@ import { renderClinicalRecordPdf } from './render';
 
 const pdfMake = vi.hoisted(() => ({
     addVirtualFileSystem: vi.fn(),
+    addFonts: vi.fn(),
     createPdf: vi.fn(),
 }));
 

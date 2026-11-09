@@ -6,6 +6,7 @@ namespace App\Http\Requests\Professionals;
 
 use App\Models\Membership;
 use App\Rules\BelongsToCurrentOrganization;
+use App\Support\Cents;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreProfessionalServiceRequest extends FormRequest
@@ -33,7 +34,7 @@ class StoreProfessionalServiceRequest extends FormRequest
             'membership_id' => ['required', new BelongsToCurrentOrganization(Membership::class)],
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'duration_minutes' => ['required', 'integer', 'min:1'],
-            'price_cents' => ['nullable', 'integer', 'min:0'],
+            'price_cents' => ['nullable', 'integer', 'min:0', 'max:'.Cents::MAX_EXACT],
             'active' => ['sometimes', 'boolean'],
         ];
     }
