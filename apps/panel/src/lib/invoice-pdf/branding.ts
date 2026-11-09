@@ -1,22 +1,13 @@
+import {
+    brandMark as drawBrandMark,
+    type Letterhead,
+} from '@/lib/pdf/letterhead';
 import { PDF_COLORS } from '@/lib/pdf/theme';
 import type { Content, DynamicContent } from 'pdfmake/interfaces';
 
-export type InvoiceLetterhead = {
-    brandName: string;
-    /** The manifest's `logotype.light`, or null when it couldn't be read. */
-    logoSvg: string | null;
-};
-
 /** Clini's logotype atop the issuer, or its name when the logotype couldn't be read. */
-export function brandMark(letterhead: InvoiceLetterhead): Content {
-    return letterhead.logoSvg
-        ? { svg: letterhead.logoSvg, fit: [110, 32] }
-        : {
-              text: letterhead.brandName,
-              bold: true,
-              fontSize: 18,
-              color: PDF_COLORS.primary,
-          };
+export function brandMark(letterhead: Letterhead): Content {
+    return drawBrandMark(letterhead, [110, 32], 18);
 }
 
 /** Every page's foot: where the invoices are in the panel, and the page. */

@@ -1,10 +1,11 @@
 import { formatInvoiceDate } from '@/lib/invoices';
 import { cardRow, pill, pillsRight } from '@/lib/pdf/blocks';
+import type { Letterhead } from '@/lib/pdf/letterhead';
 import { PDF_COLORS } from '@/lib/pdf/theme';
 import { formatPriceCents } from '@/lib/price';
 import type { InvoiceVoucher } from '@/types/invoice';
 import type { Column, Content } from 'pdfmake/interfaces';
-import { brandMark, type InvoiceLetterhead } from './branding';
+import { brandMark } from './branding';
 
 export function money(cents: number): string {
     return formatPriceCents(cents) ?? '';
@@ -73,7 +74,7 @@ function letter(voucher: InvoiceVoucher): Column {
  */
 export function heading(
     voucher: InvoiceVoucher,
-    letterhead: InvoiceLetterhead,
+    letterhead: Letterhead,
 ): Content {
     const pills = [pill('Original', 'info')];
 
