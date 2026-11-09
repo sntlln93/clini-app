@@ -1,6 +1,7 @@
 import { STATUS_LABELS, STRUCK_STATUSES } from '@/lib/appointment-status';
 import { card, cardRows } from '@/lib/pdf/blocks';
-import { chip, type ChipColors } from '@/lib/pdf/chip';
+import type { ChipColors } from '@/lib/pdf/chip';
+import { svgPill } from '@/lib/pdf/pill-svg';
 import { PDF_COLORS } from '@/lib/pdf/theme';
 import type { AppointmentStatus } from '@/types/appointment';
 import type { ClinicalRecordAppointment } from '@/types/clinical-record';
@@ -44,8 +45,16 @@ const STATUS_CHIPS: Record<AppointmentStatus, ChipColors> = {
     rescheduled: SCHEDULED,
 };
 
+/**
+ * Every status pill is as wide as the longest label, «Reprogramado» (54.4 pt
+ * in Outfit Medium at 8 pt), plus room on both sides: one column of equal
+ * pills down the card.
+ */
+export const STATUS_PILL_WIDTH = 72;
+
 export function statusChip(status: AppointmentStatus): Content {
-    return chip(STATUS_LABELS[status], STATUS_CHIPS[status], {
+    return svgPill(STATUS_LABELS[status], STATUS_CHIPS[status], {
+        width: STATUS_PILL_WIDTH,
         struck: STRUCK_STATUSES.includes(status),
     });
 }
@@ -102,7 +111,10 @@ function appointmentRow(appointment: ClinicalRecordAppointment): Content {
                         : []),
                 ],
             },
-            { width: 'auto', stack: [statusChip(appointment.status)] },
+            {
+                width: STATUS_PILL_WIDTH,
+                stack: [statusChip(appointment.status)],
+            },
         ],
     };
 }

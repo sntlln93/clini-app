@@ -1,7 +1,9 @@
 /// <reference types="node" />
+import { STATUS_LABELS } from '@/lib/appointment-status';
 import { setPracticeTimeZone } from '@/lib/datetime';
 import { loadPdfMake } from '@/lib/pdf/pdfmake';
 import { buildClinicalRecord } from '@/tests/fixtures/clinical-record';
+import type { AppointmentStatus } from '@/types/appointment';
 import { brand } from '@clini/brand';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -24,9 +26,25 @@ function brandFile(file: string): string {
     return readFileSync(join(root, 'assets', file), 'utf-8');
 }
 
-/** A history long enough to span pages: the trail repeated. */
+/**
+ * A history long enough to span pages: an appointment in every status, then
+ * the trail repeated.
+ */
 function longRecord() {
     const record = buildClinicalRecord();
+    const [appointment] = record.appointments;
+    record.appointments.push(
+        ...(Object.keys(STATUS_LABELS) as AppointmentStatus[]).map(
+            (status, index) => ({
+                ...appointment,
+                id: 300 + index,
+                status,
+                clinical_notes: [],
+                prescriptions: [],
+                vital_signs: [],
+            }),
+        ),
+    );
     const [entry] = record.access_log;
     record.access_log = Array.from({ length: 120 }, (_, index) => ({
         ...entry,

@@ -9,7 +9,7 @@ import type {
     NodeQueries,
 } from 'pdfmake/interfaces';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { statusChip } from './appointments';
+import { STATUS_PILL_WIDTH, statusChip } from './appointments';
 import type { ClinicalRecordLetterhead } from './branding';
 import { buildClinicalRecordDocument, keepTitlesWithContent } from './document';
 import { PAGE_CHROME } from './nodes';
@@ -46,6 +46,14 @@ function textOf(content: unknown): string {
 
         if (Array.isArray(node.text)) {
             return node.text.map(textOf).join('');
+        }
+
+        // An image's text, as a status pill prints it.
+        if (typeof node.svg === 'string') {
+            return Array.from(
+                node.svg.matchAll(/<text[^>]*>([^<]*)<\/text>/g),
+                ([, text]) => text,
+            ).join('\n');
         }
 
         return [node.text, node.stack, node.columns, node.ul, table?.body]
@@ -258,27 +266,52 @@ describe('buildClinicalRecordDocument', () => {
         expect(text).toContain(
             'Motivo: Control · Cancelado el 03/09/2026 09:00 (Viaje)',
         );
+        const svgOf = (status: Parameters<typeof statusChip>[0]) =>
+            (statusChip(status) as { svg: string }).svg;
+
+        // One rounded pill per status, drawn as an image: it never splits
+        // across pages, and every pill is as wide as the longest label.
         expect(statusChip('no_show')).toMatchObject({
-            table: {
-                body: [[{ text: 'Ausente', color: PDF_COLORS.statusNoShow }]],
-            },
+            width: STATUS_PILL_WIDTH,
         });
-        expect(statusChip('cancelled')).toMatchObject({
-            table: {
-                body: [
-                    [
-                        {
-                            text: 'Cancelado',
-                            color: PDF_COLORS.statusScheduled,
-                            decoration: 'lineThrough',
-                        },
-                    ],
-                ],
-            },
-        });
-        expect(JSON.stringify(statusChip('completed'))).not.toContain(
-            'lineThrough',
+        expect(svgOf('no_show')).toContain(
+            `fill="${PDF_COLORS.statusNoShowWash}"`,
         );
+        expect(svgOf('no_show')).toMatch(
+            new RegExp(`fill="${PDF_COLORS.statusNoShow}"[^>]*>Ausente</text>`),
+        );
+        expect(svgOf('cancelled')).toMatch(
+            new RegExp(
+                `fill="${PDF_COLORS.statusScheduled}" text-decoration="line-through">Cancelado</text>`,
+            ),
+        );
+        expect(svgOf('rescheduled')).toContain('line-through');
+        expect(svgOf('completed')).not.toContain('line-through');
+    });
+
+    // A row split at a page's foot left an empty row there and its content,
+    // its pill torn, on the next page.
+    it('never splits a short row across two pages', () => {
+        const record = buildClinicalRecord();
+        const plain = {
+            ...record.appointments[0],
+            clinical_notes: [],
+            prescriptions: [],
+            vital_signs: [],
+        };
+        const content = (
+            buildClinicalRecordDocument(
+                { ...record, appointments: [plain] },
+                LETTERHEAD,
+            ).content as Content[]
+        ).flat();
+        const rows = content.find((node) =>
+            JSON.stringify(node).includes('Motivo: Control'),
+        );
+        const trail = content.at(-1);
+
+        expect(rows).toMatchObject({ table: { dontBreakRows: true } });
+        expect(trail).toMatchObject({ table: { dontBreakRows: true } });
     });
 
     // #432: a title never ends a page alone, whatever the page holds.
