@@ -90,7 +90,12 @@ describe('buildInvoiceDocument', () => {
         expect(text).toContain('Factura');
         expect(text).toContain('Original');
         expect(text).toContain('Cód. 011');
-        expect(text).toMatch(/\bC\b/);
+        // The voucher's letter, drawn in its box.
+        expect(
+            nodesOf(buildInvoiceDocument(issued(), LETTERHEAD).content).some(
+                (node) => node.text === 'C' && node.fontSize === 26,
+            ),
+        ).toBe(true);
         // The point of sale and the voucher number, as ARCA numbers it.
         expect(text).toContain('00001-00000012');
         expect(text).toContain('Emitida el 03/10/2026');
