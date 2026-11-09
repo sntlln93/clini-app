@@ -1,3 +1,5 @@
+import { centsToDecimal } from '@/lib/price';
+
 const PESOS_FORMAT = new Intl.NumberFormat('es-AR', {
     style: 'currency',
     currency: 'ARS',
@@ -9,9 +11,9 @@ export function centsToPesosInput(cents: number | null): string {
         return '';
     }
 
-    return cents % 100 === 0
-        ? String(cents / 100)
-        : (cents / 100).toFixed(2).replace('.', ',');
+    const [pesos, fraction] = centsToDecimal(cents).split('.');
+
+    return fraction === '00' ? pesos : `${pesos},${fraction}`;
 }
 
 // es-AR amounts: dots group thousands in threes ("15.000"), a comma starts the
@@ -39,16 +41,20 @@ export function pesosInputToCents(value: string): number | null | undefined {
         return undefined;
     }
 
-    const cents = Math.round(Number(normalized) * 100);
+    // Worked out on the digits: a float times 100 lands a cent off past 2^46
+    // pesos. Beyond 2^53 - 1 cents neither a number nor the API holds it, so
+    // too large is as invalid as malformed.
+    const [pesos, fraction = ''] = normalized.split('.');
+    const cents = BigInt(pesos) * 100n + BigInt(fraction.padEnd(2, '0'));
 
-    // Beyond 2^53 a number is no longer exact to the cent (nor does the API
-    // take it): too large is as invalid as malformed.
-    return Number.isSafeInteger(cents) ? cents : undefined;
+    return cents <= BigInt(Number.MAX_SAFE_INTEGER) ? Number(cents) : undefined;
 }
 
 /** e.g. 1500000 → "$ 15.000,00". */
 export function formatPesos(cents: number): string {
-    return PESOS_FORMAT.format(cents / 100);
+    return PESOS_FORMAT.format(
+        centsToDecimal(cents) as Intl.StringNumericLiteral,
+    );
 }
 
 /** Whole minutes ≥ 1, or `undefined` for an empty/invalid field. */

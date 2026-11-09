@@ -56,8 +56,24 @@ describe('service price conversion', () => {
         // $ 25.000.000, past what a 32-bit integer holds in cents.
         ['25.000.000', 2_500_000_000],
         ['90071992547409,91', Number.MAX_SAFE_INTEGER],
+        // A float times 100 would land a cent off at these magnitudes.
+        ['80.000.000.000.000,01', 8_000_000_000_000_001],
+        ['90071992547400,01', 9_007_199_254_740_001],
     ])('takes "%s", a large price, exactly', (pesos, cents) => {
         expect(pesosInputToCents(pesos)).toBe(cents);
+    });
+
+    it.each([
+        [8_000_000_000_000_001, '80000000000000,01', '$ 80.000.000.000.000,01'],
+        [
+            Number.MAX_SAFE_INTEGER,
+            '90071992547409,91',
+            '$ 90.071.992.547.409,91',
+        ],
+    ])('shows %i cents exactly to the cent', (cents, input, shown) => {
+        expect(centsToPesosInput(cents)).toBe(input);
+        expect(pesosInputToCents(centsToPesosInput(cents))).toBe(cents);
+        expect(formatPesos(cents).replace(/\s/g, ' ')).toBe(shown);
     });
 
     it.each([0, 99, 5050, 1999, 1500000, 1500050])(
